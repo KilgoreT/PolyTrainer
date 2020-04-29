@@ -1,0 +1,5 @@
+rootProject.name='PolyTrainer'
+include ':app'
+include ':core-db'
+include ':core-db-api'
+include ':core-db-impl'
