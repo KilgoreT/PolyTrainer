@@ -1,18 +1,17 @@
 package me.apomazkin.polytrainer
 
 import android.os.Bundle
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.NavController
+import androidx.navigation.Navigation
 import me.apomazkin.core_db_api.CoreDbProvider
-import me.apomazkin.feature_vocabulary.MockFragment
+import me.apomazkin.feature_bottom_menu_impl.di.FeatureBottomMenuComponent
 import javax.inject.Inject
 
 class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var coreDbProvider: CoreDbProvider
-
-    private val fragment = MockFragment()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,15 +20,14 @@ class MainActivity : AppCompatActivity() {
         App.getComponent().inject(this)
 
 //        coreDbProvider.getCoreDbApi().insert("zhopa1")
-        coreDbProvider.getCoreDbApi().insert("pizka1")
+//        coreDbProvider.getCoreDbApi().insert("pizka1")
 
-        Log.d("###", "123123")
+        val api = FeatureBottomMenuComponent.getOrInit(getNavController())
+        api.featureBottomMenuNavigator().start()
+    }
 
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.mock, fragment)
-            .commit()
-
+    private fun getNavController(): NavController {
+        return Navigation.findNavController(this, R.id.mainFragmentContainer)
     }
 
 }

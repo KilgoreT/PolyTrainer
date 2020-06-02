@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/bottom_menu_navigation"
+    app:startDestination="@id/bottomMenuFragment"
+    tools:ignore="UnusedNavigation">
+
+    <fragment
+        android:id="@+id/bottomMenuFragment"
+        android:name="me.apomazkin.feature_bottom_menu_impl.ui.BottomMenuFragment"
+        android:label="fragment_bottom_menu"
+        tools:layout="@layout/fragment_bottom_menu" />
+</navigation>
