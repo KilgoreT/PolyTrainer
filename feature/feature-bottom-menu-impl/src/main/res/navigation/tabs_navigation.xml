@@ -10,6 +10,7 @@
         android:name="me.apomazkin.feature_bottom_menu_impl.ui.tab.BlankFragment01"
         android:label="fragment_blank01"
         tools:layout="@layout/fragment_blank01" />
+
     <fragment
         android:id="@+id/blankFragment02"
         android:name="me.apomazkin.feature_bottom_menu_impl.ui.tab.BlankFragment02"

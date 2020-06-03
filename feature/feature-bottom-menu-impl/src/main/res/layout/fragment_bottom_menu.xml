@@ -12,11 +12,10 @@
         android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:navGraph="@navigation/tabs"
+        app:navGraph="@navigation/tabs_navigation"
         design:layout_constraintBottom_toTopOf="@id/bottomMenu"
         design:layout_constraintTop_toTopOf="parent"
-
-        />
+        tools:ignore="FragmentTagUsage" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomMenu"

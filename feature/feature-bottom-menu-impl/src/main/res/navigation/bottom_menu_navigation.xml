@@ -11,4 +11,5 @@
         android:name="me.apomazkin.feature_bottom_menu_impl.ui.BottomMenuFragment"
         android:label="fragment_bottom_menu"
         tools:layout="@layout/fragment_bottom_menu" />
+
 </navigation>

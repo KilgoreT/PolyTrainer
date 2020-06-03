@@ -26,22 +26,24 @@ class BottomMenuFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupAppBar()
+        setupBottomMenu()
+    }
+
+    private fun setupAppBar() {
         val appBarConfiguration = AppBarConfiguration
-            .Builder(
-                setOf(
-                    R.id.blankFragment01,
-                    R.id.blankFragment02
-                )
-            )
+            .Builder(setOf(R.id.blankFragment01, R.id.blankFragment02))
             .build()
         NavigationUI.setupActionBarWithNavController(
             requireActivity() as AppCompatActivity,
             getNavController(),
             appBarConfiguration
         )
+    }
+
+    private fun setupBottomMenu() {
         bottomMenu.setOnNavigationItemReselectedListener { }
         bottomMenu.setupWithNavController(getNavController())
-
     }
 
     private fun getNavController(): NavController {
