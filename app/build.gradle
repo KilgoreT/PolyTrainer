@@ -5,7 +5,7 @@ apply plugin: 'kotlin-kapt'
 
 android {
     compileSdkVersion 29
-    buildToolsVersion "29.0.2"
+    buildToolsVersion "29.0.3"
 
     defaultConfig {
         applicationId "me.apomazkin.polytrainer"
@@ -43,6 +43,10 @@ android {
         jvmTarget = "1.8"
     }
 
+    buildFeatures {
+        dataBinding = true
+    }
+
 }
 
 dependencies {
@@ -61,7 +65,6 @@ dependencies {
 
     //Dagger2
     implementation 'com.google.dagger:dagger:2.27'
-//    compileOnly 'org.glassfish:javax.annotation:10.0-b28'
     kapt "com.google.dagger:dagger-compiler:2.25.2"
 
     //Navigation
