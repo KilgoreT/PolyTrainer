@@ -5,10 +5,11 @@
     android:layout_height="match_parent"
     tools:context=".ui.tab.BlankFragment01">
 
-    <TextView
+    <fragment
+        android:id="@+id/addWordFragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="01" />
+        tools:ignore="FragmentTagUsage" />
 
 </FrameLayout>
