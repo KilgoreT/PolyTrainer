@@ -8,7 +8,8 @@ import me.apomazkin.feature_add_word_impl.di.FeatureAddWordComponent
 import javax.inject.Inject
 
 
-class NewWordListFragment : me.apomazkin.core_base.ui.BaseFragment<FragmentNewWordListBinding>() {
+class NewWordListFragment : me.apomazkin.core_base.ui.BaseFragment<FragmentNewWordListBinding>(),
+    NewWordListAdapter.NewWordListAdapterListener {
 
     @Inject
     lateinit var factory: AddWordModelFabric
@@ -32,11 +33,17 @@ class NewWordListFragment : me.apomazkin.core_base.ui.BaseFragment<FragmentNewWo
                 if (::adapter.isInitialized) {
                     adapter.setData(result)
                 } else {
-                    adapter = NewWordListAdapter(result)
+                    adapter = NewWordListAdapter(result, this)
                     container.adapter = adapter
                 }
             }
         )
+    }
+
+    override fun onRemoveWord(id: Long?) {
+        id?.let {
+            viewModel.removeWord(it)
+        }
     }
 
 }

@@ -11,8 +11,14 @@ import javax.inject.Inject
 class CoreDbApiImpl @Inject constructor(
     private val definitionDao: DefinitionDao
 ) : CoreDbApi {
-    override fun insert(word: String) {
-        definitionDao.insertWord(WordDb(word = word))
+
+    override fun insertWord(value: String) {
+        definitionDao.addWord(WordDb(word = value))
+    }
+
+    override fun removeWord(id: Long) {
+        definitionDao
+            .removeWord(id)
     }
 
     override fun getWordList(): Observable<List<Word>> {
@@ -20,4 +26,5 @@ class CoreDbApiImpl @Inject constructor(
             .getWordList()
             .map { list -> list.map { item -> WordMapper.map(item) } }
     }
+
 }

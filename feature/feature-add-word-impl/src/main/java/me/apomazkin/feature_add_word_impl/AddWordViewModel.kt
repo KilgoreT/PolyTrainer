@@ -12,7 +12,9 @@ import javax.inject.Inject
 class AddWordViewModel @Inject constructor(
     private val dbApi: CoreDbApi
 ) : ViewModel() {
+
     val data = MutableLiveData<List<Word>>()
+    val addWord = MutableLiveData<String>()
 
     init {
         loadData()
@@ -34,11 +36,18 @@ class AddWordViewModel @Inject constructor(
             )
     }
 
-    fun addData() {
-        val time = System.currentTimeMillis()
+    fun addWord() {
+        addWord.value?.let { word ->
+            if (word.isBlank()) return
+            dbApi
+                .insertWord(word)
+            loadData()
+        }
+    }
+
+    fun removeWord(it: Long) {
         dbApi
-            .insert("qwerty $time")
-        loadData()
+            .removeWord(it)
     }
 
 }

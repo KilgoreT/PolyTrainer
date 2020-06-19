@@ -9,9 +9,13 @@ import me.apomazkin.core_db_impl.entity.WordDb
 @Dao
 interface DefinitionDao {
 
+    @Insert
+    fun addWord(wordDb: WordDb)
+
+    @Query("DELETE FROM WORDDB WHERE id = :id")
+    fun removeWord(id: Long)
+
     @Query("SELECT * from WORDDB")
     fun getWordList(): Observable<List<WordDb>>
 
-    @Insert
-    fun insertWord(wordDb: WordDb)
 }
