@@ -2,6 +2,7 @@
 
 
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
@@ -17,10 +18,21 @@
         android:layout_height="match_parent"
         tools:context=".NewWordListFragment">
 
-        <TextView
-            bindText="@{model.count}"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/container"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:itemCount="5"
+            tools:listitem="@layout/item_text" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|bottom"
+            android:layout_margin="16dp"
+            android:onClick="@{() -> model.addData()}"
+            android:src="@drawable/ic_add_24" />
 
     </FrameLayout>
 </layout>
