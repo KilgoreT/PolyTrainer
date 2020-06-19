@@ -1,3 +1,4 @@
+include ':core:core-resources'
 include ':core:core-binding'
 include ':core:core-util'
 include ':core:core-base'

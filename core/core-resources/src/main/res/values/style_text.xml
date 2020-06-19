@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="TextTitle" parent="TextAppearance.AppCompat.Title" />
+
+    <style name="TextHeadline" parent="TextAppearance.AppCompat.Headline" />
+
+    <style name="TextBody1" parent="TextAppearance.AppCompat.Body1" />
+
+    <style name="TextBody2" parent="TextAppearance.AppCompat.Body2" />
+
+    <style name="TextCaption" parent="TextAppearance.AppCompat.Caption" />
+
+</resources>
