@@ -4,14 +4,14 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import io.reactivex.Observable
+import me.apomazkin.core_db_impl.entity.WordDb
 
 @Dao
 interface DefinitionDao {
 
-    @Query("SELECT * from DEFINITION")
-//    fun getDefinitionList(): List<Definition>
-    fun getDefinitionList(): Observable<List<Definition>>
+    @Query("SELECT * from WORDDB")
+    fun getWordList(): Observable<List<WordDb>>
 
     @Insert
-    fun insertDefinition(definition: Definition)
+    fun insertWord(wordDb: WordDb)
 }

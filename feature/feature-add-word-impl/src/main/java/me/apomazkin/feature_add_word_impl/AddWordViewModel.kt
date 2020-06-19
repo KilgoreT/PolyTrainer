@@ -6,12 +6,13 @@ import androidx.lifecycle.ViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.core_db_api.entity.Word
 import javax.inject.Inject
 
 class AddWordViewModel @Inject constructor(
     private val dbApi: CoreDbApi
 ) : ViewModel() {
-    val data = MutableLiveData<List<String>>()
+    val data = MutableLiveData<List<Word>>()
 
     init {
         loadData()
@@ -20,7 +21,7 @@ class AddWordViewModel @Inject constructor(
     @SuppressLint("CheckResult")
     private fun loadData() {
         dbApi
-            .getList()
+            .getWordList()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(

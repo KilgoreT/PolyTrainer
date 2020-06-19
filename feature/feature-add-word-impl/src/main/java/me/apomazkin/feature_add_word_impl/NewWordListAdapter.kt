@@ -5,12 +5,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.item_text.view.*
+import me.apomazkin.core_db_api.entity.Word
 
 class NewWordListAdapter(
-    private var data: List<String>
+    private var data: List<Word>
 ) : RecyclerView.Adapter<NewWordListAdapter.NewWordHolder>() {
 
-    fun setData(list: List<String>) {
+    fun setData(list: List<Word>) {
         data = list
         notifyDataSetChanged()
     }
@@ -32,8 +33,8 @@ class NewWordListAdapter(
     ) : RecyclerView.ViewHolder(view) {
 
 
-        fun bind(value: String) {
-            view.entry.text = value
+        fun bind(value: Word) {
+            view.entry.text = value.word
         }
 
     }
