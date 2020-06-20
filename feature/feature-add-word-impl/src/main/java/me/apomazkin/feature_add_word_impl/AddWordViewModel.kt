@@ -40,7 +40,7 @@ class AddWordViewModel @Inject constructor(
         addWord.value?.let { word ->
             if (word.isBlank()) return
             dbApi
-                .insertWord(word)
+                .addWord(word)
             loadData()
         }
     }
