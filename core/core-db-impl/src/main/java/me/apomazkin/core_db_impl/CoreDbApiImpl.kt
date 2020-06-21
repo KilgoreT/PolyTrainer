@@ -10,24 +10,26 @@ import me.apomazkin.core_db_impl.mapper.DefinitionMapper
 import me.apomazkin.core_db_impl.mapper.WordMapper
 import me.apomazkin.core_db_impl.mapper.WordWithDefinitionsMapper
 import me.apomazkin.core_db_impl.room.DefinitionDao
+import me.apomazkin.core_db_impl.room.WordDao
 import javax.inject.Inject
 
 class CoreDbApiImpl @Inject constructor(
+    private val wordDao: WordDao,
     private val definitionDao: DefinitionDao
 ) : CoreDbApi {
 
     override fun addWord(value: String) {
-        definitionDao.addWord(WordDb(word = value))
+        wordDao.addWord(WordDb(word = value))
     }
 
     override fun removeWord(id: Long) {
-        definitionDao
+        wordDao
             .removeWord(id)
     }
 
     override fun getWordList(): Observable<List<Word>> {
         val mapper = WordMapper()
-        return definitionDao
+        return wordDao
             .getWordList()
             .map { list -> list.map { item -> mapper.map(item) } }
     }
@@ -40,7 +42,7 @@ class CoreDbApiImpl @Inject constructor(
 
     override fun getWordWithDefinition(): Observable<List<WordWithDefinition>> {
         val mapper = WordWithDefinitionsMapper()
-        return definitionDao
+        return wordDao
             .getWordListWithDefinition()
             .map { list -> list.map { item -> mapper.map(item) } }
     }

@@ -6,14 +6,14 @@ import androidx.lifecycle.ViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_db_api.CoreDbApi
-import me.apomazkin.core_db_api.entity.Word
+import me.apomazkin.core_db_api.entity.WordWithDefinition
 import javax.inject.Inject
 
 class AddWordViewModel @Inject constructor(
     private val dbApi: CoreDbApi
 ) : ViewModel() {
 
-    val data = MutableLiveData<List<Word>>()
+    val data = MutableLiveData<List<WordWithDefinition>>()
     val addWord = MutableLiveData<String>()
 
     init {
@@ -23,7 +23,7 @@ class AddWordViewModel @Inject constructor(
     @SuppressLint("CheckResult")
     private fun loadData() {
         dbApi
-            .getWordList()
+            .getWordWithDefinition()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
@@ -45,6 +45,7 @@ class AddWordViewModel @Inject constructor(
         }
     }
 
+    // TODO: 21.06.2020 убирать еще и definitions для данного слова
     fun removeWord(it: Long) {
         dbApi
             .removeWord(it)

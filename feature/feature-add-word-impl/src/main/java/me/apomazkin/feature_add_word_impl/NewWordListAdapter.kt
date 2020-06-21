@@ -4,15 +4,15 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
-import me.apomazkin.core_db_api.entity.Word
+import me.apomazkin.core_db_api.entity.WordWithDefinition
 import me.apomazkin.feature_add_word_impl.databinding.ItemTextBinding
 
 class NewWordListAdapter(
-    private var data: List<Word>,
+    private var data: List<WordWithDefinition>,
     private val listener: NewWordListAdapterListener
 ) : RecyclerView.Adapter<NewWordListAdapter.NewWordHolder>() {
 
-    fun setData(list: List<Word>) {
+    fun setData(list: List<WordWithDefinition>) {
         data = list
         notifyDataSetChanged()
     }
@@ -44,13 +44,13 @@ class NewWordListAdapter(
 
         private fun setupLongClick() {
             binding.root.setOnLongClickListener {
-                listener.onRemoveWord(data[adapterPosition].id)
+                listener.onRemoveWord(data[adapterPosition].word.id)
                 return@setOnLongClickListener true
             }
         }
 
-        fun bind(value: Word) {
-            binding.entry.text = value.word
+        fun bind(value: WordWithDefinition) {
+            binding.entry.text = value.word.word ?: "undefined"
         }
 
     }

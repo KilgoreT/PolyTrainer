@@ -6,6 +6,7 @@ import dagger.Module
 import dagger.Provides
 import me.apomazkin.core_db_impl.room.Database
 import me.apomazkin.core_db_impl.room.DefinitionDao
+import me.apomazkin.core_db_impl.room.WordDao
 
 @Module
 class RoomModule {
@@ -19,7 +20,12 @@ class RoomModule {
     }
 
     @Provides
-    fun provideDao(db: Database): DefinitionDao {
+    fun provideWordDao(db: Database): WordDao {
+        return db.wordDao()
+    }
+
+    @Provides
+    fun provideDefinitionDao(db: Database): DefinitionDao {
         return db.definitionDao()
     }
 }
