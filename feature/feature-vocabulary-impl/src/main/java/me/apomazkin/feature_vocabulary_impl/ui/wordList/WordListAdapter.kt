@@ -1,16 +1,17 @@
-package me.apomazkin.feature_vocabulary_impl
+package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
 import me.apomazkin.core_db_api.entity.WordWithDefinition
+import me.apomazkin.feature_vocabulary_impl.R
 import me.apomazkin.feature_vocabulary_impl.databinding.ItemTextBinding
 
-class NewWordListAdapter(
+class WordListAdapter(
     private var data: List<WordWithDefinition>,
     private val listener: NewWordListAdapterListener
-) : RecyclerView.Adapter<NewWordListAdapter.NewWordHolder>() {
+) : RecyclerView.Adapter<WordListAdapter.NewWordHolder>() {
 
     fun setData(list: List<WordWithDefinition>) {
         data = list
