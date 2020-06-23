@@ -7,9 +7,9 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import me.apomazkin.core_db.di.CoreDbComponent
-import me.apomazkin.feature_add_word_impl.di.DaggerFeatureAddWordComponent_FeatureAddWordDependencyComponent
-import me.apomazkin.feature_add_word_impl.di.FeatureAddWordComponent
 import me.apomazkin.feature_bottom_menu_impl.R
+import me.apomazkin.feature_vocabulary_impl.di.DaggerFeatureVocabularyComponent_FeatureVocabularyDependencyComponent
+import me.apomazkin.feature_vocabulary_impl.di.FeatureVocabularyComponent
 
 class BlankFragment01 : Fragment() {
 
@@ -24,15 +24,15 @@ class BlankFragment01 : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val api = FeatureAddWordComponent
+        val api = FeatureVocabularyComponent
             .initAndGet(
                 getNavController(),
-                DaggerFeatureAddWordComponent_FeatureAddWordDependencyComponent
+                DaggerFeatureVocabularyComponent_FeatureVocabularyDependencyComponent
                     .builder()
                     .coreDbApi(CoreDbComponent.get(requireContext()).getCoreDbApi())
                     .build()
             )
-        api.featureAddWordNavigation().start()
+        api.featureVocabularyNavigation().start()
     }
 
     private fun getNavController() =

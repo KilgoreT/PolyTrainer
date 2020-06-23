@@ -4,10 +4,8 @@ import dagger.Component
 import me.apomazkin.core_db_api.CoreDbProvider
 import me.apomazkin.polytrainer.MainActivity
 import me.apomazkin.polytrainer.api.AppProvider
-import me.apomazkin.polytrainer.di.module.TestModule
 
 @Component(
-    modules = [TestModule::class],
     dependencies = [CoreDbProvider::class]
 )
 interface MainComponent : AppProvider {

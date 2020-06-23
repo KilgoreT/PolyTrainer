@@ -39,8 +39,8 @@ dependencies {
 
     implementation project(path: ':core:core-db')
     implementation project(path: ':feature:feature-bottom-menu-api')
-    implementation project(path: ':feature:feature-add-word-api')
-    implementation project(path: ':feature:feature-add-word-impl')
+    implementation project(path: ':feature:feature-vocabulary-api')
+    implementation project(path: ':feature:feature-vocabulary-impl')
 
     // AndroidX
     implementation 'androidx.appcompat:appcompat:1.1.0'
