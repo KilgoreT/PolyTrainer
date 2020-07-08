@@ -8,7 +8,6 @@ import me.apomazkin.feature_vocabulary_impl.R
 import me.apomazkin.feature_vocabulary_impl.WordListViewModel
 import me.apomazkin.feature_vocabulary_impl.databinding.FragmentWordListBinding
 import me.apomazkin.feature_vocabulary_impl.di.FeatureVocabularyComponent
-import me.apomazkin.feature_vocabulary_impl.viewModelFactory.VocabularyViewModelFactory
 import javax.inject.Inject
 
 
@@ -16,15 +15,14 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
     WordListAdapter.NewWordListAdapterListener {
 
     @Inject
-    lateinit var factory: VocabularyViewModelFactory
+    lateinit var factory: ViewModelProvider.Factory
 
     private lateinit var listViewModel: WordListViewModel
     private lateinit var adapter: WordListAdapter
 
     override fun inject() = FeatureVocabularyComponent.get().inject(this)
 
-    override fun getLayoutId() =
-        R.layout.fragment_word_list
+    override fun getLayoutId() = R.layout.fragment_word_list
 
     override fun initViewModel(binding: FragmentWordListBinding) {
         listViewModel = ViewModelProvider(this, factory)[WordListViewModel::class.java]

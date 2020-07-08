@@ -4,9 +4,10 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.android.synthetic.main.item_string.view.*
 import me.apomazkin.core_db_api.entity.WordWithDefinition
 import me.apomazkin.feature_vocabulary_impl.R
-import me.apomazkin.feature_vocabulary_impl.databinding.ItemTextBinding
+import me.apomazkin.feature_vocabulary_impl.databinding.ItemWordBinding
 
 class WordListAdapter(
     private var data: List<WordWithDefinition>,
@@ -21,9 +22,9 @@ class WordListAdapter(
     override fun getItemCount() = data.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NewWordHolder {
-        val binding = DataBindingUtil.inflate<ItemTextBinding>(
+        val binding = DataBindingUtil.inflate<ItemWordBinding>(
             LayoutInflater.from(parent.context),
-            R.layout.item_text,
+            R.layout.item_word,
             parent,
             false
         )
@@ -36,7 +37,7 @@ class WordListAdapter(
 
 
     inner class NewWordHolder(
-        private val binding: ItemTextBinding
+        private val binding: ItemWordBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
         init {
@@ -55,6 +56,13 @@ class WordListAdapter(
 
         fun bind(value: WordWithDefinition) {
             binding.entry.text = value.word.word ?: "undefined"
+            binding.containerDefinition.removeAllViews()
+            value.definitionList.forEach { it ->
+                val viewItem = LayoutInflater.from(binding.root.context)
+                    .inflate(R.layout.item_string, binding.containerDefinition, false)
+                viewItem.item.text = it.definition
+                binding.containerDefinition.addView(viewItem)
+            }
         }
 
     }

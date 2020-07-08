@@ -18,27 +18,16 @@
         android:layout_height="match_parent"
         tools:context=".ui.wordList.WordListFragment">
 
-        <EditText
-            android:id="@+id/etNewWord"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="8dp"
-            android:hint="add word"
-            android:text="@={model.addWord}"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:ignore="Autofill,TextFields" />
-
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:layout_marginTop="16dp"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/etNewWord"
+            app:layout_constraintTop_toTopOf="parent"
             tools:itemCount="5"
-            tools:listitem="@layout/item_text" />
+            tools:listitem="@layout/item_word" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:layout_width="wrap_content"

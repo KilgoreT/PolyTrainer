@@ -7,14 +7,16 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.WordWithDefinition
+import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import javax.inject.Inject
 
 class WordListViewModel @Inject constructor(
-    private val dbApi: CoreDbApi
+    private val dbApi: CoreDbApi,
+    private val navigation: FeatureVocabularyNavigation
 ) : ViewModel() {
 
     val data = MutableLiveData<List<WordWithDefinition>>()
-    val addWord = MutableLiveData<String>()
+//    val addWord = MutableLiveData<String>()
 
     init {
         loadData()
@@ -37,12 +39,13 @@ class WordListViewModel @Inject constructor(
     }
 
     fun addWord() {
-        addWord.value?.let { word ->
-            if (word.isBlank()) return
-            dbApi
-                .addWord(word)
-            loadData()
-        }
+        navigation.addWordDialog()
+//        addWord.value?.let { word ->
+//            if (word.isBlank()) return
+//            dbApi
+//                .addWord(word)
+//            loadData()
+//        }
     }
 
     // TODO: 21.06.2020 убирать еще и definitions для данного слова
@@ -52,13 +55,16 @@ class WordListViewModel @Inject constructor(
     }
 
     fun addDefinition(id: Long?) {
+        id?.let {
+            navigation.addDefinitionDialog(it)
+        }
 //        dbApi.addDefinition(
 //            Definition(
 //                wordId = id,
 //                definition = value
 //            )
 //        )
-        loadData()
+//        loadData()
     }
 
 }

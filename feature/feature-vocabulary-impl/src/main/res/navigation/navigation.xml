@@ -3,11 +3,39 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/navigation"
-    app:startDestination="@id/testNewFragment"
+    app:startDestination="@id/listWordFragment"
     tools:ignore="UnusedNavigation">
+
     <fragment
-        android:id="@+id/testNewFragment"
+        android:id="@+id/listWordFragment"
         android:name="me.apomazkin.feature_vocabulary_impl.ui.wordList.WordListFragment"
         android:label="TestNewFragment"
-        tools:layout="@layout/fragment_word_list" />
+        tools:layout="@layout/fragment_word_list">
+        <action
+            android:id="@+id/action_listWordFragment_to_addWordDialog"
+            app:destination="@id/addWordDialog" />
+        <action
+            android:id="@+id/action_listWordFragment_to_addDefinitionDialog"
+            app:destination="@id/addDefinitionDialog" />
+    </fragment>
+
+    <dialog
+        android:id="@+id/addWordDialog"
+        android:name="me.apomazkin.feature_vocabulary_impl.ui.addWord.AddWordDialog"
+        android:label="AddWordDialog"
+        tools:layout="@layout/dialog_add_word" />
+
+    <dialog
+        android:id="@+id/addDefinitionDialog"
+        android:name="me.apomazkin.feature_vocabulary_impl.ui.addDefinition.AddDefinitionDialog"
+        android:label="AddDefinition"
+        tools:layout="@layout/dialog_add_definition">
+
+        <argument
+            android:name="id"
+            app:argType="long" />
+
+    </dialog>
+
+
 </navigation>
