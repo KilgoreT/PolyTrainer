@@ -1,14 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="TextTitle" parent="TextAppearance.AppCompat.Title" />
+    <style name="TxtH1" parent="TextAppearance.MaterialComponents.Headline1" />
 
-    <style name="TextHeadline" parent="TextAppearance.AppCompat.Headline" />
+    <style name="TxtH2" parent="TextAppearance.MaterialComponents.Headline2" />
 
-    <style name="TextBody1" parent="TextAppearance.AppCompat.Body1" />
+    <style name="TxtH3" parent="TextAppearance.MaterialComponents.Headline3" />
 
-    <style name="TextBody2" parent="TextAppearance.AppCompat.Body2" />
+    <style name="TxtH4" parent="TextAppearance.MaterialComponents.Headline4" />
 
-    <style name="TextCaption" parent="TextAppearance.AppCompat.Caption" />
+    <style name="TxtH5" parent="TextAppearance.MaterialComponents.Headline5" />
+
+    <style name="TxtH6" parent="TextAppearance.MaterialComponents.Headline6" />
+
+    <style name="TxtBody1" parent="TextAppearance.MaterialComponents.Body1" />
+
+    <style name="TxtBody2" parent="TextAppearance.MaterialComponents.Body2" />
+
+    <style name="TxtCaption" parent="TextAppearance.MaterialComponents.Caption" />
+
+    <style name="TxtSubtitle1" parent="TextAppearance.MaterialComponents.Subtitle1" />
+
+    <style name="TxtSubtitle2" parent="TextAppearance.MaterialComponents.Subtitle2" />
+
+    <style name="TxtOverline" parent="TextAppearance.MaterialComponents.Overline" />
+
+    <style name="TxtButton" parent="TextAppearance.MaterialComponents.Button" />
 
 </resources>

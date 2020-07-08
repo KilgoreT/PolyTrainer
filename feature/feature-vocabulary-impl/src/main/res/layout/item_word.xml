@@ -32,7 +32,7 @@
                     android:layout_marginStart="@dimen/d16"
                     android:layout_marginTop="@dimen/d8"
                     android:layout_marginEnd="@dimen/d16"
-                    android:textAppearance="@style/TextBody2"
+                    android:textAppearance="@style/TxtBody1"
                     tools:text="@tools:sample/full_names" />
 
                 <LinearLayout
