@@ -5,7 +5,6 @@ import androidx.room.Room
 import dagger.Module
 import dagger.Provides
 import me.apomazkin.core_db_impl.room.Database
-import me.apomazkin.core_db_impl.room.DefinitionDao
 import me.apomazkin.core_db_impl.room.WordDao
 
 @Module
@@ -13,10 +12,9 @@ class RoomModule {
 
     @Provides
     fun provideeee(context: Context): Database {
-        val db = Room.databaseBuilder(context, Database::class.java, "name")
+        return Room.databaseBuilder(context, Database::class.java, "name")
             .allowMainThreadQueries()
             .build()
-        return db
     }
 
     @Provides
@@ -24,8 +22,4 @@ class RoomModule {
         return db.wordDao()
     }
 
-    @Provides
-    fun provideDefinitionDao(db: Database): DefinitionDao {
-        return db.definitionDao()
-    }
 }

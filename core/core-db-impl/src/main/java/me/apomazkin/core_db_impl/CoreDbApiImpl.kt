@@ -9,13 +9,11 @@ import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.mapper.DefinitionMapper
 import me.apomazkin.core_db_impl.mapper.WordMapper
 import me.apomazkin.core_db_impl.mapper.WordWithDefinitionsMapper
-import me.apomazkin.core_db_impl.room.DefinitionDao
 import me.apomazkin.core_db_impl.room.WordDao
 import javax.inject.Inject
 
 class CoreDbApiImpl @Inject constructor(
-    private val wordDao: WordDao,
-    private val definitionDao: DefinitionDao
+    private val wordDao: WordDao
 ) : CoreDbApi {
 
     override fun addWord(value: String) {
@@ -36,7 +34,7 @@ class CoreDbApiImpl @Inject constructor(
 
     override fun addDefinition(definition: Definition) {
         val mapper = DefinitionMapper()
-        definitionDao
+        wordDao
             .addDefinition(mapper.reverseMap(definition))
     }
 

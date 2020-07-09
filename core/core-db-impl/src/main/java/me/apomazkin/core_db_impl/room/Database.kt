@@ -8,5 +8,4 @@ import me.apomazkin.core_db_impl.entity.WordDb
 @Database(entities = [WordDb::class, DefinitionDb::class], version = 1)
 abstract class Database : RoomDatabase() {
     abstract fun wordDao(): WordDao
-    abstract fun definitionDao(): DefinitionDao
 }

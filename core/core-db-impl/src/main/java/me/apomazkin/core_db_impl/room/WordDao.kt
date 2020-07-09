@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import io.reactivex.Observable
+import me.apomazkin.core_db_impl.entity.DefinitionDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WordWithDefinitionsDb
 
@@ -23,5 +24,8 @@ interface WordDao {
     @Transaction
     @Query("SELECT * FROM words")
     fun getWordListWithDefinition(): Observable<List<WordWithDefinitionsDb>>
+
+    @Insert
+    fun addDefinition(definitionDb: DefinitionDb)
 
 }
