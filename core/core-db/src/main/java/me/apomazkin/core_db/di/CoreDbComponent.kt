@@ -27,10 +27,7 @@ interface CoreDbComponent : CoreDbProvider {
                     if (!::coreDbComponent.isInitialized) {
                         coreDbComponent = DaggerCoreDbComponent
                             .factory()
-                            .create(
-                                RoomComponent
-                                    .get(context)
-                            )
+                            .create(RoomComponent.get(context))
                     }
                 }
             }
