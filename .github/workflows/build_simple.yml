@@ -5,7 +5,15 @@ jobs:
     name: Assemble
     runs-on: ubuntu-latest
     steps:
+
       - name: Checkout
         uses: actions/checkout@v2
-      - name: AssembleDebug
-        run: ./gradlew assembleDebug
+
+      - name: Run Debug Lint
+        run: ./gradlew lintDebug
+
+      -name: Run Debug Unit Tests
+        run: ./gradlew testDebugUnitTest
+
+        - name: Assemble Debug
+          run: ./gradlew assembleDebug
