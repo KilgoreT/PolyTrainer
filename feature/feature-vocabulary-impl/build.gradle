@@ -35,7 +35,7 @@ android {
 
     lintOptions {
         quiet false
-        abortOnError true
+        abortOnError false
         warningsAsErrors true
         ignoreWarnings false
     }
