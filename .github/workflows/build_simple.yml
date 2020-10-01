@@ -1,5 +1,5 @@
 name: Build Simple
-on: pull_request
+on: push
 jobs:
   test_job:
     name: Assemble
