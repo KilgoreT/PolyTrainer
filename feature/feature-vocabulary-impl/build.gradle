@@ -32,6 +32,13 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    lintOptions {
+        quiet false
+        abortOnError true
+        warningsAsErrors true
+        ignoreWarnings false
+    }
 }
 
 dependencies {
