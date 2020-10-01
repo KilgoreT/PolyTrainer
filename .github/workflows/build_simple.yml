@@ -52,4 +52,4 @@ jobs:
 #        uses: actions/upload-artifact@v2
 #        with:
 #          name: apk
-#          path: 'app/build/outputs/apk/**/**.apk'F
+#          path: 'app/build/outputs/apk/**/**.apk'
