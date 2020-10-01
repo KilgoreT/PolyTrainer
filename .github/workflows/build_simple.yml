@@ -1,0 +1,11 @@
+name: Build Simple
+on: pull_request
+jobs:
+  test_job:
+    name: Assemble
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: AssembleDebug
+        run: ./gradlew assembleDebug

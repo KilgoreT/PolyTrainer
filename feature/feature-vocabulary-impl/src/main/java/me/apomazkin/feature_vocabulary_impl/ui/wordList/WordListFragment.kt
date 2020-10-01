@@ -31,6 +31,16 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
 
     override fun initView() {
         super.initView()
+
+//        val qqq = ValueAnimator()
+//        val set = AnimatorInflater.loadAnimator(requireContext(), R.animator.open_scale) as AnimatorSet
+//        set.setTarget(fab)
+//        set.start()
+
+//        fab.setOnClickListener {
+//            fab2.
+//        }
+
         listViewModel.data.observe(
             this,
             Observer { result ->
