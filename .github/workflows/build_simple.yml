@@ -15,5 +15,12 @@ jobs:
       - name: Run Debug Unit Tests
         run: ./gradlew testDebugUnitTest
 
-      - name: Assemble Debug
-        run: ./gradlew assembleDebug
+      #      - name: Assemble Debug
+      #        run: ./gradlew assembleDebug
+
+      - name: Upload Test Reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/'
