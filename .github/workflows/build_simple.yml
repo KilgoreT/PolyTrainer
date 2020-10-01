@@ -17,7 +17,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: lint-reports
-          path: '**/build/reports/tests/lint-results-*'
+          path: '**/build/reports/lint-results-*'
 
   test_job:
     name: Unit Tests
@@ -37,19 +37,19 @@ jobs:
           name: test-reports
           path: '**/build/reports/tests/'
 
-  build_job:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Assemble Debug
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v2
-        with:
-          name: apk
-          path: 'app/build/outputs/apk/**/**.apk'
+#  build_job:
+#    name: Build
+#    runs-on: ubuntu-latest
+#    steps:
+#
+#      - name: Checkout
+#        uses: actions/checkout@v2
+#
+#      - name: Assemble Debug
+#        run: ./gradlew assembleDebug
+#
+#      - name: Upload APK
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: apk
+#          path: 'app/build/outputs/apk/**/**.apk'
