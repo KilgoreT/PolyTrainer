@@ -39,7 +39,7 @@ class WordListViewModel @Inject constructor(
     }
 
     fun addWord() {
-//        navigation.addWordDialog()
+        navigation.addWordDialog()
 //        addWord.value?.let { word ->
 //            if (word.isBlank()) return
 //            dbApi

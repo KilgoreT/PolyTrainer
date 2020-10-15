@@ -9,5 +9,7 @@ data class DefinitionDb(
     val id: Long? = null,
     val wordId: Long? = null,
     val definition: String? = null,
-    val type: String? = null
+    val partOfSpeech: String? = null,
+    val isTransitive: Boolean? = null,
+    val isCountable: Boolean? = null
 )
