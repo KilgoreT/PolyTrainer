@@ -4,8 +4,8 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.android.synthetic.main.item_string.view.*
-import me.apomazkin.core_db_api.entity.WordWithDefinition
+import kotlinx.android.synthetic.main.item_definition.view.*
+import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.feature_vocabulary_impl.R
 import me.apomazkin.feature_vocabulary_impl.databinding.ItemWordBinding
 
@@ -57,10 +57,17 @@ class WordListAdapter(
         fun bind(value: WordWithDefinition) {
             binding.entry.text = value.word.word ?: "undefined"
             binding.containerDefinition.removeAllViews()
-            value.definitionList.forEach { it ->
+            value.definitionList.forEach {
                 val viewItem = LayoutInflater.from(binding.root.context)
-                    .inflate(R.layout.item_string, binding.containerDefinition, false)
-                viewItem.item.text = it.definition
+                    .inflate(R.layout.item_definition, binding.containerDefinition, false)
+                viewItem.tvPartOfSpeech.text = when (it.partOfSpeech) {
+                    is Verb -> viewItem.resources.getString(R.string.common_verb_label)
+                    is Noun -> viewItem.resources.getString(R.string.common_noun_label)
+                    is Adjective -> viewItem.resources.getString(R.string.common_adjective_label)
+                    is Adverb -> viewItem.resources.getString(R.string.common_adverb_label)
+                    else -> "undefined"
+                }
+                viewItem.tvDefinition.text = it.definition
                 binding.containerDefinition.addView(viewItem)
             }
         }
