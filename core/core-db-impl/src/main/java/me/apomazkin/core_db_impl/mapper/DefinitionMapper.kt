@@ -1,13 +1,12 @@
 package me.apomazkin.core_db_impl.mapper
 
-import me.apomazkin.core_db_api.entity.Definition
-import me.apomazkin.core_db_api.entity.Noun
-import me.apomazkin.core_db_api.entity.PartOfSpeech
-import me.apomazkin.core_db_api.entity.Verb
+import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.core_db_impl.entity.DefinitionDb
 
 private const val NOUN = "noun"
 private const val VERB = "verb"
+private const val ADJECTIVE = "adjective"
+private const val ADVERB = "adverb"
 
 class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
 
@@ -20,12 +19,10 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
 
     private fun mapPartOfSpeech(value: DefinitionDb): PartOfSpeech? {
         return when (value.partOfSpeech) {
-            NOUN -> {
-                Noun(value.isCountable)
-            }
-            VERB -> {
-                Verb(value.isTransitive)
-            }
+            NOUN -> Noun(value.isCountable)
+            VERB -> Verb(value.isTransitive)
+            ADJECTIVE -> Adjective
+            ADVERB -> Adverb
             else -> null
         }
     }
@@ -34,6 +31,7 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
         value.id,
         value.wordId,
         value.definition,
+        // TODO: 26.10.2020 Все таки подумать о том, чтобы отправлять туда объект, а не поля
         reverseMapPartOfSpeech(value),
         reverseMapIsTransitive(value),
         reverseMapIsCountable(value)
@@ -41,12 +39,10 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
 
     private fun reverseMapPartOfSpeech(value: Definition): String? {
         return when (value.partOfSpeech) {
-            is Verb -> {
-                VERB
-            }
-            is Noun -> {
-                NOUN
-            }
+            is Verb -> VERB
+            is Noun -> NOUN
+            is Adverb -> ADVERB
+            is Adjective -> ADJECTIVE
             else -> null
         }
     }
