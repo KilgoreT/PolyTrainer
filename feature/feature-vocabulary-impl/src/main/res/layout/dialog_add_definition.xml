@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/d16"
-            android:text="Definition:"
+            android:text="@string/dialog_add_definition_header"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
 
         <RadioGroup
@@ -31,14 +31,27 @@
             <RadioButton
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:onClick="@{ () -> model.onVerbSelect()}"
-                android:text="Verb" />
+                android:onClick="@{ () -> model.onNounSelect()}"
+                android:text="@string/common_noun_label" />
 
             <RadioButton
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:onClick="@{ () -> model.onNounSelect()}"
-                android:text="Noun" />
+                android:onClick="@{ () -> model.onVerbSelect()}"
+                android:text="@string/common_verb_label" />
+
+            <RadioButton
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:onClick="@{ () -> model.onAdjectiveSelect()}"
+                android:text="@string/common_adjective_label" />
+
+            <RadioButton
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:onClick="@{ () -> model.onAdverbSelect()}"
+                android:text="@string/common_adverb_label" />
+
 
         </RadioGroup>
 
@@ -46,7 +59,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/d16"
-            android:hint="Write definition here:"
+            android:autofillHints="ЧОЧО?"
+            android:hint="@string/dialog_add_definition_et_hint"
+            android:inputType="textAutoCorrect|textLongMessage"
             android:text="@={model.addingDefinition}" />
 
         <Button
@@ -55,7 +70,7 @@
             android:layout_gravity="end"
             android:layout_marginTop="@dimen/d16"
             android:onClick="@{() -> model.onAddDefinition()}"
-            android:text="OK" />
+            android:text="@string/dialog_add_definition_btn_add" />
 
     </LinearLayout>
 </layout>

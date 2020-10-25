@@ -3,9 +3,7 @@ package me.apomazkin.feature_vocabulary_impl.ui.addDefinition
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import me.apomazkin.core_db_api.CoreDbApi
-import me.apomazkin.core_db_api.entity.Definition
-import me.apomazkin.core_db_api.entity.Noun
-import me.apomazkin.core_db_api.entity.Verb
+import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 
 class AddDefinitionViewModel(
@@ -15,14 +13,27 @@ class AddDefinitionViewModel(
 ) : ViewModel() {
 
     val addingDefinition = MutableLiveData<String>()
+
+    // TODO: 26.10.2020 заменить стрингу на sealed class.
+    //  1. Для этого добавить в sealed дефолтные значения undefined.
+    //  2. Потом добавить в UI появление этих опций частей речи,
+    //  чтобы по выбору обновлось знанчение me.apomazkin.core_db_api.entity.PartOfSpeech в данной LiveData
     private val partOfSpeech = MutableLiveData<String?>()
+
+    fun onNounSelect() {
+        partOfSpeech.postValue("noun")
+    }
 
     fun onVerbSelect() {
         partOfSpeech.postValue("verb")
     }
 
-    fun onNounSelect() {
-        partOfSpeech.postValue("noun")
+    fun onAdjectiveSelect() {
+        partOfSpeech.postValue("adjective")
+    }
+
+    fun onAdverbSelect() {
+        partOfSpeech.postValue("adverb")
     }
 
     fun onAddDefinition() {
@@ -34,6 +45,8 @@ class AddDefinitionViewModel(
                     partOfSpeech = when (partOfSpeech.value) {
                         "noun" -> Noun(null)
                         "verb" -> Verb(null)
+                        "adjective" -> Adjective
+                        "adverb" -> Adverb
                         else -> null
                     }
                 )
