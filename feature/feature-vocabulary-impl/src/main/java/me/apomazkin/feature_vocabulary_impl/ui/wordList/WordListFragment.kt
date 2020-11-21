@@ -1,5 +1,6 @@
 package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
+import android.app.AlertDialog
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import kotlinx.android.synthetic.main.fragment_word_list.*
@@ -59,9 +60,21 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
     }
 
     override fun onRemoveWord(id: Long?) {
-        id?.let {
-            listViewModel.removeWord(it)
-        }
+        showRemoveWarning(id)
+    }
+
+    private fun showRemoveWarning(id: Long?) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Remove word?")
+            .setCancelable(true)
+            .setNegativeButton("Cancel") { _, _ -> }
+            .setPositiveButton("Ok") { _, _ ->
+                id?.let {
+                    listViewModel.removeWord(it)
+                }
+            }
+            .create()
+            .show()
     }
 
     override fun onAddDefinition(id: Long?) {
