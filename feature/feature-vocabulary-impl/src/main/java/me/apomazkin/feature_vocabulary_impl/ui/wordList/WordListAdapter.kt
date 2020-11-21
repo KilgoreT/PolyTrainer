@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.item_definition.view.*
+import kotlinx.android.synthetic.main.item_word.view.*
 import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.feature_vocabulary_impl.R
 import me.apomazkin.feature_vocabulary_impl.databinding.ItemWordBinding
@@ -45,13 +46,15 @@ class WordListAdapter(
         }
 
         private fun setupLongClick() {
-            binding.root.setOnClickListener {
-                listener.onAddDefinition(data[adapterPosition].word.id)
-            }
-            binding.root.setOnLongClickListener {
-                listener.onRemoveWord(data[adapterPosition].word.id)
-                return@setOnLongClickListener true
-            }
+            binding.root
+                .btn_add_definition.setOnClickListener {
+                    listener.onAddDefinition(data[adapterPosition].word.id)
+
+                }
+            binding.root
+                .btn_delete_word.setOnClickListener {
+                    listener.onRemoveWord(data[adapterPosition].word.id)
+                }
         }
 
         fun bind(value: WordWithDefinition) {
