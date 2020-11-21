@@ -34,11 +34,27 @@
                 android:onClick="@{ () -> model.onNounSelect()}"
                 android:text="@string/common_noun_label" />
 
+            <CheckBox
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/d16"
+                android:checked="@={model.nounCountableChecked}"
+                android:text="countable"
+                android:visibility="@{model.nounCountableVisibility}" />
+
             <RadioButton
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:onClick="@{ () -> model.onVerbSelect()}"
                 android:text="@string/common_verb_label" />
+
+            <CheckBox
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/d16"
+                android:checked="@={model.verbTransitiveChecked}"
+                android:text="transitive"
+                android:visibility="@{model.verbTransitiveVisibility}" />
 
             <RadioButton
                 android:layout_width="match_parent"
