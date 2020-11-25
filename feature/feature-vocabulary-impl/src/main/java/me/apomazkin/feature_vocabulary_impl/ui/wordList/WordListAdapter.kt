@@ -63,7 +63,7 @@ class WordListAdapter(
             value.definitionList.forEach {
                 val viewItem = LayoutInflater.from(binding.root.context)
                     .inflate(R.layout.item_definition, binding.containerDefinition, false)
-                viewItem.tvPartOfSpeech.text = when (it.partOfSpeech) {
+                viewItem.tvWordClass.text = when (it.wordClass) {
                     is Verb -> viewItem.resources.getString(R.string.common_verb_label)
                     is Noun -> viewItem.resources.getString(R.string.common_noun_label)
                     is Adjective -> viewItem.resources.getString(R.string.common_adjective_label)
