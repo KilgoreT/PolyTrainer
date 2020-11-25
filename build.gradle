@@ -32,6 +32,7 @@ allprojects {
             maxParallelForks = 1
         }
     }
+
 }
 
 task clean(type: Delete) {
