@@ -27,11 +27,11 @@ allprojects {
         
     }
 
-//    subprojects {
-//        tasks.withType(Test) {
-//            maxParallelForks = 1
-//        }
-//    }
+    subprojects {
+        tasks.withType(Test) {
+            maxParallelForks = 1
+        }
+    }
 }
 
 task clean(type: Delete) {
