@@ -6,7 +6,7 @@
     android:layout_height="wrap_content">
 
     <TextView
-        android:id="@+id/tvPartOfSpeech"
+        android:id="@+id/tvWordClass"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/d8"
@@ -26,7 +26,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvPartOfSpeech"
+        app:layout_constraintTop_toBottomOf="@id/tvWordClass"
         tools:text="@tools:sample/cities" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -26,32 +26,32 @@ class AddDefinitionViewModel(
     // TODO: 26.10.2020 заменить стрингу на sealed class.
     //  1. Для этого добавить в sealed дефолтные значения undefined.
     //  2. Потом добавить в UI появление этих опций частей речи,
-    //  чтобы по выбору обновлось знанчение me.apomazkin.core_db_api.entity.PartOfSpeech в данной LiveData
-    private val partOfSpeech = MutableLiveData<String?>()
+    //  чтобы по выбору обновлось знанчение [me.apomazkin.core_db_api.entity.WordClass] в данной LiveData
+    private val wordClass = MutableLiveData<String?>()
 
     fun onNounSelect() {
-        partOfSpeech.postValue("noun")
+        wordClass.postValue("noun")
         nounCountableVisibility.set(View.VISIBLE)
         verbTransitiveVisibility.set(View.GONE)
 //        nounCountableVisibility.postValue(View.VISIBLE)
     }
 
     fun onVerbSelect() {
-        partOfSpeech.postValue("verb")
+        wordClass.postValue("verb")
         nounCountableVisibility.set(View.GONE)
         verbTransitiveVisibility.set(View.VISIBLE)
 //        nounCountableVisibility.postValue(View.GONE)
     }
 
     fun onAdjectiveSelect() {
-        partOfSpeech.postValue("adjective")
+        wordClass.postValue("adjective")
         nounCountableVisibility.set(View.GONE)
         verbTransitiveVisibility.set(View.GONE)
 //        nounCountableVisibility.postValue(View.GONE)
     }
 
     fun onAdverbSelect() {
-        partOfSpeech.postValue("adverb")
+        wordClass.postValue("adverb")
         nounCountableVisibility.set(View.GONE)
         verbTransitiveVisibility.set(View.GONE)
 //        nounCountableVisibility.postValue(View.GONE)
@@ -65,7 +65,7 @@ class AddDefinitionViewModel(
                 Definition(
                     wordId = id,
                     definition = it,
-                    partOfSpeech = when (partOfSpeech.value) {
+                    wordClass = when (wordClass.value) {
                         "noun" -> Noun(nounCountableChecked.value)
                         "verb" -> Verb(verbTransitiveChecked.value)
                         "adjective" -> Adjective
