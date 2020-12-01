@@ -10,6 +10,5 @@ data class DefinitionDb(
     val wordId: Long? = null,
     val definition: String? = null,
     val wordClass: String? = null,
-    val isTransitive: Boolean? = null,
-    val isCountable: Boolean? = null
+    val options: Long = 0
 )

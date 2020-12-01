@@ -19,10 +19,10 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
 
     private fun mapWordClass(value: DefinitionDb): WordClass? {
         return when (value.wordClass) {
-            NOUN -> Noun(value.isCountable)
-            VERB -> Verb(value.isTransitive)
-            ADJECTIVE -> Adjective
-            ADVERB -> Adverb
+            NOUN -> Noun(value.options)
+            VERB -> Verb(value.options)
+            ADJECTIVE -> Adjective(value.options)
+            ADVERB -> Adverb(value.options)
             else -> null
         }
     }
@@ -31,10 +31,8 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
         value.id,
         value.wordId,
         value.definition,
-        // TODO: 26.10.2020 Все таки подумать о том, чтобы отправлять туда объект, а не поля
         reverseMapWordClass(value),
-        reverseMapIsTransitive(value),
-        reverseMapIsCountable(value)
+        value.wordClass?.options ?: 0
     )
 
     private fun reverseMapWordClass(value: Definition): String? {
@@ -43,24 +41,6 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
             is Noun -> NOUN
             is Adverb -> ADVERB
             is Adjective -> ADJECTIVE
-            else -> null
-        }
-    }
-
-    private fun reverseMapIsTransitive(value: Definition): Boolean? {
-        return when (val wordClass = value.wordClass) {
-            is Verb -> {
-                wordClass.isTransitive
-            }
-            else -> null
-        }
-    }
-
-    private fun reverseMapIsCountable(value: Definition): Boolean? {
-        return when (val wordClass = value.wordClass) {
-            is Noun -> {
-                wordClass.isCountable
-            }
             else -> null
         }
     }
