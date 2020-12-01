@@ -1,5 +1,6 @@
 package me.apomazkin.core_db_api
 
+import io.reactivex.Completable
 import io.reactivex.Observable
 import me.apomazkin.core_db_api.entity.Definition
 import me.apomazkin.core_db_api.entity.Word
@@ -13,5 +14,7 @@ interface CoreDbApi {
 
     fun addDefinition(definition: Definition)
     fun getWordWithDefinition(): Observable<List<WordWithDefinition>>
+
+    fun deleteWord(id: Long): Completable
 
 }
