@@ -1,5 +1,6 @@
 package me.apomazkin.core_db_impl
 
+import io.reactivex.Completable
 import io.reactivex.Observable
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.Definition
@@ -25,6 +26,7 @@ class CoreDbApiImpl @Inject constructor(
             .removeWord(id)
     }
 
+    @Deprecated("not used")
     override fun getWordList(): Observable<List<Word>> {
         val mapper = WordMapper()
         return wordDao
@@ -43,6 +45,17 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao
             .getWordListWithDefinition()
             .map { list -> list.map { item -> mapper.map(item) } }
+    }
+
+    override fun deleteWord(id: Long): Completable {
+        return wordDao.getWord(id)
+            .flatMap { word ->
+                wordDao.removeWord(id)
+                    .toSingle { word.definitionDbList }
+            }
+            .flatMapCompletable { list ->
+                wordDao.deleteWordWithDefinition(*list.toTypedArray())
+            }
     }
 
 }

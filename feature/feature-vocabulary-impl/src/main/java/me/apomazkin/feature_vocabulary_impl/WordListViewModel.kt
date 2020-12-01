@@ -16,7 +16,6 @@ class WordListViewModel @Inject constructor(
 ) : ViewModel() {
 
     val data = MutableLiveData<List<WordWithDefinition>>()
-//    val addWord = MutableLiveData<String>()
 
     init {
         loadData()
@@ -40,31 +39,23 @@ class WordListViewModel @Inject constructor(
 
     fun addWord() {
         navigation.addWordDialog()
-//        addWord.value?.let { word ->
-//            if (word.isBlank()) return
-//            dbApi
-//                .addWord(word)
-//            loadData()
-//        }
     }
 
-    // TODO: 21.06.2020 убирать еще и definitions для данного слова
+    @SuppressLint("CheckResult")
     fun removeWord(it: Long) {
         dbApi
-            .removeWord(it)
+            .deleteWord(it)
+            .subscribe({
+                // TODO: 02.12.2020 реализовать обратную связь
+            }, { error ->
+                // TODO: 02.12.2020 реакция на ошибку
+            })
     }
 
     fun addDefinition(id: Long?) {
         id?.let {
             navigation.addDefinitionDialog(it)
         }
-//        dbApi.addDefinition(
-//            Definition(
-//                wordId = id,
-//                definition = value
-//            )
-//        )
-//        loadData()
     }
 
 }
