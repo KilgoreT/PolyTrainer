@@ -1,41 +1,41 @@
 name: Build Simple
 on: push
 jobs:
-  lint_job:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
+#  lint_job:
+#    name: Lint
+#    runs-on: ubuntu-latest
+#    steps:
+#
+#      - name: Checkout
+#        uses: actions/checkout@v2
+#
+#      - name: Run Debug Lint
+#        run: ./gradlew lintDebug
+#
+#      - name: Upload Lint Reports
+#        if: ${{ always() }}
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: lint-reports
+#          path: '**/build/reports/lint-results-*'
 
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Run Debug Lint
-        run: ./gradlew lintDebug
-
-      - name: Upload Lint Reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: lint-reports
-          path: '**/build/reports/lint-results-*'
-
-  test_job:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Run Debug Unit Tests
-        run: ./gradlew testDebugUnitTest
-
-      - name: Upload Test Reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: test-reports
-          path: '**/build/reports/tests/'
+#  test_job:
+#    name: Unit Tests
+#    runs-on: ubuntu-latest
+#    steps:
+#
+#      - name: Checkout
+#        uses: actions/checkout@v2
+#
+#      - name: Run Debug Unit Tests
+#        run: ./gradlew testDebugUnitTest
+#
+#      - name: Upload Test Reports
+#        if: ${{ always() }}
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: test-reports
+#          path: '**/build/reports/tests/'
 
 #  build_job:
 #    name: Build
