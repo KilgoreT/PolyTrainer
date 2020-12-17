@@ -1,6 +1,7 @@
 name: On Merge
 on: pull_request
-  branches: [ master ]
+  branches:
+    - 'master'
 jobs:
   lint_job:
     name: Lint
