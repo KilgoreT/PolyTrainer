@@ -39,7 +39,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/d16"
                 android:checked="@={model.nounCountableChecked}"
-                android:text="countable"
+                android:text="@string/option_countable"
                 android:visibility="@{model.nounCountableVisibility}" />
 
             <RadioButton
@@ -53,7 +53,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/d16"
                 android:checked="@={model.verbTransitiveChecked}"
-                android:text="transitive"
+                android:text="@string/option_transitive"
                 android:visibility="@{model.verbTransitiveVisibility}" />
 
             <RadioButton
