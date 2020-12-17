@@ -28,6 +28,13 @@ android {
         dataBinding = true
     }
 
+    lintOptions {
+        quiet false
+        abortOnError true
+        warningsAsErrors true
+        ignoreWarnings false
+    }
+
 }
 
 dependencies {
