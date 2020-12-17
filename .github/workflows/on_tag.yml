@@ -1,8 +1,9 @@
-name: On Merge
+name: On Tag
 on:
-  pull_request:
-    branches:
-      - 'master'
+  push:
+    tags:
+      - '**'
+
 jobs:
   lint_job:
     name: Lint
@@ -40,19 +41,20 @@ jobs:
           name: test-reports
           path: '**/build/reports/tests/'
 
-#  build_job:
-#    name: Build
-#    runs-on: ubuntu-latest
-#    steps:
-#
-#      - name: Checkout
-#        uses: actions/checkout@v2
-#
-#      - name: Assemble Debug
-#        run: ./gradlew assembleDebug
-#
-#      - name: Upload APK
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: apk
-#          path: 'app/build/outputs/apk/**/**.apk'
+  build_job:
+    name: Build
+    needs: [ lint_job, test_job ]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Assemble Debug
+        run: ./gradlew bundleDebug
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v2
+        with:
+          name: debug.aab
+          path: 'app/build/outputs/apk/**/**.aab'
