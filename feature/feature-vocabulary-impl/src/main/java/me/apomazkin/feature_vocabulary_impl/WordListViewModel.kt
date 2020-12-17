@@ -8,12 +8,15 @@ import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.WordWithDefinition
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
+import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class WordListViewModel @Inject constructor(
     private val dbApi: CoreDbApi,
-    private val navigation: FeatureVocabularyNavigation
-) : ViewModel() {
+    private val navigation: FeatureVocabularyNavigation,
+    private val loadStateDelegate: LoadState
+) : ViewModel(), LoadState by loadStateDelegate {
 
     val data = MutableLiveData<List<WordWithDefinition>>()
 
@@ -23,17 +26,18 @@ class WordListViewModel @Inject constructor(
 
     @SuppressLint("CheckResult")
     private fun loadData() {
+        onLoad()
         dbApi
             .getWordWithDefinition()
+            .delay(3, TimeUnit.SECONDS)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 { result ->
+                    if (result.isEmpty()) onEmpty() else onData()
                     data.postValue(result)
                 },
-                {
-
-                }
+                { onError(it) }
             )
     }
 
