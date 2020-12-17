@@ -4,10 +4,10 @@
     <item
         android:id="@+id/blankFragment01"
         android:icon="@drawable/ic_temp1"
-        android:title="zhopa" />
+        android:title="@string/menu_item_vocabulary" />
     <item
         android:id="@+id/blankFragment02"
         android:icon="@drawable/ic_test2"
-        android:title="piska" />
+        android:title="@string/menu_item_exercises" />
 
 </menu>
