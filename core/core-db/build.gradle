@@ -25,10 +25,10 @@ android {
     }
 
     lintOptions {
-//        quiet false
-//        abortOnError false
-//        warningsAsErrors true
-//        ignoreWarnings false
+        quiet false
+        abortOnError true
+        warningsAsErrors true
+        ignoreWarnings false
     }
 
 }

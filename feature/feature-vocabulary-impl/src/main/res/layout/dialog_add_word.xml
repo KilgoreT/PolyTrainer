@@ -19,14 +19,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/d16"
-            android:text="Word:"
+            android:text="@string/title_word"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
 
         <EditText
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/d16"
-            android:hint="Write word here:"
+            android:hint="@string/hint_write_word_here"
+            android:importantForAutofill="no"
+            android:inputType="text"
             android:text="@={model.addingWord}" />
 
         <Button
@@ -35,7 +37,7 @@
             android:layout_gravity="end"
             android:layout_marginTop="@dimen/d16"
             android:onClick="@{() -> model.onAddWord()}"
-            android:text="OK" />
+            android:text="@string/ok" />
 
     </LinearLayout>
 </layout>
