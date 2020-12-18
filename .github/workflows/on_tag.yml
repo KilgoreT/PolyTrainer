@@ -62,7 +62,7 @@ jobs:
         with:
           repository: ${{ secrets.KEYSTORE_GIT_REPO }}
           token: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
-          path: keystore
+          path: app/keystore
           ref: master
 
       - name: Bundle Release
