@@ -53,13 +53,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          repository: ${{ secrets.KEYSTORE_GIT_REPO }}
-          token: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
-          path: keystore
-          ref: master
+#      - name: Checkout
+      #        uses: actions/checkout@v2
+      #        with:
+      #          repository: ${{ secrets.KEYSTORE_GIT_REPO }}
+      #          token: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+      #          path: keystore
+      #          ref: master
 
       - name: Bundle Release
         run: ./gradlew bundleRelease
