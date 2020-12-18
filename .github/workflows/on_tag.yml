@@ -58,7 +58,7 @@ jobs:
         with:
           repository: ${{ secrets.KEYSTORE_GIT_REPO }}
           token: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
-          path: /keystore
+          path: keystore
 
       - name: Bundle Release
         run: ./gradlew bundleRelease
