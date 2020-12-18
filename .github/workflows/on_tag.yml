@@ -54,18 +54,18 @@ jobs:
 
     steps:
       - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        repository: ${{ secrets.KEYSTORE_GIT_REPO }}
-        token: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
-        path: keystore
-        ref: master
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ secrets.KEYSTORE_GIT_REPO }}
+          token: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+          path: keystore
+          ref: master
 
-        - name: Bundle Release
-          run: ./gradlew bundleRelease
+      - name: Bundle Release
+        run: ./gradlew bundleRelease
 
-        - name: Upload AAB
-          uses: actions/upload-artifact@v2
-          with:
-            name: file.aab
-            path: 'app/build/outputs/bundle/**/**.aab'
+      - name: Upload AAB
+        uses: actions/upload-artifact@v2
+        with:
+          name: file.aab
+          path: 'app/build/outputs/bundle/**/**.aab'
