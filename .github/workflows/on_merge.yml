@@ -2,7 +2,7 @@ name: On Merge
 on:
   pull_request:
     branches:
-      - 'master'
+      - 'zhopa'
 jobs:
   lint_job:
     name: Lint
