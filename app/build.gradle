@@ -11,10 +11,25 @@ android {
         applicationId "me.apomazkin.polytrainer"
         minSdkVersion 21
         targetSdkVersion 30
-        versionCode 1
-        versionName "0.0.1"
+        versionCode 3
+        versionName "0.0.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        release {
+            def keystoreProperties = new Properties()
+            def keystorePropsFile = file("../keystore/keystore_config")
+            if (keystorePropsFile.exists()) {
+
+            } else {
+                storeFile file("../keystore/keystore_upload")
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEYSTORE_KEY_ALIAS')
+                keyPassword System.getenv('KEYSTORE_PASSWORD')
+            }
+        }
     }
 
     buildTypes {
@@ -27,6 +42,7 @@ android {
 //            }
 //        }
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }

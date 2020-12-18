@@ -4,6 +4,12 @@ on:
     tags:
       - '**'
 
+env:
+  KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+  KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+  KEYSTORE_GIT_REPO: ${{ secrets.KEYSTORE_GIT_REPO }}
+  KEYSTORE_ACCESS_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+
 jobs:
   lint_job:
     name: Lint
@@ -49,9 +55,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          repository: ${{ secrets.KEYSTORE_GIT_REPO }}
+          token: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+          path: /keystore
 
-      - name: Assemble Debug
-        run: ./gradlew bundleDebug
+      - name: Bundle Release
+        run: ./gradlew bundleRelease
 
       - name: Upload AAB
         uses: actions/upload-artifact@v2
