@@ -27,11 +27,14 @@ android {
                 storePassword "$keystoreProperties.storePassword"
                 keyAlias "$keystoreProperties.keyAlias"
                 keyPassword "$keystoreProperties.keyPassword"
+                println(">>>>>>>>>>>>>>>>>  " + storePassword)
             } else {
                 storeFile file("keystore/keystore_upload")
                 storePassword System.getenv('KEYSTORE_PASSWORD')
                 keyAlias System.getenv('KEYSTORE_KEY_ALIAS')
                 keyPassword System.getenv('KEYSTORE_PASSWORD')
+                println(">>>>>>>>>>>>>>>>>  " + storePassword)
+                println(">>>>>>>>>>>>>>>>>  " + keyAlias)
             }
         }
     }
