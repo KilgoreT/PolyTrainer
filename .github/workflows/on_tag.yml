@@ -57,4 +57,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: debug.aab
-          path: 'app/build/outputs/apk/**/**.aab'
+          path: 'app/build/outputs/bundle/**/**.aab'
