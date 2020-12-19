@@ -9,7 +9,7 @@ env:
   KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
   KEYSTORE_GIT_REPO: ${{ secrets.KEYSTORE_GIT_REPO }}
   KEYSTORE_ACCESS_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
-  RELEASE_VERSIONS: ${{ GITHUB_REF#refs/*/ }}
+  RELEASE_VERSIONS: ${{ ${GITHUB_REF#refs/*/} }}
 
 jobs:
   lint_job:
