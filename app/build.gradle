@@ -12,8 +12,9 @@ android {
         minSdkVersion 21
         targetSdkVersion 30
         versionCode 4
-        versionName "0.0.4"
-
+        def VERSION = System.getenv('RELEASE_VERSION')
+        versionName System.getenv('RELEASE_VERSION')
+        println(">>>>> VE: " + VERSION)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
