@@ -42,5 +42,9 @@
             layout="@layout/layout_loading"
             app:loadState="@{model}" />
 
+        <include
+            layout="@layout/layout_empty"
+            app:loadState="@{model}" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
