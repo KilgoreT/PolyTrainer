@@ -21,8 +21,6 @@ jobs:
         run: |
           echo $RELEASE_VERSION
           echo ${{ env.RELEASE_VERSION }}
-          echo ${{ env.CI_ACTION_REF_NAME }}
-          echo ${{ env.KEYSTORE_KEY_ALIAS }}
 
       - name: Checkout
         uses: actions/checkout@v2
