@@ -15,8 +15,7 @@ fun bindT(view: View, state: MutableLiveData<LoadStateStatus>, role: String) {
         when (status) {
             is Load -> setLoad(view, role)
             is Data -> setData(view, role)
-            is Empty -> {
-            }
+            is Empty -> setEmpty(view, role)
             is Error -> {
             }
         }
@@ -26,13 +25,29 @@ fun bindT(view: View, state: MutableLiveData<LoadStateStatus>, role: String) {
 private fun setLoad(view: View, role: String) {
     if (role == LOAD_ROLE) {
         view.visibility = View.VISIBLE
+    } else {
+        view.visibility = View.GONE
     }
 }
 
 fun setData(view: View, status: String) {
     when (status) {
+        LOAD_ROLE, EMPTY_ROLE -> {
+            view.visibility = View.GONE
+        }
+        else -> {
+            view.visibility = View.VISIBLE
+        }
+    }
+}
+
+fun setEmpty(view: View, role: String) {
+    when (role) {
         LOAD_ROLE -> {
             view.visibility = View.GONE
+        }
+        EMPTY_ROLE -> {
+            view.visibility = View.VISIBLE
         }
         else -> {
             view.visibility = View.VISIBLE
