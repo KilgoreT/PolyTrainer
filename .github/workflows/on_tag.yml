@@ -15,6 +15,10 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
+      - name: TAG
+        run: |
+          echo $RELEASE_VERSION
+          echo ${{ env.RELEASE_VERSION }}
 
       - name: Checkout
         uses: actions/checkout@v2
