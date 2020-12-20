@@ -7,8 +7,9 @@ android {
     compileSdkVersion 30
     buildToolsVersion "29.0.3"
 
+    def DEFAULT_VERSION = "undefined"
     def VERSION = System.getenv('RELEASE_VERSION') == null
-            ? "undefined" :
+            ? DEFAULT_VERSION :
             System.getenv('RELEASE_VERSION')
 
 
@@ -110,14 +111,14 @@ dependencies {
 
 static int getVersionCode(String versionName) {
     def result = ""
-    def INCORRECT_RESULT = 0
+    def DEFAULT_VERSION_CODE = 1
     def MAX_MAJOR_VERSION = 213
     def LENGTH_MAJOR_VERSION = 3
     def MAX_MINOR_VERSION = 999
     def LENGTH_MINOR_VERSION = 3
     def MAX_PATCH_VERSION = 9999
     def LENGTH_PATCH_VERSION = 4
-    if (!verifyVersion(versionName)) return INCORRECT_RESULT
+    if (!verifyVersion(versionName)) return DEFAULT_VERSION_CODE
 
     def versionList = versionName.split("\\.")
     def major = versionList[0]
@@ -127,22 +128,22 @@ static int getVersionCode(String versionName) {
     if (major.isInteger() && major.toInteger() <= MAX_MAJOR_VERSION) {
         result += alignVersion(major, LENGTH_MAJOR_VERSION)
     } else {
-        return INCORRECT_RESULT
+        return DEFAULT_VERSION_CODE
     }
 
     if (minor.isInteger() && minor.toInteger() <= MAX_MINOR_VERSION) {
         result += alignVersion(minor, LENGTH_MINOR_VERSION)
     } else {
-        return INCORRECT_RESULT
+        return DEFAULT_VERSION_CODE
     }
 
     if (patch.isInteger() && patch.toInteger() <= MAX_PATCH_VERSION) {
         result += alignVersion(patch, LENGTH_PATCH_VERSION)
     } else {
-        return INCORRECT_RESULT
+        return DEFAULT_VERSION_CODE
     }
 
-    return result.isInteger() ? result.toInteger() : INCORRECT_RESULT
+    return result.isInteger() ? result.toInteger() : DEFAULT_VERSION_CODE
 }
 
 static boolean verifyVersion(String value) {
