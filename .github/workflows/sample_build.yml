@@ -2,7 +2,7 @@ name: On Tag
 on:
   push:
     branches:
-      - 'sample'
+      - 'sample_build'
 
 env:
   KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
