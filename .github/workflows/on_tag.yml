@@ -107,12 +107,12 @@ jobs:
         run: ./gradlew bundleRelease
 
       - name: Upload APK to Release
-        uses: skx/github-action-publish-binaries@${{ env.RELEASE_VERSION }}
+        uses: skx/github-action-publish-binaries@master1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: app/build/outputs/bundle/**/**.aab
-          releaseId: ${{ env.RELEASE_VERSION }}
+          releaseId: ${{ needs.create_release.outputs.id }}
 
 
 #      - name: Upload AAB
