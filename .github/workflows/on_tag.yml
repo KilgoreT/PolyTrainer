@@ -112,7 +112,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: app/build/outputs/bundle/**/**.aab
-          releaseId: ${{ steps.create_release.outputs.id }}
+          releaseId: ${{ env.RELEASE_VERSION }}
 
 
 #      - name: Upload AAB
