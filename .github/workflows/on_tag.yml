@@ -106,8 +106,16 @@ jobs:
       - name: Bundle Release
         run: ./gradlew bundleRelease
 
-      - name: Upload AAB
-        uses: actions/upload-artifact@v2
-        with:
-          name: app-release.aab
-          path: 'app/build/outputs/bundle/**/**.aab'
+      - name: Upload APK to Release
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: app/build/outputs/bundle/**/**.aab
+
+
+#      - name: Upload AAB
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: app-release.aab
+#          path: 'app/build/outputs/bundle/**/**.aab'
