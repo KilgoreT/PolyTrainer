@@ -107,7 +107,7 @@ jobs:
         run: ./gradlew bundleRelease
 
       - name: Upload APK to Release
-        uses: skx/github-action-publish-binaries
+        uses: skx/github-action-publish-binaries@${{ env.RELEASE_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
