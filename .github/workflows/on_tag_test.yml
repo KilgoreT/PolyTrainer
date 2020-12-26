@@ -53,7 +53,7 @@ jobs:
       - name: Upload APK to Release
         uses: skx/github-action-publish-binaries@master
         env:
-          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: 'app/build/outputs/bundle/release/**.aab'
 
