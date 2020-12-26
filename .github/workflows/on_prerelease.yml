@@ -1,4 +1,4 @@
-name: On Tag
+name: On Prerelease
 on:
   release:
     types: [prereleased]
@@ -102,15 +102,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle
 
-      - name: Bundle Release
+      - name: Build Bundle Release
         run: ./gradlew bundleRelease
+
+      - name: Build APK Release
+        run: ./gradlew assembleRelease
+
+      - name: Upload Bundle to Release
+        uses: skx/github-action-publish-binaries@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+        with:
+          args: app/build/outputs/bundle/**/**.aab
 
       - name: Upload APK to Release
         uses: skx/github-action-publish-binaries@master
         env:
           GITHUB_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
         with:
-          args: app/build/outputs/bundle/**/**.aab
+          args: app/build/outputs/apk/**/**.apk
 
 #      - name: Upload AAB
 #        uses: actions/upload-artifact@v2
