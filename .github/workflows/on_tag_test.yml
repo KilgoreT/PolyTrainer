@@ -1,7 +1,8 @@
 name: On Tag
 on:
-  release:
-    types: [prereleased]
+  push:
+    tags:
+      - 'never'
 
 env:
   KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
