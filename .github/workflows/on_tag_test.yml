@@ -1,8 +1,7 @@
 name: On Tag
 on:
-  push:
-    tags:
-      - '**'
+  release:
+    types: [created]
 
 env:
   KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
