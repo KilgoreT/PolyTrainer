@@ -55,7 +55,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
         with:
-          args: app/build/outputs/bundle/release/**.aab
+          args: 'app/build/outputs/bundle/release/**.aab'
 
 #      - name: Upload AAB
 #        uses: actions/upload-artifact@v2
