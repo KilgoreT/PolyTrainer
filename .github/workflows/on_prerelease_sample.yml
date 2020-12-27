@@ -1,7 +1,10 @@
 name: On Prerelease
 on:
-  release:
-    types: [prereleased, edited]
+  push:
+    branches:
+      - 'nothing'
+#  release:
+#    types: [prereleased, edited]
 
 env:
   KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
