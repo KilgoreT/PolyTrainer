@@ -1,10 +1,7 @@
 name: On Prerelease
 on:
-  push:
-    branches:
-      - 'nothing'
-#  release:
-#    types: [prereleased]
+  release:
+    types: [prereleased]
 
 env:
   KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -13,65 +10,9 @@ env:
   KEYSTORE_ACCESS_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
 
 jobs:
-  lint_job:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Restore Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle
-
-      - name: Run Debug Lint
-        run: ./gradlew lintDebug
-
-      - name: Upload Lint Reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: lint-reports
-          path: '**/build/reports/lint-results-*'
-
-  test_job:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Restore Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle
-
-      - name: Run Debug Unit Tests
-        run: ./gradlew testDebugUnitTest
-
-      - name: Upload Test Reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: test-reports
-          path: '**/build/reports/tests/'
 
   build_job:
     name: Build
-    needs: [ lint_job, test_job ]
     runs-on: ubuntu-latest
 
     steps:
@@ -108,8 +49,6 @@ jobs:
       - name: Build Bundle Release
         run: ./gradlew bundleRelease
 
-      - name: Build APK Release
-        run: ./gradlew assembleRelease
 
       - name: Upload Bundle to Release
         uses: skx/github-action-publish-binaries@master
@@ -118,12 +57,6 @@ jobs:
         with:
           args: app/build/outputs/bundle/release/**.aab
 
-      - name: Upload APK to Release
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
-        with:
-          args: app/build/outputs/apk/release/**.apk
 
       - name: Upload to Google Play Internal
         uses: r0adkll/upload-google-play@v1
