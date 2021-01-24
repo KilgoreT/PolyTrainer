@@ -10,23 +10,36 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/d8"
-        android:textStyle="italic"
-        app:layout_constraintBottom_toTopOf="@id/tvDefinition"
-        app:layout_constraintStart_toStartOf="parent"
+        android:textColor="@android:color/black"
+        android:textSize="12sp"
+        android:textStyle="bold"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/ivGrade"
+        app:layout_constraintStart_toStartOf="parent"
         tools:text="@string/common_adjective_label" />
 
+    <ImageView
+        android:id="@+id/ivGrade"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/d4"
+        android:src="@drawable/ic_grade_c2"
+        app:layout_constraintEnd_toEndOf="@id/tvWordClass"
+        app:layout_constraintStart_toStartOf="@id/tvWordClass"
+        app:layout_constraintTop_toBottomOf="@id/tvWordClass" />
 
     <TextView
         android:id="@+id/tvDefinition"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:textColor="@android:color/black"
+        android:textSize="14sp"
         android:layout_marginStart="@dimen/d16"
         android:layout_marginEnd="@dimen/d8"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvWordClass"
+        app:layout_constraintStart_toEndOf="@id/tvWordClass"
+        app:layout_constraintTop_toTopOf="parent"
         tools:text="@tools:sample/cities" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

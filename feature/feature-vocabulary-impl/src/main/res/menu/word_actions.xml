@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/word_action_add_definition"
+        android:title="Add Definition" />
+
+    <item
+        android:id="@+id/word_action_edit_word"
+        android:title="Edit Word" />
+
+    <item
+        android:id="@+id/word_action_delete_word"
+        android:title="Delete Word" />
+
+</menu>
