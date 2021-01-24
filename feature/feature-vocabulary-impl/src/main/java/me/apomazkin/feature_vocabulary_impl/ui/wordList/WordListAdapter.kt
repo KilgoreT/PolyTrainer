@@ -2,6 +2,7 @@ package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.item_definition.view.*
@@ -42,18 +43,37 @@ class WordListAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         init {
-            setupLongClick()
+            setupClickHandler()
         }
 
-        private fun setupLongClick() {
+        private fun setupClickHandler() {
             binding.root
                 .btn_add_definition.setOnClickListener {
                     listener.onAddDefinition(data[adapterPosition].word.id)
 
                 }
             binding.root
-                .btn_delete_word.setOnClickListener {
-                    listener.onRemoveWord(data[adapterPosition].word.id)
+                .btn_more_actions.setOnClickListener { view ->
+                    PopupMenu(view.context, view).apply {
+                        inflate(R.menu.word_actions)
+                        setOnMenuItemClickListener { menuItem ->
+                            when (menuItem.itemId) {
+                                R.id.word_action_add_definition -> {
+                                    listener.onAddDefinition(data[adapterPosition].word.id)
+                                    true
+                                }
+                                R.id.word_action_edit_word -> {
+                                    true
+                                }
+                                R.id.word_action_delete_word -> {
+                                    listener.onRemoveWord(data[adapterPosition].word.id)
+                                    true
+                                }
+                                else -> false
+                            }
+                        }
+                        show()
+                    }
                 }
         }
 
