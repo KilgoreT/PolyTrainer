@@ -11,4 +11,6 @@
     <string name="delete_word">Delete Word</string>
     <string name="add_definition">Add Definition</string>
     <string name="empty">Empty</string>
+    <string name="todo">TODO</string>
+    <string name="edit_word">Edit Word</string>
 </resources>
