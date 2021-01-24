@@ -14,61 +14,82 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/d8"
             android:layout_marginStart="@dimen/d8"
             android:layout_marginEnd="@dimen/d8"
             android:layout_marginBottom="@dimen/d2"
-            app:cardCornerRadius="@dimen/d4"
+            app:cardCornerRadius="@dimen/d8"
             app:cardElevation="@dimen/d4">
 
-            <LinearLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <LinearLayout
+                <FrameLayout
+                    android:id="@+id/header"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_margin="@dimen/d16"
-                    android:orientation="horizontal">
+                    android:background="@color/colorPrimary"
+                    android:paddingTop="@dimen/d4"
+                    android:paddingBottom="@dimen/d4"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
 
-                    <ImageView
-                        android:id="@+id/btn_add_definition"
-                        android:layout_width="0dp"
+                    <TextView
+                        android:id="@+id/entry"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:contentDescription="@string/add_definition"
-                        android:src="@drawable/ic_add_circle_black" />
+                        android:layout_marginStart="@dimen/d16"
+                        android:layout_marginEnd="@dimen/d16"
+                        android:textColor="@android:color/white"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        tools:text="@tools:sample/full_names" />
 
-                    <ImageView
-                        android:id="@+id/btn_delete_word"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:contentDescription="@string/delete_word"
-                        android:src="@drawable/ic_delete_black" />
+                </FrameLayout>
 
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/entry"
-                    android:layout_width="match_parent"
+                <ImageView
+                    android:id="@+id/btn_more_actions"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/d16"
-                    android:layout_marginTop="@dimen/d8"
-                    android:layout_marginEnd="@dimen/d16"
-                    android:textAppearance="@style/TxtBody1"
-                    tools:text="@tools:sample/full_names" />
+                    android:layout_marginEnd="@dimen/d8"
+                    android:src="@drawable/ic_more_on_primary"
+                    app:layout_constraintBottom_toBottomOf="@id/header"
+                    app:layout_constraintEnd_toEndOf="@id/header"
+                    android:contentDescription="@string/todo"
+                    app:layout_constraintTop_toTopOf="@id/header" />
+
+                <ImageView
+                    android:id="@+id/btn_add_definition"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/d8"
+                    android:src="@drawable/ic_add_on_primary"
+                    android:contentDescription="@string/fab_content_description_add_word"
+                    app:layout_constraintBottom_toBottomOf="@id/header"
+                    app:layout_constraintEnd_toStartOf="@id/btn_more_actions"
+                    app:layout_constraintTop_toTopOf="@id/header" />
 
                 <LinearLayout
                     android:id="@+id/containerDefinition"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/d24"
-                    android:layout_marginEnd="@dimen/d24"
-                    android:layout_marginBottom="@dimen/d8"
+                    android:layout_marginStart="@dimen/d8"
+                    android:layout_marginEnd="@dimen/d8"
+                    android:paddingBottom="@dimen/d8"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/header"
                     android:orientation="vertical" />
 
-            </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
         </androidx.cardview.widget.CardView>
 

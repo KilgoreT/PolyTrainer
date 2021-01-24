@@ -8,7 +8,7 @@
     <fragment
         android:id="@+id/blankFragment01"
         android:name="me.apomazkin.feature_bottom_menu_impl.ui.tab.BlankFragment01"
-        android:label="fragment_blank01"
+        android:label="Vocabulary"
         tools:layout="@layout/fragment_blank01" />
 
     <fragment
