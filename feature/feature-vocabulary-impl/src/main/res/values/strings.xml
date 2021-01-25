@@ -10,6 +10,8 @@
     <string name="option_transitive">transitive</string>
     <string name="delete_word">Delete Word</string>
     <string name="add_definition">Add Definition</string>
+    <string name="edit_definition">Edit Definition</string>
+    <string name="delete_definition">Delete Definition</string>
     <string name="empty">Empty</string>
     <string name="todo">TODO</string>
     <string name="edit_word">Edit Word</string>

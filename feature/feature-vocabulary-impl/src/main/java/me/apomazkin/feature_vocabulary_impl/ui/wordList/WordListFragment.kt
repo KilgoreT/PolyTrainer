@@ -1,7 +1,6 @@
 package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.app.AlertDialog
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import kotlinx.android.synthetic.main.fragment_word_list.*
 import me.apomazkin.core_base.ui.BaseFragment
@@ -44,7 +43,7 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
 
         listViewModel.data.observe(
             this,
-            Observer { result ->
+            { result ->
                 if (::adapter.isInitialized) {
                     adapter.setData(result)
                 } else {
@@ -57,6 +56,10 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
                 }
             }
         )
+    }
+
+    override fun onEditWord(id: Long?) {
+        TODO("Not yet implemented")
     }
 
     override fun onRemoveWord(id: Long?) {
@@ -79,6 +82,14 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
 
     override fun onAddDefinition(id: Long?) {
         listViewModel.addDefinition(id)
+    }
+
+    override fun onEditDefinition(id: Long?) {
+        listViewModel.editDefinition(id)
+    }
+
+    override fun onDeleteDefinition(id: Long?) {
+        listViewModel.deleteDefinition(id)
     }
 
 }

@@ -62,4 +62,16 @@ class WordListViewModel @Inject constructor(
         }
     }
 
+    fun editDefinition(id: Long?) {
+        id?.let {
+            TODO("Not yet implemented")
+        }
+    }
+
+    fun deleteDefinition(id: Long?) {
+        id?.let {
+            TODO("Not yet implemented")
+        }
+    }
+
 }
