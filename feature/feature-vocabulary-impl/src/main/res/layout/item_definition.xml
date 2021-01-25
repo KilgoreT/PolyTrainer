@@ -16,6 +16,8 @@
         app:layout_constraintBottom_toTopOf="@id/ivGrade"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/ivGrade"
+        app:layout_constraintStart_toStartOf="parent"
         tools:text="@string/common_adjective_label" />
 
     <ImageView
@@ -33,6 +35,8 @@
         android:id="@+id/tvDefinition"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:textColor="@android:color/black"
+        android:textSize="14sp"
         android:layout_marginStart="@dimen/d16"
         android:layout_marginEnd="@dimen/d8"
         android:textColor="@android:color/black"
