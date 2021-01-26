@@ -82,7 +82,11 @@ class WordListAdapter(
             binding.containerDefinition.removeAllViews()
             value.definitionList.forEach {
                 val viewItem = LayoutInflater.from(binding.root.context)
-                    .inflate(R.layout.item_definition, binding.containerDefinition, false)
+                    .inflate(
+                        R.layout.item_definition,
+                        binding.containerDefinition,
+                        false
+                    )
                 viewItem.tvWordClass.text = when (it.wordClass) {
                     is Verb -> viewItem.resources.getString(R.string.common_verb_label)
                     is Noun -> viewItem.resources.getString(R.string.common_noun_label)
@@ -91,6 +95,24 @@ class WordListAdapter(
                     else -> "undefined"
                 }
                 viewItem.tvDefinition.text = it.definition
+                viewItem.btn_more_definition_action
+                    .setOnClickListener { view ->
+                        PopupMenu(view.context, view).apply {
+                            inflate(R.menu.definition_actions)
+                            setOnMenuItemClickListener { menuItem ->
+                                when (menuItem.itemId) {
+                                    R.id.definition_edit_action -> {
+                                        true
+                                    }
+                                    R.id.definition_delete_action -> {
+                                        true
+                                    }
+                                    else -> false
+                                }
+                            }
+                            show()
+                        }
+                    }
                 binding.containerDefinition.addView(viewItem)
             }
         }
@@ -98,8 +120,11 @@ class WordListAdapter(
     }
 
     interface NewWordListAdapterListener {
+        fun onEditWord(id: Long?)
         fun onRemoveWord(id: Long?)
         fun onAddDefinition(id: Long?)
+        fun onEditDefinition(id: Long?)
+        fun onDeleteDefinition(id: Long?)
     }
 
 }
