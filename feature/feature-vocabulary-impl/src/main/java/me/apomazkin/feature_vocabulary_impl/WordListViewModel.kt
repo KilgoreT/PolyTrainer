@@ -70,7 +70,12 @@ class WordListViewModel @Inject constructor(
 
     fun deleteDefinition(id: Long?) {
         id?.let {
-            TODO("Not yet implemented")
+            dbApi.deleteDefinition(it)
+                .subscribe({
+                    // TODO: 02.12.2020 реализовать обратную связь
+                }, { error ->
+                    // TODO: 02.12.2020 реакция на ошибку
+                })
         }
     }
 
