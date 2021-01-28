@@ -40,6 +40,10 @@ class CoreDbApiImpl @Inject constructor(
             .addDefinition(mapper.reverseMap(definition))
     }
 
+    override fun deleteDefinition(id: Long): Completable {
+        return wordDao.deleteDefinition(id)
+    }
+
     override fun getWordWithDefinition(): Observable<List<WordWithDefinition>> {
         val mapper = WordWithDefinitionsMapper()
         return wordDao
