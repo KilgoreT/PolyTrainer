@@ -28,6 +28,9 @@ interface WordDao {
     @Insert
     fun addDefinition(definitionDb: DefinitionDb)
 
+    @Query("DELETE FROM definitions WHERE id = :id")
+    fun deleteDefinition(id: Long): Completable
+
     @Delete
     fun deleteWordWithDefinition(vararg definition: DefinitionDb): Completable
 
