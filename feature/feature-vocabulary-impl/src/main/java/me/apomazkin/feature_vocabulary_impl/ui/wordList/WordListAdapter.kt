@@ -105,6 +105,7 @@ class WordListAdapter(
                                         true
                                     }
                                     R.id.definition_delete_action -> {
+                                        listener.onDeleteDefinition(it.id)
                                         true
                                     }
                                     else -> false
