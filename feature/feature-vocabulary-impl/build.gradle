@@ -74,8 +74,8 @@ dependencies {
     implementation "io.reactivex.rxjava2:rxandroid:2.1.1"
 
     //Navigation
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.3.2'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.3.2'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.3.3'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.3.3'
 
     //noinspection GradleDependency
     testImplementation 'junit:junit:4.12'

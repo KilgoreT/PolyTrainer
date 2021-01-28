@@ -13,6 +13,7 @@ interface CoreDbApi {
     fun getWordList(): Observable<List<Word>>
 
     fun addDefinition(definition: Definition)
+    fun deleteDefinition(id: Long): Completable
     fun getWordWithDefinition(): Observable<List<WordWithDefinition>>
 
     fun deleteWord(id: Long): Completable
