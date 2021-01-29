@@ -1,6 +1,7 @@
 package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import androidx.databinding.DataBindingUtil
@@ -80,21 +81,25 @@ class WordListAdapter(
         fun bind(value: WordWithDefinition) {
             binding.entry.text = value.word.word ?: "undefined"
             binding.containerDefinition.removeAllViews()
-            value.definitionList.forEach {
+            val lastDefinition = value.definitionList.size - 1
+            value.definitionList.forEachIndexed { index, definition ->
                 val viewItem = LayoutInflater.from(binding.root.context)
                     .inflate(
                         R.layout.item_definition,
                         binding.containerDefinition,
                         false
                     )
-                viewItem.tvWordClass.text = when (it.wordClass) {
+                viewItem.tvWordClass.text = when (definition.wordClass) {
                     is Verb -> viewItem.resources.getString(R.string.common_verb_label)
                     is Noun -> viewItem.resources.getString(R.string.common_noun_label)
                     is Adjective -> viewItem.resources.getString(R.string.common_adjective_label)
                     is Adverb -> viewItem.resources.getString(R.string.common_adverb_label)
                     else -> "undefined"
                 }
-                viewItem.tvDefinition.text = it.definition
+                viewItem.tvDefinition.text = definition.definition
+                if (index == lastDefinition) {
+                    viewItem.divider.visibility = View.GONE
+                }
                 viewItem.btn_more_definition_action
                     .setOnClickListener { view ->
                         PopupMenu(view.context, view).apply {
@@ -105,7 +110,7 @@ class WordListAdapter(
                                         true
                                     }
                                     R.id.definition_delete_action -> {
-                                        listener.onDeleteDefinition(it.id)
+                                        listener.onDeleteDefinition(definition.id)
                                         true
                                     }
                                     else -> false
