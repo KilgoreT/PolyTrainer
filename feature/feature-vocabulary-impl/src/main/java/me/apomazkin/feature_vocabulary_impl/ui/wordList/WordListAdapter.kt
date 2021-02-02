@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.item_definition.view.*
 import kotlinx.android.synthetic.main.item_word.view.*
 import me.apomazkin.core_db_api.entity.*
+import me.apomazkin.core_db_api.entity.Grade.*
 import me.apomazkin.feature_vocabulary_impl.R
 import me.apomazkin.feature_vocabulary_impl.databinding.ItemWordBinding
 
@@ -99,6 +100,15 @@ class WordListAdapter(
                 viewItem.tvDefinition.text = definition.definition
                 if (index == lastDefinition) {
                     viewItem.divider.visibility = View.GONE
+                }
+                when (definition.wordClass?.grade) {
+                    A1 -> viewItem.ivGrade.visibility = View.VISIBLE
+                    A2 -> viewItem.ivGrade.visibility = View.VISIBLE
+                    B1 -> viewItem.ivGrade.visibility = View.VISIBLE
+                    B2 -> viewItem.ivGrade.visibility = View.VISIBLE
+                    C1 -> viewItem.ivGrade.visibility = View.VISIBLE
+                    C2 -> viewItem.ivGrade.visibility = View.VISIBLE
+                    null -> viewItem.ivGrade.visibility = View.INVISIBLE
                 }
                 viewItem.btn_more_definition_action
                     .setOnClickListener { view ->

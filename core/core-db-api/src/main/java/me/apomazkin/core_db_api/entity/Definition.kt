@@ -16,8 +16,61 @@ data class Definition(
     val wordClass: WordClass? = null
 )
 
-sealed class WordClass(val options: Long = 0)
-class Verb(options: Long = 0) : WordClass(options)
-class Noun(options: Long = 0) : WordClass(options)
-class Adjective(options: Long = 0) : WordClass(options)
-class Adverb(options: Long = 0) : WordClass(options)
+enum class Grade {
+    A1,
+    A2,
+    B1,
+    B2,
+    C1,
+    C2
+}
+
+sealed class WordClass(
+    val grade: Grade? = null
+)
+
+class Noun(
+    val countability: Countability? = null,
+    grade: Grade? = null
+) : WordClass(grade) {
+    enum class Countability {
+        COUNTABLE,
+        UNCOUNTABLE,
+        PLURAL,
+        USUALLY_PLURAL,
+        USUALLY_SINGULAR
+    }
+}
+
+class Verb(
+    val transitivity: Transitivity? = null,
+    grade: Grade? = null
+) : WordClass(grade) {
+    enum class Transitivity {
+        TRANSITIVE,
+        INTRANSITIVE
+    }
+}
+
+class Adjective(
+    val order: Order? = null,
+    val gradability: Gradability? = null,
+    grade: Grade? = null
+) : WordClass(grade) {
+    enum class Order {
+        AFTER_NOUN,
+        AFTER_VERB,
+        BEFORE_NOUN
+    }
+
+    enum class Gradability {
+        COMPARATIVE,
+        SUPERLATIVE,
+        NOT_GRADABLE
+    }
+}
+
+class Adverb(
+    grade: Grade? = null
+) : WordClass(grade)
+
