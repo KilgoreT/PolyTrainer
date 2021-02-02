@@ -67,14 +67,15 @@ class AddDefinitionViewModel(
                     definition = it,
                     wordClass = when (wordClass.value) {
                         "noun" -> {
-                            val options =
-                                if (nounCountableChecked.value == true) (0L or OPT_UNCOUNTABLE) else 0L
-                            Noun(options)
+                            val countability =
+                                if (nounCountableChecked.value == true) Noun.Countability.COUNTABLE
+                                else null
+                            Noun(countability)
                         }
                         "verb" -> {
                             val options =
                                 if (verbTransitiveChecked.value == true) (0L or OPT_TRANSITIVE) else 0L
-                            Verb(options)
+                            Verb(null)
                         }
                         "adjective" -> Adjective()
                         "adverb" -> Adverb()

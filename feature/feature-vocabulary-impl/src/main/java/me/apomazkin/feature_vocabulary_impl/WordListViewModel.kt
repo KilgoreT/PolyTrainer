@@ -9,7 +9,6 @@ import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.WordWithDefinition
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class WordListViewModel @Inject constructor(
@@ -29,7 +28,6 @@ class WordListViewModel @Inject constructor(
         onLoad()
         dbApi
             .getWordWithDefinition()
-            .delay(3, TimeUnit.SECONDS)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
