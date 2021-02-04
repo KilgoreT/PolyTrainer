@@ -102,12 +102,12 @@ class WordListAdapter(
                     viewItem.divider.visibility = View.GONE
                 }
                 when (definition.wordClass?.grade) {
-                    A1 -> viewItem.ivGrade.visibility = View.VISIBLE
-                    A2 -> viewItem.ivGrade.visibility = View.VISIBLE
-                    B1 -> viewItem.ivGrade.visibility = View.VISIBLE
-                    B2 -> viewItem.ivGrade.visibility = View.VISIBLE
-                    C1 -> viewItem.ivGrade.visibility = View.VISIBLE
-                    C2 -> viewItem.ivGrade.visibility = View.VISIBLE
+                    A1 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_a1)
+                    A2 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_a2)
+                    B1 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_b1)
+                    B2 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_b2)
+                    C1 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_c1)
+                    C2 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_c2)
                     null -> viewItem.ivGrade.visibility = View.INVISIBLE
                 }
                 viewItem.btn_more_definition_action

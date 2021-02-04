@@ -15,4 +15,11 @@
     <string name="empty">Empty</string>
     <string name="todo">TODO</string>
     <string name="edit_word">Edit Word</string>
+    <string name="none">NONE</string>
+    <string name="a1">A1</string>
+    <string name="a2">A2</string>
+    <string name="b1">B1</string>
+    <string name="b2">B2</string>
+    <string name="c1">C1</string>
+    <string name="c2">C2</string>
 </resources>
