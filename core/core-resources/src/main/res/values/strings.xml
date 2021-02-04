@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <string name="common_noun_label">noun</string>
     <string name="common_verb_label">verb</string>
     <string name="common_adjective_label">adj.</string>
     <string name="common_adverb_label">adv.</string>
+
+    <string-array name="word_type_array">
+        <item>Noun</item>
+        <item>Verb</item>
+        <item>Adjective</item>
+        <item>Adverb</item>
+    </string-array>
+
 </resources>

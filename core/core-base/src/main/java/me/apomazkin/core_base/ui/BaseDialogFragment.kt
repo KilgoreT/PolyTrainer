@@ -33,7 +33,7 @@ abstract class BaseDialogFragment<T : ViewDataBinding?> : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        initView()
+        initView(view)
     }
 
     override fun onStart() {
@@ -62,7 +62,7 @@ abstract class BaseDialogFragment<T : ViewDataBinding?> : DialogFragment() {
     abstract fun inject()
     abstract fun setupBinding(binding: T)
 
-    protected open fun initView() {}
+    protected open fun initView(view: View) {}
     protected open fun weight() = WindowManager.LayoutParams.MATCH_PARENT
     protected open fun height() = WindowManager.LayoutParams.WRAP_CONTENT
     protected open fun gravity() = Gravity.CENTER

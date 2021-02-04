@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
 
@@ -22,54 +23,68 @@
             android:text="@string/dialog_add_definition_header"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
 
-        <RadioGroup
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/d16"
-            android:orientation="vertical">
+            app:checkedChip="@id/chipNone"
+            app:singleSelection="true">
 
-            <RadioButton
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipNone"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:onClick="@{ () -> model.onNounSelect()}"
-                android:text="@string/common_noun_label" />
+                android:checkable="true"
+                android:text="@string/none" />
 
-            <CheckBox
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipA1"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/d16"
-                android:checked="@={model.nounCountableChecked}"
-                android:text="@string/option_countable"
-                android:visibility="@{model.nounCountableVisibility}" />
+                android:checkable="true"
+                android:text="@string/a1" />
 
-            <RadioButton
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipA2"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:onClick="@{ () -> model.onVerbSelect()}"
-                android:text="@string/common_verb_label" />
+                android:checkable="true"
+                android:text="@string/a2" />
 
-            <CheckBox
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipB1"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/d16"
-                android:checked="@={model.verbTransitiveChecked}"
-                android:text="@string/option_transitive"
-                android:visibility="@{model.verbTransitiveVisibility}" />
+                android:checkable="true"
+                android:text="@string/b1" />
 
-            <RadioButton
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipB2"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:onClick="@{ () -> model.onAdjectiveSelect()}"
-                android:text="@string/common_adjective_label" />
+                android:checkable="true"
+                android:text="@string/b2" />
 
-            <RadioButton
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipC1"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:onClick="@{ () -> model.onAdverbSelect()}"
-                android:text="@string/common_adverb_label" />
+                android:checkable="true"
+                android:text="@string/c1" />
 
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipC2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/c2" />
 
-        </RadioGroup>
+        </com.google.android.material.chip.ChipGroup>
+
+        <Spinner
+            android:id="@+id/spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <EditText
             android:layout_width="match_parent"

@@ -1,5 +1,6 @@
 package me.apomazkin.core_db_impl.mapper
 
+import android.util.Log
 import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.core_db_api.entity.Grade.*
 import me.apomazkin.core_db_api.entity.Noun.Countability.*
@@ -52,22 +53,43 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
 
     private fun getNoun(options: Long): Noun {
         val countability = COUNTABLE
-        return Noun(countability)
+        return Noun(
+            grade = getGrade(options),
+            countability = countability
+        )
     }
 
     private fun getVerb(options: Long): Verb {
         val transitivity = TRANSITIVE
-        return Verb(transitivity)
+        return Verb(
+            grade = getGrade(options),
+            transitivity = transitivity
+        )
     }
 
     private fun getAdjective(options: Long): Adjective {
-        return Adjective()
+        return Adjective(
+            grade = getGrade(options),
+        )
     }
 
     private fun getAdverb(options: Long): Adverb {
-        return Adverb()
+        return Adverb(
+            grade = getGrade(options),
+        )
     }
 
+    private fun getGrade(options: Long): Grade? {
+        return when {
+            options and GRADE_A1 > 0 -> A1
+            options and GRADE_A2 > 0 -> A2
+            options and GRADE_B1 > 0 -> B1
+            options and GRADE_B2 > 0 -> B2
+            options and GRADE_C1 > 0 -> C1
+            options and GRADE_C2 > 0 -> C2
+            else -> null
+        }
+    }
 
     override fun reverseMap(value: Definition) = DefinitionDb(
         value.id,
@@ -98,12 +120,13 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
             C2 -> GRADE_C2
             null -> 0
         }
+        Log.d("###", "options: $options")
         options = options or when (wordClass) {
             is Noun -> convertNounOptions(wordClass)
             is Verb -> convertVerbOptions(wordClass)
-            is Adjective -> TODO()
-            is Adverb -> TODO()
-            null -> TODO()
+            is Adjective -> options
+            is Adverb -> options
+            null -> options
         }
 
         return options
