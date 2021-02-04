@@ -1,6 +1,5 @@
 package me.apomazkin.core_db_impl.mapper
 
-import android.util.Log
 import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.core_db_api.entity.Grade.*
 import me.apomazkin.core_db_api.entity.Noun.Countability.*
@@ -120,7 +119,6 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
             C2 -> GRADE_C2
             null -> 0
         }
-        Log.d("###", "options: $options")
         options = options or when (wordClass) {
             is Noun -> convertNounOptions(wordClass)
             is Verb -> convertVerbOptions(wordClass)
