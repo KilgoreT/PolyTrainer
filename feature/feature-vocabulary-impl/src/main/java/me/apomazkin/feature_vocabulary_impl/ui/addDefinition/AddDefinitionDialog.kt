@@ -28,8 +28,11 @@ class AddDefinitionDialog : BaseDialogFragment<DialogAddDefinitionBinding>() {
         val model = ViewModelProvider(this, factory)[AddDefinitionViewModel::class.java]
         binding.model = model
 
-        val chipGroup = binding.chipGroup
-        chipGroup.setOnCheckedChangeListener(model)
+        binding.chipGroupGrade.setOnCheckedChangeListener(model)
+        binding.chipGroupNoun.setOnCheckedChangeListener(model)
+        binding.chipGroupVerb.setOnCheckedChangeListener(model)
+        binding.chipGroupAdjOrder.setOnCheckedChangeListener(model)
+        binding.chipGroupAdjGradability.setOnCheckedChangeListener(model)
 
         val spinner = binding.spinner
         spinner.onItemSelectedListener = model
