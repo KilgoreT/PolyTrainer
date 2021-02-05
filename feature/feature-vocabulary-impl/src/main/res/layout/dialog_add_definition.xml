@@ -24,7 +24,7 @@
             android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
 
         <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chipGroup"
+            android:id="@+id/chipGroupGrade"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:checkedChip="@id/chipNone"
@@ -78,6 +78,138 @@
                 android:layout_height="wrap_content"
                 android:checkable="true"
                 android:text="@string/c2" />
+
+        </com.google.android.material.chip.ChipGroup>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupNoun"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="@{model.nounOptionsVisibility}"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipNounCountable"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/countable" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipNounUncountable"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/uncountable" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipNounPlural"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/plural" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipNounUsuallyPlural"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/usually_plural" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipNounUsuallySingular"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/usually_singular" />
+
+        </com.google.android.material.chip.ChipGroup>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupVerb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="@{model.verbOptionsVisibility}"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipVerbTransitive"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/transitive" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipVerbIntransitive"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/intransitive" />
+
+        </com.google.android.material.chip.ChipGroup>
+
+        <com.google.android.material.chip.ChipGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="@{model.adjectiveOptionsVisibility}">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupAdjOrder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipAdjOrderAfterNoun"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:text="@string/after_noun" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipAdjOrderAfterVerb"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:text="@string/after_verb" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipAdjOrderBeforeNoun"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:text="@string/before_noun" />
+
+            </com.google.android.material.chip.ChipGroup>
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupAdjGradability"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipAdjGradabilityComparative"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:text="@string/comparative" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipAdjGradabilitySuperlative"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:text="@string/superlative" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipAdjGradabilityNotGradable"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:text="@string/not_gradable" />
+
+            </com.google.android.material.chip.ChipGroup>
 
         </com.google.android.material.chip.ChipGroup>
 

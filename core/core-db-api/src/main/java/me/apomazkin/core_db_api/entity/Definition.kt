@@ -62,7 +62,6 @@ class Adjective(
         AFTER_VERB,
         BEFORE_NOUN
     }
-
     enum class Gradability {
         COMPARATIVE,
         SUPERLATIVE,

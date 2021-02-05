@@ -22,4 +22,17 @@
     <string name="b2">B2</string>
     <string name="c1">C1</string>
     <string name="c2">C2</string>
+    <string name="countable">Countable</string>
+    <string name="uncountable">Uncountable</string>
+    <string name="plural">Plural</string>
+    <string name="usually_plural">Usually Plural</string>
+    <string name="usually_singular">Usually Singular</string>
+    <string name="transitive">Transitive</string>
+    <string name="intransitive">Intransitive</string>
+    <string name="after_noun">After Noun</string>
+    <string name="after_verb">After Verb</string>
+    <string name="before_noun">Before Noun</string>
+    <string name="comparative">Comparative</string>
+    <string name="superlative">Superlative</string>
+    <string name="not_gradable">Not Gradable</string>
 </resources>

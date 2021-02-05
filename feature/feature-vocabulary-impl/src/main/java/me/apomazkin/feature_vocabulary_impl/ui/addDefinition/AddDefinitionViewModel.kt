@@ -1,6 +1,5 @@
 package me.apomazkin.feature_vocabulary_impl.ui.addDefinition
 
-import android.util.Log
 import android.view.View
 import android.widget.AdapterView
 import androidx.databinding.ObservableField
@@ -20,12 +19,13 @@ class AddDefinitionViewModel(
 
     val addingDefinition = MutableLiveData<String>()
     val grade = MutableLiveData<Grade>(null)
-
-    val nounCountableVisibility1 = MutableLiveData<Int>()
-    val nounCountableVisibility = ObservableField<Int>(View.GONE)
-    val verbTransitiveVisibility = ObservableField<Int>(View.GONE)
-    val nounCountableChecked = MutableLiveData<Boolean>(false)
-    val verbTransitiveChecked = MutableLiveData<Boolean>(false)
+    val nounOptionsVisibility = ObservableField<Int>(View.GONE)
+    val nounCountability = MutableLiveData<Noun.Countability>(null)
+    val verbOptionsVisibility = ObservableField<Int>(View.GONE)
+    val verbTransitivity = MutableLiveData<Verb.Transitivity>(null)
+    val adjectiveOptionsVisibility = ObservableField<Int>(View.GONE)
+    val adjOrder = MutableLiveData<Adjective.Order>(null)
+    val adjGradability = MutableLiveData<Adjective.Gradability>(null)
 
 
     // TODO: 26.10.2020 заменить стрингу на sealed class.
@@ -36,36 +36,33 @@ class AddDefinitionViewModel(
 
     fun onNounSelect() {
         wordClass.postValue("noun")
-//        nounCountableVisibility.set(View.VISIBLE)
-//        verbTransitiveVisibility.set(View.GONE)
-//        nounCountableVisibility.postValue(View.VISIBLE)
+        nounOptionsVisibility.set(View.VISIBLE)
+        verbOptionsVisibility.set(View.GONE)
+        adjectiveOptionsVisibility.set(View.GONE)
     }
 
     fun onVerbSelect() {
         wordClass.postValue("verb")
-//        nounCountableVisibility.set(View.GONE)
-//        verbTransitiveVisibility.set(View.VISIBLE)
-//        nounCountableVisibility.postValue(View.GONE)
+        verbOptionsVisibility.set(View.VISIBLE)
+        nounOptionsVisibility.set(View.GONE)
+        adjectiveOptionsVisibility.set(View.GONE)
     }
 
     fun onAdjectiveSelect() {
         wordClass.postValue("adjective")
-//        nounCountableVisibility.set(View.GONE)
-//        verbTransitiveVisibility.set(View.GONE)
-//        nounCountableVisibility.postValue(View.GONE)
+        adjectiveOptionsVisibility.set(View.VISIBLE)
+        nounOptionsVisibility.set(View.GONE)
+        verbOptionsVisibility.set(View.GONE)
     }
 
     fun onAdverbSelect() {
         wordClass.postValue("adverb")
-//        nounCountableVisibility.set(View.GONE)
-//        verbTransitiveVisibility.set(View.GONE)
-//        nounCountableVisibility.postValue(View.GONE)
+        nounOptionsVisibility.set(View.GONE)
+        verbOptionsVisibility.set(View.GONE)
+        adjectiveOptionsVisibility.set(View.GONE)
     }
 
     fun onAddDefinition() {
-        Log.d("###", "noun: ${nounCountableChecked.value}")
-        Log.d("###", "verb: ${verbTransitiveChecked.value}")
-        Log.d("###", "grade: ${grade.value}")
         addingDefinition.value?.let {
             dbApi.addDefinition(
                 Definition(
@@ -73,20 +70,20 @@ class AddDefinitionViewModel(
                     definition = it,
                     wordClass = when (wordClass.value) {
                         "noun" -> {
-                            val countability =
-                                if (nounCountableChecked.value == true) Noun.Countability.COUNTABLE
-                                else null
                             Noun(
+                                countability = nounCountability.value,
                                 grade = grade.value,
-                                countability = countability
                             )
                         }
                         "verb" -> {
                             Verb(
+                                transitivity = verbTransitivity.value,
                                 grade = grade.value,
                             )
                         }
                         "adjective" -> Adjective(
+                            order = adjOrder.value,
+                            gradability = adjGradability.value,
                             grade = grade.value,
                         )
                         "adverb" -> Adverb(
@@ -121,6 +118,27 @@ class AddDefinitionViewModel(
     }
 
     override fun onCheckedChanged(group: ChipGroup?, checkedId: Int) {
+        when (group?.id ?: 0) {
+            R.id.chipGroupGrade -> {
+                setupGrade(checkedId)
+            }
+            R.id.chipGroupNoun -> {
+                setupNounOption(checkedId)
+            }
+            R.id.chipGroupVerb -> {
+                setupVerbOption(checkedId)
+            }
+            R.id.chipGroupAdjOrder -> {
+                setupAdjOrder(checkedId)
+            }
+            R.id.chipGroupAdjGradability -> {
+                setupAdjGradability(checkedId)
+            }
+        }
+
+    }
+
+    private fun setupGrade(checkedId: Int) {
         when (checkedId) {
             R.id.chipNone -> {
                 grade.value = null
@@ -146,6 +164,69 @@ class AddDefinitionViewModel(
             else -> {
                 grade.value = null
             }
+        }
+    }
+
+    private fun setupNounOption(checkedId: Int) {
+        nounCountability.value = when (checkedId) {
+            R.id.chipNounCountable -> {
+                Noun.Countability.COUNTABLE
+            }
+            R.id.chipNounUncountable -> {
+                Noun.Countability.UNCOUNTABLE
+            }
+            R.id.chipNounPlural -> {
+                Noun.Countability.PLURAL
+            }
+            R.id.chipNounUsuallyPlural -> {
+                Noun.Countability.USUALLY_PLURAL
+            }
+            R.id.chipNounUsuallySingular -> {
+                Noun.Countability.USUALLY_SINGULAR
+            }
+            else -> null
+        }
+    }
+
+    private fun setupVerbOption(checkedId: Int) {
+        verbTransitivity.value = when (checkedId) {
+            R.id.chipVerbTransitive -> {
+                Verb.Transitivity.TRANSITIVE
+            }
+            R.id.chipVerbIntransitive -> {
+                Verb.Transitivity.INTRANSITIVE
+            }
+            else -> null
+        }
+    }
+
+    private fun setupAdjOrder(checkedId: Int) {
+        adjOrder.value = when (checkedId) {
+            R.id.chipAdjOrderAfterNoun -> {
+                Adjective.Order.AFTER_NOUN
+            }
+            R.id.chipAdjOrderAfterVerb -> {
+                Adjective.Order.AFTER_VERB
+            }
+            R.id.chipAdjOrderBeforeNoun -> {
+                Adjective.Order.BEFORE_NOUN
+            }
+            else -> null
+        }
+    }
+
+    private fun setupAdjGradability(checkedId: Int) {
+        adjGradability.value = when (checkedId) {
+            R.id.chipAdjGradabilityComparative -> {
+                Adjective.Gradability.COMPARATIVE
+            }
+            R.id.chipAdjGradabilitySuperlative -> {
+                Adjective.Gradability.SUPERLATIVE
+            }
+            R.id.chipAdjGradabilityNotGradable -> {
+                Adjective.Gradability.NOT_GRADABLE
+            }
+            else -> null
         }
     }
 }
