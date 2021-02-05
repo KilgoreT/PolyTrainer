@@ -2,6 +2,7 @@ package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.app.AlertDialog
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.fragment_word_list.*
 import me.apomazkin.core_base.ui.BaseFragment
 import me.apomazkin.feature_vocabulary_impl.R
@@ -41,6 +42,9 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
 //            fab2.
 //        }
 
+//        container.adapter = adapter
+
+
         listViewModel.data.observe(
             this,
             { result ->
@@ -52,6 +56,9 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
                             result,
                             this
                         )
+                    val layout =
+                        LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, true)
+                    container.layoutManager = layout
                     container.adapter = adapter
                 }
             }
