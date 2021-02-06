@@ -27,15 +27,7 @@
             android:id="@+id/chipGroupGrade"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:checkedChip="@id/chipNone"
             app:singleSelection="true">
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipNone"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checkable="true"
-                android:text="@string/none" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipA1"
