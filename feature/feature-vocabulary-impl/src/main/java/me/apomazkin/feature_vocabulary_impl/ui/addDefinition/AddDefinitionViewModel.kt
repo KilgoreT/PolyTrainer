@@ -140,9 +140,6 @@ class AddDefinitionViewModel(
 
     private fun setupGrade(checkedId: Int) {
         when (checkedId) {
-            R.id.chipNone -> {
-                grade.value = null
-            }
             R.id.chipA1 -> {
                 grade.value = Grade.A1
             }
