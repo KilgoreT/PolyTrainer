@@ -35,6 +35,11 @@ class VocabularyTabFragment : Fragment() {
         api.featureVocabularyNavigation().start()
     }
 
+    override fun onStop() {
+        super.onStop()
+        FeatureVocabularyComponent.destroyFeature()
+    }
+
     private fun getNavController() =
         Navigation.findNavController(requireActivity(), R.id.addWordFragment)
 }
