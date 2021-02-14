@@ -3,18 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/tabs"
-    app:startDestination="@id/blankFragment01">
+    app:startDestination="@id/vocabularyTabFragment">
 
     <fragment
-        android:id="@+id/blankFragment01"
-        android:name="me.apomazkin.feature_bottom_menu_impl.ui.tab.BlankFragment01"
+        android:id="@+id/vocabularyTabFragment"
+        android:name="me.apomazkin.feature_bottom_menu_impl.ui.tab.VocabularyTabFragment"
         android:label="Vocabulary"
-        tools:layout="@layout/fragment_blank01" />
+        tools:layout="@layout/fragment_vocabulary_tab" />
 
     <fragment
-        android:id="@+id/blankFragment02"
-        android:name="me.apomazkin.feature_bottom_menu_impl.ui.tab.BlankFragment02"
+        android:id="@+id/trainingTabFragment"
+        android:name="me.apomazkin.feature_bottom_menu_impl.ui.tab.TrainingTabFragment"
         android:label="fragment_blank02"
-        tools:layout="@layout/fragment_blank02" />
+        tools:layout="@layout/fragment_training_tab" />
 
 </navigation>

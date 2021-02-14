@@ -3,13 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.tab.BlankFragment01">
+    tools:context=".ui.tab.TrainingTabFragment">
 
-    <fragment
-        android:id="@+id/addWordFragment"
-        android:name="androidx.navigation.fragment.NavHostFragment"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:ignore="FragmentTagUsage" />
+        android:gravity="center"
+        android:text="@string/sample_text" />
 
 </FrameLayout>
