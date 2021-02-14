@@ -17,4 +17,10 @@
         android:label="fragment_blank02"
         tools:layout="@layout/fragment_training_tab" />
 
+    <fragment
+        android:id="@+id/statisticTabFragment"
+        android:name="me.apomazkin.feature_bottom_menu_impl.ui.tab.StatisticTabFragment"
+        android:label="Statistics"
+        tools:layout="@layout/fragment_training_tab" />
+
 </navigation>
