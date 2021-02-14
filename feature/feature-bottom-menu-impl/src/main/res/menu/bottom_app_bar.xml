@@ -10,4 +10,9 @@
         android:icon="@drawable/ic_test2"
         android:title="@string/menu_item_exercises" />
 
+    <item
+        android:id="@+id/statisticTabFragment"
+        android:icon="@drawable/ic_test2"
+        android:title="@string/statistics" />
+
 </menu>

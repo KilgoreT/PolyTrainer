@@ -32,8 +32,13 @@ class BottomMenuFragment : Fragment() {
 
     private fun setupAppBar() {
         val appBarConfiguration = AppBarConfiguration
-            .Builder(setOf(R.id.vocabularyTabFragment, R.id.trainingTabFragment))
-            .build()
+            .Builder(
+                setOf(
+                    R.id.vocabularyTabFragment,
+                    R.id.trainingTabFragment,
+                    R.id.statisticTabFragment,
+                )
+            ).build()
         NavigationUI.setupActionBarWithNavController(
             requireActivity() as AppCompatActivity,
             getNavController(),
