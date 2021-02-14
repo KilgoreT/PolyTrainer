@@ -2,11 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/blankFragment01"
+        android:id="@+id/vocabularyTabFragment"
         android:icon="@drawable/ic_temp1"
         android:title="@string/menu_item_vocabulary" />
     <item
-        android:id="@+id/blankFragment02"
+        android:id="@+id/trainingTabFragment"
         android:icon="@drawable/ic_test2"
         android:title="@string/menu_item_exercises" />
 

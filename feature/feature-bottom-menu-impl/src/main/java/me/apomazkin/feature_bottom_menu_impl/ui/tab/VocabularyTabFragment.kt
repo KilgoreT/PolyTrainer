@@ -11,14 +11,14 @@ import me.apomazkin.feature_bottom_menu_impl.R
 import me.apomazkin.feature_vocabulary_impl.di.DaggerFeatureVocabularyComponent_FeatureVocabularyDependencyComponent
 import me.apomazkin.feature_vocabulary_impl.di.FeatureVocabularyComponent
 
-class BlankFragment01 : Fragment() {
+class VocabularyTabFragment : Fragment() {
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_blank01, container, false)
+        return inflater.inflate(R.layout.fragment_vocabulary_tab, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
