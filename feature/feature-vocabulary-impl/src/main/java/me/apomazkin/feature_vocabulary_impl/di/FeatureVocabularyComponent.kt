@@ -48,6 +48,10 @@ abstract class FeatureVocabularyComponent : FeatureVocabularyApi {
 
         fun get() = instance ?: throw RuntimeException("No FeatureAddWordComponent")
 
+        fun destroyFeature() {
+            instance = null
+        }
+
     }
 
     @Singleton

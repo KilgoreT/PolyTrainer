@@ -5,7 +5,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import kotlinx.android.synthetic.main.fragment_statistic_tab.*
+import me.apomazkin.core_db.di.CoreDbComponent
 import me.apomazkin.feature_bottom_menu_impl.R
+import me.apomazkin.feature_statistic_impl.di.DaggerFeatureStatisticComponent_FeatureStatisticDependencyComponent
+import me.apomazkin.feature_statistic_impl.di.FeatureStatisticComponent
 
 class StatisticTabFragment : Fragment() {
 
@@ -15,6 +19,25 @@ class StatisticTabFragment : Fragment() {
     ): View? {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_statistic_tab, container, false)
+    }
+
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val api = FeatureStatisticComponent.initAndGet(
+            featureContainer,
+            DaggerFeatureStatisticComponent_FeatureStatisticDependencyComponent
+                .builder()
+                .coreDbApi(CoreDbComponent.get(requireContext()).getCoreDbApi())
+                .build()
+        )
+        api.featureStatisticNavigation().start()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        FeatureStatisticComponent.destroyFeature()
     }
 
 }
