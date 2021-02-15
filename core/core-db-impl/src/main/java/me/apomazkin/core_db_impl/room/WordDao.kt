@@ -22,7 +22,7 @@ interface WordDao {
     fun getWordList(): Observable<List<WordDb>>
 
     @Transaction
-    @Query("SELECT * FROM words")
+    @Query("SELECT * FROM words ORDER BY id DESC")
     fun getWordListWithDefinition(): Observable<List<WordWithDefinitionsDb>>
 
     @Insert
