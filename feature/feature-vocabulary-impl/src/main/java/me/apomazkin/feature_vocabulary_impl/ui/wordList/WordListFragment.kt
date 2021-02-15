@@ -51,13 +51,12 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
                 if (::adapter.isInitialized) {
                     adapter.setData(result)
                 } else {
-                    adapter =
-                        WordListAdapter(
-                            result,
-                            this
-                        )
-                    val layout =
-                        LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, true)
+                    adapter = WordListAdapter(result, this)
+                    val layout = LinearLayoutManager(
+                        requireContext(),
+                        LinearLayoutManager.VERTICAL,
+                        false
+                    )
                     container.layoutManager = layout
                     container.adapter = adapter
                 }
