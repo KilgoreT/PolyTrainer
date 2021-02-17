@@ -2,13 +2,12 @@ package me.apomazkin.core_db_impl
 
 import io.reactivex.Completable
 import io.reactivex.Observable
+import io.reactivex.Single
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.Definition
-import me.apomazkin.core_db_api.entity.Word
 import me.apomazkin.core_db_api.entity.WordWithDefinition
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.mapper.DefinitionMapper
-import me.apomazkin.core_db_impl.mapper.WordMapper
 import me.apomazkin.core_db_impl.mapper.WordWithDefinitionsMapper
 import me.apomazkin.core_db_impl.room.WordDao
 import javax.inject.Inject
@@ -24,14 +23,6 @@ class CoreDbApiImpl @Inject constructor(
     override fun removeWord(id: Long) {
         wordDao
             .removeWord(id)
-    }
-
-    @Deprecated("not used")
-    override fun getWordList(): Observable<List<Word>> {
-        val mapper = WordMapper()
-        return wordDao
-            .getWordList()
-            .map { list -> list.map { item -> mapper.map(item) } }
     }
 
     override fun addDefinition(definition: Definition) {
@@ -60,6 +51,18 @@ class CoreDbApiImpl @Inject constructor(
             .flatMapCompletable { list ->
                 wordDao.deleteWordWithDefinition(*list.toTypedArray())
             }
+    }
+
+    override fun wordCount(): Single<Int> {
+        return wordDao.getWordCount()
+    }
+
+    override fun getDefinitionCount(): Single<Int> {
+        return wordDao.getDefinitionCount()
+    }
+
+    override fun getDefinitionTypeCount(wordClass: String): Single<Int> {
+        return wordDao.getDefinitionTypeCount(wordClass)
     }
 
 }

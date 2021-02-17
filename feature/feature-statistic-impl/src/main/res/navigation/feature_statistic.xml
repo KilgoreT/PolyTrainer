@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/feature_statistic">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/feature_statistic"
+    app:startDestination="@id/statisticFragment">
 
+    <fragment
+        android:id="@+id/statisticFragment"
+        android:name="me.apomazkin.feature_statistic_impl.ui.StatisticFragment"
+        android:label="Statistic" />
 
 </navigation>
