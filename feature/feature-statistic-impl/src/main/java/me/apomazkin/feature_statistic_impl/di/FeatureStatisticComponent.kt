@@ -6,6 +6,7 @@ import dagger.Component
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.feature_statistic_api.FeatureStatisticApi
 import me.apomazkin.feature_statistic_impl.di.module.FeatureModule
+import me.apomazkin.feature_statistic_impl.ui.StatisticFragment
 import javax.inject.Singleton
 
 @Singleton
@@ -15,9 +16,7 @@ import javax.inject.Singleton
 )
 abstract class FeatureStatisticComponent : FeatureStatisticApi {
 
-//    abstract fun inject(target: WordListFragment)
-//    abstract fun inject(target: AddWordDialog)
-//    abstract fun inject(target: AddDefinitionDialog)
+    abstract fun inject(statisticFragment: StatisticFragment)
 
     @Component.Factory
     interface Factory {

@@ -17,10 +17,6 @@ interface WordDao {
     @Query("DELETE FROM words WHERE id = :id")
     fun removeWord(id: Long): Completable
 
-    @Deprecated("not used")
-    @Query("SELECT * from words")
-    fun getWordList(): Observable<List<WordDb>>
-
     @Transaction
     @Query("SELECT * FROM words ORDER BY id DESC")
     fun getWordListWithDefinition(): Observable<List<WordWithDefinitionsDb>>
@@ -34,8 +30,18 @@ interface WordDao {
     @Delete
     fun deleteWordWithDefinition(vararg definition: DefinitionDb): Completable
 
+    // TODO: 18.02.2021 used to manual remove definition before removing word
     @Transaction
     @Query("SELECT * FROM words WHERE id = :id")
     fun getWord(id: Long): Single<WordWithDefinitionsDb>
+
+    @Query("SELECT COUNT(*) FROM words")
+    fun getWordCount(): Single<Int>
+
+    @Query("SELECT COUNT(*) FROM definitions")
+    fun getDefinitionCount(): Single<Int>
+
+    @Query("SELECT COUNT(*) FROM definitions WHERE wordClass = :wordClass")
+    fun getDefinitionTypeCount(wordClass: String): Single<Int>
 
 }

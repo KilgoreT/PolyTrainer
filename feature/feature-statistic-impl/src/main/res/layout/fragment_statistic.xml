@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="model"
+            type="me.apomazkin.feature_statistic_impl.ui.StatisticViewModel" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            bindText="@{model.statInfo}"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="@dimen/d16"
+            android:gravity="center_horizontal"
+            android:textColor="@color/colorOnError"
+            android:textSize="28sp"
+            tools:text="test" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
