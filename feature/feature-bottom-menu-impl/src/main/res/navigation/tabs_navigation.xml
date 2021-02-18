@@ -14,7 +14,7 @@
     <fragment
         android:id="@+id/trainingTabFragment"
         android:name="me.apomazkin.feature_bottom_menu_impl.ui.tab.TrainingTabFragment"
-        android:label="fragment_blank02"
+        android:label="Trainings"
         tools:layout="@layout/fragment_training_tab" />
 
     <fragment

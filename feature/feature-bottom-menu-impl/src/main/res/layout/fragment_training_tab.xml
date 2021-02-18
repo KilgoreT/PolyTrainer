@@ -5,10 +5,11 @@
     android:layout_height="match_parent"
     tools:context=".ui.tab.TrainingTabFragment">
 
-    <TextView
+    <fragment
+        android:id="@+id/trainingListFragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="@string/sample_text" />
+        tools:ignore="FragmentTagUsage" />
 
 </FrameLayout>
