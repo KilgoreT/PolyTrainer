@@ -5,13 +5,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import me.apomazkin.core_db.di.CoreDbComponent
 import me.apomazkin.feature_bottom_menu_impl.R
+import me.apomazkin.feature_bottom_menu_impl.di.FeatureBottomMenuComponent
 import me.apomazkin.feature_training_list_impl.di.DaggerFeatureTrainingListComponent_FeatureTrainingListDependencyComponent
 import me.apomazkin.feature_training_list_impl.di.FeatureTrainingListComponent
+import javax.inject.Inject
 
 class TrainingTabFragment : Fragment() {
+
+    @Inject
+    lateinit var parentController: NavController
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -24,7 +30,10 @@ class TrainingTabFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        FeatureBottomMenuComponent.get().inject(this)
+
         val api = FeatureTrainingListComponent.initAndGet(
+            parentController,
             getNavController(),
             DaggerFeatureTrainingListComponent_FeatureTrainingListDependencyComponent
                 .builder()

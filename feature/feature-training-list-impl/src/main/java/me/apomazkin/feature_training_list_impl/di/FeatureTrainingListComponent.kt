@@ -6,6 +6,8 @@ import dagger.Component
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.feature_training_list_api.FeatureTrainingListApi
 import me.apomazkin.feature_training_list_impl.di.module.FeatureModule
+import me.apomazkin.feature_training_list_impl.ui.TrainingListFragment
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Singleton
@@ -15,6 +17,8 @@ import javax.inject.Singleton
 )
 abstract class FeatureTrainingListComponent : FeatureTrainingListApi {
 
+    abstract fun inject(trainingListFragment: TrainingListFragment)
+
 //    abstract fun inject(target: WordListFragment)
 //    abstract fun inject(target: AddWordDialog)
 //    abstract fun inject(target: AddDefinitionDialog)
@@ -22,7 +26,8 @@ abstract class FeatureTrainingListComponent : FeatureTrainingListApi {
     @Component.Factory
     interface Factory {
         fun create(
-            @BindsInstance navController: NavController,
+            @BindsInstance @Named("parent") parentController: NavController,
+            @BindsInstance @Named("current") currentController: NavController,
             dependency: FeatureTrainingListDependency
         ): FeatureTrainingListComponent
     }
@@ -33,12 +38,13 @@ abstract class FeatureTrainingListComponent : FeatureTrainingListApi {
         private var instance: FeatureTrainingListComponent? = null
 
         fun initAndGet(
-            navController: NavController,
+            parentController: NavController,
+            currentController: NavController,
             dependency: FeatureTrainingListDependency
         ): FeatureTrainingListComponent {
             if (instance == null) {
                 instance = DaggerFeatureTrainingListComponent.factory()
-                    .create(navController, dependency)
+                    .create(parentController, currentController, dependency)
             }
             return instance ?: throw RuntimeException("No FeatureTrainingListComponent!!!")
         }

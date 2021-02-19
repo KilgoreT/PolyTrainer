@@ -28,6 +28,13 @@ class BottomMenuFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupAppBar()
         setupBottomMenu()
+        setupDestinationChangeListener()
+    }
+
+    private fun setupDestinationChangeListener() {
+        getNavController().addOnDestinationChangedListener { controller, destination, arguments ->
+            println()
+        }
     }
 
     private fun setupAppBar() {
