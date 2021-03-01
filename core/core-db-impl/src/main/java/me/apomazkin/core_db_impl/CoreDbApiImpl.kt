@@ -5,9 +5,11 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.Definition
+import me.apomazkin.core_db_api.entity.Quiz
 import me.apomazkin.core_db_api.entity.WordWithDefinition
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.mapper.DefinitionMapper
+import me.apomazkin.core_db_impl.mapper.QuizMapper
 import me.apomazkin.core_db_impl.mapper.WordWithDefinitionsMapper
 import me.apomazkin.core_db_impl.room.WordDao
 import javax.inject.Inject
@@ -63,6 +65,12 @@ class CoreDbApiImpl @Inject constructor(
 
     override fun getDefinitionTypeCount(wordClass: String): Single<Int> {
         return wordDao.getDefinitionTypeCount(wordClass)
+    }
+
+    override fun getRandomQuizList(): Single<List<Quiz>> {
+        val mapper = QuizMapper()
+        return wordDao.getRandomDefinition()
+            .map { list -> mapper.map(list) }
     }
 
 }
