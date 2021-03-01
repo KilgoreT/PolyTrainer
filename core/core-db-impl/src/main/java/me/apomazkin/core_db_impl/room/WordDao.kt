@@ -5,6 +5,7 @@ import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
 import me.apomazkin.core_db_impl.entity.DefinitionDb
+import me.apomazkin.core_db_impl.entity.QuizDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WordWithDefinitionsDb
 
@@ -43,5 +44,8 @@ interface WordDao {
 
     @Query("SELECT COUNT(*) FROM definitions WHERE wordClass = :wordClass")
     fun getDefinitionTypeCount(wordClass: String): Single<Int>
+
+    @Query("SELECT * from definitions ORDER BY RANDOM() LIMIT 10")
+    fun getRandomDefinition(): Single<List<QuizDb>>
 
 }

@@ -5,19 +5,18 @@ import dagger.BindsInstance
 import dagger.Component
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.feature_training_write_api.FeatureTrainingWriteApi
-import me.apomazkin.feature_training_write_impl.di.module.FeatureModule
+import me.apomazkin.feature_training_write_impl.di.module.FeatureModuleTrain
+import me.apomazkin.feature_training_write_impl.ui.TrainingWriteFragment
 import javax.inject.Singleton
 
 @Singleton
 @Component(
-    modules = [FeatureModule::class],
+    modules = [FeatureModuleTrain::class],
     dependencies = [FeatureTrainingWriteDependency::class]
 )
 abstract class FeatureTrainingWriteComponent : FeatureTrainingWriteApi {
+    abstract fun inject(trainingWriteFragment: TrainingWriteFragment)
 
-//    abstract fun inject(target: WordListFragment)
-//    abstract fun inject(target: AddWordDialog)
-//    abstract fun inject(target: AddDefinitionDialog)
 
     @Component.Factory
     interface Factory {
