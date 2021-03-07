@@ -15,7 +15,7 @@
         android:layout_height="match_parent">
 
         <TextView
-            android:id="@+id/currentQuizView"
+            android:id="@+id/tvCurrentQuizTitle"
             bindText="@{model.currentQuizTitle}"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -24,20 +24,107 @@
             android:textColor="@color/colorOnSurface"
             android:textSize="24sp"
             android:textStyle="bold"
-            app:layout_constraintBottom_toTopOf="@id/containerQuiz"
+            app:layout_constraintBottom_toTopOf="@id/tvQuizValue"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="7 level" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/containerQuiz"
+        <TextView
+            android:id="@+id/tvQuizValue"
             android:layout_width="match_parent"
+            bindText="@{model.currentQuizValue}"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/d16"
+            android:layout_marginTop="@dimen/d16"
+            android:layout_marginEnd="@dimen/d16"
+            android:textColor="@color/colorOnSurface"
+            android:textSize="18sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvCurrentQuizTitle"
+            tools:text="What da fuck" />
+
+        <TextView
+            android:id="@+id/tvQuizAnswer"
+            bindTextOrInvisible="@{model.currentQuizAnswer}"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/d16"
+            android:layout_marginTop="@dimen/d16"
+            android:layout_marginEnd="@dimen/d16"
+            android:gravity="center"
+            android:textColor="@color/colorOnSurface"
+            android:textSize="18sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvQuizValue"
+            tools:text="Nothing" />
+
+        <EditText
+            android:id="@+id/tvAnswerValue"
+            bindVisibility="@{model.quizAttempt}"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/d16"
+            android:layout_marginEnd="@dimen/d16"
+            android:autofillHints="@string/type_your_answer_here"
+            android:hint="@string/type_your_answer_here"
+            android:inputType="text"
+            android:text="@={model.quizAttemptValue}"
+            app:layout_constraintBottom_toTopOf="@id/brButtons"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvQuizValue" />
+
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/brButtons"
+            android:layout_width="0dp"
             android:layout_height="0dp"
+            app:barrierDirection="top"
+            app:constraint_referenced_ids="btnCheck, btnNext, btnReload" />
+
+        <Button
+            android:id="@+id/btnCheck"
+            bindVisibility="@{model.btnCheckVisibility}"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/d16"
+            android:layout_marginBottom="64dp"
+            android:onClick="@{() -> model.onPressCheck()}"
+            android:text="@string/check"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <Button
+            android:id="@+id/btnNext"
+            bindVisibility="@{model.btnNextVisibility}"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/d16"
+            android:layout_marginBottom="64dp"
+            android:onClick="@{() -> model.onPressNext()}"
+            android:text="@string/next"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/currentQuizView" />
+            tools:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnReload"
+            bindVisibility="@{model.btnReloadVisibility}"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/d16"
+            android:layout_marginBottom="64dp"
+            android:onClick="@{() -> model.onPressReload()}"
+            android:text="@string/again"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            tools:visibility="gone" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
