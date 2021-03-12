@@ -74,13 +74,12 @@ class TrainingWriteViewModel @Inject constructor(
     fun onPressCheck() {
         if (quizAttemptValue.value == data[currentQuiz].answer) {
             currentQuizTitle.postValue("Right!")
-
         } else {
             currentQuizTitle.postValue("Wrong!")
         }
         currentQuizAnswer.postValue(data[currentQuiz].answer)
-        quizAttempt.postValue(false)
         quizAttemptValue.postValue("")
+        quizAttempt.postValue(false)
         setupButtons(next = true)
     }
 

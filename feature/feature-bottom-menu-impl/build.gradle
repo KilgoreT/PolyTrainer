@@ -68,8 +68,8 @@ dependencies {
     kapt "com.google.dagger:dagger-compiler:2.25.2"
 
     //Navigation
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.3.3'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.3.3'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.3.4'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.3.4'
 
     // Test
     //noinspection GradleDependency
