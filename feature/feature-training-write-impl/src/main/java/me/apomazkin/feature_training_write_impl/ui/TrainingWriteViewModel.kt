@@ -22,6 +22,7 @@ class TrainingWriteViewModel @Inject constructor(
     //    val currentQuizNumber = MutableLiveData<Int>()
     private var currentQuiz = 0
     private var data: List<Quiz> = emptyList()
+    val currentQuizInt = MutableLiveData<Int>()
     val currentQuizTitle = MutableLiveData<String>()
     val currentQuizValue = MutableLiveData<String>()
     val currentQuizAnswer = MutableLiveData<String>(null)
@@ -55,6 +56,7 @@ class TrainingWriteViewModel @Inject constructor(
 
     private fun setupQuiz() {
         currentQuiz = 0
+        currentQuizInt.postValue(currentQuiz)
         currentQuizTitle.postValue("${currentQuiz + 1} quiz")
         currentQuizValue.postValue(data[currentQuiz].definition.definition)
         quizAttempt.postValue(true)
@@ -87,6 +89,7 @@ class TrainingWriteViewModel @Inject constructor(
         currentQuizAnswer.postValue(null)
         if (currentQuiz < 9) {
             currentQuiz++
+            currentQuizInt.postValue(currentQuiz)
             currentQuizTitle.postValue("${currentQuiz + 1} quiz")
             currentQuizValue.postValue(data[currentQuiz].definition.definition)
             quizAttempt.postValue(true)
