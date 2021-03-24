@@ -1,3 +1,4 @@
+include ':core:core-interactor'
 include ':widget:view-progress-quiz'
 include ':feature:feature-training-write-impl'
 include ':feature:feature-training-write-api'

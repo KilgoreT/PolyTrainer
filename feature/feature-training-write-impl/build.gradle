@@ -47,10 +47,10 @@ dependencies {
 
     implementation fileTree(dir: "libs", include: ["*.jar"])
 
-    implementation project(path: ':core:core-db')
     implementation project(path: ':core:core-resources')
     implementation project(path: ':core:core-base')
     implementation project(path: ':core:core-binding')
+    implementation project(path: ':core:core-interactor')
     implementation project(path: ':feature:feature-training-write-api')
     implementation project(path: ':widget:view-progress-quiz')
 
