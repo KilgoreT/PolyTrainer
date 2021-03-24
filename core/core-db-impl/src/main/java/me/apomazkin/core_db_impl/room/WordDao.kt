@@ -5,15 +5,19 @@ import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
 import me.apomazkin.core_db_impl.entity.DefinitionDb
-import me.apomazkin.core_db_impl.entity.QuizDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WordWithDefinitionsDb
+import me.apomazkin.core_db_impl.entity.WriteQuizDb
 
+// TODO: 20.03.2021 переименгвать Dao
 @Dao
 interface WordDao {
 
     @Insert
     fun addWord(wordDb: WordDb)
+
+    @Query("SELECT * FROM words WHERE id = :id")
+    fun getWordById(id: Long): Single<WordDb>
 
     @Query("DELETE FROM words WHERE id = :id")
     fun removeWord(id: Long): Completable
@@ -23,7 +27,13 @@ interface WordDao {
     fun getWordListWithDefinition(): Observable<List<WordWithDefinitionsDb>>
 
     @Insert
-    fun addDefinition(definitionDb: DefinitionDb)
+    fun addDefinition(definitionDb: DefinitionDb): Single<Long>
+
+    @Query("SELECT * FROM definitions WHERE id = :id")
+    fun getDefinitionById(id: Long): Single<DefinitionDb>
+
+    @Query("SELECT COUNT(*) FROM definitions")
+    fun getDefinitionCount1(): Int
 
     @Query("DELETE FROM definitions WHERE id = :id")
     fun deleteDefinition(id: Long): Completable
@@ -45,7 +55,12 @@ interface WordDao {
     @Query("SELECT COUNT(*) FROM definitions WHERE wordClass = :wordClass")
     fun getDefinitionTypeCount(wordClass: String): Single<Int>
 
-    @Query("SELECT * from definitions ORDER BY RANDOM() LIMIT 10")
-    fun getRandomDefinition(): Single<List<QuizDb>>
+    @Insert
+    fun addWriteQuiz(writeQuizDb: WriteQuizDb): Completable
 
+    @Query("SELECT * from writeQuiz  WHERE grade = :grade ORDER BY RANDOM() LIMIT :limit")
+    fun getWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuizDb>>
+
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    fun updateWriteQuiz(writeQuizDb: WriteQuizDb): Completable
 }

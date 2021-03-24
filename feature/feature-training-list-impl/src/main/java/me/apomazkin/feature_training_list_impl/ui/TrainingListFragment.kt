@@ -7,10 +7,8 @@ import android.view.ViewGroup
 import android.widget.Button
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavController
-import me.apomazkin.core_db.di.CoreDbComponent
 import me.apomazkin.feature_training_list_impl.R
 import me.apomazkin.feature_training_list_impl.di.FeatureTrainingListComponent
-import me.apomazkin.feature_training_write_impl.di.DaggerFeatureTrainingWriteComponent_FeatureTrainingListDependencyComponent
 import me.apomazkin.feature_training_write_impl.di.FeatureTrainingWriteComponent
 import javax.inject.Inject
 import javax.inject.Named
@@ -54,10 +52,7 @@ class TrainingListFragment : Fragment() {
         val api = FeatureTrainingWriteComponent
             .initAndGet(
                 navController = parentController,
-                DaggerFeatureTrainingWriteComponent_FeatureTrainingListDependencyComponent
-                    .builder()
-                    .coreDbApi(CoreDbComponent.get(requireContext()).getCoreDbApi())
-                    .build()
+                context = requireContext()
             )
         api.featureTrainingWriteNavigator().start()
     }

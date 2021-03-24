@@ -1,10 +1,12 @@
 package me.apomazkin.feature_training_write_impl.di.module
 
+import android.content.Context
 import androidx.lifecycle.ViewModelProvider
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
-import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.core_interactor.CoreInteractorApi
+import me.apomazkin.core_interactor.di.CoreInteractorComponent
 import me.apomazkin.feature_training_write_api.FeatureTrainingWriteNavigator
 import me.apomazkin.feature_training_write_impl.FeatureViewModelFactory
 import me.apomazkin.feature_training_write_impl.navigator.FeatureTrainingWriteNavigatorImpl
@@ -24,10 +26,17 @@ abstract class FeatureModuleTrain {
         @Singleton
         @Provides
         fun provideViewModelFactory(
-            dbApi: CoreDbApi,
+            coreInteractorApi: CoreInteractorApi,
             navigation: FeatureTrainingWriteNavigator,
         ): ViewModelProvider.Factory {
-            return FeatureViewModelFactory(dbApi, navigation)
+            return FeatureViewModelFactory(coreInteractorApi, navigation)
+        }
+
+        @JvmStatic
+        @Singleton
+        @Provides
+        fun provideCoreInteractorApi(context: Context): CoreInteractorApi {
+            return CoreInteractorComponent.getOrInit(context)
         }
     }
 }

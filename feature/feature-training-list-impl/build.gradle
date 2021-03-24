@@ -50,6 +50,7 @@ dependencies {
     implementation project(path: ':core:core-resources')
     implementation project(path: ':core:core-base')
     implementation project(path: ':core:core-binding')
+    implementation project(path: ':core:core-interactor')
     implementation project(path: ':feature:feature-training-list-api')
     implementation project(path: ':feature:feature-training-write-api')
     implementation project(path: ':feature:feature-training-write-impl')

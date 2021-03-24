@@ -6,6 +6,8 @@ import androidx.databinding.ObservableField
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.android.material.chip.ChipGroup
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
@@ -93,6 +95,9 @@ class AddDefinitionViewModel(
                     }
                 )
             )
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {}
         }
         navigation.closeDialog()
     }

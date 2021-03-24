@@ -1,7 +1,7 @@
 package me.apomazkin.feature_training_write_impl.di
 
-import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.core_interactor.CoreInteractorApi
 
 interface FeatureTrainingWriteDependency {
-    fun getDb(): CoreDbApi
+    fun getCoreInteractor(): CoreInteractorApi
 }

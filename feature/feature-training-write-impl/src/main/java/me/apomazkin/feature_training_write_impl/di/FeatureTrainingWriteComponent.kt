@@ -1,19 +1,16 @@
 package me.apomazkin.feature_training_write_impl.di
 
+import android.content.Context
 import androidx.navigation.NavController
 import dagger.BindsInstance
 import dagger.Component
-import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.feature_training_write_api.FeatureTrainingWriteApi
 import me.apomazkin.feature_training_write_impl.di.module.FeatureModuleTrain
 import me.apomazkin.feature_training_write_impl.ui.TrainingWriteFragment
 import javax.inject.Singleton
 
 @Singleton
-@Component(
-    modules = [FeatureModuleTrain::class],
-    dependencies = [FeatureTrainingWriteDependency::class]
-)
+@Component(modules = [FeatureModuleTrain::class])
 abstract class FeatureTrainingWriteComponent : FeatureTrainingWriteApi {
     abstract fun inject(trainingWriteFragment: TrainingWriteFragment)
 
@@ -22,7 +19,7 @@ abstract class FeatureTrainingWriteComponent : FeatureTrainingWriteApi {
     interface Factory {
         fun create(
             @BindsInstance navController: NavController,
-            dependency: FeatureTrainingWriteDependency
+            @BindsInstance context: Context,
         ): FeatureTrainingWriteComponent
     }
 
@@ -33,11 +30,11 @@ abstract class FeatureTrainingWriteComponent : FeatureTrainingWriteApi {
 
         fun initAndGet(
             navController: NavController,
-            dependency: FeatureTrainingWriteDependency
+            context: Context
         ): FeatureTrainingWriteComponent {
             if (instance == null) {
                 instance = DaggerFeatureTrainingWriteComponent.factory()
-                    .create(navController, dependency)
+                    .create(navController, context)
             }
             return instance ?: throw RuntimeException("No FeatureTrainingListComponent!!!")
         }
@@ -49,9 +46,5 @@ abstract class FeatureTrainingWriteComponent : FeatureTrainingWriteApi {
         }
 
     }
-
-    @Singleton
-    @Component(dependencies = [CoreDbApi::class])
-    interface FeatureTrainingListDependencyComponent : FeatureTrainingWriteDependency
 
 }

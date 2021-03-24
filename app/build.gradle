@@ -19,11 +19,6 @@ android {
         targetSdkVersion 30
         versionName VERSION
         versionCode getVersionCode(versionName)
-//        versionCode getVersionCode("undefined")
-//        def VERSION = System.getenv('RELEASE_VERSION')
-        println(">>>>> tag: " + System.getenv('RELEASE_VERSION'))
-        println(">>>>> versionName: " + versionName)
-        println(">>>>> versionCode: " + versionCode)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

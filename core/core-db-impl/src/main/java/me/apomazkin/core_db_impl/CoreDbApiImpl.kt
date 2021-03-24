@@ -5,12 +5,15 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.Definition
-import me.apomazkin.core_db_api.entity.Quiz
+import me.apomazkin.core_db_api.entity.Word
 import me.apomazkin.core_db_api.entity.WordWithDefinition
+import me.apomazkin.core_db_api.entity.WriteQuiz
 import me.apomazkin.core_db_impl.entity.WordDb
+import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import me.apomazkin.core_db_impl.mapper.DefinitionMapper
-import me.apomazkin.core_db_impl.mapper.QuizMapper
+import me.apomazkin.core_db_impl.mapper.WordMapper
 import me.apomazkin.core_db_impl.mapper.WordWithDefinitionsMapper
+import me.apomazkin.core_db_impl.mapper.WriteQuizMapper
 import me.apomazkin.core_db_impl.room.WordDao
 import javax.inject.Inject
 
@@ -22,16 +25,33 @@ class CoreDbApiImpl @Inject constructor(
         wordDao.addWord(WordDb(word = value))
     }
 
+    override fun getWord(id: Long): Single<Word> {
+        val mapper = WordMapper()
+        return wordDao
+            .getWordById(id)
+            .map { value -> mapper.map(value) }
+    }
+
     override fun removeWord(id: Long) {
         wordDao
             .removeWord(id)
     }
 
-    override fun addDefinition(definition: Definition) {
+    override fun addDefinition(definition: Definition): Completable {
         val mapper = DefinitionMapper()
-        wordDao
-            .addDefinition(mapper.reverseMap(definition))
+        return wordDao.addDefinition(mapper.reverseMap(definition))
+            .flatMapCompletable { id ->
+                wordDao.addWriteQuiz(WriteQuizDb(definitionId = id))
+            }
+//        wordDao.addWriteQuiz(WriteQuizDb(definitionId = definition.id))
     }
+
+    override fun getDefinition(id: Long): Single<Definition> {
+        val mapper = DefinitionMapper()
+        return wordDao.getDefinitionById(id)
+            .map { value -> mapper.map(value) }
+    }
+
 
     override fun deleteDefinition(id: Long): Completable {
         return wordDao.deleteDefinition(id)
@@ -67,10 +87,15 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.getDefinitionTypeCount(wordClass)
     }
 
-    override fun getRandomQuizList(): Single<List<Quiz>> {
-        val mapper = QuizMapper()
-        return wordDao.getRandomDefinition()
+    override fun getWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>> {
+        val mapper = WriteQuizMapper()
+        return wordDao.getWriteQuizList(grade, limit)
             .map { list -> mapper.map(list) }
+    }
+
+    override fun updateWriteQuizList(writeQuiz: WriteQuiz): Completable {
+        val mapper = WriteQuizMapper()
+        return wordDao.updateWriteQuiz(mapper.reverseMap(writeQuiz))
     }
 
 }
