@@ -85,6 +85,7 @@ class WriteQuizScenarioImpl @Inject constructor(
                                 if (result.size < 10) {
                                     throw RuntimeException("Need More Word!")
                                 }
+                                result.shuffle()
                                 Single.just(result)
                             }
                     }
