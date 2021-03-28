@@ -5,14 +5,14 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.Definition
+import me.apomazkin.core_db_api.entity.Term
 import me.apomazkin.core_db_api.entity.Word
-import me.apomazkin.core_db_api.entity.WordWithDefinition
 import me.apomazkin.core_db_api.entity.WriteQuiz
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import me.apomazkin.core_db_impl.mapper.DefinitionMapper
+import me.apomazkin.core_db_impl.mapper.TermMapper
 import me.apomazkin.core_db_impl.mapper.WordMapper
-import me.apomazkin.core_db_impl.mapper.WordWithDefinitionsMapper
 import me.apomazkin.core_db_impl.mapper.WriteQuizMapper
 import me.apomazkin.core_db_impl.room.WordDao
 import javax.inject.Inject
@@ -21,8 +21,8 @@ class CoreDbApiImpl @Inject constructor(
     private val wordDao: WordDao
 ) : CoreDbApi {
 
-    override fun addWord(value: String) {
-        wordDao.addWord(WordDb(word = value))
+    override fun addWord(value: String): Completable {
+        return wordDao.addWord(WordDb(word = value))
     }
 
     override fun getWord(id: Long): Single<Word> {
@@ -32,9 +32,15 @@ class CoreDbApiImpl @Inject constructor(
             .map { value -> mapper.map(value) }
     }
 
-    override fun removeWord(id: Long) {
-        wordDao
-            .removeWord(id)
+    override fun removeWord(id: Long): Completable {
+        return wordDao.getWord(id)
+            .flatMap { word ->
+                wordDao.removeWord(id)
+                    .toSingle { word.definitionDbList }
+            }
+            .flatMapCompletable { list ->
+                wordDao.deleteDefinitions(*list.toTypedArray())
+            }
     }
 
     override fun addDefinition(definition: Definition): Completable {
@@ -53,26 +59,22 @@ class CoreDbApiImpl @Inject constructor(
     }
 
 
-    override fun deleteDefinition(id: Long): Completable {
+    override fun removeDefinition(id: Long): Completable {
         return wordDao.deleteDefinition(id)
     }
 
-    override fun getWordWithDefinition(): Observable<List<WordWithDefinition>> {
-        val mapper = WordWithDefinitionsMapper()
+    override fun getTermList(): Observable<List<Term>> {
+        val mapper = TermMapper()
         return wordDao
-            .getWordListWithDefinition()
+            .getTermList()
             .map { list -> list.map { item -> mapper.map(item) } }
     }
 
-    override fun deleteWord(id: Long): Completable {
-        return wordDao.getWord(id)
-            .flatMap { word ->
-                wordDao.removeWord(id)
-                    .toSingle { word.definitionDbList }
-            }
-            .flatMapCompletable { list ->
-                wordDao.deleteWordWithDefinition(*list.toTypedArray())
-            }
+    override fun searchTermList(pattern: String): Observable<List<Term>> {
+        val mapper = TermMapper()
+        return wordDao
+            .searchTerms(pattern)
+            .map { list -> list.map { item -> mapper.map(item) } }
     }
 
     override fun wordCount(): Single<Int> {

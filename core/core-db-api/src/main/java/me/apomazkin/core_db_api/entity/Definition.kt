@@ -12,8 +12,7 @@ const val OPT_TRANSITIVE = 1L shl TRANSITIVE_INDEX
 data class Definition(
     val id: Long? = null,
     val wordId: Long? = null,
-    // TODO: 07.03.2021 rename definition to value
-    val definition: String? = null,
+    val value: String? = null,
     val wordClass: WordClass? = null
 )
 

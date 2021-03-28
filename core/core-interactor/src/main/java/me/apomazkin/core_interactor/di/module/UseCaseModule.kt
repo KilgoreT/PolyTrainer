@@ -3,6 +3,9 @@ package me.apomazkin.core_interactor.di.module
 import dagger.Binds
 import dagger.Module
 import me.apomazkin.core_interactor.useCase.definition.GetDefinitionUseCase
+import me.apomazkin.core_interactor.useCase.definition.RemoveDefinitionUseCase
+import me.apomazkin.core_interactor.useCase.term.GetTermUseCase
+import me.apomazkin.core_interactor.useCase.term.SearchTermUseCase
 import me.apomazkin.core_interactor.useCase.word.AddWordUseCase
 import me.apomazkin.core_interactor.useCase.word.GetWordUseCase
 import me.apomazkin.core_interactor.useCase.word.RemoveWordUseCase
@@ -24,7 +27,16 @@ interface UseCaseModule {
     fun provideRemoveWordUseCase(impl: RemoveWordUseCase.RemoveWordUseCaseImpl): RemoveWordUseCase
 
     @Binds
+    fun provideGetTermUseCase(impl: GetTermUseCase.GetTermUseCaseImpl): GetTermUseCase
+
+    @Binds
+    fun provideSearchTermUseCase(impl: SearchTermUseCase.SearchTermUseCaseImpl): SearchTermUseCase
+
+    @Binds
     fun provideGetDefinitionUseCase(impl: GetDefinitionUseCase.GetDefinitionUseCaseImpl): GetDefinitionUseCase
+
+    @Binds
+    fun provide(impl: RemoveDefinitionUseCase.RemoveDefinitionUseCaseImpl): RemoveDefinitionUseCase
 
     @Binds
     fun provideGetWriteQuizUseCase(impl: GetWriteQuizUseCase.GetWriteQuizUseCaseImpl): GetWriteQuizUseCase

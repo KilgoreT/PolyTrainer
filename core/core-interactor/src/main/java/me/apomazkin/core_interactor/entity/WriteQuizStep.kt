@@ -1,4 +1,4 @@
-package me.apomazkin.core_interactor.scenario
+package me.apomazkin.core_interactor.entity
 
 data class WriteQuizStep(
     val id: Long,

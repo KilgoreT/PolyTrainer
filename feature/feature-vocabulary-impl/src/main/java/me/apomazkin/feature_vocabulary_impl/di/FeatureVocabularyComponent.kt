@@ -1,5 +1,6 @@
 package me.apomazkin.feature_vocabulary_impl.di
 
+import android.content.Context
 import androidx.navigation.NavController
 import dagger.BindsInstance
 import dagger.Component
@@ -26,6 +27,7 @@ abstract class FeatureVocabularyComponent : FeatureVocabularyApi {
     interface Factory {
         fun create(
             @BindsInstance navController: NavController,
+            @BindsInstance context: Context,
             dependency: FeatureVocabularyDependency
         ): FeatureVocabularyComponent
     }
@@ -37,11 +39,12 @@ abstract class FeatureVocabularyComponent : FeatureVocabularyApi {
 
         fun initAndGet(
             navController: NavController,
+            context: Context,
             dependency: FeatureVocabularyDependency
         ): FeatureVocabularyComponent {
             if (instance == null) {
                 instance = DaggerFeatureVocabularyComponent.factory()
-                    .create(navController, dependency)
+                    .create(navController, context, dependency)
             }
             return instance ?: throw RuntimeException("njkjhkj")
         }

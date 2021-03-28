@@ -5,8 +5,8 @@ import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
 import me.apomazkin.core_db_impl.entity.DefinitionDb
+import me.apomazkin.core_db_impl.entity.TermDb
 import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WordWithDefinitionsDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
 
 // TODO: 20.03.2021 переименгвать Dao
@@ -14,7 +14,7 @@ import me.apomazkin.core_db_impl.entity.WriteQuizDb
 interface WordDao {
 
     @Insert
-    fun addWord(wordDb: WordDb)
+    fun addWord(wordDb: WordDb): Completable
 
     @Query("SELECT * FROM words WHERE id = :id")
     fun getWordById(id: Long): Single<WordDb>
@@ -24,7 +24,11 @@ interface WordDao {
 
     @Transaction
     @Query("SELECT * FROM words ORDER BY id DESC")
-    fun getWordListWithDefinition(): Observable<List<WordWithDefinitionsDb>>
+    fun getTermList(): Observable<List<TermDb>>
+
+    @Transaction
+    @Query("SELECT * FROM words WHERE word LIKE :pattern ORDER BY id DESC")
+    fun searchTerms(pattern: String): Observable<List<TermDb>>
 
     @Insert
     fun addDefinition(definitionDb: DefinitionDb): Single<Long>
@@ -39,12 +43,12 @@ interface WordDao {
     fun deleteDefinition(id: Long): Completable
 
     @Delete
-    fun deleteWordWithDefinition(vararg definition: DefinitionDb): Completable
+    fun deleteDefinitions(vararg definition: DefinitionDb): Completable
 
     // TODO: 18.02.2021 used to manual remove definition before removing word
     @Transaction
     @Query("SELECT * FROM words WHERE id = :id")
-    fun getWord(id: Long): Single<WordWithDefinitionsDb>
+    fun getWord(id: Long): Single<TermDb>
 
     @Query("SELECT COUNT(*) FROM words")
     fun getWordCount(): Single<Int>

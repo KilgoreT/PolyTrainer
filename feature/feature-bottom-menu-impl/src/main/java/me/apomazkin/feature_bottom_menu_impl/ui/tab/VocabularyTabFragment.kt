@@ -27,6 +27,7 @@ class VocabularyTabFragment : Fragment() {
         val api = FeatureVocabularyComponent
             .initAndGet(
                 getNavController(),
+                requireContext(),
                 DaggerFeatureVocabularyComponent_FeatureVocabularyDependencyComponent
                     .builder()
                     .coreDbApi(CoreDbComponent.get(requireContext()).getCoreDbApi())

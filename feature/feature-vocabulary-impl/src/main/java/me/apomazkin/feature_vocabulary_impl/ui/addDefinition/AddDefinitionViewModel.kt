@@ -69,7 +69,7 @@ class AddDefinitionViewModel(
             dbApi.addDefinition(
                 Definition(
                     wordId = id,
-                    definition = it,
+                    value = it,
                     wordClass = when (wordClass.value) {
                         "noun" -> {
                             Noun(

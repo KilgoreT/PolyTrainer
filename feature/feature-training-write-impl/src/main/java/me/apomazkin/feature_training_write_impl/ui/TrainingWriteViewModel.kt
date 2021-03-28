@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_interactor.CoreInteractorApi
-import me.apomazkin.core_interactor.scenario.WriteQuizStep
+import me.apomazkin.core_interactor.entity.WriteQuizStep
 import me.apomazkin.feature_training_write_api.FeatureTrainingWriteNavigator
 import javax.inject.Inject
 
