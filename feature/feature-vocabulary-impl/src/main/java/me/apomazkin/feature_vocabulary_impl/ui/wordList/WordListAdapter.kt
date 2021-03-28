@@ -14,11 +14,11 @@ import me.apomazkin.feature_vocabulary_impl.R
 import me.apomazkin.feature_vocabulary_impl.databinding.ItemWordBinding
 
 class WordListAdapter(
-    private var data: List<WordWithDefinition>,
+    private var data: List<Term>,
     private val listener: NewWordListAdapterListener
 ) : RecyclerView.Adapter<WordListAdapter.NewWordHolder>() {
 
-    fun setData(list: List<WordWithDefinition>) {
+    fun setData(list: List<Term>) {
         data = list
         notifyDataSetChanged()
     }
@@ -79,8 +79,8 @@ class WordListAdapter(
                 }
         }
 
-        fun bind(value: WordWithDefinition) {
-            binding.entry.text = value.word.word ?: "undefined"
+        fun bind(value: Term) {
+            binding.entry.text = value.word.value ?: "undefined"
             binding.containerDefinition.removeAllViews()
             val lastDefinition = value.definitionList.size - 1
             value.definitionList.forEachIndexed { index, definition ->
@@ -97,7 +97,7 @@ class WordListAdapter(
                     is Adverb -> viewItem.resources.getString(R.string.common_adverb_label)
                     else -> "undefined"
                 }
-                viewItem.tvDefinition.text = definition.definition
+                viewItem.tvDefinition.text = definition.value
                 if (index == lastDefinition) {
                     viewItem.divider.visibility = View.GONE
                 }

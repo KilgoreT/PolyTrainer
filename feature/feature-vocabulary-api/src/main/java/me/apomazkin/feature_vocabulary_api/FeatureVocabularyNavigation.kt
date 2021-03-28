@@ -4,6 +4,7 @@ interface FeatureVocabularyNavigation {
 
     fun start()
 
+    @Deprecated("")
     fun addWordDialog()
 
     /**

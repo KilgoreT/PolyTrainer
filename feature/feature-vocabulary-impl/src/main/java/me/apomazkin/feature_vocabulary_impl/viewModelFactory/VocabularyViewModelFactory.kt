@@ -3,6 +3,7 @@ package me.apomazkin.feature_vocabulary_impl.viewModelFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import me.apomazkin.feature_vocabulary_impl.WordListViewModel
 import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
@@ -11,6 +12,7 @@ import me.apomazkin.feature_vocabulary_impl.ui.addWord.AddWordViewModel
 import javax.inject.Inject
 
 class VocabularyViewModelFactory @Inject constructor(
+    private val coreInteractorApi: CoreInteractorApi,
     private val dbApi: CoreDbApi,
     private val navigation: FeatureVocabularyNavigation,
     private val delegate: LoadState
@@ -20,7 +22,7 @@ class VocabularyViewModelFactory @Inject constructor(
 
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
         return if (modelClass.isAssignableFrom(WordListViewModel::class.java)) {
-            WordListViewModel(dbApi, navigation, delegate) as T
+            WordListViewModel(coreInteractorApi, navigation, delegate) as T
         } else if (modelClass.isAssignableFrom(AddWordViewModel::class.java)) {
             AddWordViewModel(dbApi, navigation) as T
         } else if (modelClass.isAssignableFrom(AddDefinitionViewModel::class.java)) {

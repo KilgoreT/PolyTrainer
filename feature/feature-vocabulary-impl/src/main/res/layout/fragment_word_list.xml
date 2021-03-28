@@ -9,41 +9,74 @@
             type="me.apomazkin.feature_vocabulary_impl.WordListViewModel" />
     </data>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <androidx.constraintlayout.motion.widget.MotionLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        bindTransition="@{model.transition}"
+        app:layoutDescription="@xml/scene_word_list"
         tools:context=".ui.wordList.WordListFragment">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/container"
             android:layout_width="match_parent"
             android:layout_height="@dimen/d0"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
             android:overScrollMode="never"
             tools:itemCount="5"
+            app:layout_constraintBottom_toTopOf="@id/search"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             tools:listitem="@layout/item_word" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="end|bottom"
-            android:layout_margin="@dimen/d16"
-            android:onClick="@{() -> model.addWord()}"
+            android:layout_marginEnd="@dimen/d4"
+            android:layout_marginBottom="@dimen/d4"
             android:src="@drawable/ic_add_on_secondary"
-            android:stateListAnimator="@animator/pressed"
-            app:layout_constraintBottom_toBottomOf="parent"
             android:contentDescription="@string/fab_content_description_add_word"
+            app:layout_constraintBottom_toBottomOf="@id/container"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <include
-            layout="@layout/layout_loading"
-            app:loadState="@{model}" />
+        <!--        <include-->
+        <!--            android:id="@+id/loading"-->
+        <!--            layout="@layout/layout_loading"-->
+        <!--            app:loadState="@{model}" />-->
 
-        <include
-            layout="@layout/layout_empty"
-            app:loadState="@{model}" />
+        <!--        <include-->
+        <!--            android:id="@+id/empty"-->
+        <!--            layout="@layout/layout_empty"-->
+        <!--            app:loadState="@{model}"-->
+        <!--            />-->
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        <!--        <androidx.constraintlayout.widget.Guideline-->
+        <!--            android:id="@+id/g"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:orientation="horizontal"-->
+        <!--            app:layout_constraintGuide_percent="0.8"/>-->
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/search"
+            bindEndIconClick="@{() -> model.addWord()}"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/this_is_hint"
+            android:paddingBottom="@dimen/d2"
+            android:visibility="gone"
+            app:endIconDrawable="@drawable/ic_grade_a1"
+            app:endIconMode="custom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/container"
+            tools:visibility="visible">
+
+            <com.google.android.material.textfield.TextInputEditText
+                bindValue="@={model.ttt}"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </androidx.constraintlayout.motion.widget.MotionLayout>
 </layout>

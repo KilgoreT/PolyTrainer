@@ -130,7 +130,7 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
     override fun reverseMap(value: Definition) = DefinitionDb(
         value.id,
         value.wordId,
-        value.definition,
+        value.value,
         reverseMapWordClass(value),
         convertOptions(value.wordClass)
     )

@@ -12,7 +12,7 @@ class WordMapper : Mapper<WordDb, Word>() {
 
     override fun reverseMap(value: Word) = WordDb(
         value.id,
-        value.word
+        value.value
     )
 
 }

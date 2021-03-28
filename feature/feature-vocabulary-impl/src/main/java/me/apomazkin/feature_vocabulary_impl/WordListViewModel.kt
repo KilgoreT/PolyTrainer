@@ -5,29 +5,46 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
-import me.apomazkin.core_db_api.CoreDbApi
-import me.apomazkin.core_db_api.entity.WordWithDefinition
+import me.apomazkin.core_db_api.entity.Term
+import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
 import javax.inject.Inject
 
 class WordListViewModel @Inject constructor(
-    private val dbApi: CoreDbApi,
+    private val coreInteractorApi: CoreInteractorApi,
     private val navigation: FeatureVocabularyNavigation,
     private val loadStateDelegate: LoadState
 ) : ViewModel(), LoadState by loadStateDelegate {
 
-    val data = MutableLiveData<List<WordWithDefinition>>()
+    val data = MutableLiveData<List<Term>>()
+    val ttt = MutableLiveData<String>()
+    val transition = MutableLiveData<String>("")
 
     init {
         loadData()
+        ttt.observeForever {
+            coreInteractorApi
+                .searchTermUseCase()
+                .getTermList("%$it%")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { result ->
+                        if (result.isEmpty()) onEmpty() else onData()
+                        data.postValue(result)
+                    },
+                    { onError(it) }
+                )
+        }
     }
 
     @SuppressLint("CheckResult")
     private fun loadData() {
         onLoad()
-        dbApi
-            .getWordWithDefinition()
+        coreInteractorApi
+            .getTermUseCase()
+            .getTermList()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
@@ -40,13 +57,29 @@ class WordListViewModel @Inject constructor(
     }
 
     fun addWord() {
-        navigation.addWordDialog()
+        ttt.value?.let {
+            if (it.isNotBlank()) {
+                coreInteractorApi
+                    .addWordUseCase()
+                    .addWord(it)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        ttt.value = ""
+                    }
+            }
+        }
+        transition.postValue("START")
+
     }
 
     @SuppressLint("CheckResult")
-    fun removeWord(it: Long) {
-        dbApi
-            .deleteWord(it)
+    fun removeWord(id: Long) {
+        coreInteractorApi
+            .removeWordUseCase()
+            .removeWord(id)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
                 // TODO: 02.12.2020 реализовать обратную связь
             }, { error ->
@@ -68,7 +101,11 @@ class WordListViewModel @Inject constructor(
 
     fun deleteDefinition(id: Long?) {
         id?.let {
-            dbApi.deleteDefinition(it)
+            coreInteractorApi
+                .removeDefinitionUseCase()
+                .removeDefinition(it)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({
                     // TODO: 02.12.2020 реализовать обратную связь
                 }, { error ->

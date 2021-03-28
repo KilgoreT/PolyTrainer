@@ -3,7 +3,7 @@ package me.apomazkin.core_interactor.useCase.writeQuiz
 import io.reactivex.Completable
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.WriteQuiz
-import me.apomazkin.core_interactor.scenario.WriteQuizStep
+import me.apomazkin.core_interactor.entity.WriteQuizStep
 import javax.inject.Inject
 
 interface UpdateWriteQuizUseCase {

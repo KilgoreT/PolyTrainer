@@ -2,7 +2,7 @@ package me.apomazkin.core_interactor.useCase.writeQuiz
 
 import io.reactivex.Completable
 import io.reactivex.Single
-import me.apomazkin.core_interactor.scenario.WriteQuizStep
+import me.apomazkin.core_interactor.entity.WriteQuizStep
 import me.apomazkin.core_interactor.useCase.definition.GetDefinitionUseCase
 import me.apomazkin.core_interactor.useCase.word.GetWordUseCase
 import javax.inject.Inject
@@ -37,15 +37,15 @@ class WriteQuizScenarioImpl @Inject constructor(
                                 //  но оно типа потом недоступно:
                                 //  Unable to evaluate the expression Method
                                 //  threw 'java.util.ConcurrentModificationException' exception.
-                                val l0 = mutualGrade0.subList(0, min(5, mutualGrade0.size))
+                                val l0 = mutualGrade0.subList(0, min(7, mutualGrade0.size))
                                 val l0Copy = l0.toList()
                                 mutualGrade0.removeAll(l0Copy)
 
-                                val l1 = mutualGrade1.subList(0, min(3, mutualGrade1.size))
+                                val l1 = mutualGrade1.subList(0, min(2, mutualGrade1.size))
                                 val l1Copy = l1.toList()
                                 mutualGrade1.removeAll(l1Copy)
 
-                                val l2 = mutualGrade2.subList(0, min(2, mutualGrade2.size))
+                                val l2 = mutualGrade2.subList(0, min(1, mutualGrade2.size))
                                 val l2Copy = l2.toList()
                                 mutualGrade2.removeAll(l2Copy)
 
@@ -109,9 +109,9 @@ class WriteQuizScenarioImpl @Inject constructor(
                             .map { word ->
                                 WriteQuizStep(
                                     id = writeQuiz.id,
-                                    definition = definition.definition ?: "",
+                                    definition = definition.value ?: "",
                                     definitionId = writeQuiz.definitionId,
-                                    answer = word.word ?: "",
+                                    answer = word.value ?: "",
                                     grade = writeQuiz.grade,
                                     score = writeQuiz.score
                                 )

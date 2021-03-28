@@ -1,23 +1,23 @@
 package me.apomazkin.core_db_impl.mapper
 
-import me.apomazkin.core_db_api.entity.WordWithDefinition
-import me.apomazkin.core_db_impl.entity.WordWithDefinitionsDb
+import me.apomazkin.core_db_api.entity.Term
+import me.apomazkin.core_db_impl.entity.TermDb
 
-class WordWithDefinitionsMapper : Mapper<WordWithDefinitionsDb, WordWithDefinition>() {
+class TermMapper : Mapper<TermDb, Term>() {
 
-    override fun map(value: WordWithDefinitionsDb): WordWithDefinition {
+    override fun map(value: TermDb): Term {
         val wordMapper = WordMapper()
         val definitionMapper = DefinitionMapper()
-        return WordWithDefinition(
+        return Term(
             wordMapper.map(value.wordDb),
             definitionMapper.map(value.definitionDbList)
         )
     }
 
-    override fun reverseMap(value: WordWithDefinition): WordWithDefinitionsDb {
+    override fun reverseMap(value: Term): TermDb {
         val wordMapper = WordMapper()
         val definitionMapper = DefinitionMapper()
-        return WordWithDefinitionsDb(
+        return TermDb(
             wordMapper.reverseMap(value.word),
             definitionMapper.reverseMap(value.definitionList)
         )

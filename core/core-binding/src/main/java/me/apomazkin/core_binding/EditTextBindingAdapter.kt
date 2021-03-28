@@ -7,11 +7,22 @@ import androidx.databinding.BindingAdapter
 import androidx.databinding.InverseBindingAdapter
 import androidx.databinding.InverseBindingListener
 import androidx.lifecycle.MutableLiveData
+import com.google.android.material.textfield.TextInputLayout
+
+// TODO: 29.03.2021 выносить ли TextInputLayout в новый файл?
+/**
+ * TextInputLayout
+ */
+@BindingAdapter("bindEndIconClick")
+fun bindEndIconClick(view: TextInputLayout, method: () -> Unit) {
+    view.setEndIconOnClickListener { method.invoke() }
+}
 
 
 /**
  * Пример кастомного two-way data binding
  */
+// TODO: 29.03.2021 bindValue название не сильно намекает на то, что оно делает. переименовать?
 @BindingAdapter("bindValue")
 fun setValue(view: EditText, value: MutableLiveData<String>) {
     value.observeForever {
