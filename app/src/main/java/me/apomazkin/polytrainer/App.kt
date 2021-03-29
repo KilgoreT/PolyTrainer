@@ -1,6 +1,9 @@
 package me.apomazkin.polytrainer
 
 import android.app.Application
+import android.util.Log
+import com.google.firebase.FirebaseApp
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import me.apomazkin.core_db.di.CoreDbComponent
 import me.apomazkin.polytrainer.di.DaggerMainComponent
 import me.apomazkin.polytrainer.di.DaggerMainComponent_MainDependenciesComponent
@@ -10,6 +13,18 @@ class App : Application() {
 
     init {
         instance = this
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        initCrashlytics()
+    }
+
+    private fun initCrashlytics() {
+        FirebaseApp.initializeApp(applicationContext)
+        val isCrashlyticsEnable = !BuildConfig.DEBUG
+        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(isCrashlyticsEnable)
+        Log.d("###", ">>>> Enable Crashlytics: $isCrashlyticsEnable")
     }
 
     companion object {

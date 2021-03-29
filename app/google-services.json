@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "479682905397",
+    "project_id": "polytrainer",
+    "storage_bucket": "polytrainer.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:479682905397:android:4adb6ab154086d3eb8387c",
+        "android_client_info": {
+          "package_name": "me.apomazkin.polytrainer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "479682905397-cu2le53i5qpgkervpu9a8idr67rtb4ou.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7llz8krh5ulXtOXrvBV4aYWErnivee18"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "479682905397-cu2le53i5qpgkervpu9a8idr67rtb4ou.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
