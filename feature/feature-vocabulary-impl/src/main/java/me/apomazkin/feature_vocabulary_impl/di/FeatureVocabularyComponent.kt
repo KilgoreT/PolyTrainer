@@ -49,7 +49,7 @@ abstract class FeatureVocabularyComponent : FeatureVocabularyApi {
             return instance ?: throw RuntimeException("njkjhkj")
         }
 
-        fun get() = instance ?: throw RuntimeException("No FeatureAddWordComponent")
+        fun get() = instance ?: throw RuntimeException("No FeatureVocabularyComponent exist")
 
         fun destroyFeature() {
             instance = null
