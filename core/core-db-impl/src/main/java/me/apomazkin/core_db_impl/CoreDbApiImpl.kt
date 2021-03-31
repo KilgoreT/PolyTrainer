@@ -89,6 +89,10 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.getDefinitionTypeCount(wordClass)
     }
 
+    override fun getWriteQuizCountByGrade(tier: Int): Single<Int> {
+        return wordDao.getWriteQuizCountByGrade(tier)
+    }
+
     override fun getWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>> {
         val mapper = WriteQuizMapper()
         return wordDao.getWriteQuizList(grade, limit)

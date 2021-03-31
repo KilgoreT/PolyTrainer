@@ -2,8 +2,14 @@ package me.apomazkin.core_interactor.di.module
 
 import dagger.Binds
 import dagger.Module
+import me.apomazkin.core_interactor.scenario.StatisticScenario
+import me.apomazkin.core_interactor.scenario.StatisticScenarioImpl
 import me.apomazkin.core_interactor.useCase.definition.GetDefinitionUseCase
 import me.apomazkin.core_interactor.useCase.definition.RemoveDefinitionUseCase
+import me.apomazkin.core_interactor.useCase.statistic.GetDefinitionCountUseCase
+import me.apomazkin.core_interactor.useCase.statistic.GetWordClassCountUseCase
+import me.apomazkin.core_interactor.useCase.statistic.GetWordCountUseCase
+import me.apomazkin.core_interactor.useCase.statistic.GetWriteQuizCountUseCase
 import me.apomazkin.core_interactor.useCase.term.GetTermUseCase
 import me.apomazkin.core_interactor.useCase.term.SearchTermUseCase
 import me.apomazkin.core_interactor.useCase.word.AddWordUseCase
@@ -46,4 +52,19 @@ interface UseCaseModule {
 
     @Binds
     fun provideWriteQuizScenario(impl: WriteQuizScenarioImpl): WriteQuizScenario
+
+    @Binds
+    fun provideGetWordCountUseCase(impl: GetWordCountUseCase.GetWordCountUseCaseImpl): GetWordCountUseCase
+
+    @Binds
+    fun provideGetDefinitionCountUseCase(impl: GetDefinitionCountUseCase.GetDefinitionCountUseCaseImpl): GetDefinitionCountUseCase
+
+    @Binds
+    fun provideGetWordClassCountUseCase(impl: GetWordClassCountUseCase.GetWordClassCountUseCaseImpl): GetWordClassCountUseCase
+
+    @Binds
+    fun provideGetWriteQuizCountUseCase(impl: GetWriteQuizCountUseCase.GetWriteQuizCountUseCaseImpl): GetWriteQuizCountUseCase
+
+    @Binds
+    fun provideStatisticScenario(impl: StatisticScenarioImpl): StatisticScenario
 }

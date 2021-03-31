@@ -24,6 +24,8 @@ interface CoreDbApi {
     fun wordCount(): Single<Int>
     fun getDefinitionCount(): Single<Int>
     fun getDefinitionTypeCount(wordClass: String): Single<Int>
+    fun getWriteQuizCountByGrade(tier: Int): Single<Int>
+
 
     fun getWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>>
     fun updateWriteQuizList(writeQuiz: WriteQuiz): Completable

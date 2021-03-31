@@ -6,9 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import kotlinx.android.synthetic.main.fragment_statistic_tab.*
-import me.apomazkin.core_db.di.CoreDbComponent
 import me.apomazkin.feature_bottom_menu_impl.R
-import me.apomazkin.feature_statistic_impl.di.DaggerFeatureStatisticComponent_FeatureStatisticDependencyComponent
 import me.apomazkin.feature_statistic_impl.di.FeatureStatisticComponent
 
 class StatisticTabFragment : Fragment() {
@@ -27,10 +25,7 @@ class StatisticTabFragment : Fragment() {
 
         val api = FeatureStatisticComponent.initAndGet(
             featureContainer,
-            DaggerFeatureStatisticComponent_FeatureStatisticDependencyComponent
-                .builder()
-                .coreDbApi(CoreDbComponent.get(requireContext()).getCoreDbApi())
-                .build()
+            requireContext()
         )
         api.featureStatisticNavigation().start()
     }

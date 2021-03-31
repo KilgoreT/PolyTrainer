@@ -46,7 +46,7 @@ android {
 
 dependencies {
 
-    implementation project(path: ':core:core-db')
+    implementation project(path: ':core:core-interactor')
     implementation project(path: ':core:core-resources')
     implementation project(path: ':core:core-base')
     implementation project(path: ':core:core-binding')

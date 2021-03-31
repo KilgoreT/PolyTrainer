@@ -1,9 +1,9 @@
 package me.apomazkin.feature_statistic_impl.di
 
+import android.content.Context
 import android.view.ViewGroup
 import dagger.BindsInstance
 import dagger.Component
-import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.feature_statistic_api.FeatureStatisticApi
 import me.apomazkin.feature_statistic_impl.di.module.FeatureModule
 import me.apomazkin.feature_statistic_impl.ui.StatisticFragment
@@ -12,7 +12,6 @@ import javax.inject.Singleton
 @Singleton
 @Component(
     modules = [FeatureModule::class],
-    dependencies = [FeatureStatisticDependency::class]
 )
 abstract class FeatureStatisticComponent : FeatureStatisticApi {
 
@@ -23,7 +22,7 @@ abstract class FeatureStatisticComponent : FeatureStatisticApi {
         fun create(
 //            @BindsInstance navController: NavController,
             @BindsInstance featureContainer: ViewGroup,
-            dependency: FeatureStatisticDependency
+            @BindsInstance context: Context,
         ): FeatureStatisticComponent
     }
 
@@ -34,11 +33,11 @@ abstract class FeatureStatisticComponent : FeatureStatisticApi {
 
         fun initAndGet(
             featureContainer: ViewGroup,
-            dependency: FeatureStatisticDependency
+            context: Context,
         ): FeatureStatisticComponent {
             if (instance == null) {
                 instance = DaggerFeatureStatisticComponent.factory()
-                    .create(featureContainer, dependency)
+                    .create(featureContainer, context)
             }
             return instance ?: throw RuntimeException("njkjhkj")
         }
@@ -50,10 +49,5 @@ abstract class FeatureStatisticComponent : FeatureStatisticApi {
         }
 
     }
-
-    @Singleton
-    @Component(dependencies = [CoreDbApi::class])
-    interface FeatureStatisticDependencyComponent : FeatureStatisticDependency
-
 
 }
