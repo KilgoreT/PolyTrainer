@@ -5,7 +5,7 @@
     <Transition
         app:constraintSetEnd="@+id/end"
         app:constraintSetStart="@+id/start"
-        app:duration="500">
+        app:duration="150">
         <OnClick app:targetId="@+id/fab" />
     </Transition>
 
