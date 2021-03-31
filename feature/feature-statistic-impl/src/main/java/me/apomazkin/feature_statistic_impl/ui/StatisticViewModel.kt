@@ -5,20 +5,19 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
-import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.feature_statistic_api.FeatureStatisticNavigation
-import me.apomazkin.feature_statistic_impl.domain.StatisticScenario
 import javax.inject.Inject
 
 class StatisticViewModel @Inject constructor(
-    private val dbApi: CoreDbApi,
+    private val coreInteractorApi: CoreInteractorApi,
     private val navigation: FeatureStatisticNavigation,
-    private val statisticScenario: StatisticScenario
 //    private val loadStateDelegate: LoadState
 ) : ViewModel()/*, LoadState by loadStateDelegate*/ {
 
 
     val statInfo = MutableLiveData<String>()
+    val writeQuizInfo = MutableLiveData<String>()
 
     init {
         loadData()
@@ -26,11 +25,24 @@ class StatisticViewModel @Inject constructor(
 
     @SuppressLint("CheckResult")
     private fun loadData() {
-        statisticScenario.getStatistics()
+        coreInteractorApi
+            .statisticScenario()
+            .getWordClassCountInfo()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ result ->
                 statInfo.postValue(result)
+            }, {
+
+            })
+
+        coreInteractorApi
+            .statisticScenario()
+            .getWriteQuizInto()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ result ->
+                writeQuizInfo.postValue(result)
             }, {
 
             })
