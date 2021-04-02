@@ -19,7 +19,7 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
     lateinit var factory: ViewModelProvider.Factory
 
     private lateinit var listViewModel: WordListViewModel
-    private lateinit var adapter: WordListAdapter
+    private val adapter: WordListAdapter = WordListAdapter(this)
 
     override fun inject() = FeatureVocabularyComponent.get().inject(this)
 
@@ -33,35 +33,13 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
     override fun initView() {
         super.initView()
 
-//        val qqq = ValueAnimator()
-//        val set = AnimatorInflater.loadAnimator(requireContext(), R.animator.open_scale) as AnimatorSet
-//        set.setTarget(fab)
-//        set.start()
-
-//        fab.setOnClickListener {
-//            fab2.
-//        }
-
-//        container.adapter = adapter
-
-
-        listViewModel.data.observe(
-            this,
-            { result ->
-                if (::adapter.isInitialized) {
-                    adapter.setData(result)
-                } else {
-                    adapter = WordListAdapter(result, this)
-                    val layout = LinearLayoutManager(
-                        requireContext(),
-                        LinearLayoutManager.VERTICAL,
-                        false
-                    )
-                    container.layoutManager = layout
-                    container.adapter = adapter
-                }
-            }
+        container.layoutManager = LinearLayoutManager(
+            requireContext(),
+            LinearLayoutManager.VERTICAL,
+            false
         )
+        container.adapter = adapter
+        listViewModel.data.observe(this) { result -> adapter.setData(result) }
     }
 
     override fun onEditWord(id: Long?) {

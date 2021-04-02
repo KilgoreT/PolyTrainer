@@ -13,11 +13,6 @@ class FeatureVocabularyNavigationImpl @Inject constructor(
         navController.setGraph(R.navigation.navigation)
     }
 
-    @Deprecated("")
-    override fun addWordDialog() {
-        navController.navigate(R.id.action_listWordFragment_to_addWordDialog)
-    }
-
     override fun closeDialog() {
         navController.popBackStack()
     }

@@ -19,10 +19,10 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/container"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/d0"
+            android:layout_height="match_parent"
             android:overScrollMode="never"
             tools:itemCount="5"
-            app:layout_constraintBottom_toTopOf="@id/search"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -60,19 +60,18 @@
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/search"
             bindEndIconClick="@{() -> model.addWord()}"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
             android:hint="@string/this_is_hint"
             android:paddingBottom="@dimen/d2"
-            android:visibility="gone"
             app:endIconDrawable="@drawable/ic_grade_a1"
             app:endIconMode="custom"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/container"
+            app:layout_constraintEnd_toEndOf="parent"
             tools:visibility="visible">
 
             <com.google.android.material.textfield.TextInputEditText
-                bindValue="@={model.ttt}"
+                bindValue="@={model.wordPattern}"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 

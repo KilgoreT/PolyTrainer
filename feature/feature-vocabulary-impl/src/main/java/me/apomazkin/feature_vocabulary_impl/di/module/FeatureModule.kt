@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
-import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.core_interactor.di.CoreInteractorComponent
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
@@ -34,11 +33,10 @@ abstract class FeatureModule {
         @Provides
         fun provideViewModelFactory(
             coreInteractorApi: CoreInteractorApi,
-            dbApi: CoreDbApi,
             navigation: FeatureVocabularyNavigation,
             delegate: LoadState
         ): ViewModelProvider.Factory {
-            return VocabularyViewModelFactory(coreInteractorApi, dbApi, navigation, delegate)
+            return VocabularyViewModelFactory(coreInteractorApi, navigation, delegate)
         }
 
         @JvmStatic

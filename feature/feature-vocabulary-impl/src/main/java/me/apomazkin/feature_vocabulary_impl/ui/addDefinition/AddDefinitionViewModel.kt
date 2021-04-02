@@ -8,13 +8,13 @@ import androidx.lifecycle.ViewModel
 import com.google.android.material.chip.ChipGroup
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
-import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.*
+import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import me.apomazkin.feature_vocabulary_impl.R
 
 class AddDefinitionViewModel(
-    private val dbApi: CoreDbApi,
+    private val coreInteractorApi: CoreInteractorApi,
     private val navigation: FeatureVocabularyNavigation,
     private val id: Long
 ) : ViewModel(), AdapterView.OnItemSelectedListener, ChipGroup.OnCheckedChangeListener {
@@ -66,35 +66,37 @@ class AddDefinitionViewModel(
 
     fun onAddDefinition() {
         addingDefinition.value?.let {
-            dbApi.addDefinition(
-                Definition(
-                    wordId = id,
-                    value = it,
-                    wordClass = when (wordClass.value) {
-                        "noun" -> {
-                            Noun(
-                                countability = nounCountability.value,
+            coreInteractorApi
+                .addDefinitionUseCase()
+                .addDefinition(
+                    Definition(
+                        wordId = id,
+                        value = it,
+                        wordClass = when (wordClass.value) {
+                            "noun" -> {
+                                Noun(
+                                    countability = nounCountability.value,
+                                    grade = grade.value,
+                                )
+                            }
+                            "verb" -> {
+                                Verb(
+                                    transitivity = verbTransitivity.value,
+                                    grade = grade.value,
+                                )
+                            }
+                            "adjective" -> Adjective(
+                                order = adjOrder.value,
+                                gradability = adjGradability.value,
                                 grade = grade.value,
                             )
-                        }
-                        "verb" -> {
-                            Verb(
-                                transitivity = verbTransitivity.value,
+                            "adverb" -> Adverb(
                                 grade = grade.value,
                             )
+                            else -> null
                         }
-                        "adjective" -> Adjective(
-                            order = adjOrder.value,
-                            gradability = adjGradability.value,
-                            grade = grade.value,
-                        )
-                        "adverb" -> Adverb(
-                            grade = grade.value,
-                        )
-                        else -> null
-                    }
+                    )
                 )
-            )
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {}

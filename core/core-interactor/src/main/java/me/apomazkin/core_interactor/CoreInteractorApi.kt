@@ -1,6 +1,7 @@
 package me.apomazkin.core_interactor
 
 import me.apomazkin.core_interactor.scenario.StatisticScenario
+import me.apomazkin.core_interactor.useCase.definition.AddDefinitionUseCase
 import me.apomazkin.core_interactor.useCase.definition.RemoveDefinitionUseCase
 import me.apomazkin.core_interactor.useCase.term.GetTermUseCase
 import me.apomazkin.core_interactor.useCase.term.SearchTermUseCase
@@ -17,4 +18,5 @@ interface CoreInteractorApi {
     fun addWordUseCase(): AddWordUseCase
     fun removeWordUseCase(): RemoveWordUseCase
     fun removeDefinitionUseCase(): RemoveDefinitionUseCase
+    fun addDefinitionUseCase(): AddDefinitionUseCase
 }
