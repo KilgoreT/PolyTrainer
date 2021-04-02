@@ -9,8 +9,8 @@ class TermMapper : Mapper<TermDb, Term>() {
         val wordMapper = WordMapper()
         val definitionMapper = DefinitionMapper()
         return Term(
-            wordMapper.map(value.wordDb),
-            definitionMapper.map(value.definitionDbList)
+            word = wordMapper.map(value.wordDb),
+            definitionList = definitionMapper.map(value.definitionDbList)
         )
     }
 
@@ -18,8 +18,8 @@ class TermMapper : Mapper<TermDb, Term>() {
         val wordMapper = WordMapper()
         val definitionMapper = DefinitionMapper()
         return TermDb(
-            wordMapper.reverseMap(value.word),
-            definitionMapper.reverseMap(value.definitionList)
+            wordDb = wordMapper.reverseMap(value.word),
+            definitionDbList = definitionMapper.reverseMap(value.definitionList)
         )
     }
 

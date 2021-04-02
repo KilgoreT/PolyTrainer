@@ -12,18 +12,9 @@
         android:label="TestNewFragment"
         tools:layout="@layout/fragment_word_list">
         <action
-            android:id="@+id/action_listWordFragment_to_addWordDialog"
-            app:destination="@id/addWordDialog" />
-        <action
             android:id="@+id/action_listWordFragment_to_addDefinitionDialog"
             app:destination="@id/addDefinitionDialog" />
     </fragment>
-
-    <dialog
-        android:id="@+id/addWordDialog"
-        android:name="me.apomazkin.feature_vocabulary_impl.ui.addWord.AddWordDialog"
-        android:label="AddWordDialog"
-        tools:layout="@layout/dialog_add_word" />
 
     <dialog
         android:id="@+id/addDefinitionDialog"

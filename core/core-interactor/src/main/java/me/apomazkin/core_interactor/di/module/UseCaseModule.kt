@@ -4,6 +4,7 @@ import dagger.Binds
 import dagger.Module
 import me.apomazkin.core_interactor.scenario.StatisticScenario
 import me.apomazkin.core_interactor.scenario.StatisticScenarioImpl
+import me.apomazkin.core_interactor.useCase.definition.AddDefinitionUseCase
 import me.apomazkin.core_interactor.useCase.definition.GetDefinitionUseCase
 import me.apomazkin.core_interactor.useCase.definition.RemoveDefinitionUseCase
 import me.apomazkin.core_interactor.useCase.statistic.GetDefinitionCountUseCase
@@ -39,10 +40,13 @@ interface UseCaseModule {
     fun provideSearchTermUseCase(impl: SearchTermUseCase.SearchTermUseCaseImpl): SearchTermUseCase
 
     @Binds
+    fun provideAddDefinitionUseCase(impl: AddDefinitionUseCase.AddDefinitionUseCaseImpl): AddDefinitionUseCase
+
+    @Binds
     fun provideGetDefinitionUseCase(impl: GetDefinitionUseCase.GetDefinitionUseCaseImpl): GetDefinitionUseCase
 
     @Binds
-    fun provide(impl: RemoveDefinitionUseCase.RemoveDefinitionUseCaseImpl): RemoveDefinitionUseCase
+    fun provideRemoveDefinitionUseCase(impl: RemoveDefinitionUseCase.RemoveDefinitionUseCaseImpl): RemoveDefinitionUseCase
 
     @Binds
     fun provideGetWriteQuizUseCase(impl: GetWriteQuizUseCase.GetWriteQuizUseCaseImpl): GetWriteQuizUseCase

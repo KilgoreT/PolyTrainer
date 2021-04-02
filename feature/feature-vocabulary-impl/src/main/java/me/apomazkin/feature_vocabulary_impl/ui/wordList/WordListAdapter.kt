@@ -3,36 +3,37 @@ package me.apomazkin.feature_vocabulary_impl.ui.wordList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.PopupMenu
-import androidx.databinding.DataBindingUtil
+import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.item_definition.view.*
-import kotlinx.android.synthetic.main.item_word.view.*
 import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.core_db_api.entity.Grade.*
 import me.apomazkin.feature_vocabulary_impl.R
-import me.apomazkin.feature_vocabulary_impl.databinding.ItemWordBinding
 
 class WordListAdapter(
-    private var data: List<Term>,
     private val listener: NewWordListAdapterListener
 ) : RecyclerView.Adapter<WordListAdapter.NewWordHolder>() {
 
+    private var data: MutableList<Term> = mutableListOf()
+
     fun setData(list: List<Term>) {
-        data = list
+        data.clear()
+        data.addAll(list)
         notifyDataSetChanged()
     }
 
     override fun getItemCount() = data.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NewWordHolder {
-        val binding = DataBindingUtil.inflate<ItemWordBinding>(
-            LayoutInflater.from(parent.context),
-            R.layout.item_word,
-            parent,
-            false
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_word, parent, false)
+        return NewWordHolder(
+            view = view,
+            onAddDefinitionClick = { position -> listener.onAddDefinition(data[position].word.id) },
+            onRemoveWordClick = { position -> listener.onRemoveWord(data[position].word.id) },
+            onRemoveDefinitionClick = { definitionId -> listener.onDeleteDefinition(definitionId) },
         )
-        return NewWordHolder(binding)
     }
 
     override fun onBindViewHolder(holder: NewWordHolder, position: Int) {
@@ -40,35 +41,43 @@ class WordListAdapter(
     }
 
 
-    inner class NewWordHolder(
-        private val binding: ItemWordBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
+    class NewWordHolder(
+        private val view: View,
+        private val onRemoveWordClick: (Int) -> Unit,
+        private val onAddDefinitionClick: (Int) -> Unit,
+        private val onRemoveDefinitionClick: (Long) -> Unit,
+    ) : RecyclerView.ViewHolder(view) {
+
+        private val btnAddDefinition = view.findViewById<ImageView>(R.id.btn_add_definition)
+        private val btnMoreAction = view.findViewById<ImageView>(R.id.btn_more_actions)
+        private val entry = view.findViewById<TextView>(R.id.entry)
+        private val containerDefinition = view.findViewById<ViewGroup>(R.id.containerDefinition)
 
         init {
             setupClickHandler()
         }
 
         private fun setupClickHandler() {
-            binding.root
-                .btn_add_definition.setOnClickListener {
-                    listener.onAddDefinition(data[adapterPosition].word.id)
-
+            btnAddDefinition
+                .setOnClickListener {
+                    onAddDefinitionClick(adapterPosition)
                 }
-            binding.root
-                .btn_more_actions.setOnClickListener { view ->
+
+            btnMoreAction
+                .setOnClickListener { view ->
                     PopupMenu(view.context, view).apply {
                         inflate(R.menu.word_actions)
                         setOnMenuItemClickListener { menuItem ->
                             when (menuItem.itemId) {
                                 R.id.word_action_add_definition -> {
-                                    listener.onAddDefinition(data[adapterPosition].word.id)
+                                    onAddDefinitionClick(adapterPosition)
                                     true
                                 }
                                 R.id.word_action_edit_word -> {
                                     true
                                 }
                                 R.id.word_action_delete_word -> {
-                                    listener.onRemoveWord(data[adapterPosition].word.id)
+                                    onRemoveWordClick(adapterPosition)
                                     true
                                 }
                                 else -> false
@@ -80,14 +89,14 @@ class WordListAdapter(
         }
 
         fun bind(value: Term) {
-            binding.entry.text = value.word.value ?: "undefined"
-            binding.containerDefinition.removeAllViews()
+            entry.text = value.word.value ?: "undefined"
+            containerDefinition.removeAllViews()
             val lastDefinition = value.definitionList.size - 1
             value.definitionList.forEachIndexed { index, definition ->
-                val viewItem = LayoutInflater.from(binding.root.context)
+                val viewItem = LayoutInflater.from(view.context)
                     .inflate(
                         R.layout.item_definition,
-                        binding.containerDefinition,
+                        containerDefinition,
                         false
                     )
                 viewItem.tvWordClass.text = when (definition.wordClass) {
@@ -120,7 +129,9 @@ class WordListAdapter(
                                         true
                                     }
                                     R.id.definition_delete_action -> {
-                                        listener.onDeleteDefinition(definition.id)
+                                        onRemoveDefinitionClick(
+                                            definition.id ?: throw IllegalArgumentException("Zhopa")
+                                        )
                                         true
                                     }
                                     else -> false
@@ -129,7 +140,7 @@ class WordListAdapter(
                             show()
                         }
                     }
-                binding.containerDefinition.addView(viewItem)
+                containerDefinition.addView(viewItem)
             }
         }
 

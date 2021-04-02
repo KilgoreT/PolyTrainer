@@ -18,12 +18,12 @@ class WordListViewModel @Inject constructor(
 ) : ViewModel(), LoadState by loadStateDelegate {
 
     val data = MutableLiveData<List<Term>>()
-    val ttt = MutableLiveData<String>()
-    val transition = MutableLiveData<String>("")
+    val wordPattern = MutableLiveData<String>("")
+    val transition = MutableLiveData<String>()
 
     init {
-        loadData()
-        ttt.observeForever {
+//        loadData()
+        wordPattern.observeForever {
             coreInteractorApi
                 .searchTermUseCase()
                 .getTermList("%$it%")
@@ -57,7 +57,7 @@ class WordListViewModel @Inject constructor(
     }
 
     fun addWord() {
-        ttt.value?.let {
+        wordPattern.value?.let {
             if (it.isNotBlank()) {
                 coreInteractorApi
                     .addWordUseCase()
@@ -65,7 +65,7 @@ class WordListViewModel @Inject constructor(
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe {
-                        ttt.value = ""
+                        wordPattern.postValue("")
                     }
             }
         }
