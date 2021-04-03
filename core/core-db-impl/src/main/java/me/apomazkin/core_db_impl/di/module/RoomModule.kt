@@ -16,7 +16,6 @@ class RoomModule {
     fun provideDatabase(context: Context): Database {
         return Room.databaseBuilder(context, Database::class.java, "name")
             .addMigrations(migration_1_2)
-            .allowMainThreadQueries()
             .build()
     }
 
