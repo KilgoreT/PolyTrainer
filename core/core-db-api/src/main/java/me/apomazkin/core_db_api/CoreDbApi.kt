@@ -16,6 +16,7 @@ interface CoreDbApi {
 
     fun addDefinition(definition: Definition): Completable
     fun getDefinition(id: Long): Single<Definition>
+    fun getDefinitionListByWordId(wordId: Long): Single<List<Definition>>
     fun removeDefinition(id: Long): Completable
 
     fun getTermList(): Observable<List<Term>>
@@ -29,5 +30,6 @@ interface CoreDbApi {
 
     fun getWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>>
     fun updateWriteQuizList(writeQuiz: WriteQuiz): Completable
+    fun removeWriteQuiz(definitionId: Long): Completable
 
 }

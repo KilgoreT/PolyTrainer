@@ -35,12 +35,13 @@ class CoreDbApiImpl @Inject constructor(
     override fun removeWord(id: Long): Completable {
         return wordDao.getWord(id)
             .flatMap { word ->
-                wordDao.removeWord(id)
-                    .toSingle { word.definitionDbList }
+                wordDao.removeWord(id).toSingle { word.definitionDbList }
             }
-            .flatMapCompletable { list ->
-                wordDao.deleteDefinitions(*list.toTypedArray())
+            .flatMap { list ->
+                wordDao.deleteDefinitions(*list.toTypedArray()).toSingle { list }
             }
+            .flattenAsObservable { list -> list.asIterable() }
+            .flatMapCompletable { ttt -> wordDao.removeWriteQuiz(ttt.id ?: -1) }
     }
 
     override fun addDefinition(definition: Definition): Completable {
@@ -56,6 +57,12 @@ class CoreDbApiImpl @Inject constructor(
         val mapper = DefinitionMapper()
         return wordDao.getDefinitionById(id)
             .map { value -> mapper.map(value) }
+    }
+
+    override fun getDefinitionListByWordId(wordId: Long): Single<List<Definition>> {
+        val mapper = DefinitionMapper()
+        return wordDao.getDefinitionListByWordId(wordId)
+            .map { list -> mapper.map(list) }
     }
 
 
@@ -102,6 +109,10 @@ class CoreDbApiImpl @Inject constructor(
     override fun updateWriteQuizList(writeQuiz: WriteQuiz): Completable {
         val mapper = WriteQuizMapper()
         return wordDao.updateWriteQuiz(mapper.reverseMap(writeQuiz))
+    }
+
+    override fun removeWriteQuiz(definitionId: Long): Completable {
+        return wordDao.removeWriteQuiz(definitionId)
     }
 
 }
