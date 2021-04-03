@@ -5,6 +5,7 @@ import dagger.Module
 import me.apomazkin.core_interactor.scenario.StatisticScenario
 import me.apomazkin.core_interactor.scenario.StatisticScenarioImpl
 import me.apomazkin.core_interactor.useCase.definition.AddDefinitionUseCase
+import me.apomazkin.core_interactor.useCase.definition.GetDefinitionListUseCase
 import me.apomazkin.core_interactor.useCase.definition.GetDefinitionUseCase
 import me.apomazkin.core_interactor.useCase.definition.RemoveDefinitionUseCase
 import me.apomazkin.core_interactor.useCase.statistic.GetDefinitionCountUseCase
@@ -16,10 +17,7 @@ import me.apomazkin.core_interactor.useCase.term.SearchTermUseCase
 import me.apomazkin.core_interactor.useCase.word.AddWordUseCase
 import me.apomazkin.core_interactor.useCase.word.GetWordUseCase
 import me.apomazkin.core_interactor.useCase.word.RemoveWordUseCase
-import me.apomazkin.core_interactor.useCase.writeQuiz.GetWriteQuizUseCase
-import me.apomazkin.core_interactor.useCase.writeQuiz.UpdateWriteQuizUseCase
-import me.apomazkin.core_interactor.useCase.writeQuiz.WriteQuizScenario
-import me.apomazkin.core_interactor.useCase.writeQuiz.WriteQuizScenarioImpl
+import me.apomazkin.core_interactor.useCase.writeQuiz.*
 
 @Module
 interface UseCaseModule {
@@ -46,6 +44,9 @@ interface UseCaseModule {
     fun provideGetDefinitionUseCase(impl: GetDefinitionUseCase.GetDefinitionUseCaseImpl): GetDefinitionUseCase
 
     @Binds
+    fun provideGetDefinitionListUseCase(impl: GetDefinitionListUseCase.Impl): GetDefinitionListUseCase
+
+    @Binds
     fun provideRemoveDefinitionUseCase(impl: RemoveDefinitionUseCase.RemoveDefinitionUseCaseImpl): RemoveDefinitionUseCase
 
     @Binds
@@ -68,6 +69,9 @@ interface UseCaseModule {
 
     @Binds
     fun provideGetWriteQuizCountUseCase(impl: GetWriteQuizCountUseCase.GetWriteQuizCountUseCaseImpl): GetWriteQuizCountUseCase
+
+    @Binds
+    fun provideRemoveWriteQuizUseCase(impl: RemoveWriteQuizUseCase.Impl): RemoveWriteQuizUseCase
 
     @Binds
     fun provideStatisticScenario(impl: StatisticScenarioImpl): StatisticScenario

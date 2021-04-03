@@ -111,6 +111,16 @@ class WordListViewModel @Inject constructor(
                 }, { error ->
                     // TODO: 02.12.2020 реакция на ошибку
                 })
+            coreInteractorApi.removeWriteQuizUseCase()
+                .removeWriteQuiz(id)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({
+                    // TODO: 02.12.2020 реализовать обратную связь
+                }, { error ->
+                    // TODO: 02.12.2020 реакция на ошибку
+                })
+
         }
     }
 

@@ -36,6 +36,9 @@ interface WordDao {
     @Query("SELECT * FROM definitions WHERE id = :id")
     fun getDefinitionById(id: Long): Single<DefinitionDb>
 
+    @Query("SELECT * FROM definitions WHERE wordId = :wordId")
+    fun getDefinitionListByWordId(wordId: Long): Single<List<DefinitionDb>>
+
     @Query("DELETE FROM definitions WHERE id = :id")
     fun deleteDefinition(id: Long): Completable
 
@@ -64,6 +67,9 @@ interface WordDao {
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: WriteQuizDb): Completable
+
+    @Query("DELETE FROM writeQuiz WHERE definitionId = :definitionId")
+    fun removeWriteQuiz(definitionId: Long): Completable
 
     @Query("SELECT COUNT(*) FROM writeQuiz WHERE grade = :tier")
     fun getWriteQuizCountByGrade(tier: Int): Single<Int>
