@@ -58,20 +58,6 @@ class TrainingWriteViewModel @Inject constructor(
             }, { ttt ->
                 Log.d("###", ">>>> definition error: ${ttt.message}")
             })
-//        currentQuizTitle.postValue(coreInteractorApi.zhopa())
-//        dbApi
-//            .getRandomQuizList()
-//            .subscribeOn(Schedulers.io())
-//            .observeOn(AndroidSchedulers.mainThread())
-//            .subscribe(
-//                { list ->
-//                    data = list
-//                    setupQuiz()
-//                },
-//                {
-//                    throw RuntimeException("Trololo")
-//                }
-//            )
     }
 
     private fun setupQuiz() {
@@ -111,6 +97,8 @@ class TrainingWriteViewModel @Inject constructor(
             coreInteractorApi
                 .writeQuizScenario()
                 .updateWriteQuizStep(copy)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe()
         } else {
             currentQuizTitle.postValue("Wrong!")
@@ -122,6 +110,8 @@ class TrainingWriteViewModel @Inject constructor(
                 coreInteractorApi
                     .writeQuizScenario()
                     .updateWriteQuizStep(copy)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
                     .subscribe()
             }
         }
