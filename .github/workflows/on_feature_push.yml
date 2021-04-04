@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - 'IS**'
+      - 'MT**'
 jobs:
   lint_job:
     name: Lint
