@@ -1,8 +1,8 @@
-name: On Merge
+name: On Pull Request Sample
 on:
   pull_request:
     branches:
-      - 'zhopa'
+      - 'nothing'
 jobs:
   lint_job:
     name: Lint

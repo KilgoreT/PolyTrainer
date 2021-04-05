@@ -1,4 +1,4 @@
-name: On Prerelease
+name: On Prerelease Sample
 on:
   push:
     branches:
