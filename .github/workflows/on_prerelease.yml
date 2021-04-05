@@ -1,8 +1,5 @@
 name: On Prerelease
 on:
-#  push:
-  #    branches:
-  #      - 'nothing'
   release:
     types: [prereleased]
 
