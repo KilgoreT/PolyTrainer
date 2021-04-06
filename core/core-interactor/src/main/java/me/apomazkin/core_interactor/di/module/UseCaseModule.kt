@@ -17,6 +17,7 @@ import me.apomazkin.core_interactor.useCase.term.SearchTermUseCase
 import me.apomazkin.core_interactor.useCase.word.AddWordUseCase
 import me.apomazkin.core_interactor.useCase.word.GetWordUseCase
 import me.apomazkin.core_interactor.useCase.word.RemoveWordUseCase
+import me.apomazkin.core_interactor.useCase.word.UpdateWordUseCase
 import me.apomazkin.core_interactor.useCase.writeQuiz.*
 
 @Module
@@ -27,6 +28,9 @@ interface UseCaseModule {
 
     @Binds
     fun provideGetWordUseCase(impl: GetWordUseCase.GetWordUseCaseImpl): GetWordUseCase
+
+    @Binds
+    fun provideUpdateWordUseCase(impl: UpdateWordUseCase.UpdateWordUseCaseImpl): UpdateWordUseCase
 
     @Binds
     fun provideRemoveWordUseCase(impl: RemoveWordUseCase.RemoveWordUseCaseImpl): RemoveWordUseCase

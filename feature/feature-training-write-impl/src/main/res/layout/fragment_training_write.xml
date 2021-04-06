@@ -83,7 +83,7 @@
             android:hint="@string/type_your_answer_here"
             android:imeOptions="actionDone"
             android:inputType="textVisiblePassword"
-            bindValue="@={model.quizAttemptValue}"
+            bindTwoWayText="@={model.quizAttemptValue}"
             app:layout_constraintBottom_toTopOf="@id/brButtons"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

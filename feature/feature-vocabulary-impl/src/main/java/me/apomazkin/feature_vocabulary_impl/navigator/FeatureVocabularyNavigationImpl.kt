@@ -13,6 +13,12 @@ class FeatureVocabularyNavigationImpl @Inject constructor(
         navController.setGraph(R.navigation.navigation)
     }
 
+    override fun editWordDialog(wordId: Long, currentValue: String) {
+        val action =
+            WordListFragmentDirections.actionListWordFragmentToEditWordDialog(wordId, currentValue)
+        navController.navigate(action)
+    }
+
     override fun closeDialog() {
         navController.popBackStack()
     }

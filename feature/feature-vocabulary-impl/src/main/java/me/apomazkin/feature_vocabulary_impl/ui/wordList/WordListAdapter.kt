@@ -30,6 +30,7 @@ class WordListAdapter(
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_word, parent, false)
         return NewWordHolder(
             view = view,
+            onEditWordClick = { position -> listener.onEditWord(data[position].word) },
             onAddDefinitionClick = { position -> listener.onAddDefinition(data[position].word.id) },
             onRemoveWordClick = { position -> listener.onRemoveWord(data[position].word.id) },
             onRemoveDefinitionClick = { definitionId -> listener.onDeleteDefinition(definitionId) },
@@ -43,6 +44,7 @@ class WordListAdapter(
 
     class NewWordHolder(
         private val view: View,
+        private val onEditWordClick: (Int) -> Unit,
         private val onRemoveWordClick: (Int) -> Unit,
         private val onAddDefinitionClick: (Int) -> Unit,
         private val onRemoveDefinitionClick: (Long) -> Unit,
@@ -74,6 +76,7 @@ class WordListAdapter(
                                     true
                                 }
                                 R.id.word_action_edit_word -> {
+                                    onEditWordClick(adapterPosition)
                                     true
                                 }
                                 R.id.word_action_delete_word -> {
@@ -147,7 +150,7 @@ class WordListAdapter(
     }
 
     interface NewWordListAdapterListener {
-        fun onEditWord(id: Long?)
+        fun onEditWord(word: Word)
         fun onRemoveWord(id: Long?)
         fun onAddDefinition(id: Long?)
         fun onEditDefinition(id: Long?)

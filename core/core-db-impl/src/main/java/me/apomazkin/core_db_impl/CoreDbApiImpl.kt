@@ -32,6 +32,12 @@ class CoreDbApiImpl @Inject constructor(
             .map { value -> mapper.map(value) }
     }
 
+    override fun updateWord(word: Word): Completable {
+        val mapper = WordMapper()
+        return wordDao
+            .updateWorld(mapper.reverseMap(word))
+    }
+
     override fun removeWord(id: Long): Completable {
         return wordDao.getWord(id)
             .flatMap { word ->

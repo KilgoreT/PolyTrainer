@@ -71,7 +71,7 @@ class AddDefinitionViewModel(
                 .addDefinition(
                     Definition(
                         wordId = id,
-                        value = it,
+                        value = it.trim(),
                         wordClass = when (wordClass.value) {
                             "noun" -> {
                                 Noun(

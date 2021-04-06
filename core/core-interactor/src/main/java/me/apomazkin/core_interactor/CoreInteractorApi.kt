@@ -8,6 +8,7 @@ import me.apomazkin.core_interactor.useCase.term.GetTermUseCase
 import me.apomazkin.core_interactor.useCase.term.SearchTermUseCase
 import me.apomazkin.core_interactor.useCase.word.AddWordUseCase
 import me.apomazkin.core_interactor.useCase.word.RemoveWordUseCase
+import me.apomazkin.core_interactor.useCase.word.UpdateWordUseCase
 import me.apomazkin.core_interactor.useCase.writeQuiz.RemoveWriteQuizUseCase
 import me.apomazkin.core_interactor.useCase.writeQuiz.WriteQuizScenario
 
@@ -18,6 +19,7 @@ interface CoreInteractorApi {
     fun getTermUseCase(): GetTermUseCase
     fun searchTermUseCase(): SearchTermUseCase
     fun addWordUseCase(): AddWordUseCase
+    fun updateWordUseCase(): UpdateWordUseCase
     fun removeWordUseCase(): RemoveWordUseCase
     fun removeDefinitionUseCase(): RemoveDefinitionUseCase
     fun addDefinitionUseCase(): AddDefinitionUseCase

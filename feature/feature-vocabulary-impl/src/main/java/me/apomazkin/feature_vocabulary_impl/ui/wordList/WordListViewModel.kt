@@ -1,4 +1,4 @@
-package me.apomazkin.feature_vocabulary_impl
+package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.MutableLiveData
@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_db_api.entity.Term
+import me.apomazkin.core_db_api.entity.Word
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
@@ -61,7 +62,7 @@ class WordListViewModel @Inject constructor(
             if (it.isNotBlank()) {
                 coreInteractorApi
                     .addWordUseCase()
-                    .addWord(it)
+                    .addWord(it.trim())
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe {
@@ -121,6 +122,14 @@ class WordListViewModel @Inject constructor(
                     // TODO: 02.12.2020 реакция на ошибку
                 })
 
+        }
+    }
+
+    fun editWord(word: Word) {
+        word.id?.let { id ->
+            word.value?.let { value ->
+                navigation.editWordDialog(id, value.trim())
+            }
         }
     }
 

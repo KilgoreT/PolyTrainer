@@ -6,7 +6,7 @@
     <data>
         <variable
             name="model"
-            type="me.apomazkin.feature_vocabulary_impl.WordListViewModel" />
+            type="me.apomazkin.feature_vocabulary_impl.ui.wordList.WordListViewModel" />
     </data>
 
     <androidx.constraintlayout.motion.widget.MotionLayout
@@ -71,7 +71,7 @@
             tools:visibility="visible">
 
             <com.google.android.material.textfield.TextInputEditText
-                bindValue="@={model.wordPattern}"
+                bindTwoWayText="@={model.wordPattern}"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
