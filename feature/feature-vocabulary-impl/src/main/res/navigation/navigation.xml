@@ -12,9 +12,27 @@
         android:label="TestNewFragment"
         tools:layout="@layout/fragment_word_list">
         <action
+            android:id="@+id/action_listWordFragment_to_editWordDialog"
+            app:destination="@id/editWordDialog" />
+        <action
             android:id="@+id/action_listWordFragment_to_addDefinitionDialog"
             app:destination="@id/addDefinitionDialog" />
     </fragment>
+
+    <dialog
+        android:id="@+id/editWordDialog"
+        android:name="me.apomazkin.feature_vocabulary_impl.ui.editWord.EditWordDialog"
+        android:label="AddWordDialog"
+        tools:layout="@layout/dialog_edit_word">
+
+        <argument
+            android:name="id"
+            app:argType="long" />
+
+        <argument
+            android:name="value"
+            app:argType="string" />
+    </dialog>
 
     <dialog
         android:id="@+id/addDefinitionDialog"

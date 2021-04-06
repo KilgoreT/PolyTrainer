@@ -4,8 +4,8 @@
     <string name="dialog_add_definition_btn_add">add</string>
     <string name="fab_content_description_add_word">Add Word</string>
     <string name="option_countable">countable</string>
-    <string name="hint_write_word_here">Write word here:</string>
-    <string name="title_word">Word:</string>
+    <string name="hint_write_word_here">new value....</string>
+    <string name="title_word">Update Word:</string>
     <string name="ok">OK</string>
     <string name="option_transitive">transitive</string>
     <string name="delete_word">Delete Word</string>

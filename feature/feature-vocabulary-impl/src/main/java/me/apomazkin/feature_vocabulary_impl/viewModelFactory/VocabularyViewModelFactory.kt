@@ -4,9 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
-import me.apomazkin.feature_vocabulary_impl.WordListViewModel
 import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
 import me.apomazkin.feature_vocabulary_impl.ui.addDefinition.AddDefinitionViewModel
+import me.apomazkin.feature_vocabulary_impl.ui.editWord.EditWordViewModel
+import me.apomazkin.feature_vocabulary_impl.ui.wordList.WordListViewModel
 import javax.inject.Inject
 
 class VocabularyViewModelFactory @Inject constructor(
@@ -20,6 +21,8 @@ class VocabularyViewModelFactory @Inject constructor(
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
         return if (modelClass.isAssignableFrom(WordListViewModel::class.java)) {
             WordListViewModel(coreInteractorApi, navigation, delegate) as T
+        } else if (modelClass.isAssignableFrom(EditWordViewModel::class.java)) {
+            EditWordViewModel(coreInteractorApi, navigation) as T
         } else if (modelClass.isAssignableFrom(AddDefinitionViewModel::class.java)) {
             AddDefinitionViewModel(coreInteractorApi, navigation, id) as T
         } else {

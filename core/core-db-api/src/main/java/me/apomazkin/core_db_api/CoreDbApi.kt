@@ -12,6 +12,7 @@ interface CoreDbApi {
 
     fun addWord(value: String): Completable
     fun getWord(id: Long): Single<Word>
+    fun updateWord(word: Word): Completable
     fun removeWord(id: Long): Completable
 
     fun addDefinition(definition: Definition): Completable

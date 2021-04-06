@@ -18,24 +18,22 @@ fun bindEndIconClick(view: TextInputLayout, method: () -> Unit) {
     view.setEndIconOnClickListener { method.invoke() }
 }
 
-
 /**
  * Пример кастомного two-way data binding
  */
-// TODO: 29.03.2021 bindValue название не сильно намекает на то, что оно делает. переименовать?
-@BindingAdapter("bindValue")
+@BindingAdapter("bindTwoWayText")
 fun setValue(view: EditText, value: MutableLiveData<String>) {
     value.observeForever {
         if (view.text.toString() != it) view.setText(it)
     }
 }
 
-@InverseBindingAdapter(attribute = "bindValue")
+@InverseBindingAdapter(attribute = "bindTwoWayText")
 fun getValue(view: EditText): String {
     return view.text.toString()
 }
 
-@BindingAdapter("app:bindValueAttrChanged")
+@BindingAdapter("app:bindTwoWayTextAttrChanged")
 fun setListener(view: EditText, attrChange: InverseBindingListener) {
     view.addTextChangedListener(object : TextWatcher {
         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}

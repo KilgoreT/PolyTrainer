@@ -19,6 +19,9 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE id = :id")
     fun getWordById(id: Long): Single<WordDb>
 
+    @Update
+    fun updateWorld(wordDb: WordDb): Completable
+
     @Query("DELETE FROM words WHERE id = :id")
     fun removeWord(id: Long): Completable
 

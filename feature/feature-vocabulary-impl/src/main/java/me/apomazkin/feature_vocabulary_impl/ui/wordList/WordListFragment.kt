@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.fragment_word_list.*
 import me.apomazkin.core_base.ui.BaseFragment
+import me.apomazkin.core_db_api.entity.Word
 import me.apomazkin.feature_vocabulary_impl.R
-import me.apomazkin.feature_vocabulary_impl.WordListViewModel
 import me.apomazkin.feature_vocabulary_impl.databinding.FragmentWordListBinding
 import me.apomazkin.feature_vocabulary_impl.di.FeatureVocabularyComponent
 import javax.inject.Inject
@@ -42,8 +42,8 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
         listViewModel.data.observe(this) { result -> adapter.setData(result) }
     }
 
-    override fun onEditWord(id: Long?) {
-        TODO("Not yet implemented")
+    override fun onEditWord(word: Word) {
+        listViewModel.editWord(word)
     }
 
     override fun onRemoveWord(id: Long?) {
