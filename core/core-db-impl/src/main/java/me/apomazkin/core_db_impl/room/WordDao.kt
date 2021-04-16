@@ -42,6 +42,9 @@ interface WordDao {
     @Query("SELECT * FROM definitions WHERE wordId = :wordId")
     fun getDefinitionListByWordId(wordId: Long): Single<List<DefinitionDb>>
 
+    @Update
+    fun updateDefinition(definitionDb: DefinitionDb): Completable
+
     @Query("DELETE FROM definitions WHERE id = :id")
     fun deleteDefinition(id: Long): Completable
 

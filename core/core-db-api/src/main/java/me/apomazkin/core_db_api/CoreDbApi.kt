@@ -18,6 +18,7 @@ interface CoreDbApi {
     fun addDefinition(definition: Definition): Completable
     fun getDefinition(id: Long): Single<Definition>
     fun getDefinitionListByWordId(wordId: Long): Single<List<Definition>>
+    fun updateDefinition(definition: Definition): Completable
     fun removeDefinition(id: Long): Completable
 
     fun getTermList(): Observable<List<Term>>

@@ -14,8 +14,8 @@ class FeatureVocabularyNavigationImpl @Inject constructor(
     }
 
     override fun editWordDialog(wordId: Long, currentValue: String) {
-        val action =
-            WordListFragmentDirections.actionListWordFragmentToEditWordDialog(wordId, currentValue)
+        val action = WordListFragmentDirections
+            .actionListWordFragmentToEditWordDialog(wordId, currentValue)
         navController.navigate(action)
     }
 
@@ -23,8 +23,15 @@ class FeatureVocabularyNavigationImpl @Inject constructor(
         navController.popBackStack()
     }
 
+    override fun editDefinitionDialog(id: Long) {
+        val action = WordListFragmentDirections
+            .actionListWordFragmentToEditDefinitionDialog(id)
+        navController.navigate(action)
+    }
+
     override fun addDefinitionDialog(id: Long) {
-        val action = WordListFragmentDirections.actionListWordFragmentToAddDefinitionDialog(id)
+        val action = WordListFragmentDirections
+            .actionListWordFragmentToAddDefinitionDialog(id)
         navController.navigate(action)
     }
 }

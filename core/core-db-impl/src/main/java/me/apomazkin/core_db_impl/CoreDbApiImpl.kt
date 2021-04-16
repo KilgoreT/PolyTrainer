@@ -71,6 +71,10 @@ class CoreDbApiImpl @Inject constructor(
             .map { list -> mapper.map(list) }
     }
 
+    override fun updateDefinition(definition: Definition): Completable {
+        val mapper = DefinitionMapper()
+        return wordDao.updateDefinition(mapper.reverseMap(definition))
+    }
 
     override fun removeDefinition(id: Long): Completable {
         return wordDao.deleteDefinition(id)
