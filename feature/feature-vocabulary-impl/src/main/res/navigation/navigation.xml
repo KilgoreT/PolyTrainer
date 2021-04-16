@@ -17,6 +17,9 @@
         <action
             android:id="@+id/action_listWordFragment_to_addDefinitionDialog"
             app:destination="@id/addDefinitionDialog" />
+        <action
+            android:id="@+id/action_listWordFragment_to_editDefinitionDialog"
+            app:destination="@id/editDefinitionDialog" />
     </fragment>
 
     <dialog
@@ -38,6 +41,18 @@
         android:id="@+id/addDefinitionDialog"
         android:name="me.apomazkin.feature_vocabulary_impl.ui.addDefinition.AddDefinitionDialog"
         android:label="AddDefinition"
+        tools:layout="@layout/dialog_add_definition">
+
+        <argument
+            android:name="id"
+            app:argType="long" />
+
+    </dialog>
+
+    <dialog
+        android:id="@+id/editDefinitionDialog"
+        android:name="me.apomazkin.feature_vocabulary_impl.ui.editDefinition.EditDefinitionDialog"
+        android:label="EditDefinitionDialog"
         tools:layout="@layout/dialog_add_definition">
 
         <argument

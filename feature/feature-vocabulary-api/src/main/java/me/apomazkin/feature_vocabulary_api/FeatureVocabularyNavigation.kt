@@ -13,4 +13,5 @@ interface FeatureVocabularyNavigation {
     fun addDefinitionDialog(id: Long)
 
     fun closeDialog()
+    fun editDefinitionDialog(id: Long)
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.fragment_word_list.*
 import me.apomazkin.core_base.ui.BaseFragment
+import me.apomazkin.core_db_api.entity.Definition
 import me.apomazkin.core_db_api.entity.Word
 import me.apomazkin.feature_vocabulary_impl.R
 import me.apomazkin.feature_vocabulary_impl.databinding.FragmentWordListBinding
@@ -68,8 +69,8 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
         listViewModel.addDefinition(id)
     }
 
-    override fun onEditDefinition(id: Long?) {
-        listViewModel.editDefinition(id)
+    override fun onEditDefinition(definition: Definition) {
+        listViewModel.editDefinition(definition.id ?: -1)
     }
 
     override fun onDeleteDefinition(id: Long?) {
