@@ -29,13 +29,6 @@ android {
             )
         }
     }
-
-    lintOptions {
-        isQuiet = false
-        isAbortOnError = true
-        isWarningsAsErrors = true
-        isIgnoreWarnings = false
-    }
 }
 
 dependencies {
