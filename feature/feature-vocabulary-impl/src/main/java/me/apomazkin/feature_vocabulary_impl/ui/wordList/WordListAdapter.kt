@@ -30,6 +30,7 @@ class WordListAdapter(
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_word, parent, false)
         return NewWordHolder(
             view = view,
+            onSearchTranslate = { position -> listener.onSearchTranslation(data[position].word.value) },
             onEditWordClick = { position -> listener.onEditWord(data[position].word) },
             onAddDefinitionClick = { position -> listener.onAddDefinition(data[position].word.id) },
             onRemoveWordClick = { position -> listener.onRemoveWord(data[position].word.id) },
@@ -45,6 +46,7 @@ class WordListAdapter(
 
     class NewWordHolder(
         private val view: View,
+        private val onSearchTranslate: (Int) -> Unit,
         private val onEditWordClick: (Int) -> Unit,
         private val onRemoveWordClick: (Int) -> Unit,
         private val onAddDefinitionClick: (Int) -> Unit,
@@ -66,6 +68,8 @@ class WordListAdapter(
                 .setOnClickListener {
                     onAddDefinitionClick(adapterPosition)
                 }
+
+            entry.setOnClickListener { onSearchTranslate(adapterPosition) }
 
             btnMoreAction
                 .setOnClickListener { view ->
@@ -153,6 +157,7 @@ class WordListAdapter(
     }
 
     interface NewWordListAdapterListener {
+        fun onSearchTranslation(word: String?)
         fun onEditWord(word: Word)
         fun onRemoveWord(id: Long?)
         fun onAddDefinition(id: Long?)

@@ -1,6 +1,8 @@
 package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.app.AlertDialog
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.fragment_word_list.*
@@ -41,6 +43,16 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
         )
         container.adapter = adapter
         listViewModel.data.observe(this) { result -> adapter.setData(result) }
+    }
+
+    override fun onSearchTranslation(word: String?) {
+        word?.let {
+            val intent = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("https://dictionary.cambridge.org/dictionary/english-russian/$it")
+            )
+            startActivity(intent)
+        }
     }
 
     override fun onEditWord(word: Word) {
