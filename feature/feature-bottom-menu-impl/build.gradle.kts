@@ -9,36 +9,12 @@ plugins {
 val kotlinVersion by extra { "1.4.32" }
 
 android {
-    compileSdkVersion(30)
-
-    defaultConfig {
-        minSdkVersion(21)
-        targetSdkVersion(30)
-        versionCode(1)
-        versionName = "1.0"
-
-        testInstrumentationRunner("androidx.test.runner.AndroidJUnitRunner")
-        consumerProguardFiles("consumer-rules.pro")
-    }
-
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-
     buildFeatures {
         dataBinding = true
     }
-
     kotlinOptions {
         jvmTarget = "1.8"
     }
-
 }
 
 dependencies {
@@ -74,7 +50,7 @@ dependencies {
 
     // Test
     //noinspection GradleDependency
-    testImplementation("junit:junit:4.12")
+    testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.2")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
 

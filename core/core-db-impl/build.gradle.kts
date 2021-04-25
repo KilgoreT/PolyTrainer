@@ -10,43 +10,19 @@ val roomVersion by extra { "2.2.6" }
 
 
 android {
-    compileSdkVersion(30)
-    buildToolsVersion = "29.0.3"
-
     defaultConfig {
-        minSdkVersion(21)
-        targetSdkVersion(30)
-        versionCode(1)
-        versionName = "1.0"
-
-        testInstrumentationRunner("androidx.test.runner.AndroidJUnitRunner")
-        consumerProguardFiles("consumer-rules.pro")
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments.plus("room.schemaLocation" to "$projectDir/schemas")
-//                arguments += ["room.schemaLocation" to: "$projectDir/schemas".toString()]
             }
         }
     }
-
     sourceSets {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
-
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-
     kotlinOptions {
         jvmTarget = "1.8"
     }
-
 }
 
 dependencies {
@@ -75,7 +51,7 @@ dependencies {
     kapt("com.google.dagger:dagger-compiler:2.33")
 
     //noinspection GradleDependency
-    testImplementation("junit:junit:4.12")
+    testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.2")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
     androidTestImplementation("androidx.room:room-testing:$roomVersion")
