@@ -4,8 +4,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.fragment.app.Fragment
-import kotlinx.android.synthetic.main.fragment_statistic_tab.*
 import me.apomazkin.feature_bottom_menu_impl.R
 import me.apomazkin.feature_statistic_impl.di.FeatureStatisticComponent
 
@@ -24,7 +24,7 @@ class StatisticTabFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val api = FeatureStatisticComponent.initAndGet(
-            featureContainer,
+            view.findViewById<FrameLayout>(R.id.featureContainer),
             requireContext()
         )
         api.featureStatisticNavigation().start()

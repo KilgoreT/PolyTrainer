@@ -7,7 +7,6 @@ import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.android.synthetic.main.item_definition.view.*
 import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.core_db_api.entity.Grade.*
 import me.apomazkin.feature_vocabulary_impl.R
@@ -108,27 +107,35 @@ class WordListAdapter(
                         containerDefinition,
                         false
                     )
-                viewItem.tvWordClass.text = when (definition.wordClass) {
-                    is Verb -> viewItem.resources.getString(R.string.common_verb_label)
-                    is Noun -> viewItem.resources.getString(R.string.common_noun_label)
-                    is Adjective -> viewItem.resources.getString(R.string.common_adjective_label)
-                    is Adverb -> viewItem.resources.getString(R.string.common_adverb_label)
-                    else -> "undefined"
-                }
-                viewItem.tvDefinition.text = definition.value
+                viewItem.findViewById<TextView>(R.id.tvWordClass).text =
+                    when (definition.wordClass) {
+                        is Verb -> viewItem.resources.getString(R.string.common_verb_label)
+                        is Noun -> viewItem.resources.getString(R.string.common_noun_label)
+                        is Adjective -> viewItem.resources.getString(R.string.common_adjective_label)
+                        is Adverb -> viewItem.resources.getString(R.string.common_adverb_label)
+                        else -> "undefined"
+                    }
+                viewItem.findViewById<TextView>(R.id.tvDefinition).text = definition.value
                 if (index == lastDefinition) {
-                    viewItem.divider.visibility = View.GONE
+                    viewItem.findViewById<View>(R.id.divider).visibility = View.GONE
                 }
                 when (definition.wordClass?.grade) {
-                    A1 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_a1)
-                    A2 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_a2)
-                    B1 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_b1)
-                    B2 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_b2)
-                    C1 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_c1)
-                    C2 -> viewItem.ivGrade.setImageResource(R.drawable.ic_grade_c2)
-                    null -> viewItem.ivGrade.visibility = View.INVISIBLE
+                    A1 -> viewItem.findViewById<ImageView>(R.id.ivGrade)
+                        .setImageResource(R.drawable.ic_grade_a1)
+                    A2 -> viewItem.findViewById<ImageView>(R.id.ivGrade)
+                        .setImageResource(R.drawable.ic_grade_a2)
+                    B1 -> viewItem.findViewById<ImageView>(R.id.ivGrade)
+                        .setImageResource(R.drawable.ic_grade_b1)
+                    B2 -> viewItem.findViewById<ImageView>(R.id.ivGrade)
+                        .setImageResource(R.drawable.ic_grade_b2)
+                    C1 -> viewItem.findViewById<ImageView>(R.id.ivGrade)
+                        .setImageResource(R.drawable.ic_grade_c1)
+                    C2 -> viewItem.findViewById<ImageView>(R.id.ivGrade)
+                        .setImageResource(R.drawable.ic_grade_c2)
+                    null -> viewItem.findViewById<ImageView>(R.id.ivGrade).visibility =
+                        View.INVISIBLE
                 }
-                viewItem.btn_more_definition_action
+                viewItem.findViewById<ImageView>(R.id.btn_more_definition_action)
                     .setOnClickListener { view ->
                         PopupMenu(view.context, view).apply {
                             inflate(R.menu.definition_actions)

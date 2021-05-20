@@ -5,7 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import kotlinx.android.synthetic.main.fragment_word_list.*
 import me.apomazkin.core_base.ui.BaseFragment
 import me.apomazkin.core_db_api.entity.Definition
 import me.apomazkin.core_db_api.entity.Word
@@ -36,12 +35,12 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
     override fun initView() {
         super.initView()
 
-        container.layoutManager = LinearLayoutManager(
+        binding.container.layoutManager = LinearLayoutManager(
             requireContext(),
             LinearLayoutManager.VERTICAL,
             false
         )
-        container.adapter = adapter
+        binding.container.adapter = adapter
         listViewModel.data.observe(this) { result -> adapter.setData(result) }
     }
 
