@@ -1,25 +1,19 @@
 plugins {
-    id("com.android.library")
-    id("kotlin-android")
-    id("kotlin-android-extensions")
+    id("android-library-convention")
     id("kotlin-kapt")
-    id("androidx.navigation.safeargs")
+    id("kotlin-android-extensions")
+    id("androidx.navigation.safeargs.kotlin")
 }
-
-val kotlinVersion by extra { "1.4.32" }
 
 android {
     buildFeatures {
         dataBinding = true
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
 }
 
 dependencies {
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.4.32")
 
     implementation(project("path" to ":core:core-db"))
     implementation(project("path" to ":feature:feature-bottom-menu-api"))
@@ -31,8 +25,8 @@ dependencies {
     implementation(project("path" to ":feature:feature-statistic-impl"))
 
     // AndroidX
-    implementation("androidx.appcompat:appcompat:1.2.0")
-    implementation("androidx.core:core-ktx:1.3.2")
+    implementation("androidx.appcompat:appcompat:1.3.0")
+    implementation("androidx.core:core-ktx:1.5.0")
     implementation("androidx.constraintlayout:constraintlayout:2.0.4")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
 
@@ -40,9 +34,9 @@ dependencies {
     implementation("com.google.android.material:material:1.3.0")
 
     //Dagger2
-    implementation("com.google.dagger:dagger:2.33")
+    implementation("com.google.dagger:dagger:2.35.1")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
-    kapt("com.google.dagger:dagger-compiler:2.33")
+    kapt("com.google.dagger:dagger-compiler:2.35.1")
 
     //Navigation
     implementation("androidx.navigation:navigation-fragment-ktx:2.3.5")
