@@ -24,3 +24,5 @@
 /keystore/.gitignore
 /keystore/keystore_upload
 /app/release
+/build-settings/build/
+/.idea/kotlinScripting.xml
