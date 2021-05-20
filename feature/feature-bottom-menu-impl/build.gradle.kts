@@ -1,7 +1,6 @@
 plugins {
     id("android-library-convention")
     id("kotlin-kapt")
-    id("kotlin-android-extensions")
     id("androidx.navigation.safeargs.kotlin")
 }
 

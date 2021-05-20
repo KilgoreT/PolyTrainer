@@ -11,7 +11,7 @@ import androidx.navigation.Navigation
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.NavigationUI
 import androidx.navigation.ui.setupWithNavController
-import kotlinx.android.synthetic.main.fragment_bottom_menu.*
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import me.apomazkin.feature_bottom_menu_impl.R
 
 class BottomMenuFragment : Fragment() {
@@ -27,7 +27,7 @@ class BottomMenuFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupAppBar()
-        setupBottomMenu()
+        setupBottomMenu(view)
         setupDestinationChangeListener()
     }
 
@@ -52,9 +52,11 @@ class BottomMenuFragment : Fragment() {
         )
     }
 
-    private fun setupBottomMenu() {
-        bottomMenu.setOnNavigationItemReselectedListener { }
-        bottomMenu.setupWithNavController(getNavController())
+    private fun setupBottomMenu(view: View) {
+        view.findViewById<BottomNavigationView>(R.id.bottomMenu).apply {
+            setOnNavigationItemReselectedListener { }
+            setupWithNavController(getNavController())
+        }
     }
 
     private fun getNavController(): NavController {

@@ -10,7 +10,7 @@ import androidx.fragment.app.Fragment
 
 abstract class BaseFragment<DB : ViewDataBinding> : Fragment() {
 
-    private lateinit var binding: DB
+    protected lateinit var binding: DB
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
