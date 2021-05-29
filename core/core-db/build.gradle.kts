@@ -6,7 +6,7 @@ plugins {
 dependencies {
     implementation(fileTree("dir" to "libs", "include" to listOf("*.jar")))
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.4.32")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.10")
 
     api(project("path" to ":core:core-db-api"))
     implementation(project("path" to ":core:core-db-impl"))

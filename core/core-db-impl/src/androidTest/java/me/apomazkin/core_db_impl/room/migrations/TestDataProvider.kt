@@ -2,9 +2,34 @@ package me.apomazkin.core_db_impl.room.migrations
 
 import android.content.ContentValues
 import me.apomazkin.core_db_impl.entity.DefinitionDb
+import me.apomazkin.core_db_impl.entity.WordDb
+import me.apomazkin.core_db_impl.entity.WriteQuizDb
 
 class TestDataProvider {
     companion object {
+        val wordList = listOf(
+            WordDb(
+                id = 0L,
+                word = "w000",
+            ),
+            WordDb(
+                id = 1L,
+                word = "w111",
+            ),
+            WordDb(
+                id = 2L,
+                word = "w222",
+            ),
+            WordDb(
+                id = 3L,
+                word = "w333",
+            ),
+            WordDb(
+                id = 4L,
+                word = "w444",
+            ),
+        )
+
         val definitionList = listOf<DefinitionDb>(
             DefinitionDb(
                 id = 0L,
@@ -36,6 +61,34 @@ class TestDataProvider {
             ),
         )
 
+        val writeQuizList = listOf<WriteQuizDb>(
+            WriteQuizDb(
+                id = 0,
+                definitionId = 0,
+                grade = 0,
+                score = 0,
+            ),
+            WriteQuizDb(
+                id = 1,
+                definitionId = 1,
+                grade = 0,
+                score = 0,
+            ),
+            WriteQuizDb(
+                id = 2,
+                definitionId = 2,
+                grade = 0,
+                score = 0,
+            )
+        )
+
+        fun getWordListAsContentValue() = wordList.map { word ->
+            ContentValues().apply {
+                put("id", word.id)
+                put("word", word.word)
+            }
+        }
+
         fun getDefinitionListAsContentValues() = definitionList.map { definition ->
             ContentValues().apply {
                 put("id", definition.id)
@@ -43,6 +96,15 @@ class TestDataProvider {
                 put("definition", definition.definition)
                 put("wordClass", definition.wordClass)
                 put("options", definition.options)
+            }
+        }
+
+        fun getWordQuizAsContentValue() = writeQuizList.map { writeQuizDb ->
+            ContentValues().apply {
+                put("id", writeQuizDb.id)
+                put("definitionId", writeQuizDb.definitionId)
+                put("grade", writeQuizDb.grade)
+                put("score", writeQuizDb.score)
             }
         }
 

@@ -15,6 +15,7 @@ import me.apomazkin.core_db_impl.mapper.TermMapper
 import me.apomazkin.core_db_impl.mapper.WordMapper
 import me.apomazkin.core_db_impl.mapper.WriteQuizMapper
 import me.apomazkin.core_db_impl.room.WordDao
+import java.util.*
 import javax.inject.Inject
 
 class CoreDbApiImpl @Inject constructor(
@@ -22,7 +23,13 @@ class CoreDbApiImpl @Inject constructor(
 ) : CoreDbApi {
 
     override fun addWord(value: String): Completable {
-        return wordDao.addWord(WordDb(word = value))
+        val currentDate = Date(System.currentTimeMillis())
+        return wordDao.addWord(
+            WordDb(
+                word = value,
+                addDate = currentDate,
+            )
+        )
     }
 
     override fun getWord(id: Long): Single<Word> {
@@ -54,9 +61,15 @@ class CoreDbApiImpl @Inject constructor(
         val mapper = DefinitionMapper()
         return wordDao.addDefinition(mapper.reverseMap(definition))
             .flatMapCompletable { id ->
-                wordDao.addWriteQuiz(WriteQuizDb(definitionId = id))
+                val date = Date(System.currentTimeMillis())
+                wordDao.addWriteQuiz(
+                    WriteQuizDb(
+                        definitionId = id,
+                        addDate = date,
+                        lastSelectDate = date,
+                    )
+                )
             }
-//        wordDao.addWriteQuiz(WriteQuizDb(definitionId = definition.id))
     }
 
     override fun getDefinition(id: Long): Single<Definition> {

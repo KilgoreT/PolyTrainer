@@ -7,6 +7,7 @@ import dagger.Provides
 import me.apomazkin.core_db_impl.room.Database
 import me.apomazkin.core_db_impl.room.WordDao
 import me.apomazkin.core_db_impl.room.migrations.migration_1_2
+import me.apomazkin.core_db_impl.room.migrations.migration_2_3
 
 @Module
 class RoomModule {
@@ -15,7 +16,7 @@ class RoomModule {
     @Provides
     fun provideDatabase(context: Context): Database {
         return Room.databaseBuilder(context, Database::class.java, "name")
-            .addMigrations(migration_1_2)
+            .addMigrations(migration_1_2, migration_2_3)
             .build()
     }
 

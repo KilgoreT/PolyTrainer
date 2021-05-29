@@ -113,7 +113,9 @@ class WriteQuizScenarioImpl @Inject constructor(
                                     definitionId = writeQuiz.definitionId,
                                     answer = word.value ?: "",
                                     grade = writeQuiz.grade,
-                                    score = writeQuiz.score
+                                    score = writeQuiz.score,
+                                    addDate = writeQuiz.addDate,
+                                    lastSelectDate = writeQuiz.lastSelectDate
                                 )
                             }
                     }
