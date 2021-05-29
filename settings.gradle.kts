@@ -44,7 +44,7 @@ pluginManagement {
                     useVersion("1.4.32")
                 }
                 pluginId.contains("kotlin-") -> {
-                    useVersion("1.4.32")
+                    useVersion("1.5.10")
 //                    useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.32")
                 }
                 pluginId.startsWith("com.android.") -> {

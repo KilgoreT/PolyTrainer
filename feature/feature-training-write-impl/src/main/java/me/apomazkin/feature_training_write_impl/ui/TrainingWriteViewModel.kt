@@ -10,6 +10,7 @@ import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.core_interactor.entity.WriteQuizStep
 import me.apomazkin.feature_training_write_api.FeatureTrainingWriteNavigator
+import java.util.*
 import javax.inject.Inject
 
 // TODO: 28.02.2021 QUIZ
@@ -47,12 +48,6 @@ class TrainingWriteViewModel @Inject constructor(
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ list ->
-                list.forEach { writeQuizStep ->
-                    Log.d(
-                        "###",
-                        ">>>> definition: ${writeQuizStep.definition}, word: ${writeQuizStep.answer}"
-                    )
-                }
                 data = list
                 setupQuiz()
             }, { ttt ->
@@ -81,17 +76,19 @@ class TrainingWriteViewModel @Inject constructor(
 
     fun onPressCheck() {
         val answer = data[currentQuiz]
-
+        val lastSelectDate = Date(System.currentTimeMillis())
         if (quizAttemptValue.value == data[currentQuiz].answer) {
             currentQuizTitle.postValue("Right!")
             val copy = if (answer.score < 5) {
                 answer.copy(
-                    score = answer.score + 1
+                    score = answer.score + 1,
+                    lastSelectDate = lastSelectDate,
                 )
             } else {
                 answer.copy(
                     score = 0,
-                    grade = if (answer.grade < 2) answer.grade + 1 else answer.grade
+                    grade = if (answer.grade < 2) answer.grade + 1 else answer.grade,
+                    lastSelectDate = lastSelectDate,
                 )
             }
             coreInteractorApi
@@ -103,17 +100,20 @@ class TrainingWriteViewModel @Inject constructor(
         } else {
             currentQuizTitle.postValue("Wrong!")
 
-            if (answer.score > 0) {
-                val copy = answer.copy(
-                    score = answer.score - 1
+            val copy = if (answer.score > 0) {
+                answer.copy(
+                    score = answer.score - 1,
+                    lastSelectDate = lastSelectDate,
                 )
-                coreInteractorApi
-                    .writeQuizScenario()
-                    .updateWriteQuizStep(copy)
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe()
+            } else {
+                answer.copy(lastSelectDate = lastSelectDate)
             }
+            coreInteractorApi
+                .writeQuizScenario()
+                .updateWriteQuizStep(copy)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe()
         }
         currentQuizAnswer.postValue(data[currentQuiz].answer)
         quizAttemptValue.postValue("")

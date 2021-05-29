@@ -9,14 +9,18 @@ class WriteQuizMapper : Mapper<WriteQuizDb, WriteQuiz>() {
         value.id,
         value.definitionId,
         value.grade,
-        value.score
+        value.score,
+        value.addDate,
+        value.lastSelectDate,
     )
 
     override fun reverseMap(value: WriteQuiz) = WriteQuizDb(
         value.id,
         value.definitionId,
         value.grade,
-        value.score
+        value.score,
+        value.addDate,
+        value.lastSelectDate,
     )
 
 }

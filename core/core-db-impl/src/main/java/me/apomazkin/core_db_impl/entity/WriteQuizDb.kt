@@ -2,6 +2,7 @@ package me.apomazkin.core_db_impl.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.util.*
 
 @Entity(tableName = "writeQuiz")
 data class WriteQuizDb(
@@ -10,4 +11,6 @@ data class WriteQuizDb(
     val definitionId: Long,
     val grade: Int = 0,
     val score: Int = 0,
+    val addDate: Date? = null,
+    val lastSelectDate: Date? = null,
 )

@@ -18,7 +18,9 @@ interface UpdateWriteQuizUseCase {
                     id = writeQuizStep.id,
                     definitionId = writeQuizStep.definitionId,
                     grade = writeQuizStep.grade,
-                    score = writeQuizStep.score
+                    score = writeQuizStep.score,
+                    addDate = writeQuizStep.addDate,
+                    lastSelectDate = writeQuizStep.lastSelectDate,
                 )
             )
         }
