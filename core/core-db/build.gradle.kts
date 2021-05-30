@@ -4,13 +4,12 @@ plugins {
 }
 
 dependencies {
-    implementation(fileTree("dir" to "libs", "include" to listOf("*.jar")))
-
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.10")
 
     api(project("path" to ":core:core-db-api"))
     implementation(project("path" to ":core:core-db-impl"))
 
+    implementation(fileTree("dir" to "libs", "include" to listOf("*.jar")))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.4.32")
     implementation("androidx.appcompat:appcompat:1.3.0")
     implementation("androidx.core:core-ktx:1.5.0")
 
