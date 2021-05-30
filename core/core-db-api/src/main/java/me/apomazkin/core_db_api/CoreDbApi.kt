@@ -3,10 +3,7 @@ package me.apomazkin.core_db_api
 import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
-import me.apomazkin.core_db_api.entity.Definition
-import me.apomazkin.core_db_api.entity.Term
-import me.apomazkin.core_db_api.entity.Word
-import me.apomazkin.core_db_api.entity.WriteQuiz
+import me.apomazkin.core_db_api.entity.*
 
 interface CoreDbApi {
 
@@ -33,5 +30,10 @@ interface CoreDbApi {
     fun getWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>>
     fun updateWriteQuizList(writeQuiz: WriteQuiz): Completable
     fun removeWriteQuiz(definitionId: Long): Completable
+
+    fun addHint(definitionId: Long, value: String): Completable
+    fun removeHint(id: Long): Completable
+    fun removeHint(hint: Hint): Completable
+    fun updateHint(hint: Hint): Completable
 
 }

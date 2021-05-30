@@ -59,16 +59,16 @@ dependencies {
     implementation(project("path" to ":feature:feature-bottom-menu-impl"))
 
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.4.32")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.10")
 
     // AndroidX
     implementation("androidx.appcompat:appcompat:1.3.0")
-    implementation("androidx.core:core-ktx:1.5.0")
+    implementation("androidx.core:core-ktx:1.6.0")
     implementation("androidx.constraintlayout:constraintlayout:2.0.4")
 
     //Dagger2
-    implementation("com.google.dagger:dagger:2.35.1")
-    kapt("com.google.dagger:dagger-compiler:2.35.1")
+    implementation("com.google.dagger:dagger:2.37")
+    kapt("com.google.dagger:dagger-compiler:2.37")
 
     //Navigation
     implementation("androidx.navigation:navigation-fragment-ktx:2.3.5")
@@ -83,9 +83,9 @@ dependencies {
     //noinspection GradleDependency
     testImplementation("junit:junit:4.13.2")
     //noinspection GradleDependency
-    androidTestImplementation("androidx.test.ext:junit:1.1.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.3")
     //noinspection GradleDependency
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
 }
 
 fun getBuildSource(file: File): BuildSource {

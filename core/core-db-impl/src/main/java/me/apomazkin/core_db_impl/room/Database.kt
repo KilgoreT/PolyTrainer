@@ -4,11 +4,12 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import me.apomazkin.core_db_impl.converters.DateTimeConverter
-import me.apomazkin.core_db_impl.entity.DefinitionDb
-import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.entity.*
 
-@Database(entities = [WordDb::class, DefinitionDb::class, WriteQuizDb::class], version = 3)
+@Database(
+    entities = [WordDb::class, DefinitionDb::class, HintDb::class, SampleDb::class, WriteQuizDb::class],
+    version = 4
+)
 @TypeConverters(DateTimeConverter::class)
 abstract class Database : RoomDatabase() {
     abstract fun wordDao(): WordDao

@@ -4,16 +4,11 @@ import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
 import me.apomazkin.core_db_api.CoreDbApi
-import me.apomazkin.core_db_api.entity.Definition
-import me.apomazkin.core_db_api.entity.Term
-import me.apomazkin.core_db_api.entity.Word
-import me.apomazkin.core_db_api.entity.WriteQuiz
+import me.apomazkin.core_db_api.entity.*
+import me.apomazkin.core_db_impl.entity.HintDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
-import me.apomazkin.core_db_impl.mapper.DefinitionMapper
-import me.apomazkin.core_db_impl.mapper.TermMapper
-import me.apomazkin.core_db_impl.mapper.WordMapper
-import me.apomazkin.core_db_impl.mapper.WriteQuizMapper
+import me.apomazkin.core_db_impl.mapper.*
 import me.apomazkin.core_db_impl.room.WordDao
 import java.util.*
 import javax.inject.Inject
@@ -138,4 +133,27 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.removeWriteQuiz(definitionId)
     }
 
+    override fun addHint(definitionId: Long, value: String): Completable {
+        return wordDao.addHint(
+            HintDb(
+                definitionId = definitionId,
+                value = value,
+                addDate = Date(System.currentTimeMillis())
+            )
+        )
+    }
+
+    override fun removeHint(id: Long): Completable {
+        return wordDao.removeHint(id)
+    }
+
+    override fun removeHint(hint: Hint): Completable {
+        val mapper = HintMapper()
+        return wordDao.removeHint(mapper.reverseMap(hint))
+    }
+
+    override fun updateHint(hint: Hint): Completable {
+        val mapper = HintMapper()
+        return wordDao.updateHint(mapper.reverseMap(hint))
+    }
 }
