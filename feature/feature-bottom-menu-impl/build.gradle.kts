@@ -11,8 +11,6 @@ android {
 }
 
 dependencies {
-    implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.10")
 
     implementation(project("path" to ":core:core-db"))
     implementation(project("path" to ":feature:feature-bottom-menu-api"))
@@ -22,6 +20,9 @@ dependencies {
     implementation(project("path" to ":feature:feature-training-list-impl"))
     implementation(project("path" to ":feature:feature-statistic-api"))
     implementation(project("path" to ":feature:feature-statistic-impl"))
+
+    implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.4.32")
 
     // AndroidX
     implementation("androidx.appcompat:appcompat:1.3.0")
