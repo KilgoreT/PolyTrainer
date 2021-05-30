@@ -4,10 +4,7 @@ import androidx.room.*
 import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
-import me.apomazkin.core_db_impl.entity.DefinitionDb
-import me.apomazkin.core_db_impl.entity.TermDb
-import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.entity.*
 
 // TODO: 20.03.2021 переименгвать Dao
 @Dao
@@ -79,4 +76,17 @@ interface WordDao {
 
     @Query("SELECT COUNT(*) FROM writeQuiz WHERE grade = :tier")
     fun getWriteQuizCountByGrade(tier: Int): Single<Int>
+
+    @Insert
+    fun addHint(hintDb: HintDb): Completable
+
+    @Update
+    fun updateHint(hintDb: HintDb): Completable
+
+    @Query("DELETE FROM hint WHERE id = :id")
+    fun removeHint(id: Long): Completable
+
+    @Delete
+    fun removeHint(hintDb: HintDb): Completable
+
 }

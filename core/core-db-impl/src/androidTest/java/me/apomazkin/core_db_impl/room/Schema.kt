@@ -1,4 +1,4 @@
-package me.apomazkin.core_db_impl.room.migrations
+package me.apomazkin.core_db_impl.room
 
 object Schema {
 
@@ -26,6 +26,14 @@ object Schema {
         const val columnScore = "score"
         const val columnAddDate = "addDate"
         const val columnLastSelectDate = "lastSelectDate"
+    }
+
+    object Hint : TableName, ColumnId {
+        override val tableName = "hint"
+        const val columnDefinitionId = "definitionId"
+        const val columnValue = "value"
+        const val columnAddDate = "addDate"
+        const val columnChangeDate = "changeDate"
     }
 
 }

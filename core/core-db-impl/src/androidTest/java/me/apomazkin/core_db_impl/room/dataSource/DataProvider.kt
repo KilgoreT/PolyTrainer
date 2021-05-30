@@ -1,11 +1,9 @@
-package me.apomazkin.core_db_impl.room.migrations
+package me.apomazkin.core_db_impl.room.dataSource
 
-import android.content.ContentValues
-import me.apomazkin.core_db_impl.entity.DefinitionDb
-import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.entity.*
+import java.util.*
 
-class TestDataProvider {
+class DataProvider {
     companion object {
         val wordList = listOf(
             WordDb(
@@ -82,31 +80,56 @@ class TestDataProvider {
             )
         )
 
-        fun getWordListAsContentValue() = wordList.map { word ->
-            ContentValues().apply {
-                put("id", word.id)
-                put("word", word.word)
-            }
-        }
+        val hintList = listOf<HintDb>(
+            HintDb(
+                id = 0,
+                definitionId = 7,
+                value = "000",
+                addDate = Date(System.currentTimeMillis())
+            ),
+            HintDb(
+                id = 1,
+                definitionId = 7,
+                value = "111",
+                addDate = Date(System.currentTimeMillis())
+            ),
+            HintDb(
+                id = 2,
+                definitionId = 7,
+                value = "222",
+                addDate = Date(System.currentTimeMillis())
+            ),
+        )
 
-        fun getDefinitionListAsContentValues() = definitionList.map { definition ->
-            ContentValues().apply {
-                put("id", definition.id)
-                put("wordId", definition.wordClass)
-                put("definition", definition.definition)
-                put("wordClass", definition.wordClass)
-                put("options", definition.options)
-            }
-        }
-
-        fun getWordQuizAsContentValue() = writeQuizList.map { writeQuizDb ->
-            ContentValues().apply {
-                put("id", writeQuizDb.id)
-                put("definitionId", writeQuizDb.definitionId)
-                put("grade", writeQuizDb.grade)
-                put("score", writeQuizDb.score)
-            }
-        }
-
+        val sampleList = listOf<SampleDb>(
+            SampleDb(
+                id = 1,
+                definitionId = 1,
+                value = "111",
+                source = "source 1",
+                addDate = Date(System.currentTimeMillis())
+            ),
+            SampleDb(
+                id = 2,
+                definitionId = 1,
+                value = "222",
+                source = "source 2",
+                addDate = Date(System.currentTimeMillis())
+            ),
+            SampleDb(
+                id = 3,
+                definitionId = 1,
+                value = "333",
+                source = "source 3",
+                addDate = Date(System.currentTimeMillis())
+            ),
+            SampleDb(
+                id = 4,
+                definitionId = 1,
+                value = "444",
+                source = "source 4",
+                addDate = Date(System.currentTimeMillis())
+            ),
+        )
     }
 }
