@@ -2,8 +2,10 @@ package me.apomazkin.core_interactor.useCase.writeQuiz
 
 import io.reactivex.Completable
 import io.reactivex.Single
+import io.reactivex.functions.BiFunction
 import me.apomazkin.core_interactor.entity.WriteQuizStep
 import me.apomazkin.core_interactor.useCase.definition.GetDefinitionUseCase
+import me.apomazkin.core_interactor.useCase.statistic.GetWriteQuizCountUseCase
 import me.apomazkin.core_interactor.useCase.word.GetWordUseCase
 import javax.inject.Inject
 import kotlin.math.min
@@ -17,19 +19,23 @@ class WriteQuizScenarioImpl @Inject constructor(
     private val getWriteQuizUseCase: GetWriteQuizUseCase,
     private val updateWriteQuizUseCase: UpdateWriteQuizUseCase,
     private val getDefinitionUseCase: GetDefinitionUseCase,
-    private val getWordUseCase: GetWordUseCase
+    private val getWordUseCase: GetWordUseCase,
+    private val getWriteQuizCountUseCase: GetWriteQuizCountUseCase,
 ) : WriteQuizScenario {
 
     override fun getWriteQuizStepList(): Single<List<WriteQuizStep>> {
 
-        return getQuizStepList(0, 10)
+        return getCountOfFirstTier()
+            .zipWith(getQuizStepList(0, 10), BiFunction { firstTierCount, firstTierList ->
+                return@BiFunction Pair(firstTierCount, firstTierList)
+            })
             .flatMap { grade0 ->
                 getQuizStepList(1, 10)
                     .flatMap { grade1 ->
                         getQuizStepList(2, 10)
                             .flatMap { grade2 ->
 
-                                val mutualGrade0 = grade0.toMutableList()
+                                val mutualGrade0 = grade0.second.toMutableList()
                                 val mutualGrade1 = grade1.toMutableList()
                                 val mutualGrade2 = grade2.toMutableList()
 
@@ -37,11 +43,15 @@ class WriteQuizScenarioImpl @Inject constructor(
                                 //  но оно типа потом недоступно:
                                 //  Unable to evaluate the expression Method
                                 //  threw 'java.util.ConcurrentModificationException' exception.
-                                val l0 = mutualGrade0.subList(0, min(7, mutualGrade0.size))
+                                val l0 =
+                                    mutualGrade0.subList(0, min(grade0.first, mutualGrade0.size))
                                 val l0Copy = l0.toList()
                                 mutualGrade0.removeAll(l0Copy)
 
-                                val l1 = mutualGrade1.subList(0, min(2, mutualGrade1.size))
+                                val l1 = mutualGrade1.subList(
+                                    0,
+                                    min(8 - grade0.first, mutualGrade1.size)
+                                )
                                 val l1Copy = l1.toList()
                                 mutualGrade1.removeAll(l1Copy)
 
@@ -90,6 +100,26 @@ class WriteQuizScenarioImpl @Inject constructor(
                             }
                     }
             }
+    }
+
+    private fun getCountOfFirstTier(): Single<Int> {
+        return getWriteQuizCountUseCase
+            .getCount(1)
+            .zipWith(getWriteQuizCountUseCase.getCount(2), BiFunction { first, second ->
+                return@BiFunction getProportionOfFirst(first, second)
+            })
+
+    }
+
+    private fun getProportionOfFirst(first: Int, second: Int): Int {
+        val total = first + second
+        val firstPercent = first.toFloat() / total * 100
+        val res = 8 / 100F * firstPercent
+        return when {
+            res.toInt() == 0 -> 1
+            res.toInt() == 8 -> 7
+            else -> res.toInt()
+        }
     }
 
     override fun updateWriteQuizStep(writeQuizStep: WriteQuizStep): Completable {
