@@ -104,22 +104,23 @@ class WriteQuizScenarioImpl @Inject constructor(
 
     private fun getCountOfFirstTier(): Single<Int> {
         return getWriteQuizCountUseCase
-            .getCount(1)
-            .zipWith(getWriteQuizCountUseCase.getCount(2), BiFunction { first, second ->
+            .getCount(0)
+            .zipWith(getWriteQuizCountUseCase.getCount(1), BiFunction { first, second ->
                 return@BiFunction getProportionOfFirst(first, second)
             })
 
     }
 
-    private fun getProportionOfFirst(first: Int, second: Int): Int {
+    fun getProportionOfFirst(first: Int, second: Int): Int {
         val total = first + second
         val firstPercent = first.toFloat() / total * 100
         val res = 8 / 100F * firstPercent
-        return when {
-            res.toInt() == 0 -> 1
-            res.toInt() == 8 -> 7
-            else -> res.toInt()
-        }
+        return res.toInt()
+//        return when {
+//            res.toInt() == 0 -> 1
+//            res.toInt() == 8 -> 7
+//            else -> res.toInt()
+//        }
     }
 
     override fun updateWriteQuizStep(writeQuizStep: WriteQuizStep): Completable {
