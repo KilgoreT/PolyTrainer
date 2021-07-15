@@ -34,6 +34,8 @@ class TrainingWriteViewModel @Inject constructor(
     val btnNextVisibility = MutableLiveData(false)
     val btnReloadVisibility = MutableLiveData(false)
 
+    val errorMessage = MutableLiveData<String>("")
+
 
     init {
         loadData()
@@ -51,6 +53,7 @@ class TrainingWriteViewModel @Inject constructor(
                 data = list
                 setupQuiz()
             }, { ttt ->
+                errorMessage.postValue(ttt.message ?: "")
                 Log.d("###", ">>>> definition error: ${ttt.message}")
             })
     }
