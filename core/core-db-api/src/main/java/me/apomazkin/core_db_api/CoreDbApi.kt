@@ -27,7 +27,8 @@ interface CoreDbApi {
     fun getWriteQuizCountByGrade(tier: Int): Single<Int>
 
 
-    fun getWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>>
+    fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuiz>>
+    fun getRandomWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>>
     fun updateWriteQuizList(writeQuiz: WriteQuiz): Completable
     fun removeWriteQuiz(definitionId: Long): Completable
 

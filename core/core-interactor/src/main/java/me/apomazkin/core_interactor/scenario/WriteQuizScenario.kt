@@ -16,7 +16,8 @@ interface WriteQuizScenario {
 }
 
 class WriteQuizScenarioImpl @Inject constructor(
-    private val getWriteQuizUseCase: GetWriteQuizUseCase,
+    private val getRandomWriteQuizUseCase: GetRandomWriteQuizUseCase,
+    private val getWriteQuizByAccessTimeUseCase: GetWriteQuizByAccessTimeUseCase,
     private val updateWriteQuizUseCase: UpdateWriteQuizUseCase,
     private val getDefinitionUseCase: GetDefinitionUseCase,
     private val getWordUseCase: GetWordUseCase,
@@ -26,13 +27,13 @@ class WriteQuizScenarioImpl @Inject constructor(
     override fun getWriteQuizStepList(): Single<List<WriteQuizStep>> {
 
         return getCountOfFirstTier()
-            .zipWith(getQuizStepList(0, 10), BiFunction { firstTierCount, firstTierList ->
+            .zipWith(getRandomQuizStepList(0, 10), BiFunction { firstTierCount, firstTierList ->
                 return@BiFunction Pair(firstTierCount, firstTierList)
             })
             .flatMap { grade0 ->
-                getQuizStepList(1, 10)
+                getRandomQuizStepList(1, 10)
                     .flatMap { grade1 ->
-                        getQuizStepList(2, 10)
+                        getQuizStepListByAccessTime(2, 10)
                             .flatMap { grade2 ->
 
                                 val mutualGrade0 = grade0.second.toMutableList()
@@ -116,11 +117,6 @@ class WriteQuizScenarioImpl @Inject constructor(
         val firstPercent = first.toFloat() / total * 100
         val res = 8 / 100F * firstPercent
         return res.toInt()
-//        return when {
-//            res.toInt() == 0 -> 1
-//            res.toInt() == 8 -> 7
-//            else -> res.toInt()
-//        }
     }
 
     override fun updateWriteQuizStep(writeQuizStep: WriteQuizStep): Completable {
@@ -128,9 +124,35 @@ class WriteQuizScenarioImpl @Inject constructor(
             .updateWriteQuiz(writeQuizStep)
     }
 
-    private fun getQuizStepList(grade: Int, limit: Int): Single<List<WriteQuizStep>> {
-        return getWriteQuizUseCase
-            .getWriteQuiz(grade, limit)
+    private fun getRandomQuizStepList(grade: Int, limit: Int): Single<List<WriteQuizStep>> {
+        return getRandomWriteQuizUseCase
+            .getRandomWriteQuiz(grade, limit)
+            .flattenAsObservable { list -> list.asIterable() }
+            .flatMapSingle { writeQuiz ->
+                getDefinitionUseCase
+                    .getDefinition(writeQuiz.id)
+                    .flatMap { definition ->
+                        getWordUseCase.getWord(definition.wordId ?: -1L)
+                            .map { word ->
+                                WriteQuizStep(
+                                    id = writeQuiz.id,
+                                    definition = definition.value ?: "",
+                                    definitionId = writeQuiz.definitionId,
+                                    answer = word.value ?: "",
+                                    grade = writeQuiz.grade,
+                                    score = writeQuiz.score,
+                                    addDate = writeQuiz.addDate,
+                                    lastSelectDate = writeQuiz.lastSelectDate
+                                )
+                            }
+                    }
+            }
+            .toList()
+    }
+
+    private fun getQuizStepListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuizStep>> {
+        return getWriteQuizByAccessTimeUseCase
+            .getWriteQuizByAccessTime(grade, limit)
             .flattenAsObservable { list -> list.asIterable() }
             .flatMapSingle { writeQuiz ->
                 getDefinitionUseCase

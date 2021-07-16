@@ -65,8 +65,11 @@ interface WordDao {
     @Insert
     fun addWriteQuiz(writeQuizDb: WriteQuizDb): Completable
 
+    @Query("SELECT * from writeQuiz  WHERE grade = :grade ORDER BY lastSelectDate LIMIT :limit")
+    fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuizDb>>
+
     @Query("SELECT * from writeQuiz  WHERE grade = :grade ORDER BY RANDOM() LIMIT :limit")
-    fun getWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuizDb>>
+    fun getRandomWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuizDb>>
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: WriteQuizDb): Completable
