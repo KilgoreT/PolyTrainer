@@ -118,9 +118,15 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.getWriteQuizCountByGrade(tier)
     }
 
-    override fun getWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>> {
+    override fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuiz>> {
         val mapper = WriteQuizMapper()
-        return wordDao.getWriteQuizList(grade, limit)
+        return wordDao.getWriteQuizListByAccessTime(grade, limit)
+            .map { list -> mapper.map(list) }
+    }
+
+    override fun getRandomWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>> {
+        val mapper = WriteQuizMapper()
+        return wordDao.getRandomWriteQuizList(grade, limit)
             .map { list -> mapper.map(list) }
     }
 

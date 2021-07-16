@@ -20,6 +20,8 @@ import me.apomazkin.core_interactor.useCase.writeQuiz.*
 @Module
 interface UseCaseModule {
 
+    // TODO: 16.07.2021 rename to bind
+
     @Binds
     fun provideAddWordUseCase(impl: AddWordUseCase.AddWordUseCaseImpl): AddWordUseCase
 
@@ -54,7 +56,10 @@ interface UseCaseModule {
     fun provideRemoveDefinitionUseCase(impl: RemoveDefinitionUseCase.RemoveDefinitionUseCaseImpl): RemoveDefinitionUseCase
 
     @Binds
-    fun provideGetWriteQuizUseCase(impl: GetWriteQuizUseCase.GetWriteQuizUseCaseImpl): GetWriteQuizUseCase
+    fun bindGetRandomWriteQuizUseCase(impl: GetRandomWriteQuizUseCase.Impl): GetRandomWriteQuizUseCase
+
+    @Binds
+    fun bindGetWriteQuizByAccessTimeUseCase(impl: GetWriteQuizByAccessTimeUseCase.Impl): GetWriteQuizByAccessTimeUseCase
 
     @Binds
     fun provideUpdateWriteQuizUseCase(impl: UpdateWriteQuizUseCase.UpdateWriteQuizUseCaseImpl): UpdateWriteQuizUseCase
