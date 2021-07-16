@@ -10,6 +10,7 @@ import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.core_interactor.entity.WriteQuizStep
 import me.apomazkin.feature_training_write_api.FeatureTrainingWriteNavigator
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
@@ -26,6 +27,7 @@ class TrainingWriteViewModel @Inject constructor(
     private var data: List<WriteQuizStep> = emptyList()
     val currentQuizInt = MutableLiveData<Int>()
     val currentQuizTitle = MutableLiveData<String>()
+    val currentQuizDate = MutableLiveData<String>()
     val currentQuizValue = MutableLiveData<String>()
     val currentQuizAnswer = MutableLiveData<String>(null)
     val quizAttemptValue = MutableLiveData<String>()
@@ -62,6 +64,10 @@ class TrainingWriteViewModel @Inject constructor(
         currentQuiz = 0
         currentQuizInt.postValue(currentQuiz)
         currentQuizTitle.postValue("${currentQuiz + 1} quiz: grade - ${data[currentQuiz].grade} score - ${data[currentQuiz].score}")
+        val date = data[currentQuiz].lastSelectDate?.let { date ->
+            SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(date)
+        } ?: "unknown"
+        currentQuizDate.postValue(date)
         currentQuizValue.postValue(data[currentQuiz].definition)
         quizAttempt.postValue(true)
         setupButtons(check = true)
@@ -130,6 +136,10 @@ class TrainingWriteViewModel @Inject constructor(
             currentQuiz++
             currentQuizInt.postValue(currentQuiz)
             currentQuizTitle.postValue("${currentQuiz + 1} quiz: grade - ${data[currentQuiz].grade} score - ${data[currentQuiz].score}")
+            val date = data[currentQuiz].lastSelectDate?.let { date ->
+                SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(date)
+            } ?: "unknown"
+            currentQuizDate.postValue(date)
             currentQuizValue.postValue(data[currentQuiz].definition)
             quizAttempt.postValue(true)
             setupButtons(check = true)
