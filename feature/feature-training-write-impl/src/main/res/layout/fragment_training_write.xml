@@ -24,11 +24,26 @@
             android:textColor="@color/colorOnSurface"
             android:textSize="24sp"
             android:textStyle="bold"
-            app:layout_constraintBottom_toTopOf="@id/progressQuiz"
+            app:layout_constraintBottom_toTopOf="@id/tvCurrentQuizDate"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="7 level" />
+
+        <TextView
+            android:id="@+id/tvCurrentQuizDate"
+            bindText="@{model.currentQuizDate}"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/d8"
+            android:gravity="center"
+            android:textColor="@color/colorOnSurface"
+            android:textSize="16sp"
+            app:layout_constraintBottom_toTopOf="@id/progressQuiz"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvCurrentQuizTitle"
+            tools:text="6.11.1983" />
 
         <me.apomazkin.view_progress_quiz.ProgressQuizView
             android:id="@+id/progressQuiz"
@@ -39,7 +54,7 @@
             app:layout_constraintBottom_toTopOf="@id/tvQuizValue"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvCurrentQuizTitle" />
+            app:layout_constraintTop_toBottomOf="@id/tvCurrentQuizDate" />
 
         <TextView
             android:id="@+id/tvQuizValue"

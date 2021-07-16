@@ -36,9 +36,9 @@ class WriteQuizScenarioImpl @Inject constructor(
                         getQuizStepListByAccessTime(2, 10)
                             .flatMap { grade2 ->
 
-                                val mutualGrade0 = grade0.second.toMutableList()
-                                val mutualGrade1 = grade1.toMutableList()
-                                val mutualGrade2 = grade2.toMutableList()
+                                val mutualGrade0 = grade0.second.shuffled().toMutableList()
+                                val mutualGrade1 = grade1.shuffled().toMutableList()
+                                val mutualGrade2 = grade2.shuffled().toMutableList()
 
                                 // TODO: 25.03.2021 не понял, что за херня с l0,
                                 //  но оно типа потом недоступно:
@@ -96,8 +96,7 @@ class WriteQuizScenarioImpl @Inject constructor(
                                 if (result.size < 10) {
                                     throw RuntimeException("Need More Word!")
                                 }
-                                result.shuffle()
-                                Single.just(result)
+                                Single.just(result.shuffled())
                             }
                     }
             }
