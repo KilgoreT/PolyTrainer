@@ -103,13 +103,13 @@ class TrainingWriteViewModel @Inject constructor(
         } else {
             currentQuizTitle.postValue("Wrong!")
 
-            val copy = if (answer.score > 0) {
-                answer.copy(
-                    score = answer.score - 1,
-                    lastSelectDate = lastSelectDate,
-                )
-            } else {
-                answer.copy(lastSelectDate = lastSelectDate)
+            val copy = when {
+                answer.score > 0 -> {
+                    answer.copy(
+                        score = answer.score - 1,
+                    )
+                }
+                else -> answer.copy()
             }
             coreInteractorApi
                 .writeQuizScenario()
