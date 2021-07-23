@@ -33,6 +33,9 @@ interface WordDao {
     @Insert
     fun addDefinition(definitionDb: DefinitionDb): Single<Long>
 
+    @Query("SELECT * FROM definitions")
+    fun getAllDefinition(): Single<List<DefinitionDb>>
+
     @Query("SELECT * FROM definitions WHERE id = :id")
     fun getDefinitionById(id: Long): Single<DefinitionDb>
 
@@ -64,6 +67,9 @@ interface WordDao {
 
     @Insert
     fun addWriteQuiz(writeQuizDb: WriteQuizDb): Completable
+
+    @Query("SELECT * from writeQuiz")
+    fun getWriteQuizList(): Single<List<WriteQuizDb>>
 
     @Query("SELECT * from writeQuiz  WHERE grade = :grade ORDER BY lastSelectDate LIMIT :limit")
     fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuizDb>>

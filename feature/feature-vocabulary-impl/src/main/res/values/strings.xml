@@ -36,4 +36,6 @@
     <string name="superlative">Superlative</string>
     <string name="not_gradable">Not Gradable</string>
     <string name="this_is_hint">This is hint</string>
+    <string name="argh">ARGH</string>
+    <string name="argh_del">ARGH DELETE</string>
 </resources>

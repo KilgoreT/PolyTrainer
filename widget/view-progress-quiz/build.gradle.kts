@@ -17,7 +17,7 @@ dependencies {
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.10")
 
-    implementation("androidx.appcompat:appcompat:1.3.0")
+    implementation("androidx.appcompat:appcompat:1.3.1")
 
 
     //noinspection GradleDependency

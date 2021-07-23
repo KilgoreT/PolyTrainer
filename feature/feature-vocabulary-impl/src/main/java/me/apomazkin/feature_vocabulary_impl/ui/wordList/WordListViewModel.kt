@@ -1,12 +1,15 @@
 package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_db_api.entity.Term
 import me.apomazkin.core_db_api.entity.Word
+import me.apomazkin.core_db_api.entity.WriteQuiz
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
@@ -21,6 +24,7 @@ class WordListViewModel @Inject constructor(
     val data = MutableLiveData<List<Term>>()
     val wordPattern = MutableLiveData<String>("")
     val transition = MutableLiveData<String>()
+    val argh = MutableLiveData<String>()
 
     init {
 //        loadData()
@@ -129,6 +133,64 @@ class WordListViewModel @Inject constructor(
                 navigation.editWordDialog(id, value.trim())
             }
         }
+    }
+
+    @SuppressLint("CheckResult")
+    fun argh() {
+        coreInteractorApi
+            .getDefinitionUseCase()
+            .getDefinition()
+            .zipWith(coreInteractorApi
+                .getWriteQuizByAccessTimeUseCase()
+                .getWriteQuizList(), BiFunction { def, quiz ->
+                val result = mutableListOf<WriteQuiz>()
+                quiz.forEach { quiz1 ->
+                    val temp = def.filter { ddd -> ddd.id == quiz1.definitionId }
+                    if (temp.isEmpty()) {
+                        result.add(quiz1)
+                    }
+                }
+                return@BiFunction result
+            })
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { ttt ->
+                Log.d("###", "WordListViewModel / 159 / argh: ${ttt.size}")
+                argh.postValue("Wrong: ${ttt.size}")
+            }
+    }
+
+    @SuppressLint("CheckResult")
+    fun arghDelete() {
+        coreInteractorApi
+            .getDefinitionUseCase()
+            .getDefinition()
+            .zipWith(coreInteractorApi
+                .getWriteQuizByAccessTimeUseCase()
+                .getWriteQuizList(), BiFunction { def, quiz ->
+                val result = mutableListOf<WriteQuiz>()
+                quiz.forEach { quiz1 ->
+                    val temp = def.filter { ddd -> ddd.id == quiz1.definitionId }
+                    if (temp.isEmpty()) {
+                        result.add(quiz1)
+                    }
+                }
+                return@BiFunction result
+            })
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { ttt ->
+                ttt.forEach { item ->
+                    coreInteractorApi
+                        .removeWriteQuizUseCase()
+                        .removeWriteQuiz(item.definitionId)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe {
+                            Log.d("###", "WordListViewModel / 191 / arghDelete: ONCOMPLETE")
+                        }
+                }
+            }
     }
 
 }

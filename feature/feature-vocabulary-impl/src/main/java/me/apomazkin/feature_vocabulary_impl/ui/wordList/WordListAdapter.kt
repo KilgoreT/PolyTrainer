@@ -35,6 +35,8 @@ class WordListAdapter(
             onRemoveWordClick = { position -> listener.onRemoveWord(data[position].word.id) },
             onUpdateDefinition = { definition -> listener.onEditDefinition(definition) },
             onRemoveDefinitionClick = { definitionId -> listener.onDeleteDefinition(definitionId) },
+            onArgh = { listener.argh() },
+            onArghDelete = { listener.arghDelete() }
         )
     }
 
@@ -51,6 +53,8 @@ class WordListAdapter(
         private val onAddDefinitionClick: (Int) -> Unit,
         private val onUpdateDefinition: (Definition) -> Unit,
         private val onRemoveDefinitionClick: (Long) -> Unit,
+        private val onArgh: () -> Unit,
+        private val onArghDelete: () -> Unit,
     ) : RecyclerView.ViewHolder(view) {
 
         private val btnAddDefinition = view.findViewById<ImageView>(R.id.btn_add_definition)
@@ -86,6 +90,14 @@ class WordListAdapter(
                                 }
                                 R.id.word_action_delete_word -> {
                                     onRemoveWordClick(adapterPosition)
+                                    true
+                                }
+                                R.id.argh -> {
+                                    onArgh.invoke()
+                                    true
+                                }
+                                R.id.argh_del -> {
+                                    onArghDelete.invoke()
                                     true
                                 }
                                 else -> false
@@ -170,6 +182,8 @@ class WordListAdapter(
         fun onAddDefinition(id: Long?)
         fun onEditDefinition(definition: Definition)
         fun onDeleteDefinition(id: Long?)
+        fun argh()
+        fun arghDelete()
     }
 
 }

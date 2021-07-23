@@ -3,6 +3,7 @@ package me.apomazkin.feature_vocabulary_impl.ui.wordList
 import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import me.apomazkin.core_base.ui.BaseFragment
@@ -42,6 +43,13 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
         )
         binding.container.adapter = adapter
         listViewModel.data.observe(this) { result -> adapter.setData(result) }
+        listViewModel.argh.observe(this) { result ->
+            Toast.makeText(
+                requireContext(),
+                result,
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     override fun onSearchTranslation(word: String?) {
@@ -87,6 +95,14 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
 
     override fun onDeleteDefinition(id: Long?) {
         listViewModel.deleteDefinition(id)
+    }
+
+    override fun argh() {
+        listViewModel.argh()
+    }
+
+    override fun arghDelete() {
+        listViewModel.arghDelete()
     }
 
 }

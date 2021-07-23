@@ -13,4 +13,12 @@
         android:id="@+id/word_action_delete_word"
         android:title="@string/delete_word" />
 
+    <item
+        android:id="@+id/argh"
+        android:title="@string/argh" />
+
+    <item
+        android:id="@+id/argh_del"
+        android:title="@string/argh_del" />
+
 </menu>
