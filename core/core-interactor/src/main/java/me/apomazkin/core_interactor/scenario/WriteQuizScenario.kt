@@ -56,7 +56,7 @@ class WriteQuizScenarioImpl @Inject constructor(
                                 val l1Copy = l1.toList()
                                 mutualGrade1.removeAll(l1Copy)
 
-                                val l2 = mutualGrade2.subList(0, min(1, mutualGrade2.size))
+                                val l2 = mutualGrade2.subList(0, min(2, mutualGrade2.size))
                                 val l2Copy = l2.toList()
                                 mutualGrade2.removeAll(l2Copy)
 
