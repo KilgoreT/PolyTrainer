@@ -7,12 +7,17 @@ import javax.inject.Inject
 
 interface GetDefinitionUseCase {
     fun getDefinition(id: Long): Single<Definition>
+    fun getDefinition(): Single<List<Definition>>
 
     class GetDefinitionUseCaseImpl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : GetDefinitionUseCase {
         override fun getDefinition(id: Long): Single<Definition> {
             return dbApi.getDefinition(id)
+        }
+
+        override fun getDefinition(): Single<List<Definition>> {
+            return dbApi.getDefinitionAll()
         }
     }
 }

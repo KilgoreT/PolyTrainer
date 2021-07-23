@@ -67,6 +67,12 @@ class CoreDbApiImpl @Inject constructor(
             }
     }
 
+    override fun getDefinitionAll(): Single<List<Definition>> {
+        val mapper = DefinitionMapper()
+        return wordDao.getAllDefinition()
+            .map { value -> mapper.map(value) }
+    }
+
     override fun getDefinition(id: Long): Single<Definition> {
         val mapper = DefinitionMapper()
         return wordDao.getDefinitionById(id)
@@ -116,6 +122,12 @@ class CoreDbApiImpl @Inject constructor(
 
     override fun getWriteQuizCountByGrade(tier: Int): Single<Int> {
         return wordDao.getWriteQuizCountByGrade(tier)
+    }
+
+    override fun getWriteQuizList(): Single<List<WriteQuiz>> {
+        val mapper = WriteQuizMapper()
+        return wordDao.getWriteQuizList()
+            .map { list -> mapper.map(list) }
     }
 
     override fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuiz>> {
