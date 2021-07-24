@@ -11,6 +11,7 @@
     <string name="delete_word">Delete Word</string>
     <string name="add_definition">Add Definition</string>
     <string name="edit_definition">Edit Definition</string>
+    <string name="add_sample">Add Sample</string>
     <string name="delete_definition">Delete Definition</string>
     <string name="empty">Empty</string>
     <string name="todo">TODO</string>
@@ -38,4 +39,7 @@
     <string name="this_is_hint">This is hint</string>
     <string name="argh">ARGH</string>
     <string name="argh_del">ARGH DELETE</string>
+    <string name="dialog_add_sample_header">Sample:</string>
+    <string name="dialog_add_sample_et_hint">Add Sample here....</string>
+    <string name="dialog_add_sample_source_et_hint">Add sample source....</string>
 </resources>

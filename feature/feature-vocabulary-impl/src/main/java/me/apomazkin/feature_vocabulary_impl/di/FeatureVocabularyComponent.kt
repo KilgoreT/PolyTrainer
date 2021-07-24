@@ -8,6 +8,7 @@ import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyApi
 import me.apomazkin.feature_vocabulary_impl.di.module.FeatureModule
 import me.apomazkin.feature_vocabulary_impl.ui.addDefinition.AddDefinitionDialog
+import me.apomazkin.feature_vocabulary_impl.ui.addSample.AddSampleDialog
 import me.apomazkin.feature_vocabulary_impl.ui.editDefinition.EditDefinitionDialog
 import me.apomazkin.feature_vocabulary_impl.ui.editWord.EditWordDialog
 import me.apomazkin.feature_vocabulary_impl.ui.wordList.WordListFragment
@@ -24,6 +25,7 @@ abstract class FeatureVocabularyComponent : FeatureVocabularyApi {
     abstract fun inject(target: AddDefinitionDialog)
     abstract fun inject(target: EditWordDialog)
     abstract fun inject(target: EditDefinitionDialog)
+    abstract fun inject(target: AddSampleDialog)
 
     @Component.Factory
     interface Factory {

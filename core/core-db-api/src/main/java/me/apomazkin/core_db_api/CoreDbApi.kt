@@ -39,4 +39,7 @@ interface CoreDbApi {
     fun removeHint(hint: Hint): Completable
     fun updateHint(hint: Hint): Completable
 
+    fun addSample(definitionId: Long, value: String, source: String?): Completable
+    fun getSampleList(definitionId: Long): Single<List<Sample>>
+    fun getSampleList(): Observable<List<Sample>>
 }

@@ -10,6 +10,9 @@ import me.apomazkin.core_db_impl.entity.*
 @Dao
 interface WordDao {
 
+    /**
+     * WORD
+     */
     @Insert
     fun addWord(wordDb: WordDb): Completable
 
@@ -22,6 +25,9 @@ interface WordDao {
     @Query("DELETE FROM words WHERE id = :id")
     fun removeWord(id: Long): Completable
 
+    /**
+     * TERM
+     */
     @Transaction
     @Query("SELECT * FROM words ORDER BY id DESC")
     fun getTermList(): Observable<List<TermDb>>
@@ -30,6 +36,9 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE word LIKE :pattern ORDER BY id DESC")
     fun searchTerms(pattern: String): Observable<List<TermDb>>
 
+    /**
+     * DEFINITION
+     */
     @Insert
     fun addDefinition(definitionDb: DefinitionDb): Single<Long>
 
@@ -56,15 +65,39 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE id = :id")
     fun getWord(id: Long): Single<TermDb>
 
-    @Query("SELECT COUNT(*) FROM words")
-    fun getWordCount(): Single<Int>
+    /**
+     * HINT
+     */
+    @Insert
+    fun addHint(hintDb: HintDb): Completable
 
-    @Query("SELECT COUNT(*) FROM definitions")
-    fun getDefinitionCount(): Single<Int>
+    @Query("SELECT * FROM hint WHERE definitionId = :definitionId")
+    fun getHintListByDefinitionId(definitionId: Long): Single<HintDb>
 
-    @Query("SELECT COUNT(*) FROM definitions WHERE wordClass = :wordClass")
-    fun getDefinitionTypeCount(wordClass: String): Single<Int>
+    @Update
+    fun updateHint(hintDb: HintDb): Completable
 
+    @Query("DELETE FROM hint WHERE id = :id")
+    fun removeHint(id: Long): Completable
+
+    @Delete
+    fun removeHint(hintDb: HintDb): Completable
+
+    /**
+     * SAMPLE
+     */
+    @Insert
+    fun addSample(sampleDb: SampleDb): Completable
+
+    @Query("SELECT * FROM sample WHERE definitionId = :definitionId")
+    fun getSampleListByDefinitionId(definitionId: Long): Single<List<SampleDb>>
+
+    @Query("SELECT * FROM sample")
+    fun getSampleList(): Observable<List<SampleDb>>
+
+    /**
+     * QUIZ
+     */
     @Insert
     fun addWriteQuiz(writeQuizDb: WriteQuizDb): Completable
 
@@ -83,19 +116,19 @@ interface WordDao {
     @Query("DELETE FROM writeQuiz WHERE definitionId = :definitionId")
     fun removeWriteQuiz(definitionId: Long): Completable
 
+    /**
+     * ANALYTICS
+     */
+    @Query("SELECT COUNT(*) FROM words")
+    fun getWordCount(): Single<Int>
+
+    @Query("SELECT COUNT(*) FROM definitions")
+    fun getDefinitionCount(): Single<Int>
+
+    @Query("SELECT COUNT(*) FROM definitions WHERE wordClass = :wordClass")
+    fun getDefinitionTypeCount(wordClass: String): Single<Int>
+
     @Query("SELECT COUNT(*) FROM writeQuiz WHERE grade = :tier")
     fun getWriteQuizCountByGrade(tier: Int): Single<Int>
-
-    @Insert
-    fun addHint(hintDb: HintDb): Completable
-
-    @Update
-    fun updateHint(hintDb: HintDb): Completable
-
-    @Query("DELETE FROM hint WHERE id = :id")
-    fun removeHint(id: Long): Completable
-
-    @Delete
-    fun removeHint(hintDb: HintDb): Completable
 
 }

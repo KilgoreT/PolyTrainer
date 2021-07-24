@@ -97,6 +97,10 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
         listViewModel.deleteDefinition(id)
     }
 
+    override fun onAddSample(definitionId: Long) {
+        listViewModel.addSample(definitionId)
+    }
+
     override fun argh() {
         listViewModel.argh()
     }

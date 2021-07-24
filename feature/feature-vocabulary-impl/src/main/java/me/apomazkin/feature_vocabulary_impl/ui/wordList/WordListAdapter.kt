@@ -35,6 +35,7 @@ class WordListAdapter(
             onRemoveWordClick = { position -> listener.onRemoveWord(data[position].word.id) },
             onUpdateDefinition = { definition -> listener.onEditDefinition(definition) },
             onRemoveDefinitionClick = { definitionId -> listener.onDeleteDefinition(definitionId) },
+            onAddSampleClick = { definitionId -> listener.onAddSample(definitionId) },
             onArgh = { listener.argh() },
             onArghDelete = { listener.arghDelete() }
         )
@@ -53,6 +54,7 @@ class WordListAdapter(
         private val onAddDefinitionClick: (Int) -> Unit,
         private val onUpdateDefinition: (Definition) -> Unit,
         private val onRemoveDefinitionClick: (Long) -> Unit,
+        private val onAddSampleClick: (Long) -> Unit,
         private val onArgh: () -> Unit,
         private val onArghDelete: () -> Unit,
     ) : RecyclerView.ViewHolder(view) {
@@ -163,6 +165,13 @@ class WordListAdapter(
                                         )
                                         true
                                     }
+                                    R.id.definition_add_sample_action -> {
+                                        onAddSampleClick(
+                                            definition.id
+                                                ?: throw IllegalArgumentException("Add Sample Error")
+                                        )
+                                        true
+                                    }
                                     else -> false
                                 }
                             }
@@ -182,6 +191,7 @@ class WordListAdapter(
         fun onAddDefinition(id: Long?)
         fun onEditDefinition(definition: Definition)
         fun onDeleteDefinition(id: Long?)
+        fun onAddSample(definitionId: Long)
         fun argh()
         fun arghDelete()
     }

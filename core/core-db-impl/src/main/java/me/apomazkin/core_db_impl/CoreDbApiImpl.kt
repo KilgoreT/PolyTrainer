@@ -6,6 +6,7 @@ import io.reactivex.Single
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.core_db_impl.entity.HintDb
+import me.apomazkin.core_db_impl.entity.SampleDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import me.apomazkin.core_db_impl.mapper.*
@@ -173,5 +174,28 @@ class CoreDbApiImpl @Inject constructor(
     override fun updateHint(hint: Hint): Completable {
         val mapper = HintMapper()
         return wordDao.updateHint(mapper.reverseMap(hint))
+    }
+
+    override fun addSample(definitionId: Long, value: String, source: String?): Completable {
+        return wordDao.addSample(
+            SampleDb(
+                definitionId = definitionId,
+                value = value,
+                source = source,
+                addDate = Date(System.currentTimeMillis())
+            )
+        )
+    }
+
+    override fun getSampleList(definitionId: Long): Single<List<Sample>> {
+        val mapper = SampleMapper()
+        return wordDao.getSampleListByDefinitionId(definitionId)
+            .map { list -> mapper.map(list) }
+    }
+
+    override fun getSampleList(): Observable<List<Sample>> {
+        val mapper = SampleMapper()
+        return wordDao.getSampleList()
+            .map { list -> mapper.map(list) }
     }
 }

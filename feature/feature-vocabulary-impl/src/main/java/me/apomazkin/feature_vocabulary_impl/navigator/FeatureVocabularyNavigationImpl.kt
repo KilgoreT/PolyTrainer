@@ -29,6 +29,12 @@ class FeatureVocabularyNavigationImpl @Inject constructor(
         navController.navigate(action)
     }
 
+    override fun addSampleDialog(definitionId: Long) {
+        val action = WordListFragmentDirections
+            .actionListWordFragmentToAddSampleDialog(definitionId)
+        navController.navigate(action)
+    }
+
     override fun addDefinitionDialog(id: Long) {
         val action = WordListFragmentDirections
             .actionListWordFragmentToAddDefinitionDialog(id)
