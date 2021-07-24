@@ -1,7 +1,6 @@
 package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -135,27 +134,31 @@ class WordListViewModel @Inject constructor(
         }
     }
 
+    fun addSample(definitionId: Long) {
+        navigation.addSampleDialog(definitionId)
+    }
+
     @SuppressLint("CheckResult")
     fun argh() {
         coreInteractorApi
             .getDefinitionUseCase()
             .getDefinition()
-            .zipWith(coreInteractorApi
-                .getWriteQuizByAccessTimeUseCase()
-                .getWriteQuizList(), BiFunction { def, quiz ->
-                val result = mutableListOf<WriteQuiz>()
-                quiz.forEach { quiz1 ->
-                    val temp = def.filter { ddd -> ddd.id == quiz1.definitionId }
-                    if (temp.isEmpty()) {
-                        result.add(quiz1)
+            .zipWith(
+                coreInteractorApi
+                    .getWriteQuizByAccessTimeUseCase()
+                    .getWriteQuizList(), BiFunction { def, quiz ->
+                    val result = mutableListOf<WriteQuiz>()
+                    quiz.forEach { quiz1 ->
+                        val temp = def.filter { ddd -> ddd.id == quiz1.definitionId }
+                        if (temp.isEmpty()) {
+                            result.add(quiz1)
+                        }
                     }
-                }
-                return@BiFunction result
-            })
+                    return@BiFunction result
+                })
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe { ttt ->
-                Log.d("###", "WordListViewModel / 159 / argh: ${ttt.size}")
                 argh.postValue("Wrong: ${ttt.size}")
             }
     }
@@ -187,7 +190,6 @@ class WordListViewModel @Inject constructor(
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe {
-                            Log.d("###", "WordListViewModel / 191 / arghDelete: ONCOMPLETE")
                         }
                 }
             }

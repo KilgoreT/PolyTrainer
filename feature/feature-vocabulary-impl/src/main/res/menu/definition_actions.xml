@@ -6,6 +6,10 @@
         android:title="@string/edit_definition" />
 
     <item
+        android:id="@+id/definition_add_sample_action"
+        android:title="@string/add_sample" />
+
+    <item
         android:id="@+id/definition_delete_action"
         android:title="@string/delete_definition" />
 

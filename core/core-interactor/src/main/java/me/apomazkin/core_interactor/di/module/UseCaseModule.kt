@@ -5,6 +5,8 @@ import dagger.Module
 import me.apomazkin.core_interactor.scenario.StatisticScenario
 import me.apomazkin.core_interactor.scenario.StatisticScenarioImpl
 import me.apomazkin.core_interactor.useCase.definition.*
+import me.apomazkin.core_interactor.useCase.sample.AddSampleUseCase
+import me.apomazkin.core_interactor.useCase.sample.GetSampleUseCase
 import me.apomazkin.core_interactor.useCase.statistic.GetDefinitionCountUseCase
 import me.apomazkin.core_interactor.useCase.statistic.GetWordClassCountUseCase
 import me.apomazkin.core_interactor.useCase.statistic.GetWordCountUseCase
@@ -84,4 +86,10 @@ interface UseCaseModule {
 
     @Binds
     fun provideStatisticScenario(impl: StatisticScenarioImpl): StatisticScenario
+
+    @Binds
+    fun bindAddSampleUseCase(impl: AddSampleUseCase.Impl): AddSampleUseCase
+
+    @Binds
+    fun bindGetSampleUseCase(impl: GetSampleUseCase.Impl): GetSampleUseCase
 }
