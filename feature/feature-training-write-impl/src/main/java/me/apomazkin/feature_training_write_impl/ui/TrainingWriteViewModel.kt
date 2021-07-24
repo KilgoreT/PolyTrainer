@@ -45,7 +45,7 @@ class TrainingWriteViewModel @Inject constructor(
 
     @SuppressLint("CheckResult")
     fun loadData() {
-        currentQuizTitle.postValue("Zzzzz")
+        currentQuizTitle.postValue("")
         coreInteractorApi
             .writeQuizScenario()
             .getWriteQuizStepList()
@@ -57,6 +57,7 @@ class TrainingWriteViewModel @Inject constructor(
             }, { ttt ->
                 errorMessage.postValue(ttt.message ?: "")
                 Log.d("###", ">>>> definition error: ${ttt.message}")
+                btnReloadVisibility.postValue(true)
             })
     }
 
