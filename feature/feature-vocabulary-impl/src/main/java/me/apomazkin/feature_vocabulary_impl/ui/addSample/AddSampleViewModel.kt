@@ -22,7 +22,7 @@ class AddSampleViewModel(
                 .addSampleUseCase()
                 .addSample(
                     definitionId = id,
-                    value = it,
+                    value = it.trim(),
                     source = sampleSource.value
                 )
                 .subscribeOn(Schedulers.io())
