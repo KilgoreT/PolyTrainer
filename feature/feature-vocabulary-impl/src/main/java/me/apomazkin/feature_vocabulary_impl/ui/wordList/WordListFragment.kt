@@ -57,7 +57,7 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
             val intent = Intent(
                 Intent.ACTION_VIEW,
 //                Uri.parse("https://dictionary.cambridge.org/dictionary/english-russian/$it")
-                Uri.parse("https://www.ldoceonline.com/spellcheck/english/?q=$it")
+                Uri.parse("https://www.ldoceonline.com/dictionary/$it")
             )
             startActivity(intent)
         }

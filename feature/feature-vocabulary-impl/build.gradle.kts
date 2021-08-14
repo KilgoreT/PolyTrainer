@@ -19,12 +19,12 @@ dependencies {
     implementation(project("path" to ":core:core-binding"))
     implementation(project("path" to ":feature:feature-vocabulary-api"))
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.10")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.21")
 
     // AndroidX
     implementation("androidx.appcompat:appcompat:1.3.1")
     implementation("androidx.core:core-ktx:1.6.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.0.4")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.0")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
 
     // Material

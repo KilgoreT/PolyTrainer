@@ -159,7 +159,55 @@ class TrainingWriteViewModel @Inject constructor(
 
 }
 
-sealed class QuizState(
+sealed class QuizState
+
+// TODO: 25.07.2021 нужен ли этот стейт?
+object StartQuizState : QuizState() {
+    fun onStart(): LoadingQuizList = LoadingQuizList
+}
+
+object LoadingQuizList : QuizState() {
+    fun onErrorLoading(cause: String): ErrorQuizState = ErrorQuizState(cause)
+    fun onSuccessLoading(list: List<WriteQuizStep>): ResultQuizState = ResultQuizState(list)
+}
+
+class ErrorQuizState(
+    val cause: String
+) : QuizState() {
+    fun onReload(): LoadingQuizList = LoadingQuizList
+    fun onFinish(): FinishQuizState = FinishQuizState
+}
+
+class ResultQuizState(
+    val list: List<WriteQuizStep>
+) : QuizState() {
+    fun onError(cause: String): ErrorQuizState = ErrorQuizState(cause)
+    fun onFinish(): FinishQuizState = FinishQuizState
+
+    sealed class QuizProgress {
+
+        // TODO: 15.08.2021 replace this chain outside. And add increment of list
+        class StartQuiz(
+            private val list: List<WriteQuizStep>
+        ) : QuizProgress() {
+            fun onStart(): StepQuiz = StepQuiz(list.first())
+        }
+
+        class StepQuiz(
+            val quiz: WriteQuizStep
+        ) : QuizProgress()
+
+    }
+
+}
+
+object FinishQuizState : QuizState() {
+    fun onClose() {}
+    fun onRestart(): LoadingQuizList = LoadingQuizList
+}
+
+
+sealed class QuizStateOld(
     val answer: String? = null,
     val quizTitle: String? = null,
     val quizValue: String? = null,
@@ -168,29 +216,29 @@ sealed class QuizState(
     val btnReloadVisibility: Int = View.GONE,
 )
 
-class CheckState(
+class CheckStateOld(
     quizTitle: String?,
     quizValue: String?,
-) : QuizState(
+) : QuizStateOld(
     quizTitle = quizTitle,
     quizValue = quizValue,
     btnCheckVisibility = View.VISIBLE,
 )
 
-class AnswerState(
+class AnswerStateOld(
     answer: String,
     quizTitle: String,
     quizValue: String,
-) : QuizState(
+) : QuizStateOld(
     answer = answer,
     quizTitle = quizTitle,
     quizValue = quizValue,
     btnNextVisibility = View.VISIBLE,
 )
 
-class ReloadState(
+class ReloadStateOld(
     quizTitle: String,
-) : QuizState(
+) : QuizStateOld(
     quizTitle = quizTitle,
     btnReloadVisibility = View.VISIBLE,
 )

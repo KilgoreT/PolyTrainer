@@ -59,12 +59,12 @@ dependencies {
     implementation(project("path" to ":feature:feature-bottom-menu-impl"))
 
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.10")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.21")
 
     // AndroidX
     implementation("androidx.appcompat:appcompat:1.3.1")
     implementation("androidx.core:core-ktx:1.6.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.0.4")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.0")
 
     //Dagger2
     implementation("com.google.dagger:dagger:2.37")
