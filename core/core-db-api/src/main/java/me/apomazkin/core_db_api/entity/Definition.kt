@@ -13,7 +13,8 @@ data class Definition(
     val id: Long? = null,
     val wordId: Long? = null,
     val value: String? = null,
-    val wordClass: WordClass? = null
+    val wordClass: WordClass? = null,
+    val sampleList: List<Sample>? = null
 )
 
 enum class Grade {

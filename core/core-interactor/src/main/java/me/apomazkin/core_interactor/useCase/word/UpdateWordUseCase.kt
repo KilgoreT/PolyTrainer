@@ -8,7 +8,7 @@ import javax.inject.Inject
 interface UpdateWordUseCase {
     fun updateWord(word: Word): Completable
 
-    class UpdateWordUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : UpdateWordUseCase {
         override fun updateWord(word: Word): Completable {

@@ -7,7 +7,7 @@ import javax.inject.Inject
 interface GetWordCountUseCase {
     fun exec(): Single<Int>
 
-    class GetWordCountUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val api: CoreDbApi
     ) : GetWordCountUseCase {
         override fun exec() = api.wordCount()

@@ -2,8 +2,6 @@ package me.apomazkin.core_interactor.di.module
 
 import dagger.Binds
 import dagger.Module
-import me.apomazkin.core_interactor.scenario.StatisticScenario
-import me.apomazkin.core_interactor.scenario.StatisticScenarioImpl
 import me.apomazkin.core_interactor.useCase.definition.*
 import me.apomazkin.core_interactor.useCase.sample.AddSampleUseCase
 import me.apomazkin.core_interactor.useCase.sample.GetSampleUseCase
@@ -17,75 +15,70 @@ import me.apomazkin.core_interactor.useCase.word.AddWordUseCase
 import me.apomazkin.core_interactor.useCase.word.GetWordUseCase
 import me.apomazkin.core_interactor.useCase.word.RemoveWordUseCase
 import me.apomazkin.core_interactor.useCase.word.UpdateWordUseCase
-import me.apomazkin.core_interactor.useCase.writeQuiz.*
+import me.apomazkin.core_interactor.useCase.writeQuiz.GetWriteQuizByAccessTimeUseCase
+import me.apomazkin.core_interactor.useCase.writeQuiz.GetWriteQuizByRandomUseCase
+import me.apomazkin.core_interactor.useCase.writeQuiz.RemoveWriteQuizUseCase
+import me.apomazkin.core_interactor.useCase.writeQuiz.UpdateWriteQuizUseCase
 
 @Module
 interface UseCaseModule {
 
-    // TODO: 16.07.2021 rename to bind
+    @Binds
+    fun bindAddWordUseCase(impl: AddWordUseCase.Impl): AddWordUseCase
 
     @Binds
-    fun provideAddWordUseCase(impl: AddWordUseCase.AddWordUseCaseImpl): AddWordUseCase
+    fun bindGetWordUseCase(impl: GetWordUseCase.Impl): GetWordUseCase
 
     @Binds
-    fun provideGetWordUseCase(impl: GetWordUseCase.GetWordUseCaseImpl): GetWordUseCase
+    fun bindUpdateWordUseCase(impl: UpdateWordUseCase.Impl): UpdateWordUseCase
 
     @Binds
-    fun provideUpdateWordUseCase(impl: UpdateWordUseCase.UpdateWordUseCaseImpl): UpdateWordUseCase
+    fun bindRemoveWordUseCase(impl: RemoveWordUseCase.Impl): RemoveWordUseCase
 
     @Binds
-    fun provideRemoveWordUseCase(impl: RemoveWordUseCase.RemoveWordUseCaseImpl): RemoveWordUseCase
+    fun bindGetTermUseCase(impl: GetTermUseCase.Impl): GetTermUseCase
 
     @Binds
-    fun provideGetTermUseCase(impl: GetTermUseCase.GetTermUseCaseImpl): GetTermUseCase
+    fun bindSearchTermUseCase(impl: SearchTermUseCase.Impl): SearchTermUseCase
 
     @Binds
-    fun provideSearchTermUseCase(impl: SearchTermUseCase.SearchTermUseCaseImpl): SearchTermUseCase
+    fun bindAddDefinitionUseCase(impl: AddDefinitionUseCase.Impl): AddDefinitionUseCase
 
     @Binds
-    fun provideAddDefinitionUseCase(impl: AddDefinitionUseCase.AddDefinitionUseCaseImpl): AddDefinitionUseCase
+    fun bindGetDefinitionUseCase(impl: GetDefinitionUseCase.Impl): GetDefinitionUseCase
 
     @Binds
-    fun provideGetDefinitionUseCase(impl: GetDefinitionUseCase.GetDefinitionUseCaseImpl): GetDefinitionUseCase
+    fun bindGetDefinitionListUseCase(impl: GetDefinitionListUseCase.Impl): GetDefinitionListUseCase
 
     @Binds
-    fun provideGetDefinitionListUseCase(impl: GetDefinitionListUseCase.Impl): GetDefinitionListUseCase
+    fun bindUpdateDefinitionUseCase(impl: UpdateDefinitionUseCase.Impl): UpdateDefinitionUseCase
 
     @Binds
-    fun provideUpdateDefinitionUseCase(impl: UpdateDefinitionUseCase.Impl): UpdateDefinitionUseCase
+    fun bindRemoveDefinitionUseCase(impl: RemoveDefinitionUseCase.Impl): RemoveDefinitionUseCase
 
     @Binds
-    fun provideRemoveDefinitionUseCase(impl: RemoveDefinitionUseCase.RemoveDefinitionUseCaseImpl): RemoveDefinitionUseCase
-
-    @Binds
-    fun bindGetRandomWriteQuizUseCase(impl: GetRandomWriteQuizUseCase.Impl): GetRandomWriteQuizUseCase
+    fun bindGetRandomWriteQuizUseCase(impl: GetWriteQuizByRandomUseCase.Impl): GetWriteQuizByRandomUseCase
 
     @Binds
     fun bindGetWriteQuizByAccessTimeUseCase(impl: GetWriteQuizByAccessTimeUseCase.Impl): GetWriteQuizByAccessTimeUseCase
 
     @Binds
-    fun provideUpdateWriteQuizUseCase(impl: UpdateWriteQuizUseCase.UpdateWriteQuizUseCaseImpl): UpdateWriteQuizUseCase
+    fun bindUpdateWriteQuizUseCase(impl: UpdateWriteQuizUseCase.Impl): UpdateWriteQuizUseCase
 
     @Binds
-    fun provideWriteQuizScenario(impl: WriteQuizScenarioImpl): WriteQuizScenario
+    fun bindGetWordCountUseCase(impl: GetWordCountUseCase.Impl): GetWordCountUseCase
 
     @Binds
-    fun provideGetWordCountUseCase(impl: GetWordCountUseCase.GetWordCountUseCaseImpl): GetWordCountUseCase
+    fun bindGetDefinitionCountUseCase(impl: GetDefinitionCountUseCase.Impl): GetDefinitionCountUseCase
 
     @Binds
-    fun provideGetDefinitionCountUseCase(impl: GetDefinitionCountUseCase.GetDefinitionCountUseCaseImpl): GetDefinitionCountUseCase
+    fun bindGetWordClassCountUseCase(impl: GetWordClassCountUseCase.Impl): GetWordClassCountUseCase
 
     @Binds
-    fun provideGetWordClassCountUseCase(impl: GetWordClassCountUseCase.GetWordClassCountUseCaseImpl): GetWordClassCountUseCase
+    fun bindGetWriteQuizCountUseCase(impl: GetWriteQuizCountUseCase.Impl): GetWriteQuizCountUseCase
 
     @Binds
-    fun provideGetWriteQuizCountUseCase(impl: GetWriteQuizCountUseCase.GetWriteQuizCountUseCaseImpl): GetWriteQuizCountUseCase
-
-    @Binds
-    fun provideRemoveWriteQuizUseCase(impl: RemoveWriteQuizUseCase.Impl): RemoveWriteQuizUseCase
-
-    @Binds
-    fun provideStatisticScenario(impl: StatisticScenarioImpl): StatisticScenario
+    fun bindRemoveWriteQuizUseCase(impl: RemoveWriteQuizUseCase.Impl): RemoveWriteQuizUseCase
 
     @Binds
     fun bindAddSampleUseCase(impl: AddSampleUseCase.Impl): AddSampleUseCase

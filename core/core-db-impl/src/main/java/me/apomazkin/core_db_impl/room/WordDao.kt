@@ -30,11 +30,11 @@ interface WordDao {
      */
     @Transaction
     @Query("SELECT * FROM words ORDER BY id DESC")
-    fun getTermList(): Observable<List<TermDb>>
+    fun getTermList(): Observable<List<WordDefinitionRel>>
 
     @Transaction
     @Query("SELECT * FROM words WHERE word LIKE :pattern ORDER BY id DESC")
-    fun searchTerms(pattern: String): Observable<List<TermDb>>
+    fun searchTerms(pattern: String): Observable<List<WordDefinitionRel>>
 
     /**
      * DEFINITION
@@ -55,7 +55,7 @@ interface WordDao {
     fun updateDefinition(definitionDb: DefinitionDb): Completable
 
     @Query("DELETE FROM definitions WHERE id = :id")
-    fun deleteDefinition(id: Long): Completable
+    fun deleteDefinition(vararg id: Long): Completable
 
     @Delete
     fun deleteDefinitions(vararg definition: DefinitionDb): Completable
@@ -63,7 +63,7 @@ interface WordDao {
     // TODO: 18.02.2021 used to manual remove definition before removing word
     @Transaction
     @Query("SELECT * FROM words WHERE id = :id")
-    fun getWord(id: Long): Single<TermDb>
+    fun getWord(id: Long): Single<WordDefinitionRel>
 
     /**
      * HINT
@@ -95,6 +95,9 @@ interface WordDao {
     @Query("SELECT * FROM sample")
     fun getSampleList(): Observable<List<SampleDb>>
 
+    @Delete
+    fun removeSample(vararg sampleDb: SampleDb): Completable
+
     /**
      * QUIZ
      */
@@ -102,13 +105,16 @@ interface WordDao {
     fun addWriteQuiz(writeQuizDb: WriteQuizDb): Completable
 
     @Query("SELECT * from writeQuiz")
-    fun getWriteQuizList(): Single<List<WriteQuizDb>>
+    fun getWriteQuizList(): Single<List<WriteQuizDefinitionRel>>
+
+    @Query("SELECT * from writeQuiz LIMIT :limit")
+    fun getWriteQuizList(limit: Int): Single<List<WriteQuizDefinitionRel>>
 
     @Query("SELECT * from writeQuiz  WHERE grade = :grade ORDER BY lastSelectDate LIMIT :limit")
-    fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuizDb>>
+    fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuizDefinitionRel>>
 
     @Query("SELECT * from writeQuiz  WHERE grade = :grade ORDER BY RANDOM() LIMIT :limit")
-    fun getRandomWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuizDb>>
+    fun getRandomWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuizDefinitionRel>>
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: WriteQuizDb): Completable

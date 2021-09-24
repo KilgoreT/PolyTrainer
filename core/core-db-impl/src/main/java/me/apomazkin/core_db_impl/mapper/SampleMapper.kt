@@ -3,24 +3,25 @@ package me.apomazkin.core_db_impl.mapper
 import me.apomazkin.core_db_api.entity.Sample
 import me.apomazkin.core_db_impl.entity.SampleDb
 
-class SampleMapper : Mapper<SampleDb, Sample>() {
+fun SampleDb.toAppEntity() = Sample(
+    id = this.id ?: throw IllegalStateException("SampleDb hasn't id field."),
+    definitionId = this.definitionId,
+    value = this.value,
+    source = this.source,
+    addDate = this.addDate,
+    changeDate = this.changeDate
 
-    override fun map(value: SampleDb) = Sample(
-        value.id ?: -1,
-        value.definitionId,
-        value.value,
-        value.source,
-        value.addDate,
-        value.changeDate,
-    )
+)
 
-    override fun reverseMap(value: Sample) = SampleDb(
-        value.id,
-        value.definitionId,
-        value.value,
-        value.source,
-        value.addDate,
-        value.changeDate,
-    )
+fun List<SampleDb>.toAppEntity() = this.map { it.toAppEntity() }
 
-}
+fun Sample.toDbEntity() = SampleDb(
+    id = this.id,
+    definitionId = this.definitionId,
+    value = this.value,
+    source = this.source,
+    addDate = this.addDate,
+    changeDate = this.changeDate
+)
+
+fun List<Sample>.toDbEntity() = this.map { it.toDbEntity() }

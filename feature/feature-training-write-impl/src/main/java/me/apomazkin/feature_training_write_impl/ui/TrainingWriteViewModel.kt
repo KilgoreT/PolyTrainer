@@ -10,6 +10,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import me.apomazkin.core_db_api.entity.WriteQuiz
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.core_interactor.entity.WriteQuizStep
 import me.apomazkin.feature_training_write_api.FeatureTrainingWriteNavigator
@@ -27,7 +28,7 @@ class TrainingWriteViewModel @Inject constructor(
 
     //    val currentQuizNumber = MutableLiveData<Int>()
     private var currentQuiz = 0
-    private var data: List<WriteQuizStep> = emptyList()
+    private var data: List<WriteQuiz> = emptyList()
     val currentQuizInt = MutableLiveData<Int>()
     val currentQuizTitle = MutableLiveData<String>()
     val currentQuizDate = MutableLiveData<String>()
@@ -51,7 +52,7 @@ class TrainingWriteViewModel @Inject constructor(
         currentQuizTitle.postValue("")
         coreInteractorApi
             .writeQuizScenario()
-            .getWriteQuizStepList()
+            .getWriteQuizList()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ list ->
@@ -76,7 +77,7 @@ class TrainingWriteViewModel @Inject constructor(
             SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(date)
         } ?: "unknown"
         currentQuizDate.postValue(date)
-        currentQuizValue.postValue(data[currentQuiz].definition)
+        currentQuizValue.postValue(data[currentQuiz].definition.value)
         quizAttempt.postValue(true)
         setupButtons(check = true)
     }
@@ -94,7 +95,7 @@ class TrainingWriteViewModel @Inject constructor(
     fun onPressCheck() {
         val answer = data[currentQuiz]
         val lastSelectDate = Date(System.currentTimeMillis())
-        if (quizAttemptValue.value == data[currentQuiz].answer) {
+        if (quizAttemptValue.value == data[currentQuiz].word.value) {
             currentQuizTitle.postValue("Right!")
             val copy = if (answer.score < 5) {
                 answer.copy(
@@ -110,7 +111,7 @@ class TrainingWriteViewModel @Inject constructor(
             }
             coreInteractorApi
                 .writeQuizScenario()
-                .updateWriteQuizStep(copy)
+                .updateWriteQuiz(copy)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe()
@@ -127,12 +128,12 @@ class TrainingWriteViewModel @Inject constructor(
             }
             coreInteractorApi
                 .writeQuizScenario()
-                .updateWriteQuizStep(copy)
+                .updateWriteQuiz(copy)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe()
         }
-        currentQuizAnswer.postValue(data[currentQuiz].answer)
+        currentQuizAnswer.postValue(data[currentQuiz].word.value)
         quizAttemptValue.postValue("")
         quizAttempt.postValue(false)
         setupButtons(next = true)
@@ -148,7 +149,7 @@ class TrainingWriteViewModel @Inject constructor(
                 SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(date)
             } ?: "unknown"
             currentQuizDate.postValue(date)
-            currentQuizValue.postValue(data[currentQuiz].definition)
+            currentQuizValue.postValue(data[currentQuiz].definition.value)
             quizAttempt.postValue(true)
             setupButtons(check = true)
         } else {

@@ -5,6 +5,7 @@ import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.Definition
 import javax.inject.Inject
 
+@Deprecated("NotUsed")
 interface GetDefinitionListUseCase {
     fun getDefinitionList(wordId: Long): Single<List<Definition>>
 

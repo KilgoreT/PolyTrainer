@@ -7,7 +7,7 @@ import javax.inject.Inject
 interface RemoveWordUseCase {
     fun removeWord(id: Long): Completable
 
-    class RemoveWordUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : RemoveWordUseCase {
         override fun removeWord(id: Long): Completable {

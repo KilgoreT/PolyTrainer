@@ -8,7 +8,7 @@ import javax.inject.Inject
 interface GetTermUseCase {
     fun getTermList(): Observable<List<Term>>
 
-    class GetTermUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : GetTermUseCase {
         override fun getTermList(): Observable<List<Term>> {

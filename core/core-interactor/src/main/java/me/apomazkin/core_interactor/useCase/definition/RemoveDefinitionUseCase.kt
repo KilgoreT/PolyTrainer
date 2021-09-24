@@ -7,7 +7,7 @@ import javax.inject.Inject
 interface RemoveDefinitionUseCase {
     fun removeDefinition(id: Long): Completable
 
-    class RemoveDefinitionUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : RemoveDefinitionUseCase {
         override fun removeDefinition(id: Long): Completable {
