@@ -14,6 +14,9 @@ interface GetDefinitionUseCase {
     ) : GetDefinitionUseCase {
         override fun getDefinition(id: Long): Single<Definition> {
             return dbApi.getDefinition(id)
+                .onErrorResumeNext { ttt ->
+                    Single.error(RuntimeException("With defID: $id : ${ttt.message}"))
+                }
         }
 
         override fun getDefinition(): Single<List<Definition>> {

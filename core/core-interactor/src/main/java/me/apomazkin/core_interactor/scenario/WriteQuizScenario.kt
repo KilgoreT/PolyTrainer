@@ -100,6 +100,9 @@ class WriteQuizScenarioImpl @Inject constructor(
                             }
                     }
             }
+            .onErrorResumeNext { ttt ->
+                Single.error(RuntimeException("last: ${ttt.message}"))
+            }
     }
 
     private fun getCountOfFirstTier(): Single<Int> {
@@ -145,6 +148,9 @@ class WriteQuizScenarioImpl @Inject constructor(
                                 )
                             }
                     }
+                    .onErrorResumeNext { ttt ->
+                        Single.error(RuntimeException("random id: ${writeQuiz.id} == ${writeQuiz.definitionId}; ${ttt.message}"))
+                    }
             }
             .toList()
     }
@@ -170,6 +176,9 @@ class WriteQuizScenarioImpl @Inject constructor(
                                     lastSelectDate = writeQuiz.lastSelectDate
                                 )
                             }
+                    }
+                    .onErrorResumeNext { ttt ->
+                        Single.error(RuntimeException("access id: ${writeQuiz.id} == ${writeQuiz.definitionId}; ${ttt.message}"))
                     }
             }
             .toList()
