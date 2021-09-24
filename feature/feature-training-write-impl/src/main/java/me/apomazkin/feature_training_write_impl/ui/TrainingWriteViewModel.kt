@@ -5,8 +5,11 @@ import android.util.Log
 import android.view.View
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.core_interactor.entity.WriteQuizStep
 import me.apomazkin.feature_training_write_api.FeatureTrainingWriteNavigator
@@ -55,9 +58,13 @@ class TrainingWriteViewModel @Inject constructor(
                 data = list
                 setupQuiz()
             }, { ttt ->
-                errorMessage.postValue(ttt.message ?: "")
+                errorMessage.postValue(ttt.message ?: "unknown")
                 Log.d("###", ">>>> definition error: ${ttt.message}")
                 btnReloadVisibility.postValue(true)
+                viewModelScope.launch {
+                    delay(2000)
+                    errorMessage.postValue("-1")
+                }
             })
     }
 
