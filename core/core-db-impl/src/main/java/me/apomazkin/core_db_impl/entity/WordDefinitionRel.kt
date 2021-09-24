@@ -3,11 +3,12 @@ package me.apomazkin.core_db_impl.entity
 import androidx.room.Embedded
 import androidx.room.Relation
 
-data class TermDb(
+data class WordDefinitionRel(
     @Embedded val wordDb: WordDb,
     @Relation(
+        entity = DefinitionDb::class,
         parentColumn = "id",
         entityColumn = "wordId"
     )
-    val definitionDbList: List<DefinitionDb>
+    val definitionSampleRelList: List<DefinitionSampleRel>
 )

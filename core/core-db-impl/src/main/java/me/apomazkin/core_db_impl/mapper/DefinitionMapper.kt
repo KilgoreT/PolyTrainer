@@ -46,7 +46,7 @@ private val NOT_GRADABLE_INDEX = 1L shl (ADJ_ORDER_OFFSET + NOT_GRADABLE.ordinal
 class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
 
     override fun map(value: DefinitionDb) = Definition(
-        value.id,
+        value.id ?: 0,
         value.wordId,
         value.definition,
         mapWordClass(value)

@@ -2,6 +2,7 @@ package me.apomazkin.core_interactor.entity
 
 import java.util.*
 
+@Deprecated("Outdated")
 data class WriteQuizStep(
     val id: Long,
     val definition: String,

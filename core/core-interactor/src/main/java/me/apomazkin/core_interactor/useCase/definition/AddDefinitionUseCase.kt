@@ -8,7 +8,7 @@ import javax.inject.Inject
 interface AddDefinitionUseCase {
     fun addDefinition(definition: Definition): Completable
 
-    class AddDefinitionUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : AddDefinitionUseCase {
         override fun addDefinition(definition: Definition): Completable {

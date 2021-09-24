@@ -7,7 +7,7 @@ import javax.inject.Inject
 interface GetWordClassCountUseCase {
     fun getCount(wordClass: String): Single<Int>
 
-    class GetWordClassCountUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val api: CoreDbApi
     ) : GetWordClassCountUseCase {
         override fun getCount(wordClass: String) = api.getDefinitionTypeCount(wordClass)

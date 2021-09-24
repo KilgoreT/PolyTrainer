@@ -7,7 +7,7 @@ import javax.inject.Inject
 interface GetDefinitionCountUseCase {
     fun exec(): Single<Int>
 
-    class GetDefinitionCountUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val api: CoreDbApi
     ) : GetDefinitionCountUseCase {
         override fun exec() = api.getDefinitionCount()

@@ -7,7 +7,7 @@ import javax.inject.Inject
 interface GetWriteQuizCountUseCase {
     fun getCount(tier: Int): Single<Int>
 
-    class GetWriteQuizCountUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val api: CoreDbApi
     ) : GetWriteQuizCountUseCase {
         override fun getCount(tier: Int) = api.getWriteQuizCountByGrade(tier)

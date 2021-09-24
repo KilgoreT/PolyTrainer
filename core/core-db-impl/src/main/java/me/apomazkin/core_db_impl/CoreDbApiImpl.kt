@@ -5,10 +5,7 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.*
-import me.apomazkin.core_db_impl.entity.HintDb
-import me.apomazkin.core_db_impl.entity.SampleDb
-import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.entity.*
 import me.apomazkin.core_db_impl.mapper.*
 import me.apomazkin.core_db_impl.room.WordDao
 import java.util.*
@@ -29,28 +26,37 @@ class CoreDbApiImpl @Inject constructor(
     }
 
     override fun getWord(id: Long): Single<Word> {
-        val mapper = WordMapper()
         return wordDao
             .getWordById(id)
-            .map { value -> mapper.map(value) }
+            .map { value -> value.toAppEntity() }
     }
 
     override fun updateWord(word: Word): Completable {
-        val mapper = WordMapper()
         return wordDao
-            .updateWorld(mapper.reverseMap(word))
+            .updateWorld(word.toDbEntity())
     }
 
+    // TODO: 07.09.2021 всю эту логику нужно вынести в юзкейсы
     override fun removeWord(id: Long): Completable {
         return wordDao.getWord(id)
             .flatMap { word ->
-                wordDao.removeWord(id).toSingle { word.definitionDbList }
+                wordDao.removeWord(id).toSingle { word.definitionSampleRelList }
             }
             .flatMap { list ->
-                wordDao.deleteDefinitions(*list.toTypedArray()).toSingle { list }
+                removeDefinition(
+                    *list
+                        .map { item -> item.definitionDb }
+                        .toTypedArray()
+                )
+                    .toSingle { list }
+                    .flattenAsObservable { l -> l.asIterable() }
+                    .flatMapCompletable { item ->
+                        wordDao.removeSample(*item.sampleDbList.toTypedArray())
+                    }
+                    .toSingle { list }
             }
             .flattenAsObservable { list -> list.asIterable() }
-            .flatMapCompletable { ttt -> wordDao.removeWriteQuiz(ttt.id ?: -1) }
+            .flatMapCompletable { item -> wordDao.removeWriteQuiz(item.definitionDb.id ?: -1) }
     }
 
     override fun addDefinition(definition: Definition): Completable {
@@ -91,22 +97,24 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.updateDefinition(mapper.reverseMap(definition))
     }
 
-    override fun removeDefinition(id: Long): Completable {
-        return wordDao.deleteDefinition(id)
+    override fun removeDefinition(vararg id: Long): Completable {
+        return wordDao.deleteDefinition(*id.toTypedArray().toLongArray())
+    }
+
+    private fun removeDefinition(vararg definition: DefinitionDb): Completable {
+        return wordDao.deleteDefinitions(*definition.toList().toTypedArray())
     }
 
     override fun getTermList(): Observable<List<Term>> {
-        val mapper = TermMapper()
         return wordDao
             .getTermList()
-            .map { list -> list.map { item -> mapper.map(item) } }
+            .map { list -> list.map(WordDefinitionRel::toAppData) }
     }
 
     override fun searchTermList(pattern: String): Observable<List<Term>> {
-        val mapper = TermMapper()
         return wordDao
             .searchTerms(pattern)
-            .map { list -> list.map { item -> mapper.map(item) } }
+            .map { list -> list.map(WordDefinitionRel::toAppData) }
     }
 
     override fun wordCount(): Single<Int> {
@@ -126,26 +134,27 @@ class CoreDbApiImpl @Inject constructor(
     }
 
     override fun getWriteQuizList(): Single<List<WriteQuiz>> {
-        val mapper = WriteQuizMapper()
         return wordDao.getWriteQuizList()
-            .map { list -> mapper.map(list) }
+            .map { list -> list.toAppData() }
+    }
+
+    override fun getWriteQuizList(limit: Int): Single<List<WriteQuiz>> {
+        return wordDao.getWriteQuizList(limit)
+            .map { list -> list.toAppData() }
     }
 
     override fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuiz>> {
-        val mapper = WriteQuizMapper()
         return wordDao.getWriteQuizListByAccessTime(grade, limit)
-            .map { list -> mapper.map(list) }
+            .map { list -> list.toAppData() }
     }
 
     override fun getRandomWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>> {
-        val mapper = WriteQuizMapper()
         return wordDao.getRandomWriteQuizList(grade, limit)
-            .map { list -> mapper.map(list) }
+            .map { list -> list.toAppData() }
     }
 
     override fun updateWriteQuizList(writeQuiz: WriteQuiz): Completable {
-        val mapper = WriteQuizMapper()
-        return wordDao.updateWriteQuiz(mapper.reverseMap(writeQuiz))
+        return wordDao.updateWriteQuiz(writeQuiz.toDb())
     }
 
     override fun removeWriteQuiz(definitionId: Long): Completable {
@@ -188,14 +197,12 @@ class CoreDbApiImpl @Inject constructor(
     }
 
     override fun getSampleList(definitionId: Long): Single<List<Sample>> {
-        val mapper = SampleMapper()
         return wordDao.getSampleListByDefinitionId(definitionId)
-            .map { list -> mapper.map(list) }
+            .map { list -> list.toAppEntity() }
     }
 
     override fun getSampleList(): Observable<List<Sample>> {
-        val mapper = SampleMapper()
         return wordDao.getSampleList()
-            .map { list -> mapper.map(list) }
+            .map { list -> list.toAppEntity() }
     }
 }

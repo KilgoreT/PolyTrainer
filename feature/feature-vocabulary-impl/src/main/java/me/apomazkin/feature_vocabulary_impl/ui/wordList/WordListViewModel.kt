@@ -14,6 +14,7 @@ import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
 import javax.inject.Inject
 
+@SuppressLint("CheckResult")
 class WordListViewModel @Inject constructor(
     private val coreInteractorApi: CoreInteractorApi,
     private val navigation: FeatureVocabularyNavigation,
@@ -146,12 +147,12 @@ class WordListViewModel @Inject constructor(
             .zipWith(
                 coreInteractorApi
                     .getWriteQuizByAccessTimeUseCase()
-                    .getWriteQuizList(), BiFunction { def, quiz ->
+                    .getWriteQuizList(), BiFunction { defList, quizList ->
                     val result = mutableListOf<WriteQuiz>()
-                    quiz.forEach { quiz1 ->
-                        val temp = def.filter { ddd -> ddd.id == quiz1.definitionId }
+                    quizList.forEach { quiz ->
+                        val temp = defList.filter { item -> item.id == quiz.definition.id }
                         if (temp.isEmpty()) {
-                            result.add(quiz1)
+                            result.add(quiz)
                         }
                     }
                     return@BiFunction result
@@ -170,12 +171,12 @@ class WordListViewModel @Inject constructor(
             .getDefinition()
             .zipWith(coreInteractorApi
                 .getWriteQuizByAccessTimeUseCase()
-                .getWriteQuizList(), BiFunction { def, quiz ->
+                .getWriteQuizList(), BiFunction { defList, quizList ->
                 val result = mutableListOf<WriteQuiz>()
-                quiz.forEach { quiz1 ->
-                    val temp = def.filter { ddd -> ddd.id == quiz1.definitionId }
+                quizList.forEach { quiz ->
+                    val temp = defList.filter { item -> item.id == quiz.definition.id }
                     if (temp.isEmpty()) {
-                        result.add(quiz1)
+                        result.add(quiz)
                     }
                 }
                 return@BiFunction result
@@ -186,7 +187,7 @@ class WordListViewModel @Inject constructor(
                 ttt.forEach { item ->
                     coreInteractorApi
                         .removeWriteQuizUseCase()
-                        .removeWriteQuiz(item.definitionId)
+                        .removeWriteQuiz(item.definition.id ?: throw IllegalStateException())
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe {

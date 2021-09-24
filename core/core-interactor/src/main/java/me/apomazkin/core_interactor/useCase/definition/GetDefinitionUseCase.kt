@@ -9,7 +9,7 @@ interface GetDefinitionUseCase {
     fun getDefinition(id: Long): Single<Definition>
     fun getDefinition(): Single<List<Definition>>
 
-    class GetDefinitionUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : GetDefinitionUseCase {
         override fun getDefinition(id: Long): Single<Definition> {

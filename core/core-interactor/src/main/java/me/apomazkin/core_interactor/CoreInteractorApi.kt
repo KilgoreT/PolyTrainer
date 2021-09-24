@@ -1,6 +1,7 @@
 package me.apomazkin.core_interactor
 
 import me.apomazkin.core_interactor.scenario.StatisticScenario
+import me.apomazkin.core_interactor.scenario.WriteQuizScenario
 import me.apomazkin.core_interactor.useCase.definition.*
 import me.apomazkin.core_interactor.useCase.sample.AddSampleUseCase
 import me.apomazkin.core_interactor.useCase.sample.GetSampleUseCase
@@ -11,7 +12,6 @@ import me.apomazkin.core_interactor.useCase.word.RemoveWordUseCase
 import me.apomazkin.core_interactor.useCase.word.UpdateWordUseCase
 import me.apomazkin.core_interactor.useCase.writeQuiz.GetWriteQuizByAccessTimeUseCase
 import me.apomazkin.core_interactor.useCase.writeQuiz.RemoveWriteQuizUseCase
-import me.apomazkin.core_interactor.useCase.writeQuiz.WriteQuizScenario
 
 interface CoreInteractorApi {
     fun writeQuizScenario(): WriteQuizScenario
@@ -25,11 +25,12 @@ interface CoreInteractorApi {
     fun updateDefinitionUseCase(): UpdateDefinitionUseCase
     fun removeDefinitionUseCase(): RemoveDefinitionUseCase
     fun addDefinitionUseCase(): AddDefinitionUseCase
-    fun getDefinitionListUseCase(): GetDefinitionListUseCase
     fun getDefinitionUseCase(): GetDefinitionUseCase
     fun removeWriteQuizUseCase(): RemoveWriteQuizUseCase
     fun getWriteQuizByAccessTimeUseCase(): GetWriteQuizByAccessTimeUseCase
-
     fun addSampleUseCase(): AddSampleUseCase
     fun getSampleUseCase(): GetSampleUseCase
+
+    @Deprecated("NotUsed")
+    fun getDefinitionListUseCase(): GetDefinitionListUseCase
 }

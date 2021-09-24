@@ -8,7 +8,7 @@ import javax.inject.Inject
 interface GetWordUseCase {
     fun getWord(id: Long): Single<Word>
 
-    class GetWordUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : GetWordUseCase {
         override fun getWord(id: Long): Single<Word> {

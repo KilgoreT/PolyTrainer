@@ -7,7 +7,7 @@ import javax.inject.Inject
 interface AddWordUseCase {
     fun addWord(value: String): Completable
 
-    class AddWordUseCaseImpl @Inject constructor(
+    class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : AddWordUseCase {
         override fun addWord(value: String): Completable {

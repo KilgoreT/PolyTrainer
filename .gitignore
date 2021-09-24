@@ -26,3 +26,4 @@
 /app/release
 /build-settings/build/
 /.idea/kotlinScripting.xml
+/.idea/deploymentTargetDropDown.xml
