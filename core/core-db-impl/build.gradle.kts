@@ -24,7 +24,7 @@ dependencies {
 
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.21")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.30")
     implementation("androidx.appcompat:appcompat:1.3.1")
     implementation("androidx.core:core-ktx:1.6.0")
 
@@ -32,7 +32,7 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-rxjava2:$roomVersion")
 //    implementation("androidx.room:room-ktx:$roomVersion")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.1")
     kapt("androidx.room:room-compiler:$roomVersion")
 
     //Rx
