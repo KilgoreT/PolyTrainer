@@ -132,7 +132,7 @@ class WriteQuizScenarioImpl @Inject constructor(
             .flattenAsObservable { list -> list.asIterable() }
             .flatMapSingle { writeQuiz ->
                 getDefinitionUseCase
-                    .getDefinition(writeQuiz.id)
+                    .getDefinition(writeQuiz.definitionId)
                     .flatMap { definition ->
                         getWordUseCase.getWord(definition.wordId ?: -1L)
                             .map { word ->
@@ -161,7 +161,7 @@ class WriteQuizScenarioImpl @Inject constructor(
             .flattenAsObservable { list -> list.asIterable() }
             .flatMapSingle { writeQuiz ->
                 getDefinitionUseCase
-                    .getDefinition(writeQuiz.id)
+                    .getDefinition(writeQuiz.definitionId)
                     .flatMap { definition ->
                         getWordUseCase.getWord(definition.wordId ?: -1L)
                             .map { word ->
