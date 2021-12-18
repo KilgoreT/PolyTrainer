@@ -9,9 +9,9 @@ dependencies {
     implementation(project("path" to ":core:core-db-impl"))
 
     implementation(fileTree("dir" to "libs", "include" to listOf("*.jar")))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.30")
-    implementation("androidx.appcompat:appcompat:1.3.1")
-    implementation("androidx.core:core-ktx:1.6.0")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.31")
+    implementation("androidx.appcompat:appcompat:1.4.0")
+    implementation("androidx.core:core-ktx:1.7.0")
 
     //Dagger2
     implementation("com.google.dagger:dagger:2.37")
