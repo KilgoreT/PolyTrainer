@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- list of issues to configure -->
+    <issue id="UnusedResources" severity="ignore" />
+    <issue id="NotifyDataSetChanged" severity="ignore" />
+    <issue id="ContentDescription" severity="ignore" />
+</lint>

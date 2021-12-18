@@ -15,9 +15,9 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.30")
-    implementation("androidx.core:core-ktx:1.6.0")
-    implementation("androidx.appcompat:appcompat:1.3.1")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.31")
+    implementation("androidx.core:core-ktx:1.7.0")
+    implementation("androidx.appcompat:appcompat:1.4.0")
     implementation("com.google.android.material:material:1.4.0")
     //noinspection GradleDependency
     testImplementation("junit:junit:4.13.2")

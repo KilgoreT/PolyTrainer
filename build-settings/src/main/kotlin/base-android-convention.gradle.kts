@@ -2,12 +2,12 @@ import com.android.build.gradle.BaseExtension
 
 configure<BaseExtension> {
 
-    setCompileSdkVersion(30)
+    setCompileSdkVersion(31)
     buildToolsVersion = "30.0.3"
 
     defaultConfig {
         setMinSdkVersion(21)
-        setTargetSdkVersion(30)
+        setTargetSdkVersion(31)
         versionName = getVersionName()
         versionCode = getVersionCode(getVersionName())
         multiDexEnabled = true

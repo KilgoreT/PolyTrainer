@@ -4,9 +4,9 @@ plugins {
 }
 
 android {
-    buildFeatures {
+    buildFeatures(Action {
         dataBinding = true
-    }
+    })
 }
 
 dependencies {
@@ -15,9 +15,9 @@ dependencies {
     implementation(project("path" to ":core:core-util"))
 
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.30")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.31")
 
-    implementation("androidx.appcompat:appcompat:1.3.1")
+    implementation("androidx.appcompat:appcompat:1.4.0")
 
 
     //noinspection GradleDependency

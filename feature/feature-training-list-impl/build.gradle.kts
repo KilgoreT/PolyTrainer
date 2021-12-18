@@ -4,9 +4,9 @@ plugins {
 }
 
 android {
-    buildFeatures {
+    buildFeatures(Action {
         dataBinding = true
-    }
+    })
 }
 
 dependencies {
@@ -20,9 +20,9 @@ dependencies {
     implementation(project("path" to ":feature:feature-training-write-api"))
     implementation(project("path" to ":feature:feature-training-write-impl"))
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.30")
-    implementation("androidx.core:core-ktx:1.6.0")
-    implementation("androidx.appcompat:appcompat:1.3.1")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.31")
+    implementation("androidx.core:core-ktx:1.7.0")
+    implementation("androidx.appcompat:appcompat:1.4.0")
     implementation("com.google.android.material:material:1.4.0")
 
     //Dagger2
