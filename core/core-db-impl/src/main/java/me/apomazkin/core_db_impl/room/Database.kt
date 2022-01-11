@@ -7,8 +7,15 @@ import me.apomazkin.core_db_impl.converters.DateTimeConverter
 import me.apomazkin.core_db_impl.entity.*
 
 @Database(
-    entities = [WordDb::class, DefinitionDb::class, HintDb::class, SampleDb::class, WriteQuizDb::class],
-    version = 4
+    entities = [
+        WordDb::class,
+        DefinitionDb::class,
+        HintDb::class,
+        SampleDb::class,
+        WriteQuizDb::class,
+        LanguageDb::class
+    ],
+    version = 5
 )
 @TypeConverters(DateTimeConverter::class)
 abstract class Database : RoomDatabase() {

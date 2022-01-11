@@ -5,6 +5,7 @@ import me.apomazkin.core_db_impl.entity.WriteQuizDefinitionRel
 
 fun WriteQuizDefinitionRel.toAppData(): WriteQuiz = WriteQuiz(
     id = writeQuizDb.id,
+    langId = writeQuizDb.langId,
     definition = definitionWordSampleRel.getDefinition(),
     word = definitionWordSampleRel.wordDb.toAppEntity(),
     grade = writeQuizDb.grade,

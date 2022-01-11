@@ -11,6 +11,14 @@ object Schema {
         const val columnChangeDate = "changeDate"
     }
 
+    object Languages : TableName, ColumnId {
+        override val tableName = "languages"
+        const val columnCode = "code"
+        const val columnName = "name"
+        const val columnAddDate = "addDate"
+        const val columnChangeDate = "changeDate"
+    }
+
     object Definition : TableName, ColumnId {
         override val tableName = "definitions"
         const val columnDefinition = "definition"

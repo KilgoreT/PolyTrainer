@@ -8,6 +8,7 @@ import java.util.*
 data class WriteQuizDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val langId: Long = 0,
     val definitionId: Long,
     val grade: Int = 0,
     val score: Int = 0,

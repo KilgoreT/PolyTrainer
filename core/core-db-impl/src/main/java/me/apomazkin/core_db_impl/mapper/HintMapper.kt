@@ -14,11 +14,11 @@ class HintMapper : Mapper<HintDb, Hint>() {
     )
 
     override fun reverseMap(value: Hint) = HintDb(
-        value.id,
-        value.definitionId,
-        value.value,
-        value.addDate,
-        value.changeDate,
+        id = value.id,
+        definitionId = value.definitionId,
+        value = value.value,
+        addDate = value.addDate,
+        changeDate = value.changeDate,
     )
 
 }
