@@ -3,12 +3,17 @@ package me.apomazkin.feature_vocabulary_impl.ui.wordList
 import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import me.apomazkin.core_base.ui.BaseFragment
 import me.apomazkin.core_db_api.entity.Definition
 import me.apomazkin.core_db_api.entity.Word
+import me.apomazkin.core_interactor.LangGod
 import me.apomazkin.feature_vocabulary_impl.R
 import me.apomazkin.feature_vocabulary_impl.databinding.FragmentWordListBinding
 import me.apomazkin.feature_vocabulary_impl.di.FeatureVocabularyComponent
@@ -107,6 +112,32 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
 
     override fun arghDelete() {
         listViewModel.arghDelete()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.lang, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.en -> {
+                LangGod.langId = 0
+                listViewModel.loadData()
+                return true
+            }
+            R.id.fr -> {
+                LangGod.langId = 1
+                listViewModel.loadData()
+                return true
+            }
+        }
+        return false
     }
 
 }

@@ -10,6 +10,7 @@ import me.apomazkin.core_db_api.entity.Term
 import me.apomazkin.core_db_api.entity.Word
 import me.apomazkin.core_db_api.entity.WriteQuiz
 import me.apomazkin.core_interactor.CoreInteractorApi
+import me.apomazkin.core_interactor.LangGod
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
 import javax.inject.Inject
@@ -27,7 +28,11 @@ class WordListViewModel @Inject constructor(
     val argh = MutableLiveData<String>()
 
     init {
-//        loadData()
+        loadData()
+    }
+
+    @SuppressLint("CheckResult")
+    fun loadData() {
         wordPattern.observeForever {
             coreInteractorApi
                 .searchTermUseCase()
@@ -42,23 +47,6 @@ class WordListViewModel @Inject constructor(
                     { onError(it) }
                 )
         }
-    }
-
-    @SuppressLint("CheckResult")
-    private fun loadData() {
-        onLoad()
-        coreInteractorApi
-            .getTermUseCase()
-            .getTermList()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(
-                { result ->
-                    if (result.isEmpty()) onEmpty() else onData()
-                    data.postValue(result)
-                },
-                { onError(it) }
-            )
     }
 
     fun addWord() {
@@ -147,7 +135,7 @@ class WordListViewModel @Inject constructor(
             .zipWith(
                 coreInteractorApi
                     .getWriteQuizByAccessTimeUseCase()
-                    .getWriteQuizList(), BiFunction { defList, quizList ->
+                    .getWriteQuizList(LangGod.langId), BiFunction { defList, quizList ->
                     val result = mutableListOf<WriteQuiz>()
                     quizList.forEach { quiz ->
                         val temp = defList.filter { item -> item.id == quiz.definition.id }
@@ -171,7 +159,7 @@ class WordListViewModel @Inject constructor(
             .getDefinition()
             .zipWith(coreInteractorApi
                 .getWriteQuizByAccessTimeUseCase()
-                .getWriteQuizList(), BiFunction { defList, quizList ->
+                .getWriteQuizList(LangGod.langId), BiFunction { defList, quizList ->
                 val result = mutableListOf<WriteQuiz>()
                 quizList.forEach { quiz ->
                     val temp = defList.filter { item -> item.id == quiz.definition.id }

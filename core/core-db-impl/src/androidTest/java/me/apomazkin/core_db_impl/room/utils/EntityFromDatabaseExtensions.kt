@@ -1,11 +1,9 @@
 package me.apomazkin.core_db_impl.room.utils
 
 import androidx.core.database.getLongOrNull
+import androidx.core.database.getStringOrNull
 import androidx.sqlite.db.SupportSQLiteDatabase
-import me.apomazkin.core_db_impl.entity.DefinitionDb
-import me.apomazkin.core_db_impl.entity.HintDb
-import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.entity.*
 import me.apomazkin.core_db_impl.room.Schema
 import java.util.*
 
@@ -25,6 +23,31 @@ fun SupportSQLiteDatabase.getWordsFromDatabase(): List<WordDb> {
                     id = id,
                     word = value,
                     addDate = addDate?.let { return@let Date(it) },
+                    changeDate = changeDate?.let { return@let Date(it) },
+                )
+            )
+        } while (cursor.moveToNext())
+    }
+    return result
+}
+
+fun SupportSQLiteDatabase.getLanguagesFromDatabase(): List<LanguageDb> {
+    val result = mutableListOf<LanguageDb>()
+    val cursor = this.query(selectAllFromTable(Schema.Languages.tableName))
+    if (cursor.moveToNext()) {
+        do {
+            val id = cursor.getLong(cursor.getColumnIndex(Schema.Languages.columnId))
+            val code = cursor.getString(cursor.getColumnIndex(Schema.Languages.columnCode))
+            val name = cursor.getStringOrNull(cursor.getColumnIndex(Schema.Languages.columnName))
+            val addDate = cursor.getLong(cursor.getColumnIndex(Schema.Languages.columnAddDate))
+            val changeDate =
+                cursor.getLongOrNull(cursor.getColumnIndex(Schema.Languages.columnChangeDate))
+            result.add(
+                LanguageDb(
+                    id = id,
+                    code = code,
+                    name = name,
+                    addDate = Date(addDate),
                     changeDate = changeDate?.let { return@let Date(it) },
                 )
             )

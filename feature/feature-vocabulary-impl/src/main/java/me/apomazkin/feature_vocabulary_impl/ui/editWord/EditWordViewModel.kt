@@ -6,6 +6,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_db_api.entity.Word
 import me.apomazkin.core_interactor.CoreInteractorApi
+import me.apomazkin.core_interactor.LangGod
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 
 class EditWordViewModel(
@@ -24,7 +25,7 @@ class EditWordViewModel(
     fun onEditWord() {
         wordValue.value?.let { value ->
             wordId?.let { id ->
-                val word = Word(id, value.trim())
+                val word = Word(id, LangGod.langId, value.trim())
                 coreInteractorApi
                     .updateWordUseCase()
                     .updateWord(word)

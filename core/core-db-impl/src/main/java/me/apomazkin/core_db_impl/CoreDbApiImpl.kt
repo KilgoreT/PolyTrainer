@@ -15,11 +15,12 @@ class CoreDbApiImpl @Inject constructor(
     private val wordDao: WordDao
 ) : CoreDbApi {
 
-    override fun addWord(value: String): Completable {
+    override fun addWord(value: String, langId: Long): Completable {
         val currentDate = Date(System.currentTimeMillis())
         return wordDao.addWord(
             WordDb(
                 word = value,
+                langId = langId,
                 addDate = currentDate,
             )
         )
@@ -59,7 +60,7 @@ class CoreDbApiImpl @Inject constructor(
             .flatMapCompletable { item -> wordDao.removeWriteQuiz(item.definitionDb.id ?: -1) }
     }
 
-    override fun addDefinition(definition: Definition): Completable {
+    override fun addDefinition(definition: Definition, langId: Long): Completable {
         val mapper = DefinitionMapper()
         return wordDao.addDefinition(mapper.reverseMap(definition))
             .flatMapCompletable { id ->
@@ -67,6 +68,7 @@ class CoreDbApiImpl @Inject constructor(
                 wordDao.addWriteQuiz(
                     WriteQuizDb(
                         definitionId = id,
+                        langId = langId,
                         addDate = date,
                         lastSelectDate = date,
                     )
@@ -111,9 +113,9 @@ class CoreDbApiImpl @Inject constructor(
             .map { list -> list.map(WordDefinitionRel::toAppData) }
     }
 
-    override fun searchTermList(pattern: String): Observable<List<Term>> {
+    override fun searchTermList(pattern: String, langId: Long): Observable<List<Term>> {
         return wordDao
-            .searchTerms(pattern)
+            .searchTerms(pattern, langId)
             .map { list -> list.map(WordDefinitionRel::toAppData) }
     }
 
@@ -133,23 +135,31 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.getWriteQuizCountByGrade(tier)
     }
 
-    override fun getWriteQuizList(): Single<List<WriteQuiz>> {
-        return wordDao.getWriteQuizList()
+    override fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>> {
+        return wordDao.getWriteQuizList(langId)
             .map { list -> list.toAppData() }
     }
 
-    override fun getWriteQuizList(limit: Int): Single<List<WriteQuiz>> {
-        return wordDao.getWriteQuizList(limit)
+    override fun getWriteQuizList(limit: Int, langId: Long): Single<List<WriteQuiz>> {
+        return wordDao.getWriteQuizList(limit, langId)
             .map { list -> list.toAppData() }
     }
 
-    override fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuiz>> {
-        return wordDao.getWriteQuizListByAccessTime(grade, limit)
+    override fun getWriteQuizListByAccessTime(
+        grade: Int,
+        limit: Int,
+        langId: Long
+    ): Single<List<WriteQuiz>> {
+        return wordDao.getWriteQuizListByAccessTime(grade, limit, langId)
             .map { list -> list.toAppData() }
     }
 
-    override fun getRandomWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>> {
-        return wordDao.getRandomWriteQuizList(grade, limit)
+    override fun getRandomWriteQuizList(
+        grade: Int,
+        limit: Int,
+        langId: Long
+    ): Single<List<WriteQuiz>> {
+        return wordDao.getRandomWriteQuizList(grade, limit, langId)
             .map { list -> list.toAppData() }
     }
 

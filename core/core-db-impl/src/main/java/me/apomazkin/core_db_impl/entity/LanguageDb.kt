@@ -4,12 +4,12 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.*
 
-@Entity(tableName = "words")
-data class WordDb(
+@Entity(tableName = "languages")
+data class LanguageDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long? = null,
-    val langId: Long = 0,
-    val word: String? = null,
-    val addDate: Date? = null,
+    val code: String,
+    val name: String? = null,
+    val addDate: Date,
     val changeDate: Date? = null,
 )

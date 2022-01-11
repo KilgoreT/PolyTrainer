@@ -7,12 +7,12 @@ import me.apomazkin.core_db_api.entity.*
 
 interface CoreDbApi {
 
-    fun addWord(value: String): Completable
+    fun addWord(value: String, langId: Long): Completable
     fun getWord(id: Long): Single<Word>
     fun updateWord(word: Word): Completable
     fun removeWord(id: Long): Completable
 
-    fun addDefinition(definition: Definition): Completable
+    fun addDefinition(definition: Definition, langId: Long): Completable
     fun getDefinitionAll(): Single<List<Definition>>
     fun getDefinition(id: Long): Single<Definition>
     fun getDefinitionListByWordId(wordId: Long): Single<List<Definition>>
@@ -20,7 +20,7 @@ interface CoreDbApi {
     fun removeDefinition(vararg id: Long): Completable
 
     fun getTermList(): Observable<List<Term>>
-    fun searchTermList(pattern: String): Observable<List<Term>>
+    fun searchTermList(pattern: String, langId: Long): Observable<List<Term>>
 
     fun wordCount(): Single<Int>
     fun getDefinitionCount(): Single<Int>
@@ -28,10 +28,10 @@ interface CoreDbApi {
     fun getWriteQuizCountByGrade(tier: Int): Single<Int>
 
 
-    fun getWriteQuizList(): Single<List<WriteQuiz>>
-    fun getWriteQuizList(limit: Int): Single<List<WriteQuiz>>
-    fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuiz>>
-    fun getRandomWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuiz>>
+    fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>>
+    fun getWriteQuizList(limit: Int, langId: Long): Single<List<WriteQuiz>>
+    fun getWriteQuizListByAccessTime(grade: Int, limit: Int, langId: Long): Single<List<WriteQuiz>>
+    fun getRandomWriteQuizList(grade: Int, limit: Int, langId: Long): Single<List<WriteQuiz>>
     fun updateWriteQuizList(writeQuiz: WriteQuiz): Completable
     fun removeWriteQuiz(definitionId: Long): Completable
 

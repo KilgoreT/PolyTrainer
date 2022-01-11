@@ -28,6 +28,15 @@ class DataProvider {
             ),
         )
 
+        val languageList = listOf(
+            LanguageDb(
+                id = 0,
+                code = "en",
+                name = "English",
+                addDate = Date(System.currentTimeMillis())
+            )
+        )
+
         val definitionList = listOf<DefinitionDb>(
             DefinitionDb(
                 id = 0L,

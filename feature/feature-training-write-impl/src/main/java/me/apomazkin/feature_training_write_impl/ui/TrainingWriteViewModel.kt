@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.apomazkin.core_db_api.entity.WriteQuiz
 import me.apomazkin.core_interactor.CoreInteractorApi
+import me.apomazkin.core_interactor.LangGod
 import me.apomazkin.core_interactor.entity.WriteQuizStep
 import me.apomazkin.feature_training_write_api.FeatureTrainingWriteNavigator
 import java.text.SimpleDateFormat
@@ -52,7 +53,7 @@ class TrainingWriteViewModel @Inject constructor(
         currentQuizTitle.postValue("")
         coreInteractorApi
             .writeQuizScenario()
-            .getWriteQuizList()
+            .getWriteQuizList(LangGod.langId)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ list ->

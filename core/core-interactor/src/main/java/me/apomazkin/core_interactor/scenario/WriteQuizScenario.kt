@@ -15,7 +15,7 @@ interface WriteQuizScenario {
     /**
      * Retrieve list of quizzes.
      */
-    fun getWriteQuizList(): Single<List<WriteQuiz>>
+    fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>>
 
     /**
      * Update score, access etc info for current Quiz.
@@ -30,16 +30,18 @@ interface WriteQuizScenario {
         private val getWriteQuizCountUseCase: GetWriteQuizCountUseCase,
     ) : WriteQuizScenario {
 
-        override fun getWriteQuizList(): Single<List<WriteQuiz>> {
+        override fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>> {
 
             return getCountOfFirstTier()
-                .zipWith(getQuizListByRandom(0, 10), BiFunction { firstTierCount, firstTierList ->
-                    return@BiFunction Pair(firstTierCount, firstTierList)
-                })
+                .zipWith(
+                    getQuizListByRandom(0, 10, langId),
+                    BiFunction { firstTierCount, firstTierList ->
+                        return@BiFunction Pair(firstTierCount, firstTierList)
+                    })
                 .flatMap { grade0 ->
-                    getQuizListByRandom(1, 10)
+                    getQuizListByRandom(1, 10, langId)
                         .flatMap { grade1 ->
-                            getQuizListByAccessTime(2, 10)
+                            getQuizListByAccessTime(2, 10, langId)
                                 .flatMap { grade2 ->
 
                                     val mutualGrade0 = grade0.second.shuffled().toMutableList()
@@ -135,14 +137,22 @@ interface WriteQuizScenario {
                 .updateWriteQuiz(writeQuiz)
         }
 
-        private fun getQuizListByRandom(grade: Int, limit: Int): Single<List<WriteQuiz>> {
+        private fun getQuizListByRandom(
+            grade: Int,
+            limit: Int,
+            langId: Long
+        ): Single<List<WriteQuiz>> {
             return getWriteQuizByRandomUseCase
-                .getRandomWriteQuiz(grade, limit)
+                .getRandomWriteQuiz(grade, limit, langId)
         }
 
-        private fun getQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuiz>> {
+        private fun getQuizListByAccessTime(
+            grade: Int,
+            limit: Int,
+            langId: Long
+        ): Single<List<WriteQuiz>> {
             return getWriteQuizByAccessTimeUseCase
-                .getWriteQuizByAccessTime(grade, limit)
+                .getWriteQuizByAccessTime(grade, limit, langId)
         }
     }
 }

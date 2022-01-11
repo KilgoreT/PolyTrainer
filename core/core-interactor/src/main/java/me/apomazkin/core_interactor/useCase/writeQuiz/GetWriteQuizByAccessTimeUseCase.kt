@@ -6,18 +6,22 @@ import me.apomazkin.core_db_api.entity.WriteQuiz
 import javax.inject.Inject
 
 interface GetWriteQuizByAccessTimeUseCase {
-    fun getWriteQuizList(): Single<List<WriteQuiz>>
-    fun getWriteQuizByAccessTime(grade: Int, limit: Int): Single<List<WriteQuiz>>
+    fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>>
+    fun getWriteQuizByAccessTime(grade: Int, limit: Int, langId: Long): Single<List<WriteQuiz>>
 
     class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : GetWriteQuizByAccessTimeUseCase {
-        override fun getWriteQuizList(): Single<List<WriteQuiz>> {
-            return dbApi.getWriteQuizList()
+        override fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>> {
+            return dbApi.getWriteQuizList(langId)
         }
 
-        override fun getWriteQuizByAccessTime(grade: Int, limit: Int): Single<List<WriteQuiz>> {
-            return dbApi.getWriteQuizListByAccessTime(grade, limit)
+        override fun getWriteQuizByAccessTime(
+            grade: Int,
+            limit: Int,
+            langId: Long
+        ): Single<List<WriteQuiz>> {
+            return dbApi.getWriteQuizListByAccessTime(grade, limit, langId)
         }
     }
 }

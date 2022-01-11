@@ -6,13 +6,17 @@ import me.apomazkin.core_db_api.entity.WriteQuiz
 import javax.inject.Inject
 
 interface GetWriteQuizByRandomUseCase {
-    fun getRandomWriteQuiz(grade: Int, limit: Int): Single<List<WriteQuiz>>
+    fun getRandomWriteQuiz(grade: Int, limit: Int, langId: Long): Single<List<WriteQuiz>>
 
     class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : GetWriteQuizByRandomUseCase {
-        override fun getRandomWriteQuiz(grade: Int, limit: Int): Single<List<WriteQuiz>> {
-            return dbApi.getRandomWriteQuizList(grade, limit)
+        override fun getRandomWriteQuiz(
+            grade: Int,
+            limit: Int,
+            langId: Long
+        ): Single<List<WriteQuiz>> {
+            return dbApi.getRandomWriteQuizList(grade, limit, langId)
         }
     }
 }

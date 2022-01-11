@@ -128,11 +128,11 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
     }
 
     override fun reverseMap(value: Definition) = DefinitionDb(
-        value.id,
-        value.wordId,
-        value.value,
-        reverseMapWordClass(value),
-        convertOptions(value.wordClass)
+        id = value.id,
+        wordId = value.wordId,
+        definition = value.value,
+        wordClass = reverseMapWordClass(value),
+        options = convertOptions(value.wordClass)
     )
 
     private fun reverseMapWordClass(value: Definition): String? {

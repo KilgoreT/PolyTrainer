@@ -11,6 +11,15 @@ import me.apomazkin.core_db_impl.entity.*
 interface WordDao {
 
     /**
+     * Languages
+     */
+    @Insert
+    fun addLanguage(languageDb: LanguageDb): Completable
+
+    @Query("SELECT * FROM languages")
+    fun getLanguages(): Single<List<LanguageDb>>
+
+    /**
      * WORD
      */
     @Insert
@@ -33,8 +42,8 @@ interface WordDao {
     fun getTermList(): Observable<List<WordDefinitionRel>>
 
     @Transaction
-    @Query("SELECT * FROM words WHERE word LIKE :pattern ORDER BY id DESC")
-    fun searchTerms(pattern: String): Observable<List<WordDefinitionRel>>
+    @Query("SELECT * FROM words WHERE word LIKE :pattern AND langId = :langId ORDER BY id DESC")
+    fun searchTerms(pattern: String, langId: Long): Observable<List<WordDefinitionRel>>
 
     /**
      * DEFINITION
@@ -104,17 +113,25 @@ interface WordDao {
     @Insert
     fun addWriteQuiz(writeQuizDb: WriteQuizDb): Completable
 
-    @Query("SELECT * from writeQuiz")
-    fun getWriteQuizList(): Single<List<WriteQuizDefinitionRel>>
+    @Query("SELECT * from writeQuiz WHERE langId = :langId")
+    fun getWriteQuizList(langId: Long): Single<List<WriteQuizDefinitionRel>>
 
-    @Query("SELECT * from writeQuiz LIMIT :limit")
-    fun getWriteQuizList(limit: Int): Single<List<WriteQuizDefinitionRel>>
+    @Query("SELECT * from writeQuiz  WHERE langId = :langId LIMIT :limit")
+    fun getWriteQuizList(limit: Int, langId: Long): Single<List<WriteQuizDefinitionRel>>
 
-    @Query("SELECT * from writeQuiz  WHERE grade = :grade ORDER BY lastSelectDate LIMIT :limit")
-    fun getWriteQuizListByAccessTime(grade: Int, limit: Int): Single<List<WriteQuizDefinitionRel>>
+    @Query("SELECT * from writeQuiz  WHERE grade = :grade AND langId = :langId ORDER BY lastSelectDate LIMIT :limit")
+    fun getWriteQuizListByAccessTime(
+        grade: Int,
+        limit: Int,
+        langId: Long
+    ): Single<List<WriteQuizDefinitionRel>>
 
-    @Query("SELECT * from writeQuiz  WHERE grade = :grade ORDER BY RANDOM() LIMIT :limit")
-    fun getRandomWriteQuizList(grade: Int, limit: Int): Single<List<WriteQuizDefinitionRel>>
+    @Query("SELECT * from writeQuiz  WHERE grade = :grade AND langId = :langId ORDER BY RANDOM() LIMIT :limit")
+    fun getRandomWriteQuizList(
+        grade: Int,
+        limit: Int,
+        langId: Long
+    ): Single<List<WriteQuizDefinitionRel>>
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: WriteQuizDb): Completable
