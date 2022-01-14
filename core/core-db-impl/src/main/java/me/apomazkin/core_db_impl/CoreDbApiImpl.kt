@@ -119,8 +119,8 @@ class CoreDbApiImpl @Inject constructor(
             .map { list -> list.map(WordDefinitionRel::toAppData) }
     }
 
-    override fun wordCount(): Single<Int> {
-        return wordDao.getWordCount()
+    override fun wordCount(langId: Long): Single<Int> {
+        return wordDao.getWordCount(langId)
     }
 
     override fun getDefinitionCount(): Single<Int> {
@@ -131,8 +131,8 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.getDefinitionTypeCount(wordClass)
     }
 
-    override fun getWriteQuizCountByGrade(tier: Int): Single<Int> {
-        return wordDao.getWriteQuizCountByGrade(tier)
+    override fun getWriteQuizCountByGrade(tier: Int, langId: Long): Single<Int> {
+        return wordDao.getWriteQuizCountByGrade(tier, langId)
     }
 
     override fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>> {

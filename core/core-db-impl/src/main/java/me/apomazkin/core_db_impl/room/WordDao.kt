@@ -142,8 +142,8 @@ interface WordDao {
     /**
      * ANALYTICS
      */
-    @Query("SELECT COUNT(*) FROM words")
-    fun getWordCount(): Single<Int>
+    @Query("SELECT COUNT(*) FROM words WHERE langId = :langId")
+    fun getWordCount(langId: Long): Single<Int>
 
     @Query("SELECT COUNT(*) FROM definitions")
     fun getDefinitionCount(): Single<Int>
@@ -151,7 +151,7 @@ interface WordDao {
     @Query("SELECT COUNT(*) FROM definitions WHERE wordClass = :wordClass")
     fun getDefinitionTypeCount(wordClass: String): Single<Int>
 
-    @Query("SELECT COUNT(*) FROM writeQuiz WHERE grade = :tier")
-    fun getWriteQuizCountByGrade(tier: Int): Single<Int>
+    @Query("SELECT COUNT(*) FROM writeQuiz WHERE grade = :tier AND langId = :langId")
+    fun getWriteQuizCountByGrade(tier: Int, langId: Long): Single<Int>
 
 }

@@ -4,6 +4,7 @@ import io.reactivex.Completable
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import me.apomazkin.core_db_api.entity.WriteQuiz
+import me.apomazkin.core_interactor.LangGod
 import me.apomazkin.core_interactor.useCase.statistic.GetWriteQuizCountUseCase
 import me.apomazkin.core_interactor.useCase.writeQuiz.GetWriteQuizByAccessTimeUseCase
 import me.apomazkin.core_interactor.useCase.writeQuiz.GetWriteQuizByRandomUseCase
@@ -32,7 +33,7 @@ interface WriteQuizScenario {
 
         override fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>> {
 
-            return getCountOfFirstTier()
+            return getCountOfFirstTier(langId)
                 .zipWith(
                     getQuizListByRandom(0, 10, langId),
                     BiFunction { firstTierCount, firstTierList ->
@@ -116,10 +117,10 @@ interface WriteQuizScenario {
                 }
         }
 
-        private fun getCountOfFirstTier(): Single<Int> {
+        private fun getCountOfFirstTier(langId: Long): Single<Int> {
             return getWriteQuizCountUseCase
-                .getCount(0)
-                .zipWith(getWriteQuizCountUseCase.getCount(1), BiFunction { first, second ->
+                .getCount(0, LangGod.langId)
+                .zipWith(getWriteQuizCountUseCase.getCount(1, langId), BiFunction { first, second ->
                     return@BiFunction getProportionOfFirst(first, second)
                 })
 
