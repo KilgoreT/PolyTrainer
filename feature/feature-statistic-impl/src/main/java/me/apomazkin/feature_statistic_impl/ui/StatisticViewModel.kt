@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_interactor.CoreInteractorApi
+import me.apomazkin.core_interactor.LangGod
 import me.apomazkin.feature_statistic_api.FeatureStatisticNavigation
 import javax.inject.Inject
 
@@ -27,7 +28,7 @@ class StatisticViewModel @Inject constructor(
     private fun loadData() {
         coreInteractorApi
             .statisticScenario()
-            .getWordClassCountInfo()
+            .getWordClassCountInfo(LangGod.langId)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ result ->
@@ -38,7 +39,7 @@ class StatisticViewModel @Inject constructor(
 
         coreInteractorApi
             .statisticScenario()
-            .getWriteQuizInto()
+            .getWriteQuizInto(LangGod.langId)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ result ->

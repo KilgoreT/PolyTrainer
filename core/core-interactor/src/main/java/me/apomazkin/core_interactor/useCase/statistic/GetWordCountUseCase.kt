@@ -5,11 +5,11 @@ import me.apomazkin.core_db_api.CoreDbApi
 import javax.inject.Inject
 
 interface GetWordCountUseCase {
-    fun exec(): Single<Int>
+    fun exec(langId: Long): Single<Int>
 
     class Impl @Inject constructor(
         private val api: CoreDbApi
     ) : GetWordCountUseCase {
-        override fun exec() = api.wordCount()
+        override fun exec(langId: Long) = api.wordCount(langId)
     }
 }

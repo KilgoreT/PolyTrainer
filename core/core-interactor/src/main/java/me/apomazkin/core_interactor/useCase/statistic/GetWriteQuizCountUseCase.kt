@@ -5,12 +5,12 @@ import me.apomazkin.core_db_api.CoreDbApi
 import javax.inject.Inject
 
 interface GetWriteQuizCountUseCase {
-    fun getCount(tier: Int): Single<Int>
+    fun getCount(tier: Int, langId: Long): Single<Int>
 
     class Impl @Inject constructor(
         private val api: CoreDbApi
     ) : GetWriteQuizCountUseCase {
-        override fun getCount(tier: Int) = api.getWriteQuizCountByGrade(tier)
+        override fun getCount(tier: Int, langId: Long) = api.getWriteQuizCountByGrade(tier, langId)
     }
 
 }

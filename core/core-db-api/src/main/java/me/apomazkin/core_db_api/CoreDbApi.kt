@@ -22,10 +22,10 @@ interface CoreDbApi {
     fun getTermList(): Observable<List<Term>>
     fun searchTermList(pattern: String, langId: Long): Observable<List<Term>>
 
-    fun wordCount(): Single<Int>
+    fun wordCount(langId: Long): Single<Int>
     fun getDefinitionCount(): Single<Int>
     fun getDefinitionTypeCount(wordClass: String): Single<Int>
-    fun getWriteQuizCountByGrade(tier: Int): Single<Int>
+    fun getWriteQuizCountByGrade(tier: Int, langId: Long): Single<Int>
 
 
     fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>>

@@ -9,8 +9,8 @@ import me.apomazkin.core_interactor.useCase.statistic.GetWriteQuizCountUseCase
 import javax.inject.Inject
 
 interface StatisticScenario {
-    fun getWordClassCountInfo(): Single<String>
-    fun getWriteQuizInto(): Single<String>
+    fun getWordClassCountInfo(langId: Long): Single<String>
+    fun getWriteQuizInto(langId: Long): Single<String>
 
     class Impl @Inject constructor(
         private val getWordCountUseCase: GetWordCountUseCase,
@@ -19,8 +19,8 @@ interface StatisticScenario {
         private val getWriteQuizCountUseCase: GetWriteQuizCountUseCase,
     ) : StatisticScenario {
 
-        override fun getWordClassCountInfo(): Single<String> {
-            return getWordCountUseCase.exec()
+        override fun getWordClassCountInfo(langId: Long): Single<String> {
+            return getWordCountUseCase.exec(langId)
                 .zipWith(
                     getDefinitionCountUseCase.exec(),
                     BiFunction { words, definitions ->
@@ -46,16 +46,16 @@ interface StatisticScenario {
                 .flatMap { Single.just(it) }
         }
 
-        override fun getWriteQuizInto(): Single<String> {
-            return getWriteQuizCountUseCase.getCount(0)
+        override fun getWriteQuizInto(langId: Long): Single<String> {
+            return getWriteQuizCountUseCase.getCount(0, langId)
                 .zipWith(
-                    getWriteQuizCountUseCase.getCount(1),
+                    getWriteQuizCountUseCase.getCount(1, langId),
                     BiFunction { tier0, tier1 ->
                         return@BiFunction "Write Quiz Info: \n0: $tier0\n1: $tier1\n"
                     }
                 )
                 .zipWith(
-                    getWriteQuizCountUseCase.getCount(2),
+                    getWriteQuizCountUseCase.getCount(2, langId),
                     BiFunction { accumulator, tier2 ->
                         return@BiFunction accumulator.plus("2: $tier2")
                     }
