@@ -3,6 +3,7 @@ package me.apomazkin.core_interactor.di.module
 import dagger.Binds
 import dagger.Module
 import me.apomazkin.core_interactor.useCase.definition.*
+import me.apomazkin.core_interactor.useCase.dump.GetDumpUseCase
 import me.apomazkin.core_interactor.useCase.sample.AddSampleUseCase
 import me.apomazkin.core_interactor.useCase.sample.GetSampleUseCase
 import me.apomazkin.core_interactor.useCase.statistic.GetDefinitionCountUseCase
@@ -85,4 +86,7 @@ interface UseCaseModule {
 
     @Binds
     fun bindGetSampleUseCase(impl: GetSampleUseCase.Impl): GetSampleUseCase
+
+    @Binds
+    fun bindGetDumpUseCase(impl: GetDumpUseCase.Impl): GetDumpUseCase
 }

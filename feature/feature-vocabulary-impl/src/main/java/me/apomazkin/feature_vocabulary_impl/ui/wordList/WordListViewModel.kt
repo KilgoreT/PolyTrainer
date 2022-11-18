@@ -1,11 +1,16 @@
 package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.launch
+import me.apomazkin.core_db_api.entity.Dump
 import me.apomazkin.core_db_api.entity.Term
 import me.apomazkin.core_db_api.entity.Word
 import me.apomazkin.core_db_api.entity.WriteQuiz
@@ -13,6 +18,8 @@ import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.core_interactor.LangGod
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
 import me.apomazkin.feature_vocabulary_impl.loadState.LoadState
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 
 @SuppressLint("CheckResult")
@@ -182,6 +189,52 @@ class WordListViewModel @Inject constructor(
                         }
                 }
             }
+    }
+
+    fun backUpAll(googleSignInAccount: GoogleAccountCredential) {
+        viewModelScope.launch {
+            coreInteractorApi
+                .getDumpUseCase()
+                .getDump()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { dump ->
+                    backDump(googleSignInAccount, dump)
+                }
+        }
+    }
+
+    private fun backDump(googleSignInAccount: GoogleAccountCredential, dump: Dump) {
+        viewModelScope.launch {
+
+            val time = Calendar.getInstance().time
+            val df = SimpleDateFormat("yyyy-MM-dd-HH-mm", Locale.getDefault())
+            val backFileName = df.format(time)
+
+            val driveProvider = DriveProvider(googleSignInAccount)
+            val sheetsProvider = SheetsProvider(googleSignInAccount)
+
+            driveProvider.checkAppRoot()
+
+            sheetsProvider.createSpreadsheet(backFileName, dump)
+            driveProvider.moveFileFromRootToAppFolder(backFileName)
+        }
+    }
+
+    fun restoreAll(accountCredential: GoogleAccountCredential) {
+        viewModelScope.launch {
+            val driveProvider = DriveProvider(accountCredential)
+            val sheetsProvider = SheetsProvider(accountCredential)
+            driveProvider.getSheetFiles().maxByOrNull { it.modifiedTime.value }
+                ?.id
+                ?.also { fileId ->
+                    Log.d("###", "WordListViewModel / 230 / restoreAll: $fileId")
+                    sheetsProvider.getDataFromSheet(fileId).also { dump ->
+                        Log.d("###", "WordListViewModel / 233 / restoreAll: $dump")
+                        coreInteractorApi.getDumpUseCase().restore(dump)
+                    }
+                }
+        }
     }
 
 }

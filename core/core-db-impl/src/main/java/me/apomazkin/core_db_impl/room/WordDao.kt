@@ -28,6 +28,9 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE id = :id")
     fun getWordById(id: Long): Single<WordDb>
 
+    @Query("SELECT * FROM words")
+    fun getWord(): Single<List<WordDb>>
+
     @Update
     fun updateWorld(wordDb: WordDb): Completable
 
@@ -80,6 +83,9 @@ interface WordDao {
     @Insert
     fun addHint(hintDb: HintDb): Completable
 
+    @Query("SELECT * FROM hint")
+    fun getAllHint(): Single<List<HintDb>>
+
     @Query("SELECT * FROM hint WHERE definitionId = :definitionId")
     fun getHintListByDefinitionId(definitionId: Long): Single<HintDb>
 
@@ -102,6 +108,9 @@ interface WordDao {
     fun getSampleListByDefinitionId(definitionId: Long): Single<List<SampleDb>>
 
     @Query("SELECT * FROM sample")
+    fun getAllSample(): Single<List<SampleDb>>
+
+    @Query("SELECT * FROM sample")
     fun getSampleList(): Observable<List<SampleDb>>
 
     @Delete
@@ -112,6 +121,9 @@ interface WordDao {
      */
     @Insert
     fun addWriteQuiz(writeQuizDb: WriteQuizDb): Completable
+
+    @Query("SELECT * from writeQuiz")
+    fun getAllWriteQuiz(): Single<List<WriteQuizDb>>
 
     @Query("SELECT * from writeQuiz WHERE langId = :langId")
     fun getWriteQuizList(langId: Long): Single<List<WriteQuizDefinitionRel>>

@@ -3,6 +3,7 @@ package me.apomazkin.core_interactor
 import me.apomazkin.core_interactor.scenario.StatisticScenario
 import me.apomazkin.core_interactor.scenario.WriteQuizScenario
 import me.apomazkin.core_interactor.useCase.definition.*
+import me.apomazkin.core_interactor.useCase.dump.GetDumpUseCase
 import me.apomazkin.core_interactor.useCase.sample.AddSampleUseCase
 import me.apomazkin.core_interactor.useCase.sample.GetSampleUseCase
 import me.apomazkin.core_interactor.useCase.term.GetTermUseCase
@@ -30,6 +31,7 @@ interface CoreInteractorApi {
     fun getWriteQuizByAccessTimeUseCase(): GetWriteQuizByAccessTimeUseCase
     fun addSampleUseCase(): AddSampleUseCase
     fun getSampleUseCase(): GetSampleUseCase
+    fun getDumpUseCase(): GetDumpUseCase
 
     @Deprecated("NotUsed")
     fun getDefinitionListUseCase(): GetDefinitionListUseCase

@@ -124,7 +124,7 @@ class AddDefinitionViewModel(
     override fun onNothingSelected(parent: AdapterView<*>?) {
     }
 
-    override fun onCheckedChanged(group: ChipGroup?, checkedId: Int) {
+    override fun onCheckedChanged(group: ChipGroup, checkedId: Int) {
         when (group?.id ?: 0) {
             R.id.chipGroupGrade -> {
                 setupGrade(checkedId)

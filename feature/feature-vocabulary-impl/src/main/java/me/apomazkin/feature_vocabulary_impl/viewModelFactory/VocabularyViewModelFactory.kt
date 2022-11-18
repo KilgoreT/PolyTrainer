@@ -20,7 +20,7 @@ class VocabularyViewModelFactory @Inject constructor(
 
     private var id: Long = -1
 
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return if (modelClass.isAssignableFrom(WordListViewModel::class.java)) {
             WordListViewModel(coreInteractorApi, navigation, delegate) as T
         } else if (modelClass.isAssignableFrom(EditWordViewModel::class.java)) {
