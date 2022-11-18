@@ -39,40 +39,27 @@ pluginManagement {
         eachPlugin {
             val pluginId = requested.id.id
             println(">>>> pluginId: $pluginId")
+            val qqq = requested.id
+            println(">>>> req: $qqq")
             when {
                 pluginId.startsWith("org.jetbrains.kotlin") -> {
-                    useVersion("1.4.32")
+                    useVersion("1.6.21")
                 }
                 pluginId.contains("kotlin-") -> {
-                    useVersion("1.5.10")
-//                    useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.32")
+                    useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.0")
                 }
                 pluginId.startsWith("com.android.") -> {
-//                    useVersion("4.1.3")
-                    useModule("com.android.tools.build:gradle:4.1.3")
+                    useModule("com.android.tools.build:gradle:7.2.2")
                 }
                 pluginId.startsWith("androidx.navigation.safeargs.kotlin") -> {
-//                    useVersion("2.3.4")
-                    useModule("androidx.navigation:navigation-safe-args-gradle-plugin:2.3.4")
-                    //
+                    useModule("androidx.navigation:navigation-safe-args-gradle-plugin:2.5.3")
                 }
                 pluginId.startsWith("com.google.gms.google-services") -> {
-//                    useVersion("4.3.5")
                     useModule("com.google.gms:google-services:4.3.5")
-                    //
                 }
                 pluginId.startsWith("com.google.firebase.crashlytics") -> {
-//                    useVersion("2.5.2")
                     useModule("com.google.firebase:firebase-crashlytics-gradle:2.5.2")
-                    //
                 }
-//                pluginId.startsWith("kotlin-android-extensions") -> {
-//                    useModule("kotlin-android-extensions.gradle.plugin:1.4.32")
-//                }
-//                pluginId.startsWith("kotlin-kapt") -> {
-//                    useVersion("1.4.32")
-////                    useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.32")
-//                }
             }
         }
     }

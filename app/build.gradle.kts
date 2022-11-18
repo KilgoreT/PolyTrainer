@@ -36,6 +36,10 @@ android {
     }
 
     buildTypes(Action {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("signForRelease")
+            isMinifyEnabled = true
+        }
         getByName("release") {
             signingConfig = signingConfigs.getByName("signForRelease")
             isMinifyEnabled = false
@@ -57,20 +61,20 @@ dependencies {
     implementation(project("path" to ":feature:feature-bottom-menu-impl"))
 
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.31")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.7.10")
 
     // AndroidX
-    implementation("androidx.appcompat:appcompat:1.4.1")
-    implementation("androidx.core:core-ktx:1.7.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.3")
+    implementation("androidx.appcompat:appcompat:1.5.1")
+    implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
     //Dagger2
-    implementation("com.google.dagger:dagger:2.37")
-    kapt("com.google.dagger:dagger-compiler:2.37")
+    implementation("com.google.dagger:dagger:2.42")
+    kapt("com.google.dagger:dagger-compiler:2.42")
 
     //Navigation
-    implementation("androidx.navigation:navigation-fragment-ktx:2.3.5")
-    implementation("androidx.navigation:navigation-ui-ktx:2.3.5")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
+    implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:26.8.0"))
@@ -81,9 +85,9 @@ dependencies {
     //noinspection GradleDependency
     testImplementation("junit:junit:4.13.2")
     //noinspection GradleDependency
-    androidTestImplementation("androidx.test.ext:junit:1.1.3")
+    androidTestImplementation("androidx.test.ext:junit:1.1.4")
     //noinspection GradleDependency
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
 }
 
 fun getBuildSource(file: File): BuildSource {

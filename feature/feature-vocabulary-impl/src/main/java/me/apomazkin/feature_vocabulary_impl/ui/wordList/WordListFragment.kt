@@ -4,12 +4,22 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.Scope
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.services.drive.DriveScopes
+import com.google.api.services.sheets.v4.SheetsScopes
+//import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+//import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+//import com.google.android.gms.common.api.Scope
 import me.apomazkin.core_base.ui.BaseFragment
 import me.apomazkin.core_db_api.entity.Definition
 import me.apomazkin.core_db_api.entity.Word
@@ -20,8 +30,44 @@ import me.apomazkin.feature_vocabulary_impl.di.FeatureVocabularyComponent
 import javax.inject.Inject
 
 
+val DRIVE_SCOPE = listOf(DriveScopes.DRIVE_FILE)
+
 class WordListFragment : BaseFragment<FragmentWordListBinding>(),
     WordListAdapter.NewWordListAdapterListener {
+
+    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .requestScopes(Scope(SheetsScopes.SPREADSHEETS))
+        .requestScopes(Scope(SheetsScopes.DRIVE))
+        .requestScopes(Scope(DriveScopes.DRIVE))
+        .requestScopes(Scope(DriveScopes.DRIVE_FILE))
+        .requestScopes(Scope(DriveScopes.DRIVE_METADATA))
+        .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
+        .requestEmail()
+        .build()
+
+    private val signInContractBackup =
+        registerForActivityResult(SignInContract()) { acc: GoogleSignInAccount? ->
+            Log.d("###", "WordListFragment / 45 / : ")
+            Log.d("###", "WordListFragment / 45 / : ${acc?.displayName}")
+            acc?.also {
+                val accountCredential = GoogleAccountCredential
+                    .usingOAuth2(context, DRIVE_SCOPE)
+                accountCredential.selectedAccount = it.account
+                listViewModel.backUpAll(accountCredential)
+            }
+        }
+
+    private val signInContractRestore =
+        registerForActivityResult(SignInContract()) { acc: GoogleSignInAccount? ->
+            acc?.also {
+                val accountCredential = GoogleAccountCredential
+                    .usingOAuth2(context, DRIVE_SCOPE)
+                accountCredential.selectedAccount = it.account
+                Log.d("###", "WordListFragment / 64 / : Restore: ${it.displayName}")
+                listViewModel.restoreAll(accountCredential)
+//            listViewModel.backUpAll(accountCredential)
+            }
+        }
 
     @Inject
     lateinit var factory: ViewModelProvider.Factory
@@ -126,6 +172,13 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.back -> {
+                Log.d("###", "WordListFragment / 130 / onOptionsItemSelected: back")
+                signInContractBackup.launch(gso)
+            }
+            R.id.restore -> {
+                signInContractRestore.launch(gso)
+            }
             R.id.en -> {
                 LangGod.langId = 0
                 listViewModel.loadData()

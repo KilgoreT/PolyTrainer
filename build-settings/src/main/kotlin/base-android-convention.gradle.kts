@@ -2,12 +2,11 @@ import com.android.build.gradle.BaseExtension
 
 configure<BaseExtension> {
 
-    setCompileSdkVersion(31)
-    buildToolsVersion = "30.0.3"
+    setCompileSdkVersion(33)
 
     defaultConfig {
-        setMinSdkVersion(21)
-        setTargetSdkVersion(31)
+        minSdk = 21
+        setTargetSdkVersion(33)
         versionName = getVersionName()
         versionCode = getVersionCode(getVersionName())
         multiDexEnabled = true
@@ -25,8 +24,8 @@ configure<BaseExtension> {
     }
 
     compileOptions {
-        targetCompatibility = JavaVersion.VERSION_1_8
-        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_11
     }
 
     lintOptions {
@@ -34,6 +33,10 @@ configure<BaseExtension> {
         isAbortOnError = true
         isWarningsAsErrors = true
         isIgnoreWarnings = false
+        disable("TrustAllX509TrustManager")
+        disable("NullSafeMutableLiveData")
+        disable("UnknownIssueId")
+
     }
 }
 

@@ -1,8 +1,11 @@
 package me.apomazkin.core_db_impl
 
+import android.annotation.SuppressLint
 import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.core_db_impl.entity.*
@@ -214,5 +217,65 @@ class CoreDbApiImpl @Inject constructor(
     override fun getSampleList(): Observable<List<Sample>> {
         return wordDao.getSampleList()
             .map { list -> list.toAppEntity() }
+    }
+
+    override fun getDump(): Single<Dump> {
+        return Single.zip(
+            wordDao.getLanguages(),
+            wordDao.getWord(),
+            wordDao.getAllDefinition(),
+            wordDao.getAllHint(),
+            wordDao.getAllSample(),
+            wordDao.getAllWriteQuiz(),
+        ) { languages, words, definitions, hints, sample, write ->
+            Dump(
+                languages = languages.toDumpEntity(),
+                words = words.toDumpEntity(),
+                definitions = definitions.map { it.toDumpEntity() },
+                hints = hints.map { it.toDumpEntity() },
+                samples = sample.map { it.toDumpEntity() },
+                writes = write.map { it.toDump() }
+            )
+        }
+    }
+
+    @SuppressLint("CheckResult")
+    override fun restoreDump(dump: Dump) {
+        dump.languages.forEach { lang ->
+            wordDao.addLanguage(lang.toDbEntity())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {}
+        }
+        dump.words.forEach { word ->
+            wordDao.addWord(word.toDbEntity())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {}
+        }
+        dump.definitions.forEach { def ->
+            wordDao.addDefinition(def.toDbEntity())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { _ -> }
+        }
+        dump.hints.forEach { hint ->
+            wordDao.addHint(hint.toDbEntity())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {}
+        }
+        dump.samples.forEach { sample ->
+            wordDao.addSample(sample.toDbEntity())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {}
+        }
+        dump.writes.forEach { write ->
+            wordDao.addWriteQuiz(write.toDb())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {}
+        }
     }
 }

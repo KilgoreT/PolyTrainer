@@ -43,4 +43,7 @@ interface CoreDbApi {
     fun addSample(definitionId: Long, value: String, source: String?): Completable
     fun getSampleList(definitionId: Long): Single<List<Sample>>
     fun getSampleList(): Observable<List<Sample>>
+
+    fun getDump(): Single<Dump>
+    fun restoreDump(dump: Dump)
 }

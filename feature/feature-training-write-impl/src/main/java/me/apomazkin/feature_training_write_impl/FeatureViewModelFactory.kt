@@ -12,7 +12,7 @@ class FeatureViewModelFactory @Inject constructor(
     private val navigation: FeatureTrainingWriteNavigator,
 ) : ViewModelProvider.Factory {
 
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return if (modelClass.isAssignableFrom(TrainingWriteViewModel::class.java)) {
             TrainingWriteViewModel(coreInteractorApi, navigation) as T
         } else {
