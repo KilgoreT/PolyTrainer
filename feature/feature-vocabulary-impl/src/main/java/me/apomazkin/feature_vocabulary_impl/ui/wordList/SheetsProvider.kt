@@ -221,7 +221,7 @@ class SheetsProvider(
                     id = line[0].toLong(),
                     langId = line[1].toLong(),
                     word = line[2],
-                    addDate = Date(line[3].toLong()),
+                    addDate = line.getOrNull(3)?.let { Date(it.toLong()) },
                     changeDate = line.getOrNull(4)?.let { Date(it.toLong()) }
                 )
             }
