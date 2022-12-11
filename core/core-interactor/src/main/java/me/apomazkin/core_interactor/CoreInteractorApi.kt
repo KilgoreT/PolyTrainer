@@ -4,11 +4,14 @@ import me.apomazkin.core_interactor.scenario.StatisticScenario
 import me.apomazkin.core_interactor.scenario.WriteQuizScenario
 import me.apomazkin.core_interactor.useCase.definition.*
 import me.apomazkin.core_interactor.useCase.dump.GetDumpUseCase
+import me.apomazkin.core_interactor.useCase.language.AddLanguageUseCase
+import me.apomazkin.core_interactor.useCase.language.GetLanguageUseCase
 import me.apomazkin.core_interactor.useCase.sample.AddSampleUseCase
 import me.apomazkin.core_interactor.useCase.sample.GetSampleUseCase
 import me.apomazkin.core_interactor.useCase.term.GetTermUseCase
 import me.apomazkin.core_interactor.useCase.term.SearchTermUseCase
 import me.apomazkin.core_interactor.useCase.word.AddWordUseCase
+import me.apomazkin.core_interactor.useCase.word.GetWordUseCase
 import me.apomazkin.core_interactor.useCase.word.RemoveWordUseCase
 import me.apomazkin.core_interactor.useCase.word.UpdateWordUseCase
 import me.apomazkin.core_interactor.useCase.writeQuiz.GetWriteQuizByAccessTimeUseCase
@@ -18,6 +21,9 @@ interface CoreInteractorApi {
     fun writeQuizScenario(): WriteQuizScenario
     fun statisticScenario(): StatisticScenario
 
+    fun getLanguageUseCase(): GetLanguageUseCase
+    fun addLanguageUseCase(): AddLanguageUseCase
+    fun getWordUseCase(): GetWordUseCase
     fun getTermUseCase(): GetTermUseCase
     fun searchTermUseCase(): SearchTermUseCase
     fun addWordUseCase(): AddWordUseCase

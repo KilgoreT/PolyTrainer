@@ -189,6 +189,10 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
                 listViewModel.loadData()
                 return true
             }
+            R.id.check -> {
+                listViewModel.checkLang()
+                return true
+            }
         }
         return false
     }
