@@ -18,23 +18,9 @@
             tools:ignore="HardcodedText" />
     </group>
 
-    <group android:menuCategory="container">
-
-
-        <item
-            android:id="@+id/en"
-            android:title="English"
-            tools:ignore="HardcodedText" />
-
-        <item
-            android:id="@+id/fr"
-            android:title="French"
-            tools:ignore="HardcodedText" />
-
-        <item
-            android:id="@+id/check"
-            android:title="Check"
-            tools:ignore="HardcodedText" />
+    <group
+        android:id="@+id/langMenu"
+        android:menuCategory="container">
 
         <item
             android:id="@+id/add_lang"

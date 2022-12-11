@@ -30,9 +30,22 @@ class WordListViewModel @Inject constructor(
     val wordPattern = MutableLiveData<String>("")
     val transition = MutableLiveData<String>()
     val argh = MutableLiveData<String>()
+    val langList = mutableListOf<Language>()
 
     init {
         loadData()
+        loadLangList()
+    }
+
+    private fun loadLangList() {
+        coreInteractorApi
+            .getLanguageUseCase()
+            .getAllLanguage()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { langs ->
+                langList.addAll(langs)
+            }
     }
 
     @SuppressLint("CheckResult")
@@ -234,52 +247,17 @@ class WordListViewModel @Inject constructor(
         }
     }
 
-    fun checkLang() {
+    fun addLang(name: String, code: String) {
         coreInteractorApi
-            .getLanguageUseCase()
-            .getAllLanguage()
+            .addLanguageUseCase()
+            .addLanguage(
+                code = code,
+                name = name
+            )
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(
-                { result ->
-                    Log.d("###", "lang count: ${result.size}")
-                    verifyLang(result)
-                },
-                { onError(it) }
-            )
-    }
+            .subscribe {}
 
-    private fun verifyLang(result: List<Language>) {
-        result.firstOrNull { it.code == "en" }
-            ?: let {
-                Log.d("###", "verifyLang: En non exist")
-                coreInteractorApi
-                    .addLanguageUseCase()
-                    .addLanguage(
-                        code = "en",
-                        name = "English"
-                    )
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        Log.d("###", "verifyLang: End Added!")
-                    }
-            }
-
-        result.firstOrNull { it.code == "fr" } ?: let {
-            Log.d("###", "verifyLang: Fr non exist")
-            coreInteractorApi
-                .addLanguageUseCase()
-                .addLanguage(
-                    code = "fr",
-                    name = "French"
-                )
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {
-                    Log.d("###", "verifyLang: Fr Added")
-                }
-        }
     }
 
 }
