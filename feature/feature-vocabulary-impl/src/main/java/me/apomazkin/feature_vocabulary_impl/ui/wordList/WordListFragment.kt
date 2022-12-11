@@ -1,5 +1,8 @@
 package me.apomazkin.feature_vocabulary_impl.ui.wordList
 
+//import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+//import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+//import com.google.android.gms.common.api.Scope
 import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
@@ -17,9 +20,6 @@ import com.google.android.gms.common.api.Scope
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.services.drive.DriveScopes
 import com.google.api.services.sheets.v4.SheetsScopes
-//import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-//import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-//import com.google.android.gms.common.api.Scope
 import me.apomazkin.core_base.ui.BaseFragment
 import me.apomazkin.core_db_api.entity.Definition
 import me.apomazkin.core_db_api.entity.Word
@@ -33,7 +33,7 @@ import javax.inject.Inject
 val DRIVE_SCOPE = listOf(DriveScopes.DRIVE_FILE)
 
 class WordListFragment : BaseFragment<FragmentWordListBinding>(),
-    WordListAdapter.NewWordListAdapterListener {
+    WordListAdapter.NewWordListAdapterListener, AddLangDialog.AddLangDialogListener {
 
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestScopes(Scope(SheetsScopes.SPREADSHEETS))
@@ -170,31 +170,44 @@ class WordListFragment : BaseFragment<FragmentWordListBinding>(),
         super.onCreateOptionsMenu(menu, inflater)
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        listViewModel.langList.forEach { lang ->
+            lang.id?.let {
+                if (menu.findItem(it.toInt()) == null) {
+                    menu.add(R.id.langMenu, it.toInt(), Menu.NONE, lang.name)
+                }
+            }
+        }
+        super.onPrepareOptionsMenu(menu)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.back -> {
-                Log.d("###", "WordListFragment / 130 / onOptionsItemSelected: back")
                 signInContractBackup.launch(gso)
             }
             R.id.restore -> {
                 signInContractRestore.launch(gso)
             }
-            R.id.en -> {
-                LangGod.langId = 0
-                listViewModel.loadData()
-                return true
+            R.id.add_lang -> {
+                val newFragment = AddLangDialog(this)
+                newFragment.show(requireActivity().supportFragmentManager, "game")
             }
-            R.id.fr -> {
-                LangGod.langId = 1
-                listViewModel.loadData()
-                return true
-            }
-            R.id.check -> {
-                listViewModel.checkLang()
-                return true
+        }
+        listViewModel.langList.forEach { lang ->
+            lang.id?.let {
+                if (it.toInt() == item.itemId) {
+                    LangGod.langId = it
+                    listViewModel.loadData()
+                    return true
+                }
             }
         }
         return false
+    }
+
+    override fun addLang(name: String, code: String) {
+        listViewModel.addLang(name, code)
     }
 
 }
