@@ -31,6 +31,16 @@
             android:title="French"
             tools:ignore="HardcodedText" />
 
+        <item
+            android:id="@+id/check"
+            android:title="Check"
+            tools:ignore="HardcodedText" />
+
+        <item
+            android:id="@+id/add_lang"
+            android:title="Add Lang"
+            tools:ignore="HardcodedText" />
+
     </group>
 
 </menu>

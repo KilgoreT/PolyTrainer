@@ -18,6 +18,21 @@ class CoreDbApiImpl @Inject constructor(
     private val wordDao: WordDao
 ) : CoreDbApi {
 
+    override fun addLang(code: String, name: String): Completable {
+        val currentDate = Date(System.currentTimeMillis())
+        return wordDao.addLanguage(
+            LanguageDb(
+                code = code,
+                name = name,
+                addDate = currentDate
+            )
+        )
+    }
+
+    override fun getLang(): Single<List<Language>> {
+        return wordDao.getLanguages().map { it.toAppEntity() }
+    }
+
     override fun addWord(value: String, langId: Long): Completable {
         val currentDate = Date(System.currentTimeMillis())
         return wordDao.addWord(
@@ -33,6 +48,12 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao
             .getWordById(id)
             .map { value -> value.toAppEntity() }
+    }
+
+    override fun getAllWord(): Single<List<Word>> {
+        return wordDao
+            .getWord()
+            .map { it.toAppEntity() }
     }
 
     override fun updateWord(word: Word): Completable {

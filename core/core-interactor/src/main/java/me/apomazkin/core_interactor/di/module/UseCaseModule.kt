@@ -4,6 +4,8 @@ import dagger.Binds
 import dagger.Module
 import me.apomazkin.core_interactor.useCase.definition.*
 import me.apomazkin.core_interactor.useCase.dump.GetDumpUseCase
+import me.apomazkin.core_interactor.useCase.language.AddLanguageUseCase
+import me.apomazkin.core_interactor.useCase.language.GetLanguageUseCase
 import me.apomazkin.core_interactor.useCase.sample.AddSampleUseCase
 import me.apomazkin.core_interactor.useCase.sample.GetSampleUseCase
 import me.apomazkin.core_interactor.useCase.statistic.GetDefinitionCountUseCase
@@ -23,6 +25,12 @@ import me.apomazkin.core_interactor.useCase.writeQuiz.UpdateWriteQuizUseCase
 
 @Module
 interface UseCaseModule {
+
+    @Binds
+    fun bindGetLanguageUseCase(impl: GetLanguageUseCase.Impl): GetLanguageUseCase
+
+    @Binds
+    fun bindAddLanguageUseCase(impl: AddLanguageUseCase.Impl): AddLanguageUseCase
 
     @Binds
     fun bindAddWordUseCase(impl: AddWordUseCase.Impl): AddWordUseCase

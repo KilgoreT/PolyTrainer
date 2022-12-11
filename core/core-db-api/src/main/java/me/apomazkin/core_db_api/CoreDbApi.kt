@@ -7,8 +7,12 @@ import me.apomazkin.core_db_api.entity.*
 
 interface CoreDbApi {
 
+    fun addLang(code: String, name: String): Completable
+    fun getLang(): Single<List<Language>>
+
     fun addWord(value: String, langId: Long): Completable
     fun getWord(id: Long): Single<Word>
+    fun getAllWord(): Single<List<Word>>
     fun updateWord(word: Word): Completable
     fun removeWord(id: Long): Completable
 

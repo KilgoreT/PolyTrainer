@@ -10,10 +10,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.launch
-import me.apomazkin.core_db_api.entity.Dump
-import me.apomazkin.core_db_api.entity.Term
-import me.apomazkin.core_db_api.entity.Word
-import me.apomazkin.core_db_api.entity.WriteQuiz
+import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.core_interactor.LangGod
 import me.apomazkin.feature_vocabulary_api.FeatureVocabularyNavigation
@@ -233,6 +230,54 @@ class WordListViewModel @Inject constructor(
                         Log.d("###", "WordListViewModel / 233 / restoreAll: $dump")
                         coreInteractorApi.getDumpUseCase().restore(dump)
                     }
+                }
+        }
+    }
+
+    fun checkLang() {
+        coreInteractorApi
+            .getLanguageUseCase()
+            .getAllLanguage()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { result ->
+                    Log.d("###", "lang count: ${result.size}")
+                    verifyLang(result)
+                },
+                { onError(it) }
+            )
+    }
+
+    private fun verifyLang(result: List<Language>) {
+        result.firstOrNull { it.code == "en" }
+            ?: let {
+                Log.d("###", "verifyLang: En non exist")
+                coreInteractorApi
+                    .addLanguageUseCase()
+                    .addLanguage(
+                        code = "en",
+                        name = "English"
+                    )
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        Log.d("###", "verifyLang: End Added!")
+                    }
+            }
+
+        result.firstOrNull { it.code == "fr" } ?: let {
+            Log.d("###", "verifyLang: Fr non exist")
+            coreInteractorApi
+                .addLanguageUseCase()
+                .addLanguage(
+                    code = "fr",
+                    name = "French"
+                )
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    Log.d("###", "verifyLang: Fr Added")
                 }
         }
     }
