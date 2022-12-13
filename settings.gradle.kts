@@ -46,7 +46,7 @@ pluginManagement {
                     useVersion("1.6.21")
                 }
                 pluginId.contains("kotlin-") -> {
-                    useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.0")
+                    useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.20")
                 }
                 pluginId.startsWith("com.android.") -> {
                     useModule("com.android.tools.build:gradle:7.2.2")
