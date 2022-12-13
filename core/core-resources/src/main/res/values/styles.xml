@@ -1,5 +1,9 @@
 <resources>
 
+    <style name="Theme.PolyTrainer" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#FF0000</item>
+    </style>
+
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.MaterialComponents.Light.DarkActionBar">
         <!-- Customize your theme here. -->
