@@ -21,7 +21,7 @@ dependencies {
     implementation(project("path" to ":widget:view-progress-quiz"))
 
     // AndroidX
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.10")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.21")
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.5.1")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")

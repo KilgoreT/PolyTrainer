@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="logo_title">on the top©</string>
+
+    <string name="common_noun_label">сущ.</string>
+    <string name="common_verb_label">гл.</string>
+    <string name="common_adjective_label">прил.</string>
+    <string name="common_adverb_label">нар.</string>
+</resources>
