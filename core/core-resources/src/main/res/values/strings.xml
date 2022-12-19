@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <string name="logo_title">on the top©</string>
+
     <string name="common_noun_label">noun</string>
     <string name="common_verb_label">verb</string>
     <string name="common_adjective_label">adj.</string>

@@ -20,7 +20,7 @@ dependencies {
     implementation(project("path" to ":core:core-binding"))
     implementation(project("path" to ":feature:feature-vocabulary-api"))
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.10")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.21")
 
     // AndroidX
     implementation("androidx.appcompat:appcompat:1.5.1")
