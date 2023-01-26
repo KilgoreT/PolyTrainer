@@ -1,0 +1,302 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 6,
+    "identityHash": "6d6eca2ba13a6e75ddb5a66461961533",
+    "entities": [
+      {
+        "tableName": "words",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `langId` INTEGER NOT NULL, `word` TEXT, `addDate` INTEGER, `changeDate` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "langId",
+            "columnName": "langId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "word",
+            "columnName": "word",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "addDate",
+            "columnName": "addDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "changeDate",
+            "columnName": "changeDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "id"
+          ],
+          "autoGenerate": true
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "definitions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `wordId` INTEGER, `definition` TEXT, `wordClass` TEXT, `options` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "wordId",
+            "columnName": "wordId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "definition",
+            "columnName": "definition",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "wordClass",
+            "columnName": "wordClass",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "options",
+            "columnName": "options",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "id"
+          ],
+          "autoGenerate": true
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "hint",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `definitionId` INTEGER NOT NULL, `value` TEXT NOT NULL, `addDate` INTEGER NOT NULL, `changeDate` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "definitionId",
+            "columnName": "definitionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addDate",
+            "columnName": "addDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "changeDate",
+            "columnName": "changeDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "id"
+          ],
+          "autoGenerate": true
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sample",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `definitionId` INTEGER NOT NULL, `value` TEXT NOT NULL, `source` TEXT, `addDate` INTEGER NOT NULL, `changeDate` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "definitionId",
+            "columnName": "definitionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "addDate",
+            "columnName": "addDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "changeDate",
+            "columnName": "changeDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "id"
+          ],
+          "autoGenerate": true
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "writeQuiz",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `langId` INTEGER NOT NULL, `definitionId` INTEGER NOT NULL, `grade` INTEGER NOT NULL, `score` INTEGER NOT NULL, `addDate` INTEGER, `lastSelectDate` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "langId",
+            "columnName": "langId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "definitionId",
+            "columnName": "definitionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "grade",
+            "columnName": "grade",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score",
+            "columnName": "score",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addDate",
+            "columnName": "addDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastSelectDate",
+            "columnName": "lastSelectDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "id"
+          ],
+          "autoGenerate": true
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "languages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `numericCode` INTEGER NOT NULL, `code` TEXT NOT NULL, `name` TEXT, `addDate` INTEGER NOT NULL, `changeDate` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "numericCode",
+            "columnName": "numericCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "code",
+            "columnName": "code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "addDate",
+            "columnName": "addDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "changeDate",
+            "columnName": "changeDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "id"
+          ],
+          "autoGenerate": true
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6d6eca2ba13a6e75ddb5a66461961533')"
+    ]
+  }
+}

@@ -19,6 +19,12 @@ interface WordDao {
     @Query("SELECT * FROM languages")
     fun getLanguages(): Single<List<LanguageDb>>
 
+    @Insert
+    fun addLanguageSuspend(languageDb: LanguageDb)
+
+    @Query("SELECT * FROM languages")
+    suspend fun getLanguagesSuspend(): List<LanguageDb>
+
     /**
      * WORD
      */

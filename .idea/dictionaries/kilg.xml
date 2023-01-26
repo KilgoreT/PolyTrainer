@@ -5,11 +5,16 @@
       <w>crashlytics</w>
       <w>gradability</w>
       <w>interactor</w>
+      <w>langpicker</w>
       <w>overline</w>
       <w>polytrainer</w>
       <w>systemuicontroller</w>
+      <w>viewmodel</w>
       <w>worddb</w>
       <w>writequiz</w>
+      <w>билдер</w>
+      <w>заменить</w>
+      <w>фабрику</w>
     </words>
   </dictionary>
 </component>

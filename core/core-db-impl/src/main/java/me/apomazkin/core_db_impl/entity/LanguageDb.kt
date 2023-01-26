@@ -8,6 +8,8 @@ import java.util.*
 data class LanguageDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long? = null,
+    val numericCode: Int = 1,
+    // TODO: Удалить?
     val code: String,
     val name: String? = null,
     val addDate: Date,

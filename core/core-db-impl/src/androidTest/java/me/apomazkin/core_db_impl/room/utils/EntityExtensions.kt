@@ -1,10 +1,7 @@
 package me.apomazkin.core_db_impl.room.utils
 
 import android.content.ContentValues
-import me.apomazkin.core_db_impl.entity.DefinitionDb
-import me.apomazkin.core_db_impl.entity.HintDb
-import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.entity.*
 
 /**
  * Extensions to transform database entities to ContentValue list.
@@ -14,6 +11,7 @@ import me.apomazkin.core_db_impl.entity.WriteQuizDb
 fun List<WordDb>.asContentValue() = this.map { word ->
     ContentValues().apply {
         put("id", word.id)
+        put("langId", word.langId)
         put("word", word.word)
     }
 }
@@ -46,8 +44,22 @@ fun List<HintDb>.asContentValue() = this.map { hint ->
 fun List<WriteQuizDb>.asContentValue() = this.map { writeQuizDb ->
     ContentValues().apply {
         put("id", writeQuizDb.id)
+        put("langId", writeQuizDb.langId)
         put("definitionId", writeQuizDb.definitionId)
         put("grade", writeQuizDb.grade)
         put("score", writeQuizDb.score)
+    }
+}
+
+@JvmName("asContentValueLanguageDb")
+fun List<LanguageDb>.asContentValue() = this.map { lang ->
+    ContentValues().apply {
+        put("id", lang.id)
+        put("code", lang.code)
+        put("name", lang.name)
+        put("addDate", lang.addDate.time)
+        lang.changeDate?.let {
+            put("changeDate", it.time)
+        } ?: putNull("changeDate")
     }
 }
