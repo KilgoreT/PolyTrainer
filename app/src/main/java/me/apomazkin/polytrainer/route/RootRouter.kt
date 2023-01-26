@@ -11,7 +11,8 @@ import me.apomazkin.polytrainer.BuildConfig
 import me.apomazkin.polytrainer.navigation.Constants
 import me.apomazkin.polytrainer.navigation.processLog
 import me.apomazkin.polytrainer.navigation.toLogEntityFlow
-import me.apomazkin.polytrainer.ui.screen.SplashScreen
+import me.apomazkin.polytrainer.ui.screen.langSelection.LanguageSelectionScreen
+import me.apomazkin.polytrainer.ui.screen.splash.SplashScreen
 
 enum class RootPoint(
     val route: String
@@ -61,6 +62,7 @@ fun RootRouter(
             }
         }
         composable(RootPoint.INIT_LANG.route) {
+            LanguageSelectionScreen()
         }
     }
 

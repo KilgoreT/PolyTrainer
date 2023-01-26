@@ -91,6 +91,8 @@ dependencies {
     // Compose navigation
     implementation("androidx.navigation:navigation-compose:2.5.3")
 
+    implementation("com.github.blongho:worldCountryData:v1.5.4-alpha-1")
+
     //no need??
     implementation("androidx.appcompat:appcompat:1.5.1")
 
