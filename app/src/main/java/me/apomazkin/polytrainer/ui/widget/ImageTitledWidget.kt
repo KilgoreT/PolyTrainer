@@ -28,7 +28,7 @@ private const val DEFAULT_SPACE = 8
  * Text in 1 line.
  */
 @Composable
-fun ImageTitled(
+fun ImageTitledWidget(
     modifier: Modifier = Modifier,
     @DrawableRes imageRes: Int,
     @StringRes titleRes: Int,
@@ -59,7 +59,7 @@ fun ImageTitled(
 @Preview(showBackground = true)
 private fun Preview() {
     AppTheme {
-        ImageTitled(
+        ImageTitledWidget(
             imageRes = R.drawable.ic_launcher_foreground,
             titleRes = R.string.app_name
         )

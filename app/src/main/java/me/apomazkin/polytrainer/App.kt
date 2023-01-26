@@ -2,6 +2,7 @@ package me.apomazkin.polytrainer
 
 import android.app.Application
 import android.util.Log
+import com.blongho.country_data.World
 import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import me.apomazkin.core_db.di.CoreDbComponent
@@ -18,6 +19,7 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         initCrashlytics()
+        World.init(applicationContext)
     }
 
     private fun initCrashlytics() {
