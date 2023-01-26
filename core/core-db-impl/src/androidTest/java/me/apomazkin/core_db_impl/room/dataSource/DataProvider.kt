@@ -8,22 +8,27 @@ class DataProvider {
         val wordList = listOf(
             WordDb(
                 id = 0L,
+                langId = 0,
                 word = "w000",
             ),
             WordDb(
                 id = 1L,
+                langId = 0,
                 word = "w111",
             ),
             WordDb(
                 id = 2L,
+                langId = 0,
                 word = "w222",
             ),
             WordDb(
                 id = 3L,
+                langId = 0,
                 word = "w333",
             ),
             WordDb(
                 id = 4L,
+                langId = 0,
                 word = "w444",
             ),
         )
@@ -71,18 +76,21 @@ class DataProvider {
         val writeQuizList = listOf<WriteQuizDb>(
             WriteQuizDb(
                 id = 0,
+                langId = 0,
                 definitionId = 0,
                 grade = 0,
                 score = 0,
             ),
             WriteQuizDb(
                 id = 1,
+                langId = 0,
                 definitionId = 1,
                 grade = 0,
                 score = 0,
             ),
             WriteQuizDb(
                 id = 2,
+                langId = 0,
                 definitionId = 2,
                 grade = 0,
                 score = 0,

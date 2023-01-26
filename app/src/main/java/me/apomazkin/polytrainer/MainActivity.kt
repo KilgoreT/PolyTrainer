@@ -12,7 +12,7 @@ import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
 import me.apomazkin.core_db_api.CoreDbProvider
 import me.apomazkin.polytrainer.route.RootRouter
-import me.apomazkin.polytrainer.ui.theme.AppTheme
+import me.apomazkin.theme.AppTheme
 import javax.inject.Inject
 
 class MainActivity : ComponentActivity() {

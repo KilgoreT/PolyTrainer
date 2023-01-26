@@ -33,6 +33,23 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.getLanguages().map { it.toAppEntity() }
     }
 
+    override suspend fun addLangSuspend(numericCode: Int, name: String) {
+        val currentDate = Date(System.currentTimeMillis())
+        wordDao.addLanguageSuspend(
+            LanguageDb(
+                numericCode = numericCode,
+                code = "",
+                name = name,
+                addDate = currentDate,
+            )
+
+        )
+    }
+
+    override suspend fun getLangSuspend(): List<Language> {
+        return wordDao.getLanguagesSuspend().map { it.toAppEntity() }
+    }
+
     override fun addWord(value: String, langId: Long): Completable {
         val currentDate = Date(System.currentTimeMillis())
         return wordDao.addWord(
