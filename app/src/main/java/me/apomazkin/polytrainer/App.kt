@@ -1,25 +1,32 @@
 package me.apomazkin.polytrainer
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
-import com.blongho.country_data.World
 import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import me.apomazkin.core_db.di.CoreDbComponent
-import me.apomazkin.polytrainer.di.DaggerMainComponent
-import me.apomazkin.polytrainer.di.DaggerMainComponent_MainDependenciesComponent
-import me.apomazkin.polytrainer.di.MainComponent
+import me.apomazkin.polytrainer.di.AppComponent
+import me.apomazkin.polytrainer.di.DaggerAppComponent
+import me.apomazkin.polytrainer.di.DaggerAppComponent_CoreDbDependenciesComponent
 
 class App : Application() {
 
-    init {
-        instance = this
-    }
+    lateinit var appComponent: AppComponent
 
     override fun onCreate() {
         super.onCreate()
+        appComponent = DaggerAppComponent
+            .factory()
+            .create(
+                appContext = this,
+                coreDbProvider = DaggerAppComponent_CoreDbDependenciesComponent
+                    //TODO kilg 13.05.2020 06:39 заменить билдер на фабрику
+                    .builder()
+                    .coreDbProvider(CoreDbComponent.get(this))
+                    .build(),
+            )
         initCrashlytics()
-        World.init(applicationContext)
     }
 
     private fun initCrashlytics() {
@@ -28,24 +35,10 @@ class App : Application() {
         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(isCrashlyticsEnable)
         Log.d("###", ">>>> Enable Crashlytics: $isCrashlyticsEnable")
     }
-
-    companion object {
-        lateinit var instance: App
-        lateinit var appComponent: MainComponent
-
-        fun getComponent(): MainComponent {
-            if (!::appComponent.isInitialized) {
-                appComponent = DaggerMainComponent
-                    .factory()
-                    .create(
-                        DaggerMainComponent_MainDependenciesComponent
-                            //TODO kilg 13.05.2020 06:39 заменить билдер на фабрику
-                            .builder()
-                            .coreDbProvider(CoreDbComponent.get(instance))
-                            .build()
-                    )
-            }
-            return appComponent
-        }
-    }
 }
+
+val Context.appComponent: AppComponent
+    get() = when (this) {
+        is App -> this.appComponent
+        else -> this.applicationContext.appComponent
+    }

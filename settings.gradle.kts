@@ -2,6 +2,19 @@ rootProject.name = "PolyTrainer"
 
 
 include(":app")
+
+//Core
+include(":modules:core:theme")
+include(":modules:core:ui")
+
+//Screen
+include(":modules:screen:splash")
+include(":modules:screen:langpicker")
+
+//Libraries
+include(":modules:library:flags")
+
+//Old
 include(":core:core-interactor")
 include(":core:core-resources")
 include(":core:core-binding")

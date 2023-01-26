@@ -9,6 +9,9 @@ interface CoreDbApi {
 
     fun addLang(code: String, name: String): Completable
     fun getLang(): Single<List<Language>>
+    suspend fun addLangSuspend(numericCode: Int, name: String)
+    suspend fun getLangSuspend(): List<Language>
+
 
     fun addWord(value: String, langId: Long): Completable
     fun getWord(id: Long): Single<Word>
