@@ -18,7 +18,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.blongho.country_data.R
+import me.apomazkin.langpicker.R
 import me.apomazkin.theme.AppTheme
 
 @Composable
@@ -71,7 +71,7 @@ fun LanguageItemWidget(
 private fun PreviewNotSelect() {
     AppTheme {
         LanguageItemWidget(
-            flagRes = R.drawable.gb,
+            flagRes = R.drawable.ic_more_on_primary,
             value = "English",
             isSelected = false
         ) {}
@@ -83,7 +83,7 @@ private fun PreviewNotSelect() {
 private fun PreviewSelected() {
     AppTheme {
         LanguageItemWidget(
-            flagRes = R.drawable.gb,
+            flagRes = R.drawable.ic_more_on_primary,
             value = "English",
             isSelected = true
         ) {}

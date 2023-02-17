@@ -14,6 +14,11 @@
     <string name="lang_selection_subtitle">or add another</string>
     <string name="lang_selection_button">Continue</string>
 
+    <!--MAIN SCREEN-->
+    <string name="item_title_vocabulary">Vocabulary</string>
+    <string name="item_title_training">Training</string>
+    <string name="item_title_dashboard">Dashboard</string>
+
     <string name="common_noun_label">noun</string>
     <string name="common_verb_label">verb</string>
     <string name="common_adjective_label">adj.</string>

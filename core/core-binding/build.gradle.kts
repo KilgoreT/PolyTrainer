@@ -4,6 +4,7 @@ plugins {
 }
 
 android {
+    namespace = "me.apomazkin.core_binding"
     buildFeatures(Action {
         dataBinding = true
     })
@@ -14,7 +15,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.7.10")
 
     implementation("androidx.core:core-ktx:1.9.0")
-    implementation("androidx.appcompat:appcompat:1.6.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
 
     // Material
     implementation("com.google.android.material:material:1.8.0")

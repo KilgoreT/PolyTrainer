@@ -49,12 +49,12 @@ private fun Preview() {
             languagesPreset(
                 list = listOf(
                     LangPresetUi(
-                        flagRes = R.drawable.gb,
+                        flagRes = R.drawable.ic_more_on_primary,
                         countryNumericCode = Country.GERMAN.numericCode,
                         langNameRes = R.string.lang_english,
                     ),
                     LangPresetUi(
-                        flagRes = R.drawable.it,
+                        flagRes = R.drawable.ic_more_on_primary,
                         countryNumericCode = Country.ITALIAN.numericCode,
                         langNameRes = R.string.lang_italian,
                     ),

@@ -1,13 +1,8 @@
 package me.apomazkin.polytrainer.route
 
 import android.util.Log
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -26,7 +21,7 @@ enum class RootPoint(
 ) {
     SPLASH("SPLASH"),
     INIT_LANG("INIT_LANG"),
-    MAIN("MAIN")
+    MAIN_ROUTER("MAIN_ROUTER")
 }
 
 class RootRouter {
@@ -73,13 +68,14 @@ fun RootRouter(
                 navigator?.openMainScreen()
             }
         }
-        composable(RootPoint.MAIN.route) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Green)
-            )
-        }
+        mainRouter(route = RootPoint.MAIN_ROUTER.route)
+//        composable(RootPoint.MAIN.route) {
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .background(Color.Green)
+//            )
+//        }
     }
 
     navigator = object : RootRouterNavigation {
@@ -94,7 +90,7 @@ fun RootRouter(
         }
 
         override fun openMainScreen() {
-            navController.navigate(RootPoint.MAIN.route) {
+            navController.navigate(RootPoint.MAIN_ROUTER.route) {
                 navController.currentDestination?.route?.let { currentRoute ->
                     launchSingleTop = true
                     popUpTo(currentRoute) { inclusive = true }

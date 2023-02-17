@@ -36,5 +36,10 @@ val Typography = Typography(
         fontFamily = PoppinsMedium,
         fontWeight = FontWeight.W500,
         fontSize = 14.sp,
+    ),
+    labelMedium = TextStyle(
+        fontFamily = PoppinsMedium,
+        fontWeight = FontWeight.W500,
+        fontSize = 12.sp,
     )
 )
