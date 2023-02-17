@@ -10,6 +10,7 @@ include(":modules:core:ui")
 //Screen
 include(":modules:screen:splash")
 include(":modules:screen:langpicker")
+include(":modules:screen:main")
 
 //Libraries
 include(":modules:library:flags")

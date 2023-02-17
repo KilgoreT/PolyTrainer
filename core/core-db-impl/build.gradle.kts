@@ -3,7 +3,7 @@ plugins {
     id("kotlin-kapt")
 }
 
-val roomVersion by extra { "2.2.6" }
+val roomVersion by extra { "2.5.0" }
 
 
 android {
@@ -17,6 +17,7 @@ android {
     sourceSets {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
+    namespace = "me.apomazkin.core_db_impl"
 }
 
 dependencies {
@@ -25,7 +26,7 @@ dependencies {
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.7.10")
-    implementation("androidx.appcompat:appcompat:1.6.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.core:core-ktx:1.9.0")
 
     //Room

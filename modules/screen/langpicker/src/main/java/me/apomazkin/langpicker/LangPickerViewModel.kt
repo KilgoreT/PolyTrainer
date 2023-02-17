@@ -3,7 +3,6 @@ package me.apomazkin.langpicker
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.blongho.country_data.World
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,10 +41,6 @@ class LangPickerViewModel(
     }
 
     fun addNew(name: String) {
-        val counties = World.getAllCountries()
-            .filter { county ->
-                county.languages.any { it.contains(name) }
-            }
     }
 
     fun setupLang(lang: LangUpdateUi) {

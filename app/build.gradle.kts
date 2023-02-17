@@ -34,6 +34,7 @@ android {
             }
         }
     }
+    namespace = "me.apomazkin.polytrainer"
 
     buildTypes(Action {
         getByName("debug") {
@@ -70,6 +71,7 @@ dependencies {
 
     implementation(project("path" to ":modules:screen:splash"))
     implementation(project("path" to ":modules:screen:langpicker"))
+    implementation(project("path" to ":modules:screen:main"))
 
     implementation(project("path" to ":modules:library:flags"))
 
@@ -88,7 +90,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.5.3")
 
     //no need??
-    implementation("androidx.appcompat:appcompat:1.6.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
 
     //Dagger2
     implementation("com.google.dagger:dagger:2.42")

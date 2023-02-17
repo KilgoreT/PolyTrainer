@@ -6,6 +6,7 @@ plugins {
 }
 
 android {
+    namespace = "me.apomazkin.feature_vocabulary_impl"
     buildFeatures(Action {
         dataBinding = true
     })
@@ -23,7 +24,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.21")
 
     // AndroidX
-    implementation("androidx.appcompat:appcompat:1.6.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")

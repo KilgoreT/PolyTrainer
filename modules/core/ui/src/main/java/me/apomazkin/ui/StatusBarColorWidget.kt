@@ -17,3 +17,16 @@ fun StatusBarColorWidget(
         onDispose {}
     }
 }
+
+@Composable
+fun StatusBarColorWidget(
+    statusBarColor: Color = Color.Transparent,
+    navigationBarColor: Color = Color.Transparent,
+) {
+    val systemUiController = rememberSystemUiController()
+    DisposableEffect(Unit) {
+        systemUiController.setStatusBarColor(statusBarColor)
+        systemUiController.setNavigationBarColor(navigationBarColor)
+        onDispose {}
+    }
+}
