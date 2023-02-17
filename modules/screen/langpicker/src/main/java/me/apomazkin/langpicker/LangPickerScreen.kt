@@ -64,12 +64,12 @@ private fun Preview() {
             state = LangPickerState.PresetState(
                 listOf(
                     LangPresetUi(
-                        flagRes = R.drawable.gb,
+                        flagRes = R.drawable.ic_more_on_primary,
                         countryNumericCode = 826,
                         langNameRes = R.string.lang_english,
                     ),
                     LangPresetUi(
-                        flagRes = R.drawable.fr,
+                        flagRes = R.drawable.ic_more_on_primary,
                         countryNumericCode = 250,
                         langNameRes = R.string.lang_italian,
                     ),
