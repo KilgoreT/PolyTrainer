@@ -6,6 +6,8 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.*
 import me.apomazkin.core_db_impl.entity.*
@@ -18,35 +20,23 @@ class CoreDbApiImpl @Inject constructor(
     private val wordDao: WordDao
 ) : CoreDbApi {
 
-    override fun addLang(code: String, name: String): Completable {
-        val currentDate = Date(System.currentTimeMillis())
-        return wordDao.addLanguage(
-            LanguageDb(
-                code = code,
-                name = name,
-                addDate = currentDate
-            )
-        )
-    }
-
     override fun getLang(): Single<List<Language>> {
         return wordDao.getLanguages().map { it.toAppEntity() }
     }
 
-    override suspend fun addLangSuspend(numericCode: Int, name: String) {
+    override suspend fun addLangSuspend(numericCode: Int, name: String): Long {
         val currentDate = Date(System.currentTimeMillis())
-        wordDao.addLanguageSuspend(
+        return wordDao.addLanguageSuspend(
             LanguageDb(
                 numericCode = numericCode,
                 code = "",
                 name = name,
                 addDate = currentDate,
             )
-
         )
     }
 
-    override suspend fun getLangSuspend(): List<Language> {
+    override fun getLangSuspend(): Flow<List<Language>> {
         return wordDao.getLanguagesSuspend().map { it.toAppEntity() }
     }
 

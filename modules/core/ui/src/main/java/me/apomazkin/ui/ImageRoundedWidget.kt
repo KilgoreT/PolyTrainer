@@ -8,9 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.ui.preview.PreviewWidget
 
 private const val DEFAULT_SHAPE = 0
 private const val DEFAULT_DESCRIPTION = ""
@@ -41,7 +41,7 @@ fun ImageRoundedWidget(
 }
 
 @Composable
-@Preview
+@PreviewWidget
 private fun Preview() {
     AppTheme {
         ImageRoundedWidget(

@@ -21,6 +21,7 @@ class RoomModule {
                 migration_3_4,
                 migration_4_5,
                 migration_5_6,
+                migration_6_7,
             )
             .build()
     }

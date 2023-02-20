@@ -74,6 +74,7 @@ dependencies {
     implementation(project("path" to ":modules:screen:main"))
 
     implementation(project("path" to ":modules:library:flags"))
+    implementation(project("path" to ":modules:datastore:prefs"))
 
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":core:core-db"))

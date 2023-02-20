@@ -37,6 +37,8 @@ fun SupportSQLiteDatabase.getLanguagesFromDatabase(): List<LanguageDb> {
     if (cursor.moveToNext()) {
         do {
             val id = cursor.getLong(cursor.getColumnIndex(Schema.Languages.columnId))
+            val numericCode =
+                cursor.getInt(cursor.getColumnIndex(Schema.Languages.columnNumericCode))
             val code = cursor.getString(cursor.getColumnIndex(Schema.Languages.columnCode))
             val name = cursor.getStringOrNull(cursor.getColumnIndex(Schema.Languages.columnName))
             val addDate = cursor.getLong(cursor.getColumnIndex(Schema.Languages.columnAddDate))
@@ -45,6 +47,7 @@ fun SupportSQLiteDatabase.getLanguagesFromDatabase(): List<LanguageDb> {
             result.add(
                 LanguageDb(
                     id = id,
+                    numericCode = numericCode,
                     code = code,
                     name = name,
                     addDate = Date(addDate),

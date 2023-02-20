@@ -6,15 +6,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.ImageTitledWidget
 import me.apomazkin.ui.StatusBarColorWidget
+import me.apomazkin.ui.preview.PreviewWidget
 
+@OptIn(ExperimentalLifecycleComposeApi::class)
 @Composable
 fun SplashScreen(
     splashUseCase: SplashUseCase,
@@ -23,10 +29,13 @@ fun SplashScreen(
     ),
     onExit: (isInitLaunch: Boolean) -> Unit
 ) {
-    LaunchedEffect(Unit) {
+
+    val checkIfNeedInitLang by viewModel.checkIfNeedAddLang.collectAsStateWithLifecycle()
+    LaunchedEffect(checkIfNeedInitLang) {
         delay(600)
-        val isInitLaunch = viewModel.checkInitLaunch()
-        onExit.invoke(isInitLaunch)
+        checkIfNeedInitLang?.let {
+            onExit.invoke(it)
+        }
     }
 
     StatusBarColorWidget(color = MaterialTheme.colorScheme.background)
@@ -44,12 +53,12 @@ fun SplashScreen(
 }
 
 @Composable
-@Preview(showBackground = true)
+@PreviewWidget
 private fun Preview() {
     AppTheme {
         SplashScreen(
             splashUseCase = object : SplashUseCase {
-                override suspend fun checkIfLangIsInit(): Boolean = false
+                override fun checkIfNeedAddLang(): Flow<Boolean> = flowOf(false)
             }
         ) {}
     }

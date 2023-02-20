@@ -2,15 +2,22 @@ package me.apomazkin.splash
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.*
 
 interface SplashUseCase {
-    suspend fun checkIfLangIsInit(): Boolean
+    fun checkIfNeedAddLang(): Flow<Boolean>
 }
 
 class SplashViewModel(
-    private val splashUseCase: SplashUseCase
+    splashUseCase: SplashUseCase
 ) : ViewModel() {
-    suspend fun checkInitLaunch(): Boolean = !splashUseCase.checkIfLangIsInit()
+
+    val checkIfNeedAddLang: StateFlow<Boolean?> = splashUseCase.checkIfNeedAddLang().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = null
+    )
 
     class Factory(
         private val splashUseCase: SplashUseCase

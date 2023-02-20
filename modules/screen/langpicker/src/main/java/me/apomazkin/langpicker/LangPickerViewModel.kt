@@ -1,5 +1,7 @@
 package me.apomazkin.langpicker
 
+import android.database.sqlite.SQLiteConstraintException
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -12,7 +14,8 @@ import me.apomazkin.langpicker.entity.LangUpdateUi
 
 interface LangPickerUseCase {
     suspend fun getFlagRes(numericCode: Int): Int
-    suspend fun addLang(numericCode: Int, name: String)
+    suspend fun addLang(numericCode: Int, name: String): Long
+    suspend fun saveCurrentLang(numericCode: Int)
 }
 
 class LangPickerViewModel(
@@ -45,12 +48,27 @@ class LangPickerViewModel(
 
     fun setupLang(lang: LangUpdateUi) {
         viewModelScope.launch(Dispatchers.IO) {
-            langPickerUseCase.addLang(lang.countryNumericCode, lang.langName)
-            when (val currentState = _state.value) {
-                is LangPickerState.PresetState -> {
-                    _state.value = currentState.copy(isSelected = true)
+            try {
+                langPickerUseCase.addLang(lang.countryNumericCode, lang.langName)
+                langPickerUseCase.saveCurrentLang(lang.countryNumericCode)
+                when (val currentState = _state.value) {
+                    is LangPickerState.PresetState -> {
+                        _state.value = currentState.copy(isSelected = true)
+                    }
+                    else -> {}
                 }
-                else -> {}
+            } catch (e: Exception) {
+                val message = when (e) {
+                    is SQLiteConstraintException -> R.string.lang_selection_error
+                    else -> R.string.unknown_error
+                }
+                val newState = (_state.value as? LangPickerState.PresetState)?.let { oldState ->
+                    val errorMessage = oldState.errorMessage.newMessage(message)
+                    oldState.copy(errorMessage = errorMessage)
+                }
+                newState?.let {
+                    _state.value = it
+                }
             }
         }
     }
@@ -70,6 +88,23 @@ sealed interface LangPickerState {
     object LoadingState : LangPickerState
     data class PresetState(
         val value: List<LangPresetUi>,
+        val errorMessage: ErrorMessage? = null,
         val isSelected: Boolean = false
     ) : LangPickerState
+}
+
+data class ErrorMessage(
+    val id: Int = 0,
+    @StringRes val message: Int,
+)
+
+fun ErrorMessage?.newMessage(
+    @StringRes message: Int
+): ErrorMessage {
+    return this?.let { error ->
+        error.copy(
+            id = error.id + 1,
+            message = message
+        )
+    } ?: ErrorMessage(message = message)
 }

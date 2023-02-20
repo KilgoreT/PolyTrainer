@@ -15,6 +15,8 @@ include(":modules:screen:main")
 //Libraries
 include(":modules:library:flags")
 
+include(":modules:datastore:prefs")
+
 //Old
 include(":core:core-interactor")
 include(":core:core-resources")

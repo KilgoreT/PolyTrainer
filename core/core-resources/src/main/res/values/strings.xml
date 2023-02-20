@@ -3,22 +3,6 @@
 
     <string name="logo_title">on the top©</string>
 
-    <!--LANGUAGE SELECTION-->
-    <string name="lang_selection_title">Select vocabulary language:</string>
-    <string name="lang_english">English</string>
-    <string name="lang_german">German</string>
-    <string name="lang_french">French</string>
-    <string name="lang_spanish">Spanish</string>
-    <string name="lang_italian">Italian</string>
-    <string name="lang_portuguese">Portuguese</string>
-    <string name="lang_selection_subtitle">or add another</string>
-    <string name="lang_selection_button">Continue</string>
-
-    <!--MAIN SCREEN-->
-    <string name="item_title_vocabulary">Vocabulary</string>
-    <string name="item_title_training">Training</string>
-    <string name="item_title_dashboard">Dashboard</string>
-
     <string name="common_noun_label">noun</string>
     <string name="common_verb_label">verb</string>
     <string name="common_adjective_label">adj.</string>
@@ -30,5 +14,27 @@
         <item>Adjective</item>
         <item>Adverb</item>
     </string-array>
+
+    <!--LANGUAGE SELECTION-->
+    <string name="lang_selection_title">Select vocabulary language:</string>
+    <string name="lang_english">English</string>
+    <string name="lang_german">German</string>
+    <string name="lang_french">French</string>
+    <string name="lang_spanish">Spanish</string>
+    <string name="lang_italian">Italian</string>
+    <string name="lang_portuguese">Portuguese</string>
+    <string name="lang_selection_subtitle">or add another</string>
+    <string name="lang_selection_button">Continue</string>
+    <string name="lang_selection_error">Language already added</string>
+
+    <!--MAIN SCREEN-->
+    <string name="item_title_vocabulary">Vocabulary</string>
+    <string name="item_title_training">Training</string>
+    <string name="item_title_dashboard">Dashboard</string>
+    <string name="menu_item_title_add_lang">Add language</string>
+
+    <!--Any-->
+    <string name="flag_content_description">Flag icon</string>
+    <string name="unknown_error">Unknown error</string>
 
 </resources>
