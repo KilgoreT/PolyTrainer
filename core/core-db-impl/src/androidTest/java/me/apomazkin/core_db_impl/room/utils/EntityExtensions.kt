@@ -55,6 +55,7 @@ fun List<WriteQuizDb>.asContentValue() = this.map { writeQuizDb ->
 fun List<LanguageDb>.asContentValue() = this.map { lang ->
     ContentValues().apply {
         put("id", lang.id)
+        put("numericCode", lang.numericCode)
         put("code", lang.code)
         put("name", lang.name)
         put("addDate", lang.addDate.time)

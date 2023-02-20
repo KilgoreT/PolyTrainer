@@ -68,14 +68,12 @@ fun RootRouter(
                 navigator?.openMainScreen()
             }
         }
-        mainRouter(route = RootPoint.MAIN_ROUTER.route)
-//        composable(RootPoint.MAIN.route) {
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .background(Color.Green)
-//            )
-//        }
+        mainRouter(
+            route = RootPoint.MAIN_ROUTER.route,
+            onAddLang = {
+                navigator?.openInitLangScreen()
+            }
+        )
     }
 
     navigator = object : RootRouterNavigation {
@@ -90,10 +88,14 @@ fun RootRouter(
         }
 
         override fun openMainScreen() {
-            navController.navigate(RootPoint.MAIN_ROUTER.route) {
-                navController.currentDestination?.route?.let { currentRoute ->
-                    launchSingleTop = true
-                    popUpTo(currentRoute) { inclusive = true }
+            if (navController.backQueue.any { it.destination.route == MainPoint.MAIN.route }) {
+                navController.popBackStack(MainPoint.MAIN.route, false)
+            } else {
+                navController.navigate(RootPoint.MAIN_ROUTER.route) {
+                    navController.currentDestination?.route?.let { currentRoute ->
+                        launchSingleTop = true
+                        popUpTo(currentRoute) { inclusive = true }
+                    }
                 }
             }
         }

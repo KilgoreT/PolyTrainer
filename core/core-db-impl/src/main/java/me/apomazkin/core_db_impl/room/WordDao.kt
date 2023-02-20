@@ -4,6 +4,7 @@ import androidx.room.*
 import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
+import kotlinx.coroutines.flow.Flow
 import me.apomazkin.core_db_impl.entity.*
 
 // TODO: 20.03.2021 переименгвать Dao
@@ -19,11 +20,11 @@ interface WordDao {
     @Query("SELECT * FROM languages")
     fun getLanguages(): Single<List<LanguageDb>>
 
-    @Insert
-    fun addLanguageSuspend(languageDb: LanguageDb)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun addLanguageSuspend(languageDb: LanguageDb): Long
 
     @Query("SELECT * FROM languages")
-    suspend fun getLanguagesSuspend(): List<LanguageDb>
+    fun getLanguagesSuspend(): Flow<List<LanguageDb>>
 
     /**
      * WORD

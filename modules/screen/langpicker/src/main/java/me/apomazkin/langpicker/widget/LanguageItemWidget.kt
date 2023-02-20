@@ -1,25 +1,23 @@
 package me.apomazkin.langpicker.widget
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import me.apomazkin.langpicker.R
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.ui.ImageFlagWidget
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun LanguageItemWidget(
@@ -43,19 +41,11 @@ fun LanguageItemWidget(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
+        ImageFlagWidget(
+            flagRes = flagRes,
             modifier = Modifier
-                .padding(start = 16.dp)
-                .size(24.dp)
-                .border(
-                    width = 1.dp,
-                    color = Color.Black,
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .clip(RoundedCornerShape(8.dp)),
-            painter = painterResource(id = flagRes),
-            contentScale = ContentScale.FillHeight,
-            contentDescription = value
+                .padding(start = 16.dp),
+            contentDescription = value,
         )
         Text(
             modifier = Modifier
@@ -67,7 +57,7 @@ fun LanguageItemWidget(
 }
 
 @Composable
-@Preview(showBackground = true)
+@PreviewWidget
 private fun PreviewNotSelect() {
     AppTheme {
         LanguageItemWidget(
@@ -79,7 +69,7 @@ private fun PreviewNotSelect() {
 }
 
 @Composable
-@Preview(showBackground = true)
+@PreviewWidget
 private fun PreviewSelected() {
     AppTheme {
         LanguageItemWidget(

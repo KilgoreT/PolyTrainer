@@ -45,6 +45,7 @@ class SheetsProvider(
                 .addLine(
                     RowLine.Builder()
                         .addCell(CellSeal.CellLong(languageDump.id))
+                        .addCell(CellSeal.CellLong(languageDump.numericCode.toLong()))
                         .addCell(CellSeal.CellString(languageDump.code))
                         .addCell(CellSeal.CellString(languageDump.name))
                         .addCell(CellSeal.CellDate(languageDump.addDate))
@@ -206,10 +207,11 @@ class SheetsProvider(
             .map { line ->
                 LanguageDump(
                     id = line[0].toLong(),
-                    code = line[1],
-                    name = line[2],
-                    addDate = Date(line[3].toLong()),
-                    changeDate = line.getOrNull(4)?.let { Date(it.toLong()) }
+                    numericCode = line[1].toInt(),
+                    code = line[2],
+                    name = line[3],
+                    addDate = Date(line[4].toLong()),
+                    changeDate = line.getOrNull(5)?.let { Date(it.toLong()) }
                 )
             }
     }

@@ -2,10 +2,12 @@ package me.apomazkin.langpicker.widget
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.langpicker.LangPickerState
 import me.apomazkin.langpicker.R
@@ -21,6 +23,20 @@ fun LangPickerPresetWidget(
 
     val selectedLang = remember { mutableStateOf<LangUpdateUi?>(null) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val errorMessageState: State<String?> = rememberUpdatedState(
+        newValue = state.errorMessage?.message?.let {
+            stringResource(id = it)
+        }
+    )
+    LaunchedEffect(state) {
+        if (state.errorMessage != null) {
+            errorMessageState.value?.let {
+                snackbarHostState.showSnackbar(it)
+            }
+        }
+    }
+
     StatusBarColorWidget()
     Column(
         modifier = Modifier
@@ -33,18 +49,29 @@ fun LangPickerPresetWidget(
             bottomEnd = 18,
         )
         Spacer(modifier = Modifier.height(16.dp))
-        LazyColumn(
+        Box(
             modifier = Modifier
-                .weight(1F),
+                .fillMaxWidth()
+                .weight(1F)
         ) {
-            titleItemWidget()
-            languagesPreset(
-                list = state.value,
-                selected = selectedLang.value?.langName
+            LazyColumn(
+                modifier = Modifier
+                    .matchParentSize()
             ) {
-                selectedLang.value = it
+                titleItemWidget()
+                languagesPreset(
+                    list = state.value,
+                    selected = selectedLang.value?.langName
+                ) {
+                    selectedLang.value = it
+                }
+                listSubtitleWidget { }
             }
-            listSubtitleWidget { }
+            SnackbarHost(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter),
+                hostState = snackbarHostState
+            )
         }
         Spacer(modifier = Modifier.height(8.dp))
         ContinueButtonWidget(

@@ -13,6 +13,7 @@ object Schema {
 
     object Languages : TableName, ColumnId {
         override val tableName = "languages"
+        const val columnNumericCode = "numericCode"
         const val columnCode = "code"
         const val columnName = "name"
         const val columnAddDate = "addDate"
