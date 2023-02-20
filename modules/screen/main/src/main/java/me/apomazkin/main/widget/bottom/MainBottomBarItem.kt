@@ -1,4 +1,4 @@
-package me.apomazkin.main.widget
+package me.apomazkin.main.widget.bottom
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -10,11 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import me.apomazkin.main.R
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.M3Primary95
+import me.apomazkin.ui.preview.PreviewWidgetEn
+import me.apomazkin.ui.preview.PreviewWidgetRu
 
 @Composable
 fun RowScope.MainBottomBarItem(
@@ -46,7 +47,8 @@ fun RowScope.MainBottomBarItem(
 }
 
 @Composable
-@Preview(showBackground = true)
+@PreviewWidgetRu
+@PreviewWidgetEn
 private fun Preview() {
     AppTheme {
         Row(
@@ -64,7 +66,8 @@ private fun Preview() {
 }
 
 @Composable
-@Preview(showBackground = true)
+@PreviewWidgetRu
+@PreviewWidgetEn
 private fun PreviewSelected() {
     AppTheme {
         Row(

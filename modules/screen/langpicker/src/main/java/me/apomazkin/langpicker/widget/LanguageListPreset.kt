@@ -5,13 +5,14 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import me.apomazkin.langpicker.Country
 import me.apomazkin.langpicker.R
 import me.apomazkin.langpicker.entity.LangPresetUi
 import me.apomazkin.langpicker.entity.LangUpdateUi
 import me.apomazkin.langpicker.toStringName
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.ui.preview.PreviewWidgetEn
+import me.apomazkin.ui.preview.PreviewWidgetRu
 
 fun LazyListScope.languagesPreset(
     list: List<LangPresetUi>,
@@ -39,10 +40,8 @@ fun LazyListScope.languagesPreset(
 }
 
 @Composable
-@Preview(
-    showBackground = true,
-    locale = "Ru"
-)
+@PreviewWidgetRu
+@PreviewWidgetEn
 private fun Preview() {
     AppTheme {
         LazyColumn {

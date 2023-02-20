@@ -4,6 +4,7 @@ import java.util.*
 
 data class LanguageDump(
     val id: Long? = null,
+    val numericCode: Int,
     val code: String,
     val name: String? = null,
     val addDate: Date,

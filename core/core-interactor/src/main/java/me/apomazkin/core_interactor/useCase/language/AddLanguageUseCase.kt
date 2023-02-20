@@ -4,6 +4,7 @@ import io.reactivex.Completable
 import me.apomazkin.core_db_api.CoreDbApi
 import javax.inject.Inject
 
+@Deprecated("Old")
 interface AddLanguageUseCase {
     fun addLanguage(code: String, name: String): Completable
 
@@ -11,7 +12,8 @@ interface AddLanguageUseCase {
         private val dbApi: CoreDbApi
     ) : AddLanguageUseCase {
         override fun addLanguage(code: String, name: String): Completable {
-            return dbApi.addLang(code, name)
+//            return dbApi.addLang(code, name)
+            return Completable.complete()
         }
     }
 }

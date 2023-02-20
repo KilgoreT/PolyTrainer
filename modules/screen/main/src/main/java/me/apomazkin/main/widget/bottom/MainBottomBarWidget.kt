@@ -1,4 +1,4 @@
-package me.apomazkin.main.widget
+package me.apomazkin.main.widget.bottom
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavDestination
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -16,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import me.apomazkin.main.R
 import me.apomazkin.main.TabPoint
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.ui.preview.PreviewWidget
 
 interface TabNavigator {
     fun openTab(tab: TabPoint)
@@ -96,7 +96,7 @@ fun MainBottomBarWidget(
 }
 
 @Composable
-@Preview(showBackground = true)
+@PreviewWidget
 private fun Preview() {
     AppTheme {
         MainBottomBarWidget(

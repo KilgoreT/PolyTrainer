@@ -8,9 +8,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.ui.preview.PreviewWidget
 
 private const val DEFAULT_WIDTH = 180
 
@@ -45,7 +45,7 @@ fun PrimaryButtonWidget(
 }
 
 @Composable
-@Preview(showBackground = true)
+@PreviewWidget
 private fun PreviewEnable() {
     AppTheme {
         PrimaryButtonWidget(
@@ -55,7 +55,7 @@ private fun PreviewEnable() {
 }
 
 @Composable
-@Preview(showBackground = true)
+@PreviewWidget
 private fun PreviewDisable() {
     AppTheme {
         PrimaryButtonWidget(

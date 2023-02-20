@@ -3,15 +3,14 @@ package me.apomazkin.core_db_api
 import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
+import kotlinx.coroutines.flow.Flow
 import me.apomazkin.core_db_api.entity.*
 
 interface CoreDbApi {
 
-    fun addLang(code: String, name: String): Completable
     fun getLang(): Single<List<Language>>
-    suspend fun addLangSuspend(numericCode: Int, name: String)
-    suspend fun getLangSuspend(): List<Language>
-
+    suspend fun addLangSuspend(numericCode: Int, name: String): Long
+    fun getLangSuspend(): Flow<List<Language>>
 
     fun addWord(value: String, langId: Long): Completable
     fun getWord(id: Long): Single<Word>
