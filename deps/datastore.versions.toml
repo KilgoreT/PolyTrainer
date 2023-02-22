@@ -1,0 +1,10 @@
+[versions]
+datastore-version = "1.0.0"
+roomVersion = "2.5.0"
+
+[libraries]
+preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore-version" }
+roomRuntime = { group = "androidx.room", name = "room-runtime", version.ref = "roomVersion" }
+roomCompiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomVersion" }
+roomKtx = { group = "androidx.room", name = "room-ktx", version.ref = "roomVersion" }
+roomTesting = { group = "androidx.room", name = "room-testing", version.ref = "roomVersion" }

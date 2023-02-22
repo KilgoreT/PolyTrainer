@@ -18,7 +18,7 @@ dependencies {
     implementation(project("path" to ":core:core-binding"))
     implementation(project("path" to ":feature:feature-statistic-api"))
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.21")
+    implementation(libKotlin.stdlib)
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.8.0")

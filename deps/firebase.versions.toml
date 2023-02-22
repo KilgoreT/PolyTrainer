@@ -1,0 +1,7 @@
+[versions]
+bom-version = "26.8.0"
+
+[libraries]
+firebaseBOM = { group = "com.google.firebase", name = "firebase-bom", version.ref = "bom-version" }
+firebaseCrashlytics = { module = "com.google.firebase:firebase-crashlytics" }
+firebaseAnalytics = { module = "com.google.firebase:firebase-analytics" }

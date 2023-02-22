@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     implementation(fileTree("dir" to "libs", "include" to listOf("*.jar")))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.21")
+    implementation(libKotlin.stdlib)
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     //noinspection GradleDependency
