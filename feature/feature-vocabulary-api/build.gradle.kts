@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.7.10")
+    implementation(libKotlin.stdlib)
 
     // AndroidX
     implementation("androidx.appcompat:appcompat:1.6.1")

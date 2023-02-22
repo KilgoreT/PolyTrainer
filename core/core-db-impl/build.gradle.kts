@@ -3,9 +3,6 @@ plugins {
     id("kotlin-kapt")
 }
 
-val roomVersion by extra { "2.5.0" }
-
-
 android {
     defaultConfig(Action {
         javaCompileOptions {
@@ -23,28 +20,22 @@ android {
 dependencies {
     implementation(project("path" to ":core:core-db-api"))
 
-    implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
-
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.7.10")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.core:core-ktx:1.9.0")
-
     //Room
-    implementation("androidx.room:room-runtime:$roomVersion")
-    implementation("androidx.room:room-rxjava2:$roomVersion")
-    implementation("androidx.room:room-ktx:$roomVersion")
-    kapt("androidx.room:room-compiler:$roomVersion")
+    implementation(datastoreLibs.roomRuntime)
+    implementation("androidx.room:room-rxjava2:2.5.0")
+    implementation(datastoreLibs.roomKtx)
+    kapt(datastoreLibs.roomCompiler)
 
     //Rx
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
 
     //Dagger2
-    implementation("com.google.dagger:dagger:2.42")
-    kapt("com.google.dagger:dagger-compiler:2.42")
+    implementation(diLibs.dagger)
+    kapt(diLibs.daggerCompiler)
 
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation("androidx.room:room-testing:$roomVersion")
+    testImplementation(testLibs.junit)
+    androidTestImplementation(testLibs.androidxTestExt)
+    androidTestImplementation(testLibs.espressoCore)
+    androidTestImplementation(datastoreLibs.roomTesting)
 }

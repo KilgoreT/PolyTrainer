@@ -15,7 +15,7 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.21")
+    implementation(kotlinLibs.stdlib)
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.8.0")

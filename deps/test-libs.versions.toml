@@ -1,0 +1,9 @@
+[versions]
+junit = "4.13.2"
+androidxTestExt = "1.1.5"
+espressoCore = "3.5.1"
+
+[libraries]
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidxTestExt = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
+espressoCore = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

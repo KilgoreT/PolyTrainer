@@ -1,5 +1,6 @@
 rootProject.name = "PolyTrainer"
 
+includeBuild("build-settings")
 
 include(":app")
 
@@ -20,25 +21,23 @@ include(":modules:datastore:prefs")
 //Old
 include(":core:core-interactor")
 include(":core:core-resources")
-include(":core:core-binding")
-include(":core:core-util")
-include(":core:core-base")
+//include(":core:core-binding")
+//include(":core:core-util")
+//include(":core:core-base")
 include(":core:core-db-api")
 include(":core:core-db-impl")
 include(":core:core-db")
-include(":widget:view-progress-quiz")
-include(":feature:feature-training-write-impl")
-include(":feature:feature-training-write-api")
-include(":feature:feature-training-list-impl")
-include(":feature:feature-training-list-api")
-include(":feature:feature-bottom-menu-api")
-include(":feature:feature-bottom-menu-impl")
-include(":feature:feature-vocabulary-impl")
-include(":feature:feature-vocabulary-api")
-include(":feature:feature-statistic-impl")
-include(":feature:feature-statistic-api")
-
-includeBuild("build-settings")
+//include(":widget:view-progress-quiz")
+//include(":feature:feature-training-write-impl")
+//include(":feature:feature-training-write-api")
+//include(":feature:feature-training-list-impl")
+//include(":feature:feature-training-list-api")
+//include(":feature:feature-bottom-menu-api")
+//include(":feature:feature-bottom-menu-impl")
+//include(":feature:feature-vocabulary-impl")
+//include(":feature:feature-vocabulary-api")
+//include(":feature:feature-statistic-impl")
+//include(":feature:feature-statistic-api")
 
 //classpath("androidx.navigation:navigation-safe-args-gradle-plugin:2.3.4")
 //classpath("com.google.gms:google-services:4.3.5")
@@ -81,12 +80,49 @@ pluginManagement {
     }
 }
 
+enableFeaturePreview("VERSION_CATALOGS")
+
 dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
     @Suppress("UnstableApiUsage")
     repositories {
         gradlePluginPortal()
         google()
         mavenCentral()
         maven(url = "https://jitpack.io")
+    }
+
+    versionCatalogs {
+
+        /**
+         * Link to Kotlin-Compose compatibility
+         * @see [link](https://developer.android.com/jetpack/androidx/releases/compose-kotlin)
+         */
+
+        create("kotlinLibs") {
+            from(files("deps/kotlin.versions.toml"))
+        }
+        create("androidLibs") {
+            from(files("deps/android.versions.toml"))
+        }
+        create("composeLibs") {
+            from(files("deps/compose.versions.toml"))
+        }
+        create("datastoreLibs") {
+            from(files("deps/datastore.versions.toml"))
+        }
+        create("firebaseLibs") {
+            from(files("deps/firebase.versions.toml"))
+        }
+        create("diLibs") {
+            from(files("deps/di.versions.toml"))
+        }
+        create("testLibs") {
+            from(files("deps/test-libs.versions.toml"))
+        }
+        create("otherLibs") {
+            library("flags", "com.github.blongho:worldCountryData:v1.5.4-alpha-1")
+        }
     }
 }
