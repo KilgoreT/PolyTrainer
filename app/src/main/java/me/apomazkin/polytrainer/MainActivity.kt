@@ -1,6 +1,5 @@
 package me.apomazkin.polytrainer
 
-//import me.apomazkin.feature_bottom_menu_api.FeatureBottomMenuApi
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,24 +9,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
-import me.apomazkin.core_db_api.CoreDbProvider
 import me.apomazkin.polytrainer.route.RootRouter
 import me.apomazkin.theme.AppTheme
-import javax.inject.Inject
 
 class MainActivity : ComponentActivity() {
-
-    @Inject
-    lateinit var coreDbProvider: CoreDbProvider
-
-//    private lateinit var featureBottomMenuApi: FeatureBottomMenuApi
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-//        App.getComponent().inject(this)
 
         setContent {
             AppTheme {
@@ -41,17 +31,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-//        setContentView(R.layout.activity_main)
-//
-//
-//        featureBottomMenuApi = FeatureBottomMenuComponent.getOrInit(getNavController())
-//        featureBottomMenuApi.featureBottomMenuNavigator().start()
-
     }
-
-//    private fun getNavController(): NavController {
-//        return Navigation.findNavController(this, R.id.mainFragmentContainer)
-//    }
-
 }
