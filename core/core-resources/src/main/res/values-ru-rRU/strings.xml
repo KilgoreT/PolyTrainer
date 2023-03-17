@@ -7,6 +7,33 @@
     <string name="common_adjective_label">прил.</string>
     <string name="common_adverb_label">нар.</string>
 
+    <string name="lexeme_noun">Сущ.</string>
+    <string name="lexeme_verb">Гл.</string>
+    <string name="lexeme_adj">Прил.</string>
+    <string name="lexeme_adv">Нар.</string>
+    <string name="lexeme_pronoun">Мест.</string>
+    <string name="lexeme_numeral">Числ.</string>
+    <string name="lexeme_prep">Предлог</string>
+    <string name="lexeme_conj">Союз</string>
+    <string name="lexeme_phrase">Фраза</string>
+    <string name="lexeme_other">Другое</string>
+
+    <string name="lexeme_short_noun">сущ.</string>
+    <string name="lexeme_short_verb">гл.</string>
+    <string name="lexeme_short_adj">прил.</string>
+    <string name="lexeme_short_adv">нар.</string>
+    <string name="lexeme_short_pronoun">м.</string>
+    <string name="lexeme_short_numeral">числ.</string>
+    <string name="lexeme_short_prep">пр.</string>
+    <string name="lexeme_short_conj">с.</string>
+    <string name="lexeme_short_phrase">фр.</string>
+    <string name="lexeme_short_other">др.</string>
+
+    <!--Any-->
+    <string name="flag_content_description">Иконка флага</string>
+    <string name="content_description_clear">Очистить</string>
+    <string name="unknown_error">Неизвестная ошибка</string>
+
     <!--LANGUAGE SELECTION-->
     <string name="lang_selection_title">Выберите язык словаря:</string>
     <string name="lang_english">Английский</string>
@@ -25,7 +52,19 @@
     <string name="item_title_dashboard">Дашборд</string>
     <string name="menu_item_title_add_lang">Добавить язык</string>
 
-    <!--Any-->
-    <string name="flag_content_description">Иконка флага</string>
-    <string name="unknown_error">Неизвестная ошибка</string>
+    <!--VocabularyTab-->
+    <string name="vocabulary_empty_title">Нажмите на +, чтобы добавить слово</string>
+    <string name="vocabulary_enter_word">Введите слово</string>
+    <string name="vocabulary_translation_now">Добавить перевод сразу</string>
+    <string name="vocabulary_detail_save_title">Сохранить</string>
+    <string name="vocabulary_detail_speech_part">Часть речи</string>
+    <string name="vocabulary_detail_definition_title">Определение</string>
+    <string name="vocabulary_detail_translation_title">Перевод</string>
+    <string name="vocabulary_detail_example_title">Пример</string>
+
+    <!--WordCard-->
+    <string name="word_card_toolbar_title">Карточка слова</string>
+    <string name="word_card_delete_word">Удалить слово</string>
+    <string name="word_card_add_lexeme">Добавить значение</string>
+
 </resources>

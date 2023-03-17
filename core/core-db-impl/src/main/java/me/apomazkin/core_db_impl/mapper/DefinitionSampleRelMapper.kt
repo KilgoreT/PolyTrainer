@@ -52,7 +52,15 @@ fun DefinitionSampleRel.toAppEntity() = Definition(
     sampleList = sampleDbList.map { item -> item.toAppEntity() }
 )
 
+fun DefinitionSampleRel.toMateApp() = DefinitionMate(
+    id = definitionDb.id ?: throw IllegalArgumentException("Id not found."),
+    wordId = definitionDb.wordId ?: throw IllegalArgumentException("WordId not found."),
+    value = definitionDb.definition ?: "Empty value",
+    category = definitionDb.wordClass ?: throw IllegalArgumentException("WordClass not found."),
+)
+
 fun List<DefinitionSampleRel>.toAppEntity() = this.map { item -> item.toAppEntity() }
+fun List<DefinitionSampleRel>.toMateApp() = this.map { item -> item.toMateApp() }
 
 fun DefinitionDb.toWordClass(): WordClass? {
     return when (wordClass) {

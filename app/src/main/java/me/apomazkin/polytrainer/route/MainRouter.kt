@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import me.apomazkin.main.MainScreen
 import me.apomazkin.polytrainer.appComponent
+import me.apomazkin.polytrainer.uiDeps.MainUiDepsProvider
 
 enum class MainPoint(val route: String) {
     MAIN("MAIN"),
@@ -22,7 +23,10 @@ fun NavGraphBuilder.mainRouter(
         composable(MainPoint.MAIN.route) {
             val context = LocalContext.current
             MainScreen(
-                mainTopBarUseCase = context.appComponent.getMainUseCase(),
+                mainUiDeps = MainUiDepsProvider(
+                    vocabularyUseCase = context.appComponent.getVocabularyUseCase(),
+                    wordCardUseCase = context.appComponent.getWordCardUseCase(),
+                ),
                 onAddLang = onAddLang
             )
         }

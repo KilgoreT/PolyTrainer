@@ -12,7 +12,7 @@ interface UpdateDefinitionUseCase {
         private val dbApi: CoreDbApi
     ) : UpdateDefinitionUseCase {
         override fun updateDefinition(definition: Definition): Completable {
-            return dbApi.updateDefinition(definition)
+            return dbApi.updateLexemeDefinition(definition)
         }
     }
 }

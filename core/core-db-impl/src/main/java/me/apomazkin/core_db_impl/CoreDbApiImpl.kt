@@ -36,13 +36,28 @@ class CoreDbApiImpl @Inject constructor(
         )
     }
 
-    override fun getLangSuspend(): Flow<List<Language>> {
+    override fun getLangFlow(): Flow<List<Language>> {
+        return wordDao.getLanguagesFlow().map { it.toAppEntity() }
+    }
+
+    override suspend fun getLangSuspend(): List<Language> {
         return wordDao.getLanguagesSuspend().map { it.toAppEntity() }
     }
 
     override fun addWord(value: String, langId: Long): Completable {
         val currentDate = Date(System.currentTimeMillis())
         return wordDao.addWord(
+            WordDb(
+                word = value,
+                langId = langId,
+                addDate = currentDate,
+            )
+        )
+    }
+
+    override fun addWordSuspend(value: String, langId: Long): Long {
+        val currentDate = Date(System.currentTimeMillis())
+        return wordDao.addWordSuspend(
             WordDb(
                 word = value,
                 langId = langId,
@@ -91,6 +106,24 @@ class CoreDbApiImpl @Inject constructor(
             .flatMapCompletable { item -> wordDao.removeWriteQuiz(item.definitionDb.id ?: -1) }
     }
 
+    override suspend fun deleteWordSuspend(id: Long): Int {
+        wordDao.getWordSuspend(id).also { word ->
+            wordDao.removeSampleSuspend(
+                *word.definitionSampleRelList.map { it.sampleDbList }.flatten().toTypedArray()
+            )
+            wordDao.deleteDefinitionsSuspend(
+                *word.definitionSampleRelList.map { it.definitionDb }.toTypedArray()
+            )
+            return wordDao.removeWordSuspend(id)
+        }
+    }
+
+    override suspend fun updateWordSuspend(id: Long, value: String): Int {
+        val wordRel = wordDao.getWordSuspend(id)
+        val wordDb = wordRel.wordDb.copy(word = value)
+        return wordDao.updateWorldSuspend(wordDb)
+    }
+
     override fun addDefinition(definition: Definition, langId: Long): Completable {
         val mapper = DefinitionMapper()
         return wordDao.addDefinition(mapper.reverseMap(definition))
@@ -105,6 +138,43 @@ class CoreDbApiImpl @Inject constructor(
                     )
                 )
             }
+    }
+
+    override suspend fun addLexemeSuspend(
+        wordId: Long,
+        category: String,
+        definition: String,
+    ): Long {
+        // TODO: Не забыть добавить WriteQuizDb
+        val definitionDb = DefinitionDb(
+            wordId = wordId,
+            definition = definition,
+            wordClass = category,
+        )
+        return wordDao.addDefinitionSuspend(definitionDb)
+    }
+
+    override suspend fun editLexemeSuspend(
+        wordId: Long,
+        lexemeId: Long,
+        category: String,
+        definition: String
+    ): Int {
+        val definitionDb = DefinitionDb(
+            id = lexemeId,
+            wordId = wordId,
+            definition = definition,
+            wordClass = category,
+        )
+        return wordDao.updateDefinitionSuspend(definitionDb)
+    }
+
+    override suspend fun updateLexemeDefinition(definitionId: Long, value: String): Int {
+        return wordDao.updateLexemeDefinition(definitionId, value)
+    }
+
+    override suspend fun updateLexemeCategory(lexemeId: Long, category: String): Int {
+        return wordDao.updateLexemeCategory(lexemeId, category)
     }
 
     override fun getDefinitionAll(): Single<List<Definition>> {
@@ -125,13 +195,17 @@ class CoreDbApiImpl @Inject constructor(
             .map { list -> mapper.map(list) }
     }
 
-    override fun updateDefinition(definition: Definition): Completable {
+    override fun updateLexemeDefinition(definition: Definition): Completable {
         val mapper = DefinitionMapper()
         return wordDao.updateDefinition(mapper.reverseMap(definition))
     }
 
     override fun removeDefinition(vararg id: Long): Completable {
         return wordDao.deleteDefinition(*id.toTypedArray().toLongArray())
+    }
+
+    override suspend fun deleteLexemeSuspend(vararg id: Long): Int {
+        return wordDao.deleteDefinitionSuspend(*id.toTypedArray().toLongArray())
     }
 
     private fun removeDefinition(vararg definition: DefinitionDb): Completable {
@@ -142,6 +216,18 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao
             .getTermList()
             .map { list -> list.map(WordDefinitionRel::toAppData) }
+    }
+
+    override suspend fun getTermById(id: Long): TermMate {
+        return wordDao
+            .getTermById(id)
+            .toMateApp()
+    }
+
+    override suspend fun getTermList(langId: Long): List<TermMate> {
+        return wordDao
+            .getTermList(langId)
+            .map(WordDefinitionRel::toMateApp)
     }
 
     override fun searchTermList(pattern: String, langId: Long): Observable<List<Term>> {

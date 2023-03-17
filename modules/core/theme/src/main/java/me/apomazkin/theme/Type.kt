@@ -27,10 +27,30 @@ val Typography = Typography(
         fontWeight = FontWeight.W400,
         fontSize = 22.sp,
     ),
+    titleMedium = TextStyle(
+        fontFamily = PoppinsMedium,
+        fontWeight = FontWeight.W500,
+        fontSize = 16.sp,
+    ),
+    titleSmall = TextStyle(
+        fontFamily = PoppinsMedium,
+        fontWeight = FontWeight.W500,
+        fontSize = 14.sp,
+    ),
     bodyLarge = TextStyle(
         fontFamily = PoppinsRegular,
         fontWeight = FontWeight.W400,
         fontSize = 16.sp,
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = PoppinsRegular,
+        fontWeight = FontWeight.W400,
+        fontSize = 14.sp,
+    ),
+    bodySmall = TextStyle(
+        fontFamily = PoppinsRegular,
+        fontWeight = FontWeight.W400,
+        fontSize = 12.sp,
     ),
     labelLarge = TextStyle(
         fontFamily = PoppinsMedium,

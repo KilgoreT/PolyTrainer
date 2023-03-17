@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="flag_content_description">Иконка флага</string>
+    <string name="drop_down_content_description">Контекстрое меню</string>
+
+    <string name="menu_item_delete">Удалить</string>
+    <string name="menu_item_edit">Изменить</string>
+
+</resources>

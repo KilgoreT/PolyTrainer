@@ -24,13 +24,19 @@ interface WordDao {
     suspend fun addLanguageSuspend(languageDb: LanguageDb): Long
 
     @Query("SELECT * FROM languages")
-    fun getLanguagesSuspend(): Flow<List<LanguageDb>>
+    fun getLanguagesFlow(): Flow<List<LanguageDb>>
+
+    @Query("SELECT * FROM languages")
+    suspend fun getLanguagesSuspend(): List<LanguageDb>
 
     /**
      * WORD
      */
     @Insert
     fun addWord(wordDb: WordDb): Completable
+
+    @Insert
+    fun addWordSuspend(wordDb: WordDb): Long
 
     @Query("SELECT * FROM words WHERE id = :id")
     fun getWordById(id: Long): Single<WordDb>
@@ -41,8 +47,14 @@ interface WordDao {
     @Update
     fun updateWorld(wordDb: WordDb): Completable
 
+    @Update
+    fun updateWorldSuspend(wordDb: WordDb): Int
+
     @Query("DELETE FROM words WHERE id = :id")
     fun removeWord(id: Long): Completable
+
+    @Query("DELETE FROM words WHERE id = :id")
+    suspend fun removeWordSuspend(id: Long): Int
 
     /**
      * TERM
@@ -50,6 +62,14 @@ interface WordDao {
     @Transaction
     @Query("SELECT * FROM words ORDER BY id DESC")
     fun getTermList(): Observable<List<WordDefinitionRel>>
+
+    @Transaction
+    @Query("SELECT * FROM words WHERE langId = :langId ORDER BY id DESC")
+    suspend fun getTermList(langId: Long): List<WordDefinitionRel>
+
+    @Transaction
+    @Query("SELECT * FROM words WHERE id = :id ORDER BY id DESC")
+    suspend fun getTermById(id: Long): WordDefinitionRel
 
     @Transaction
     @Query("SELECT * FROM words WHERE word LIKE :pattern AND langId = :langId ORDER BY id DESC")
@@ -60,6 +80,18 @@ interface WordDao {
      */
     @Insert
     fun addDefinition(definitionDb: DefinitionDb): Single<Long>
+
+    @Insert
+    suspend fun addDefinitionSuspend(definitionDb: DefinitionDb): Long
+
+    @Update
+    suspend fun updateDefinitionSuspend(definitionDb: DefinitionDb): Int
+
+    @Query("UPDATE definitions SET definition = :value WHERE id = :id")
+    suspend fun updateLexemeDefinition(id: Long, value: String): Int
+
+    @Query("UPDATE definitions SET wordClass = :value WHERE id = :id")
+    suspend fun updateLexemeCategory(id: Long, value: String): Int
 
     @Query("SELECT * FROM definitions")
     fun getAllDefinition(): Single<List<DefinitionDb>>
@@ -76,13 +108,23 @@ interface WordDao {
     @Query("DELETE FROM definitions WHERE id = :id")
     fun deleteDefinition(vararg id: Long): Completable
 
+    @Query("DELETE FROM definitions WHERE id = :id")
+    suspend fun deleteDefinitionSuspend(vararg id: Long): Int
+
     @Delete
     fun deleteDefinitions(vararg definition: DefinitionDb): Completable
+
+    @Delete
+    suspend fun deleteDefinitionsSuspend(vararg definition: DefinitionDb)
 
     // TODO: 18.02.2021 used to manual remove definition before removing word
     @Transaction
     @Query("SELECT * FROM words WHERE id = :id")
     fun getWord(id: Long): Single<WordDefinitionRel>
+
+    @Transaction
+    @Query("SELECT * FROM words WHERE id = :id")
+    suspend fun getWordSuspend(id: Long): WordDefinitionRel
 
     /**
      * HINT
@@ -122,6 +164,9 @@ interface WordDao {
 
     @Delete
     fun removeSample(vararg sampleDb: SampleDb): Completable
+
+    @Delete
+    suspend fun removeSampleSuspend(vararg sampleDb: SampleDb)
 
     /**
      * QUIZ
