@@ -71,9 +71,11 @@ dependencies {
     implementation(project("path" to ":modules:screen:splash"))
     implementation(project("path" to ":modules:screen:langpicker"))
     implementation(project("path" to ":modules:screen:main"))
+    implementation(project("path" to ":modules:screen:vocabulary"))
+    implementation(project("path" to ":modules:screen:wordcard"))
 
     implementation(project("path" to ":modules:library:flags"))
-    implementation(project("path" to ":modules:datastore:prefs"))
+    implementation(project("path" to ":modules:datasource:prefs"))
 
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":core:core-db"))

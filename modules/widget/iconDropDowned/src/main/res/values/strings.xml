@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="flag_content_description">Flag icon</string>
+    <string name="drop_down_content_description">Drop down menu</string>
+
+    <string name="menu_item_delete">Delete</string>
+    <string name="menu_item_edit">Edit</string>
+
+</resources>

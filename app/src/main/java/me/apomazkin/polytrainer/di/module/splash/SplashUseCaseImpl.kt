@@ -10,7 +10,7 @@ class SplashUseCaseImpl @Inject constructor(
     private val dbApi: CoreDbApi
 ) : SplashUseCase {
     override fun checkIfNeedAddLang(): Flow<Boolean> {
-        return dbApi.getLangSuspend().transform {
+        return dbApi.getLangFlow().transform {
             emit(!it.any())
         }
     }

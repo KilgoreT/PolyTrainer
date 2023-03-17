@@ -8,9 +8,46 @@ import me.apomazkin.core_db_api.entity.*
 
 interface CoreDbApi {
 
+    /**
+     *
+     * Word = sequence of letters.
+     *
+     * Lexeme = translation + definition + category + options
+     *
+     * LexicalCategory - word class, for example, noun, verb etc
+     *
+     * Term = Word + Lexeme(s)
+     */
+
+    //New API
+
+    suspend fun getLangSuspend(): List<Language>
+
+    suspend fun getTermList(langId: Long): List<TermMate>
+    suspend fun getTermById(id: Long): TermMate
+
+    fun addWordSuspend(value: String, langId: Long): Long
+    suspend fun deleteWordSuspend(id: Long): Int
+    suspend fun updateWordSuspend(id: Long, value: String): Int
+
+    suspend fun addLexemeSuspend(wordId: Long, category: String, definition: String): Long
+    suspend fun editLexemeSuspend(
+        wordId: Long,
+        lexemeId: Long,
+        category: String,
+        definition: String
+    ): Int
+
+    suspend fun updateLexemeDefinition(definitionId: Long, value: String): Int
+    suspend fun updateLexemeCategory(lexemeId: Long, category: String): Int
+
+    suspend fun deleteLexemeSuspend(vararg id: Long): Int
+
+
+    // Old API
     fun getLang(): Single<List<Language>>
     suspend fun addLangSuspend(numericCode: Int, name: String): Long
-    fun getLangSuspend(): Flow<List<Language>>
+    fun getLangFlow(): Flow<List<Language>>
 
     fun addWord(value: String, langId: Long): Completable
     fun getWord(id: Long): Single<Word>
@@ -22,7 +59,7 @@ interface CoreDbApi {
     fun getDefinitionAll(): Single<List<Definition>>
     fun getDefinition(id: Long): Single<Definition>
     fun getDefinitionListByWordId(wordId: Long): Single<List<Definition>>
-    fun updateDefinition(definition: Definition): Completable
+    fun updateLexemeDefinition(definition: Definition): Completable
     fun removeDefinition(vararg id: Long): Completable
 
     fun getTermList(): Observable<List<Term>>
