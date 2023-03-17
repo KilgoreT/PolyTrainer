@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <string name="logo_title">on the top©</string>
 
@@ -14,6 +14,35 @@
         <item>Adjective</item>
         <item>Adverb</item>
     </string-array>
+
+    <string name="lexeme_noun">Noun</string>
+    <string name="lexeme_verb">Verb</string>
+    <string name="lexeme_adj">Adj.</string>
+    <string name="lexeme_adv">Adv.</string>
+    <string name="lexeme_pronoun">Pronoun</string>
+    <string name="lexeme_numeral">Num.</string>
+    <string name="lexeme_prep">Prep.</string>
+    <string name="lexeme_conj">Conj.</string>
+    <string name="lexeme_phrase">Phrase</string>
+    <string name="lexeme_other">Other</string>
+
+    <string name="lexeme_short_noun">noun</string>
+    <string name="lexeme_short_verb">verb</string>
+    <string name="lexeme_short_adj">adj.</string>
+    <string name="lexeme_short_adv">adv.</string>
+    <string name="lexeme_short_pronoun">pr.</string>
+    <string name="lexeme_short_numeral">num.</string>
+    <string name="lexeme_short_prep">prep.</string>
+    <string name="lexeme_short_conj">сonj.</string>
+    <string name="lexeme_short_phrase">phr.</string>
+    <string name="lexeme_short_other">oth.</string>
+
+    <!--Any-->
+    <string name="flag_content_description">Flag icon</string>
+    <string name="content_description_clear">Clear</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="empty_value" tools:ignore="MissingTranslation"> </string>
+
 
     <!--LANGUAGE SELECTION-->
     <string name="lang_selection_title">Select vocabulary language:</string>
@@ -33,8 +62,19 @@
     <string name="item_title_dashboard">Dashboard</string>
     <string name="menu_item_title_add_lang">Add language</string>
 
-    <!--Any-->
-    <string name="flag_content_description">Flag icon</string>
-    <string name="unknown_error">Unknown error</string>
+    <!--VocabularyTab-->
+    <string name="vocabulary_empty_title">Press + to add word</string>
+    <string name="vocabulary_enter_word">Enter word</string>
+    <string name="vocabulary_translation_now">Add the translation right away</string>
+    <string name="vocabulary_detail_save_title">Save</string>
+    <string name="vocabulary_detail_speech_part">Part of speech</string>
+    <string name="vocabulary_detail_definition_title">Definition</string>
+    <string name="vocabulary_detail_translation_title">Translation</string>
+    <string name="vocabulary_detail_example_title">Example</string>
+
+    <!--WordCard-->
+    <string name="word_card_toolbar_title">Word card</string>
+    <string name="word_card_delete_word">Delete word</string>
+    <string name="word_card_add_lexeme">Add meaning</string>
 
 </resources>

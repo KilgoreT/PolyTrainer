@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 rootProject.name = "PolyTrainer"
 
 includeBuild("build-settings")
@@ -5,18 +7,27 @@ includeBuild("build-settings")
 include(":app")
 
 //Core
+include(":modules:core:mate")
 include(":modules:core:theme")
 include(":modules:core:ui")
+include(":modules:core:tools")
 
 //Screen
 include(":modules:screen:splash")
 include(":modules:screen:langpicker")
 include(":modules:screen:main")
+include(":modules:screen:vocabulary")
+include(":modules:screen:wordcard")
+
+//Widget
+include(":modules:widget:iconDropDowned")
+include(":modules:widget:chipPicker")
+include(":modules:widget:coloredText")
 
 //Libraries
 include(":modules:library:flags")
 
-include(":modules:datastore:prefs")
+include(":modules:datasource:prefs")
 
 //Old
 include(":core:core-interactor")
@@ -97,7 +108,7 @@ dependencyResolutionManagement {
 
         /**
          * Link to Kotlin-Compose compatibility
-         * @see [link](https://developer.android.com/jetpack/androidx/releases/compose-kotlin)
+         * @see [https://developer.android.com/jetpack/androidx/releases/compose-kotlin]
          */
 
         create("kotlinLibs") {

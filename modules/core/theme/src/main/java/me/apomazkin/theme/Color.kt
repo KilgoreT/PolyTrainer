@@ -6,6 +6,8 @@ val White = Color(0xFFFFFFFF)
 val M3Black = Color(0xff32344F)
 val M3Neutral = Color(0xFFE9F3EE)
 val M3Primary95 = Color(0xFFB9FFE8)
+val FFD9E3 = Color(0x80FFD9E3)
+val clr1F001F24 = Color(0x1F001F24)
 
 object ColorLight {
     val Primary = Color(0xFF2ABB9B)
