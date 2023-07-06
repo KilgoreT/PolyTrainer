@@ -14,6 +14,7 @@ android {
 
 dependencies {
 
+    implementation(project("path" to ":modules:core:mate"))
     implementation(project("path" to ":modules:core:theme"))
     implementation(project("path" to ":modules:core:ui"))
     implementation(project("path" to ":core:core-resources"))

@@ -7,26 +7,36 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable
 fun StatusBarColorWidget(
-    color: Color = Color.Transparent
+    color: Color = Color.Transparent,
+    statusBarDarkIcon: Boolean = true,
+    navigationBarDarkIcon: Boolean = true,
+    navigationBarContrastEnforced: Boolean = false,
 ) {
-    val systemUiController = rememberSystemUiController()
-    DisposableEffect(Unit) {
-        systemUiController.setSystemBarsColor(
-            color = color
-        )
-        onDispose {}
-    }
+    StatusBarColorWidget(
+        statusBarColor = color,
+        statusBarDarkIcon = statusBarDarkIcon,
+        navigationBarColor = color,
+        navigationBarDarkIcon = navigationBarDarkIcon,
+        navigationBarContrastEnforced = navigationBarContrastEnforced
+    )
 }
 
 @Composable
 fun StatusBarColorWidget(
     statusBarColor: Color = Color.Transparent,
     navigationBarColor: Color = Color.Transparent,
+    statusBarDarkIcon: Boolean = true,
+    navigationBarDarkIcon: Boolean = true,
+    navigationBarContrastEnforced: Boolean = false,
 ) {
     val systemUiController = rememberSystemUiController()
     DisposableEffect(Unit) {
-        systemUiController.setStatusBarColor(statusBarColor)
-        systemUiController.setNavigationBarColor(navigationBarColor)
+        systemUiController.setStatusBarColor(statusBarColor, statusBarDarkIcon)
+        systemUiController.setNavigationBarColor(
+            color = navigationBarColor,
+            darkIcons = navigationBarDarkIcon,
+            navigationBarContrastEnforced = navigationBarContrastEnforced
+        )
         onDispose {}
     }
 }

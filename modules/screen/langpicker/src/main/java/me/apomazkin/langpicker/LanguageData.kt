@@ -3,6 +3,7 @@ package me.apomazkin.langpicker
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import me.apomazkin.langpicker.entity.PresetLangUi
 
 object LanguageData {
     val langList = listOf(
@@ -12,6 +13,24 @@ object LanguageData {
         Country.GERMAN,
         Country.ITALIAN,
         Country.PORTUGUESE,
+    )
+
+    val langPreviewList = listOf(
+        PresetLangUi(
+            flagRes = R.drawable.example_ic_flag_gb,
+            langNameRes = R.string.lang_english,
+            countryNumericCode = 0,
+        ),
+        PresetLangUi(
+            flagRes = R.drawable.example_ic_flag_gb,
+            langNameRes = R.string.lang_italian,
+            countryNumericCode = 0,
+        ),
+        PresetLangUi(
+            flagRes = R.drawable.example_ic_flag_gb,
+            langNameRes = R.string.lang_portuguese,
+            countryNumericCode = 0,
+        ),
     )
 }
 

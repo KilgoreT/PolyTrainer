@@ -45,7 +45,7 @@
 
 
     <!--LANGUAGE SELECTION-->
-    <string name="lang_selection_title">Select vocabulary language:</string>
+    <string name="lang_selection_title">I am studying…</string>
     <string name="lang_english">English</string>
     <string name="lang_german">German</string>
     <string name="lang_french">French</string>
