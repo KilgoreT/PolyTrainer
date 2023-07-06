@@ -35,7 +35,7 @@
     <string name="unknown_error">Неизвестная ошибка</string>
 
     <!--LANGUAGE SELECTION-->
-    <string name="lang_selection_title">Выберите язык словаря:</string>
+    <string name="lang_selection_title">Я изучаю…</string>
     <string name="lang_english">Английский</string>
     <string name="lang_german">Немецкий</string>
     <string name="lang_french">Французский</string>

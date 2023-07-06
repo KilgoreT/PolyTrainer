@@ -30,3 +30,4 @@
 /.idea/ktlint.xml
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/androidTestResultsUserPreferences.xml
+/modules/datastore/prefs/build/*

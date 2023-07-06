@@ -1,41 +1,76 @@
 package me.apomazkin.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 val White = Color(0xFFFFFFFF)
+val Black = Color(0xFF10324C)
+val BlackDisabled = Color(0x1F10324C)
+val SecondarySelected = Color(0x1FFF7D05)
+
+@Deprecated("Outdated")
 val M3Black = Color(0xff32344F)
+
+@Deprecated("Outdated")
 val M3Neutral = Color(0xFFE9F3EE)
+
+@Deprecated("Outdated")
 val M3Primary95 = Color(0xFFB9FFE8)
+
+@Deprecated("Outdated")
 val FFD9E3 = Color(0x80FFD9E3)
+
+@Deprecated("Outdated")
 val clr1F001F24 = Color(0x1F001F24)
 
-object ColorLight {
-    val Primary = Color(0xFF2ABB9B)
-    val OnPrimary = White
-    val PrimaryContainer = Color(0xFF76F9D6)
-    val OnPrimaryContainer = Color(0xFF002019)
-    val secondary = Color(0xFFF96E46)
+val clr242792 = Color(0xFF242792)
+val clr3170D7 = Color(0xFF3170D7)
+val gradientPrimary = Brush
+    .horizontalGradient(listOf(clr3170D7, clr242792))
+
+val clrFFB75E = Color(0xFFFFB75E)
+val clrED8F03 = Color(0xFFED8F03)
+val gradientSecondaryVertical = Brush
+    .verticalGradient(listOf(clrED8F03, clrFFB75E))
+
+val clr1F10324C = Color(0x1F10324C)
+
+object LexemeColor {
+    val primary = Color(0xFF2F51BE)
+    val onPrimary = White
+    val primaryContainer = primary
+    val onPrimaryContainer = onPrimary
+
+    val secondary = Color(0xFFED8F03)
     val onSecondary = White
-    val secondaryContainer = Color(0xFFFFDBD1)
-    val onSecondaryContainer = Color(0xFF3B0900)
-    val tertiary = Color(0xFF614DB8)
+    val secondaryContainer = secondary
+    val onSecondaryContainer = onSecondary
+
+    val tertiary = Color(0xFF53D4AF)
     val onTertiary = White
-    val tertiaryContainer = Color(0xFFE6DEFF)
-    val onTertiaryContainer = Color(0xFF1C0062)
-    val error = Color(0xFFBA1A1A)
-    val errorContainer = Color(0xFFFFDAD6)
+    val tertiaryContainer = tertiary
+    val onTertiaryContainer = onTertiary
+
+    val error = Color(0xFFFF5449)
+    val errorContainer = error
     val onError = White
-    val onErrorContainer = Color(0xFF410002)
-    val background = Color(0xFFF6FEFF)
-    val onBackground = Color(0xFF001F24)
-    val surface = Color(0xFFF6FEFF)
-    val onSurface = Color(0xFF001F24)
-    val surfaceVariant = Color(0xDBE5DFFF)
-    val onSurfaceVariant = Color(0xFF3F4945)
-    val outline = Color(0x6F7975FF)
-    val outlineVariant = Color(0xFFCAC4D0)
-    val inverseOnSurface = Color(0xFFD0F8FF)
-    val inverseSurface = Color(0xFF00363D)
-    val surfaceTint = Color(0xFF006B57)
-    val inversePrimary = Color(0xFF56DCBA)
+    val onErrorContainer = onError
+
+    val background = Color(0xFFF7FBFE)
+    val onBackground = Black
+
+    val surface = White
+    val onSurface = Black
+
+    val surfaceVariant = background
+    val onSurfaceVariant = Black
+
+    val outline = background
+    val outlineVariant = Black
+
+    val inverseOnSurface = background
+    val inverseSurface = Black
+
+    val surfaceTint = Black
+    val inversePrimary = White
 }
