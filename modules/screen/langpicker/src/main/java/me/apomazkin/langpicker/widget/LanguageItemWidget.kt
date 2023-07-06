@@ -7,52 +7,67 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.langpicker.R
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.theme.SecondarySelected
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun LanguageItemWidget(
     @DrawableRes flagRes: Int,
-    value: String,
+    langName: String,
+    langNumericCode: Int,
     isSelected: Boolean,
-    onClick: (value: String) -> Unit,
+    onClick: (numericCode: Int) -> Unit,
 ) {
     val color = if (isSelected) {
-        MaterialTheme.colorScheme.secondaryContainer
+        SecondarySelected
     } else {
         Color.Transparent
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
             .background(color)
-            .background(Color.Transparent)
-            .clickable { onClick.invoke(value) }
+            .clickable { onClick.invoke(langNumericCode) }
             .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ImageFlagWidget(
             flagRes = flagRes,
             modifier = Modifier
-                .padding(start = 16.dp),
-            contentDescription = value,
+                .padding(start = 12.dp),
+            contentDescription = langName,
         )
         Text(
             modifier = Modifier
-                .padding(end = 16.dp),
-            text = value,
+                .weight(1F),
+            text = langName,
             style = MaterialTheme.typography.bodyLarge
         )
+        if (isSelected) {
+            Icon(
+                modifier = Modifier
+                    .padding(end = 12.dp),
+                painter = painterResource(id = R.drawable.ic_selected),
+                tint = MaterialTheme.colorScheme.tertiary,
+                contentDescription = ""
+            )
+        }
     }
 }
 
@@ -62,7 +77,8 @@ private fun PreviewNotSelect() {
     AppTheme {
         LanguageItemWidget(
             flagRes = R.drawable.ic_more_on_primary,
-            value = "English",
+            langName = "English",
+            langNumericCode = 0,
             isSelected = false
         ) {}
     }
@@ -74,7 +90,8 @@ private fun PreviewSelected() {
     AppTheme {
         LanguageItemWidget(
             flagRes = R.drawable.ic_more_on_primary,
-            value = "English",
+            langName = "English",
+            langNumericCode = 0,
             isSelected = true
         ) {}
     }

@@ -7,53 +7,48 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-private val AppLightColorScheme = lightColorScheme(
-    primary = ColorLight.Primary,
-    onPrimary = ColorLight.OnPrimary,
-    primaryContainer = ColorLight.PrimaryContainer,
-    onPrimaryContainer = ColorLight.OnPrimaryContainer,
-    inversePrimary = ColorLight.inversePrimary,
+private val AppColorScheme = lightColorScheme(
+    primary = LexemeColor.primary,
+    onPrimary = LexemeColor.onPrimary,
+    primaryContainer = LexemeColor.primaryContainer,
+    onPrimaryContainer = LexemeColor.onPrimaryContainer,
+    inversePrimary = LexemeColor.inversePrimary,
 
-    secondary = ColorLight.secondary,
-    onSecondary = ColorLight.onSecondary,
-    secondaryContainer = ColorLight.secondaryContainer,
-    onSecondaryContainer = ColorLight.onSecondaryContainer,
+    secondary = LexemeColor.secondary,
+    onSecondary = LexemeColor.onSecondary,
+    secondaryContainer = LexemeColor.secondaryContainer,
+    onSecondaryContainer = LexemeColor.onSecondaryContainer,
 
-    tertiary = ColorLight.tertiary,
-    onTertiary = ColorLight.onTertiary,
-    tertiaryContainer = ColorLight.tertiaryContainer,
-    onTertiaryContainer = ColorLight.onTertiaryContainer,
+    tertiary = LexemeColor.tertiary,
+    onTertiary = LexemeColor.onTertiary,
+    tertiaryContainer = LexemeColor.tertiaryContainer,
+    onTertiaryContainer = LexemeColor.onTertiaryContainer,
 
-    background = ColorLight.background,
-    onBackground = ColorLight.onBackground,
+    background = LexemeColor.background,
+    onBackground = LexemeColor.onBackground,
 
-    surface = ColorLight.surface,
-    onSurface = ColorLight.onSurface,
-    surfaceVariant = ColorLight.surfaceVariant,
-    onSurfaceVariant = ColorLight.onSurfaceVariant,
-    surfaceTint = ColorLight.surfaceTint,
-    inverseSurface = ColorLight.inverseSurface,
-    inverseOnSurface = ColorLight.inverseOnSurface,
+    surface = LexemeColor.surface,
+    onSurface = LexemeColor.onSurface,
+    surfaceVariant = LexemeColor.surfaceVariant,
+    onSurfaceVariant = LexemeColor.onSurfaceVariant,
+    surfaceTint = LexemeColor.surfaceTint,
+    inverseSurface = LexemeColor.inverseSurface,
+    inverseOnSurface = LexemeColor.inverseOnSurface,
 
-    error = ColorLight.error,
-    onError = ColorLight.onError,
-    errorContainer = ColorLight.errorContainer,
-    onErrorContainer = ColorLight.onErrorContainer,
+    error = LexemeColor.error,
+    onError = LexemeColor.onError,
+    errorContainer = LexemeColor.errorContainer,
+    onErrorContainer = LexemeColor.onErrorContainer,
 
-    outline = ColorLight.outline,
-    outlineVariant = ColorLight.outlineVariant,
+    outline = LexemeColor.outline,
+    outlineVariant = LexemeColor.outlineVariant,
 )
 
 private val AppDarkColorScheme = darkColorScheme()
 
 @Composable
 fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val colors = if (darkTheme) {
-//        AppDarkColorScheme
-        AppLightColorScheme
-    } else {
-        AppLightColorScheme
-    }
+    val colors = AppColorScheme
     MaterialTheme(
         content = content,
         typography = Typography,
