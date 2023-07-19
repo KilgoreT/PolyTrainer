@@ -1,12 +1,9 @@
 @file:OptIn(
     ExperimentalComposeUiApi::class,
-    ExperimentalMaterial3Api::class,
-    ExperimentalFoundationApi::class,
 )
 
 package me.apomazkin.vocabulary.ui.widget.detailDialog
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -104,8 +101,8 @@ fun WordDetailDialogWidget(
                             .align(CenterHorizontally)
                             .padding(top = 56.dp, bottom = 16.dp),
                         onClick = {
-                            sendMsg(Msg.DeleteWord(wordId = state.wordId, wordValue = state.word))
-                            sendMsg(WordDetailMsg.Hide)
+//                            sendMsg(Msg.DeleteWord(wordId = state.wordId, wordValue = state.word))
+//                            sendMsg(WordDetailMsg.Hide)
                         }
                     ) {
                         Text(text = "Delete word")

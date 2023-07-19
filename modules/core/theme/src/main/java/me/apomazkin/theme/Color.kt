@@ -7,12 +7,7 @@ val White = Color(0xFFFFFFFF)
 val Black = Color(0xFF10324C)
 val BlackDisabled = Color(0x1F10324C)
 val SecondarySelected = Color(0x1FFF7D05)
-
-@Deprecated("Outdated")
-val M3Black = Color(0xff32344F)
-
-@Deprecated("Outdated")
-val M3Neutral = Color(0xFFE9F3EE)
+val Tonal = Color(0xFFE0EEF9)
 
 @Deprecated("Outdated")
 val M3Primary95 = Color(0xFFB9FFE8)
@@ -32,8 +27,12 @@ val clrFFB75E = Color(0xFFFFB75E)
 val clrED8F03 = Color(0xFFED8F03)
 val gradientSecondaryVertical = Brush
     .verticalGradient(listOf(clrED8F03, clrFFB75E))
+val gradientSecondaryHorizontal = Brush
+    .horizontalGradient(listOf(clrFFB75E, clrED8F03))
 
 val clr1F10324C = Color(0x1F10324C)
+
+val bgAlfa = Color(0x5210324C)
 
 object LexemeColor {
     val primary = Color(0xFF2F51BE)
@@ -42,7 +41,7 @@ object LexemeColor {
     val onPrimaryContainer = onPrimary
 
     val secondary = Color(0xFFED8F03)
-    val onSecondary = White
+    val onSecondary = Black
     val secondaryContainer = secondary
     val onSecondaryContainer = onSecondary
 

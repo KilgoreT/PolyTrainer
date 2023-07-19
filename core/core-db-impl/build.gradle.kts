@@ -22,7 +22,7 @@ dependencies {
 
     //Room
     implementation(datastoreLibs.roomRuntime)
-    implementation("androidx.room:room-rxjava2:2.5.0")
+    implementation("androidx.room:room-rxjava2:2.5.2")
     implementation(datastoreLibs.roomKtx)
     kapt(datastoreLibs.roomCompiler)
 

@@ -15,9 +15,12 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         return when (message) {
             is Msg.TermLoading -> onTermLoading(state)
             is Msg.TermLoaded -> onTermLoaded(state, message.term)
+            is Msg.ShowDeleteWordDialog -> onShowDeleteWordDialog(state)
+            is Msg.HideDeleteWordDialog -> onCloseDeleteWordDialog(state)
             is Msg.DeleteWord -> onWordDelete(state, message.wordId)
             is Msg.ChangeWordValue -> onChangeWordValue(state, message.value)
-            is Msg.EditWord -> onEditWord(state)
+            is Msg.OpenEditWord -> onOpenEditWord(state)
+            is Msg.CloseEditWord -> onCloseEditWord(state)
             is Msg.SaveWordValue -> onSaveWord(state)
             is Msg.AddLexeme -> onAddLexeme(state)
             is Msg.ResetLexeme -> onResetLexeme(state, message.lexemeId)
@@ -25,6 +28,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             is Msg.DeleteLexeme -> onDeleteLexeme(state, message.lexemeId)
             is Msg.LexicalCategoryChange ->
                 onLexicalCategoryChange(state, message.lexemeId, message.category)
+
             is Msg.LexicalCategoryReset -> onResetLexemeCategory(state, message.lexemeId)
             is Msg.DefinitionChange -> onDefinitionChange(state, message.lexemeId, message.value)
             is Msg.SaveLexeme -> onSaveLexeme(state, message.lexemeId)
@@ -59,6 +63,26 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         }
     ) to setOf()
 
+    private fun onShowDeleteWordDialog(
+        state: WordCardState,
+    ): Pair<WordCardState, Set<Effect>> = state
+        .copy(
+            wordState = state.wordState.copy(
+                showWarningDialog = true,
+                deleteButtonEnabled = false,
+            )
+        ) to setOf()
+
+    private fun onCloseDeleteWordDialog(
+        state: WordCardState
+    ): Pair<WordCardState, Set<Effect>> = state
+        .copy(
+            wordState = state.wordState.copy(
+                showWarningDialog = false,
+                deleteButtonEnabled = true,
+            )
+        ) to setOf()
+
     private fun onWordDelete(
         state: WordCardState,
         wordId: Long
@@ -73,11 +97,20 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         wordState = state.wordState.copy(edited = value)
     ) to setOf()
 
-    private fun onEditWord(
+    private fun onOpenEditWord(
         state: WordCardState,
     ): ReducerResult<WordCardState, Effect> = state.copy(
         wordState = state.wordState.copy(
+            edited = state.wordState.value,
             isEdit = true
+        )
+    ) to setOf()
+
+    private fun onCloseEditWord(
+        state: WordCardState,
+    ): ReducerResult<WordCardState, Effect> = state.copy(
+        wordState = state.wordState.copy(
+            isEdit = false,
         )
     ) to setOf()
 
@@ -85,7 +118,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         state: WordCardState
     ): ReducerResult<WordCardState, Effect> = state.copy(
         wordState = state.wordState.copy(
-            isEdit = false,
+//            isEdit = false,
             value = state.wordState.edited,
         )
     ) to setOf(
