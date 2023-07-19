@@ -11,11 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.M3Black
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
@@ -36,7 +36,7 @@ internal fun TopBarWidget(
                 Icon(
                     modifier = Modifier,
                     imageVector = Icons.Default.ArrowBack,
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = MaterialTheme.colorScheme.onSecondary,
                     contentDescription = ""
                 )
             }
@@ -45,8 +45,8 @@ internal fun TopBarWidget(
             Text(text = stringResource(id = R.string.word_card_toolbar_title))
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(
-            containerColor = M3Black,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = Color.Transparent,
+            titleContentColor = MaterialTheme.colorScheme.onSecondary,
         ),
     )
 }

@@ -1,23 +1,26 @@
 @file:OptIn(
     ExperimentalAnimationApi::class,
+    ExperimentalMaterial3Api::class,
     ExperimentalLifecycleComposeApi::class,
-    ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class,
 )
 
 package me.apomazkin.vocabulary.ui
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
@@ -25,10 +28,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.M3Black
-import me.apomazkin.theme.M3Neutral
+import me.apomazkin.theme.gradientPrimary
 import me.apomazkin.ui.StatusBarColorWidget
+import me.apomazkin.ui.btn.SecondaryFabWidget
+import me.apomazkin.ui.lifecycle.LifecycleResume
 import me.apomazkin.ui.preview.PreviewWidgetEn
+import me.apomazkin.vocabulary.R
 import me.apomazkin.vocabulary.deps.VocabularyUseCase
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.logic.UiMsg
@@ -76,14 +81,20 @@ internal fun VocabularyTabScreen(
         }
     }
 
+    LifecycleResume {
+        sendMessage.invoke(Msg.TermDataLoad)
+    }
+
     StatusBarColorWidget(
-        statusBarColor = M3Black,
-        navigationBarColor = M3Neutral,
+        statusBarDarkIcon = false,
+        navigationBarDarkIcon = true,
+        navigationBarContrastEnforced = true,
     )
 
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
+            .background(brush = gradientPrimary)
             .statusBarsPadding(),
         topBar = {
             TopBarWidget(
@@ -95,6 +106,7 @@ internal fun VocabularyTabScreen(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
         floatingActionButton = {
             AnimatedVisibility(
@@ -103,18 +115,19 @@ internal fun VocabularyTabScreen(
                 enter = scaleIn(),
                 exit = scaleOut(),
             ) {
-                FloatingActionButton(
-                    onClick = { sendMessage(Msg.AddWordWidget(show = true)) }
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "")
-                }
+                SecondaryFabWidget(
+                    iconRes = R.drawable.ic_add,
+                    enabled = !state.addWordDialogState.isAddWordWidgetOpen
+                ) { sendMessage(Msg.AddWordWidget(show = true)) }
             }
         }
     ) { paddingValue ->
         Box(
             modifier = Modifier
                 .padding(paddingValue)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .clip(RoundedCornerShape(topStart = 32.dp))
+                .background(MaterialTheme.colorScheme.background),
         ) {
             when {
                 state.isLoading -> {
@@ -129,23 +142,13 @@ internal fun VocabularyTabScreen(
                 }
                 !state.isEmpty() -> {
                     WordListWidget(
+                        modifier = Modifier
+                            .padding(top = 20.dp),
                         termList = state.termList,
                         onOpenWordCard = onOpenWordCard,
                         sendMessage = sendMessage,
                     )
                 }
-            }
-            AnimatedVisibility(
-                modifier = Modifier,
-                visible = state.addWordDialogState.isAddWordWidgetOpen,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                AddWordWidget(
-                    wordValue = state.addWordDialogState.addWordValue,
-                    checkValue = { state.addWordDialogState.isAddDetailEnable },
-                    sendMessage = sendMessage,
-                )
             }
             if (state.wordDetailDialogState.isOpen) {
                 WordDetailDialogWidget(
@@ -155,6 +158,12 @@ internal fun VocabularyTabScreen(
             }
         }
     }
+    AddWordWidget(
+        state = state.addWordDialogState,
+        wordValue = state.addWordDialogState.addWordValue,
+        checkValue = { state.addWordDialogState.isAddDetailEnable },
+        sendMessage = sendMessage,
+    )
 }
 
 @PreviewWidgetEn

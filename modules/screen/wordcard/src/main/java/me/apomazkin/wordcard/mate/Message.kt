@@ -6,9 +6,12 @@ import me.apomazkin.wordcard.entity.Term
 sealed interface Msg {
     object TermLoading : Msg
     data class TermLoaded(val term: Term) : Msg
+    object ShowDeleteWordDialog : Msg
+    object HideDeleteWordDialog : Msg
     data class DeleteWord(val wordId: Long) : Msg
     data class ChangeWordValue(val value: String) : Msg
-    object EditWord : Msg
+    object OpenEditWord : Msg
+    object CloseEditWord : Msg
     object SaveWordValue : Msg
     object AddLexeme : Msg
     data class DeleteLexeme(val lexemeId: Long) : Msg

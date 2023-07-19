@@ -39,9 +39,13 @@
 
     <!--Any-->
     <string name="flag_content_description">Flag icon</string>
+    <string name="content_description_button">Button</string>
     <string name="content_description_clear">Clear</string>
+    <string name="content_description_icon">Icon</string>
     <string name="unknown_error">Unknown error</string>
     <string name="empty_value" tools:ignore="MissingTranslation"> </string>
+    <string name="button_ok">OK</string>
+    <string name="button_cancel">Cancel</string>
 
 
     <!--LANGUAGE SELECTION-->
@@ -75,6 +79,8 @@
     <!--WordCard-->
     <string name="word_card_toolbar_title">Word card</string>
     <string name="word_card_delete_word">Delete word</string>
+    <string name="word_card_edit_word">Edit word</string>
     <string name="word_card_add_lexeme">Add meaning</string>
+    <string name="word_card_delete_warning_dialog_title">Do you want to delete the word?</string>
 
 </resources>

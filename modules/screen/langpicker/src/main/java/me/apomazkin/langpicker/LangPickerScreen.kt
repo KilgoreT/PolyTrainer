@@ -1,6 +1,7 @@
+@file:OptIn(ExperimentalLifecycleComposeApi::class)
+
 package me.apomazkin.langpicker
 
-import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
@@ -16,7 +17,6 @@ import me.apomazkin.ui.ImageBgGradWidget
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
-@OptIn(ExperimentalLifecycleComposeApi::class)
 @Composable
 fun LangPickerScreen(
     langPickerUseCase: LangPickerUseCase,
