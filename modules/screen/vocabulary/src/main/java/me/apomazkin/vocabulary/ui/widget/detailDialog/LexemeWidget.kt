@@ -94,7 +94,9 @@ fun LexemeWidget(
 //        )
         state.lexemeId?.let {
             OutlinedButton(
-                onClick = { sendMsg(Msg.DeleteLexeme(lexemeId = it)) }
+                onClick = {
+//                    sendMsg(Msg.DeleteLexeme(lexemeId = it))
+                }
             ) {
                 Text(text = "Удалить перевод")
             }

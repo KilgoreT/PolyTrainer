@@ -31,8 +31,12 @@
 
     <!--Any-->
     <string name="flag_content_description">Иконка флага</string>
+    <string name="content_description_button">Кнопка</string>
     <string name="content_description_clear">Очистить</string>
+    <string name="content_description_icon">Иконка</string>
     <string name="unknown_error">Неизвестная ошибка</string>
+    <string name="button_ok">ОК</string>
+    <string name="button_cancel">Отменить</string>
 
     <!--LANGUAGE SELECTION-->
     <string name="lang_selection_title">Я изучаю…</string>
@@ -65,6 +69,8 @@
     <!--WordCard-->
     <string name="word_card_toolbar_title">Карточка слова</string>
     <string name="word_card_delete_word">Удалить слово</string>
+    <string name="word_card_edit_word">Редактировать слово</string>
     <string name="word_card_add_lexeme">Добавить значение</string>
+    <string name="word_card_delete_warning_dialog_title">Вы хотите удалить слово?</string>
 
 </resources>

@@ -36,29 +36,9 @@ sealed interface Msg {
     data class WordValueChange(val value: String) : Msg
 
     /**
-     * Message to handle AddWord's Checkbox.onCheckedChange.
-     */
-    data class EnableAddWordDetail(val value: Boolean) : Msg
-
-    /**
      * Message to add new word.
      */
     data class AddWord(val value: String) : Msg
-
-    /**
-     * Message to open/close DropDown menu for word.
-     */
-    data class DropDownMenu(val wordId: Long, val isOpen: Boolean) : Msg
-
-    /**
-     * Message to delete word.
-     */
-    data class DeleteWord(val wordId: Long, val wordValue: String) : Msg
-
-    /**
-     * Message to delete lexeme
-     */
-    data class DeleteLexeme(val lexemeId: Long) : Msg
 
     /**
      * When no need action after Effect.
