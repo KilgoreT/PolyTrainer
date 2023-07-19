@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalLifecycleComposeApi::class)
+
 package me.apomazkin.splash
 
 import androidx.compose.foundation.background
@@ -20,7 +22,6 @@ import me.apomazkin.ui.ImageTitledWidget
 import me.apomazkin.ui.StatusBarColorWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
-@OptIn(ExperimentalLifecycleComposeApi::class)
 @Composable
 fun SplashScreen(
     splashUseCase: SplashUseCase,

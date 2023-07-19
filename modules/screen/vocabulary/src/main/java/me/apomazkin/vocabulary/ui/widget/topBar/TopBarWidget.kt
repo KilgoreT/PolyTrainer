@@ -2,10 +2,10 @@ package me.apomazkin.vocabulary.ui.widget.topBar
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.M3Black
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 import me.apomazkin.vocabulary.logic.Msg
@@ -37,7 +37,7 @@ fun TopBarWidget(
             }
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(
-            containerColor = M3Black,
+            containerColor = Color.Transparent,
             titleContentColor = MaterialTheme.colorScheme.onPrimary,
         ),
     )

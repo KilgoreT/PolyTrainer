@@ -15,7 +15,7 @@ lifecycleRuntimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runt
 uiToolingPreview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "composeVersion" }
 uiTooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "composeVersion" }
 navigationCompose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose-version" }
-accompanistSystemuicontroller = { group = "com.google.accompanist", name = "accompanist-systemuicontroller", version.ref = "accompanist-systemuicontroller-version" }
+accompanistSystemUicontroller = { group = "com.google.accompanist", name = "accompanist-systemuicontroller", version.ref = "accompanist-systemuicontroller-version" }
 uiTestJunit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "composeVersion" }
 uiTestManifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version.ref = "composeVersion" }
 

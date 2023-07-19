@@ -20,9 +20,11 @@ data class WordCardState(
 @Stable
 data class WordState(
     val id: Long = NOT_IN_DB,
-    val isEdit: Boolean = false,
     val value: String = "",
-    val edited: String = value,
+    val isEdit: Boolean = false,
+    val edited: String = "",
+    val showWarningDialog: Boolean = false,
+    val deleteButtonEnabled: Boolean = true,
 )
 
 @Stable

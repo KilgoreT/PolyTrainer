@@ -1,4 +1,4 @@
-package me.apomazkin.ui
+package me.apomazkin.ui.btn.base
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -18,44 +18,36 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.*
+import me.apomazkin.ui.R
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
-private const val defaultPadding = 24
-private const val defaultShape = 16
+private const val DefaultPadding = 24
+private const val DefaultShape = 12
 
 @Composable
-fun GradientButton(
+fun GradientButtonWidget(
     @StringRes titleRes: Int,
-    enabled: Boolean = true,
+    enabled: Boolean = false,
     gradient: Brush,
     titleColorEnabled: Color = White,
     titleColorDisabled: Color = BlackDisabled,
     titleStyle: TextStyle = Typography.labelLarge,
-    horizontalPadding: Dp = defaultPadding.dp,
-    shape: Shape = RoundedCornerShape(defaultShape.dp),
+    horizontalPadding: Dp = DefaultPadding.dp,
+    shape: Shape = RoundedCornerShape(DefaultShape.dp),
     onClick: () -> Unit,
 ) {
-    val modifier = if (enabled) {
-        Modifier
-            .padding(horizontal = horizontalPadding)
-            .height(ButtonDefaults.MinHeight)
-            .background(
-                brush = gradient,
-                shape = shape
-            )
+    val bgModifier = if (enabled) {
+        Modifier.background(brush = gradient, shape = shape)
     } else {
-        Modifier
-            .padding(horizontal = horizontalPadding)
-            .height(ButtonDefaults.MinHeight)
-            .background(
-                color = clr1F10324C,
-                shape = shape
-            )
+        Modifier.background(color = clr1F10324C, shape = shape)
     }
     val titleColor = if (enabled) titleColorEnabled else titleColorDisabled
     Button(
-        modifier = modifier,
+        modifier = Modifier
+            .then(bgModifier)
+            .width(intrinsicSize = IntrinsicSize.Min)
+            .height(ButtonDefaults.MinHeight),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Transparent,
             disabledContainerColor = Color.Transparent,
@@ -67,7 +59,8 @@ fun GradientButton(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .padding(horizontal = horizontalPadding),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -84,7 +77,7 @@ fun GradientButton(
 @Composable
 private fun Preview() {
     AppTheme {
-        GradientButton(
+        GradientButtonWidget(
             titleRes = R.string.logo_title,
             gradient = gradientPrimary,
         ) {}

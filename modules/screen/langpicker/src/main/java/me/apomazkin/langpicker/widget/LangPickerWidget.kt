@@ -11,7 +11,7 @@ import me.apomazkin.langpicker.logic.LangState
 import me.apomazkin.langpicker.logic.Msg
 import me.apomazkin.langpicker.toLangNameRes
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.PrimaryButton
+import me.apomazkin.ui.btn.PrimaryButtonWidget
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
@@ -32,7 +32,7 @@ fun BoxScope.LangPickerWidget(
             sendMsg = sendMsg,
         )
         Spacer(modifier = Modifier.height(20.dp))
-        PrimaryButton(
+        PrimaryButtonWidget(
             titleRes = R.string.lang_selection_button,
             enabled = langState.addLangButtonEnable
         ) {

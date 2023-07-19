@@ -17,8 +17,9 @@ dependencies {
     implementation(project("path" to ":modules:core:theme"))
     implementation(project("path" to ":core:core-resources"))
 
+    implementation(composeLibs.lifecycleRuntimeCompose)
     debugApi(composeLibs.bundles.composePreview)
-    implementation(composeLibs.accompanistSystemuicontroller)
+    implementation(composeLibs.accompanistSystemUicontroller)
 
     testImplementation(testLibs.junit)
     androidTestImplementation(testLibs.androidxTestExt)
