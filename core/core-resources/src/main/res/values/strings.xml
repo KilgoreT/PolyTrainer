@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <string name="logo_title">on the top©</string>
+    <string name="logo_title">Lexeme</string>
 
     <string name="common_noun_label">noun</string>
     <string name="common_verb_label">verb</string>

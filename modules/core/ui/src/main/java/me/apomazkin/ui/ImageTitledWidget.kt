@@ -3,12 +3,16 @@ package me.apomazkin.ui
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -18,7 +22,8 @@ import me.apomazkin.theme.Typography
 import me.apomazkin.ui.preview.PreviewWidget
 
 
-private val DEFAULT_TEXT_STYLE = Typography.headlineSmall
+private val defaultTextStyle = Typography.headlineSmall
+private val defaultColor = Color.Unspecified
 private const val DEFAULT_SPACE = 8
 
 /**
@@ -31,7 +36,8 @@ fun ImageTitledWidget(
     modifier: Modifier = Modifier,
     @DrawableRes imageRes: Int,
     @StringRes titleRes: Int,
-    textStyle: TextStyle = DEFAULT_TEXT_STYLE,
+    textStyle: TextStyle = defaultTextStyle,
+    textColor: Color = defaultColor,
     spaceBetween: Int = DEFAULT_SPACE,
 ) {
     Column(
@@ -49,7 +55,8 @@ fun ImageTitledWidget(
         Text(
             text = stringResource(id = titleRes),
             maxLines = 1,
-            style = textStyle
+            style = textStyle,
+            color = textColor,
         )
     }
 }
@@ -58,9 +65,15 @@ fun ImageTitledWidget(
 @PreviewWidget
 private fun Preview() {
     AppTheme {
-        ImageTitledWidget(
-            imageRes = R.drawable.ic_splash_logo,
-            titleRes = R.string.logo_title
-        )
+        Box(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.primary)
+        ) {
+            ImageTitledWidget(
+                imageRes = R.drawable.ic_logo,
+                titleRes = R.string.logo_title,
+                textColor = MaterialTheme.colorScheme.onPrimary
+            )
+        }
     }
 }
