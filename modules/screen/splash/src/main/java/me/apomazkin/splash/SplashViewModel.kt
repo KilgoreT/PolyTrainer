@@ -13,11 +13,13 @@ class SplashViewModel(
     splashUseCase: SplashUseCase
 ) : ViewModel() {
 
-    val checkIfNeedAddLang: StateFlow<Boolean?> = splashUseCase.checkIfNeedAddLang().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = null
-    )
+    val checkIfNeedAddLang: StateFlow<Boolean?> = splashUseCase
+        .checkIfNeedAddLang()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null,
+        )
 
     class Factory(
         private val splashUseCase: SplashUseCase
