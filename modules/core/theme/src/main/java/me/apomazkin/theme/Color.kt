@@ -35,7 +35,7 @@ val clr1F10324C = Color(0x1F10324C)
 val bgAlfa = Color(0x5210324C)
 
 object LexemeColor {
-    val primary = Color(0xFF2F51BE)
+    val primary = Color.Black
     val onPrimary = White
     val primaryContainer = primary
     val onPrimaryContainer = onPrimary

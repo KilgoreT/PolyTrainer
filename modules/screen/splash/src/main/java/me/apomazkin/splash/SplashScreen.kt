@@ -39,16 +39,21 @@ fun SplashScreen(
         }
     }
 
-    StatusBarColorWidget(color = MaterialTheme.colorScheme.background)
+    StatusBarColorWidget(
+        color = MaterialTheme.colorScheme.primary,
+        statusBarDarkIcon = false,
+    )
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center,
     ) {
         ImageTitledWidget(
-            imageRes = R.drawable.ic_splash_logo,
-            titleRes = R.string.logo_title
+            imageRes = R.drawable.ic_logo,
+            titleRes = R.string.logo_title,
+            textStyle = MaterialTheme.typography.titleLarge,
+            textColor = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
