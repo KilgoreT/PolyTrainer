@@ -1,15 +1,9 @@
 plugins {
-    id("android-library-convention")
+    id("polytrainer.android.feature")
 }
 
 android {
     namespace = "me.apomazkin.splash"
-    buildFeatures(Action {
-        compose = true
-    })
-    composeOptions(Action {
-        kotlinCompilerExtensionVersion = "1.3.2"
-    })
 }
 
 dependencies {

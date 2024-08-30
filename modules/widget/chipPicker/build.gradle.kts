@@ -3,16 +3,17 @@
 plugins {
     id("android-library-convention")
 }
+apply(from = rootProject.file("varch.gradle.kts"))
 
 android {
     namespace = "me.apomazkin.chippicker"
 
-    buildFeatures(Action {
+    buildFeatures {
         compose = true
-    })
-    composeOptions(Action {
-        kotlinCompilerExtensionVersion = "1.3.2"
-    })
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = project.extra["kCompilerExtensionVersion"] as String
+    }
 }
 
 dependencies {

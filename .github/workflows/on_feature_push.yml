@@ -13,8 +13,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Run Debug Lint
-        run: ./gradlew lintDebug
+        run: ./gradlew :app:lintDebug
 
       - name: Upload Lint Reports
         if: ${{ always() }}
@@ -22,6 +28,29 @@ jobs:
         with:
           name: lint-reports
           path: '**/build/reports/lint-results-*'
+
+  build_job:
+    name: Build Artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload Build Artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: apk
+          path: '**/build/outputs/apk/debug/*.apk'
 
 #  test_job:
 #    name: Unit Tests

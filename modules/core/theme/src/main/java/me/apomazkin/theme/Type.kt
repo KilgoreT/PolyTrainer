@@ -16,6 +16,8 @@ val PoppinsMedium = FontFamily(
     Font(R.font.poppins_medium, FontWeight.Normal),
 )
 
+private val defaultFontFamily = FontFamily.Default
+
 val Typography = Typography(
     headlineSmall = TextStyle(
         fontFamily = PoppinsRegular,
@@ -23,12 +25,12 @@ val Typography = Typography(
         fontSize = 24.sp
     ),
     titleLarge = TextStyle(
-        fontFamily = PoppinsRegular,
-        fontWeight = FontWeight.W400,
-        fontSize = 22.sp,
+        fontFamily = defaultFontFamily,
+        fontWeight = FontWeight.W700,
+        fontSize = 24.sp,
     ),
     titleMedium = TextStyle(
-        fontFamily = PoppinsMedium,
+        fontFamily = defaultFontFamily,
         fontWeight = FontWeight.W500,
         fontSize = 16.sp,
     ),
