@@ -14,7 +14,7 @@ dependencies {
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
     implementation(libKotlin.stdlib)
 
-    implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
 
     //noinspection GradleDependency

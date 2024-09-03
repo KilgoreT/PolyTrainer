@@ -1,5 +1,5 @@
 [versions]
-dagger-version = "2.44"
+dagger-version = "2.48"
 
 [libraries]
 dagger = { group = "com.google.dagger", name = "dagger", version.ref = "dagger-version" }

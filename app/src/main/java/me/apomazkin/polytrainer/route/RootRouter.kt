@@ -1,19 +1,12 @@
 package me.apomazkin.polytrainer.route
 
-import android.util.Log
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import kotlinx.coroutines.flow.collectLatest
 import me.apomazkin.langpicker.LangPickerScreen
-import me.apomazkin.polytrainer.BuildConfig
 import me.apomazkin.polytrainer.appComponent
-import me.apomazkin.polytrainer.navigation.Constants
-import me.apomazkin.polytrainer.navigation.processLog
-import me.apomazkin.polytrainer.navigation.toLogEntityFlow
 import me.apomazkin.splash.SplashScreen
 
 enum class RootPoint(
@@ -34,15 +27,15 @@ class RootRouter {
 fun RootRouter(
     navController: NavHostController
 ) {
-    LaunchedEffect(Unit) {
-        if (BuildConfig.DEBUG) {
-            navController
-                .toLogEntityFlow()
-                .collectLatest {
-                    Log.d(Constants.LOG_TAG, it.processLog())
-                }
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        if (BuildConfig.DEBUG) {
+//            navController
+//                .toLogEntityFlow()
+//                .collectLatest {
+//                    Log.d(Constants.LOG_TAG, it.processLog())
+//                }
+//        }
+//    }
     val context = LocalContext.current
     var navigator: RootRouterNavigation? = null
 
