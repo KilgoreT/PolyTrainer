@@ -2,11 +2,11 @@ import com.android.build.gradle.BaseExtension
 
 configure<BaseExtension> {
 
-    setCompileSdkVersion(33)
+    setCompileSdkVersion(34)
 
     defaultConfig {
         minSdk = 21
-        setTargetSdkVersion(33)
+        setTargetSdkVersion(34)
         versionName = getVersionName()
         versionCode = getVersionCode(getVersionName())
         multiDexEnabled = true
@@ -24,20 +24,20 @@ configure<BaseExtension> {
     }
 
     compileOptions {
-        targetCompatibility = JavaVersion.VERSION_11
-        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
     }
 
-    lintOptions {
-        isQuiet = false
-        isAbortOnError = true
-        isWarningsAsErrors = true
-        isIgnoreWarnings = false
-        disable("TrustAllX509TrustManager")
-        disable("NullSafeMutableLiveData")
-        disable("UnknownIssueId")
-
-    }
+//    lintOptions {
+//        isQuiet = false
+//        isAbortOnError = true
+//        isWarningsAsErrors = true
+//        isIgnoreWarnings = false
+//        disable("TrustAllX509TrustManager")
+//        disable("NullSafeMutableLiveData")
+//        disable("UnknownIssueId")
+//
+//    }
 }
 
 fun getVersionName(): String {

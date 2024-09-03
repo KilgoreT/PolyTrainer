@@ -2,13 +2,15 @@ plugins {
     id("android-library-convention")
 }
 
+apply(from = rootProject.file("varch.gradle.kts"))
+
 android {
     namespace = "me.apomazkin.ui"
     buildFeatures(Action {
         compose = true
     })
     composeOptions(Action {
-        kotlinCompilerExtensionVersion = "1.3.2"
+        kotlinCompilerExtensionVersion = project.extra["kCompilerExtensionVersion"] as String
     })
 }
 

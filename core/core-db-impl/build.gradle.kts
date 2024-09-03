@@ -1,16 +1,21 @@
 plugins {
     id("android-library-convention")
+    id("androidx.room")
+    id("com.google.devtools.ksp") version "2.0.20-1.0.24" apply false
     id("kotlin-kapt")
 }
 
 android {
-    defaultConfig(Action {
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf("room.schemaLocation" to "$projectDir/schemas")
-            }
-        }
-    })
+//    defaultConfig {
+////        javaCompileOptions {
+////            annotationProcessorOptions {
+////                arguments += mapOf("room.schemaLocation" to "$projectDir/schemas")
+////            }
+////        }
+//    }
+    room {
+        schemaDirectory("$projectDir/schemas")
+    }
     sourceSets {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
@@ -22,8 +27,9 @@ dependencies {
 
     //Room
     implementation(datastoreLibs.roomRuntime)
-    implementation("androidx.room:room-rxjava2:2.5.2")
+    implementation("androidx.room:room-rxjava2:2.6.1")
     implementation(datastoreLibs.roomKtx)
+    annotationProcessor(datastoreLibs.roomCompiler)
     kapt(datastoreLibs.roomCompiler)
 
     //Rx

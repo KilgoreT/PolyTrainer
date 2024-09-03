@@ -1,6 +1,6 @@
 [versions]
-datastore-version = "1.0.0"
-roomVersion = "2.5.2"
+datastore-version = "1.1.1"
+roomVersion = "2.6.1"
 
 [libraries]
 preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore-version" }

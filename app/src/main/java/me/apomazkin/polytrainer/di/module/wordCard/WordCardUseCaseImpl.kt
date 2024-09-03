@@ -2,7 +2,11 @@ package me.apomazkin.polytrainer.di.module.wordCard
 
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.wordcard.deps.WordCardUseCase
-import me.apomazkin.wordcard.entity.*
+import me.apomazkin.wordcard.entity.Lexeme
+import me.apomazkin.wordcard.entity.LexemeId
+import me.apomazkin.wordcard.entity.Term
+import me.apomazkin.wordcard.entity.Word
+import me.apomazkin.wordcard.entity.WordId
 import javax.inject.Inject
 
 class WordCardUseCaseImpl @Inject constructor(
@@ -11,7 +15,6 @@ class WordCardUseCaseImpl @Inject constructor(
 
     override suspend fun getTermById(wordId: Long): Term {
         return dbApi.getTermById(wordId).let {
-            it.defList
             Term(
                 wordId = WordId(it.word.id ?: throw IllegalStateException("WordId is null")),
                 word = Word(it.word.value ?: throw IllegalStateException("WordId is null")),

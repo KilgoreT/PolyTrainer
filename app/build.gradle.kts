@@ -1,17 +1,16 @@
-import java.util.*
+import java.util.Properties
 
 plugins {
-    id("android-application-convention")
-    id("kotlin-kapt")
+    id("polytrainer.android.application")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
 }
 
+apply(from = rootProject.file("varch.gradle.kts"))
+
 android {
 
-    defaultConfig(Action {
-        applicationId = "me.apomazkin.polytrainer"
-    })
+    namespace = "me.apomazkin.polytrainer"
 
     signingConfigs {
         register("signForRelease") {
@@ -34,9 +33,8 @@ android {
             }
         }
     }
-    namespace = "me.apomazkin.polytrainer"
 
-    buildTypes(Action {
+    buildTypes {
         getByName("debug") {
             signingConfig = signingConfigs.getByName("signForRelease")
             isMinifyEnabled = false
@@ -49,16 +47,7 @@ android {
                 "proguard-rules.pro"
             )
         }
-    })
-    buildFeatures(Action {
-        dataBinding = true
-    })
-    buildFeatures(Action {
-        compose = true
-    })
-    composeOptions(Action {
-        kotlinCompilerExtensionVersion = "1.3.2"
-    })
+    }
 }
 
 dependencies {
