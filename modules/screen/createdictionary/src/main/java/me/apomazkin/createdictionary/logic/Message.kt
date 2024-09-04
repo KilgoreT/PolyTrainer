@@ -1,6 +1,6 @@
-package me.apomazkin.langpicker.logic
+package me.apomazkin.createdictionary.logic
 
-import me.apomazkin.langpicker.entity.PresetLangUi
+import me.apomazkin.createdictionary.entity.PresetLangUi
 
 sealed interface Msg {
 

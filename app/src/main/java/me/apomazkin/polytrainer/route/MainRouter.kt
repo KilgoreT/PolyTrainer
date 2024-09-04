@@ -14,7 +14,7 @@ enum class MainPoint(val route: String) {
 
 fun NavGraphBuilder.mainRouter(
     route: String,
-    onAddLang: () -> Unit,
+    onAddDictionary: () -> Unit,
 ) {
     navigation(
         startDestination = MainPoint.MAIN.route,
@@ -27,7 +27,7 @@ fun NavGraphBuilder.mainRouter(
                     vocabularyUseCase = context.appComponent.getVocabularyUseCase(),
                     wordCardUseCase = context.appComponent.getWordCardUseCase(),
                 ),
-                onAddLang = onAddLang
+                onAddDictionary = onAddDictionary
             )
         }
     }

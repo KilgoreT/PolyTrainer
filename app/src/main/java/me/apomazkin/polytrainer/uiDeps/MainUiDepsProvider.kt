@@ -15,12 +15,12 @@ class MainUiDepsProvider(
 ) : MainUiDeps {
     @Composable
     override fun VocabularyTab(
-        onAddLang: () -> Unit,
+        onAddDictionary: () -> Unit,
         onOpenWordCard: (wordId: Long) -> Unit,
     ) {
         VocabularyTabScreen(
             vocabularyUseCase = vocabularyUseCase,
-            onAddLang = onAddLang,
+            onAddLang = onAddDictionary,
             onOpenWordCard = onOpenWordCard,
         )
     }

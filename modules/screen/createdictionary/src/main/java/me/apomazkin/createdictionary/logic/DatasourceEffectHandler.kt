@@ -1,12 +1,12 @@
-package me.apomazkin.langpicker.logic
+package me.apomazkin.createdictionary.logic
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.apomazkin.langpicker.LangPickerUseCase
-import me.apomazkin.langpicker.LanguageData
-import me.apomazkin.langpicker.entity.PresetLangUi
-import me.apomazkin.langpicker.toLangNameRes
+import me.apomazkin.createdictionary.CreateDictionaryUseCase
+import me.apomazkin.createdictionary.LanguageData
+import me.apomazkin.createdictionary.entity.PresetLangUi
+import me.apomazkin.createdictionary.toLangNameRes
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
 
@@ -33,7 +33,7 @@ internal sealed interface DatasourceEffect : Effect {
  * EffectHandler for datastore calls.
  */
 internal class DatasourceEffectHandler(
-    private val langPickerUseCase: LangPickerUseCase,
+    private val createDictionaryUseCase: CreateDictionaryUseCase,
 ) : MateEffectHandler<Msg, Effect> {
 
     override suspend fun runEffect(
@@ -47,7 +47,7 @@ internal class DatasourceEffectHandler(
                     Msg.ShowLangList(
                         LanguageData.langList.map {
                             PresetLangUi(
-                                flagRes = langPickerUseCase.getFlagRes(it.numericCode),
+                                flagRes = createDictionaryUseCase.getFlagRes(it.numericCode),
                                 countryNumericCode = it.numericCode,
                                 langNameRes = it.numericCode.toLangNameRes()
                             )
@@ -57,8 +57,8 @@ internal class DatasourceEffectHandler(
             }
             is DatasourceEffect.SaveLangList -> {
                 withContext(Dispatchers.IO) {
-                    langPickerUseCase.addLang(eff.numericCode, eff.langName)
-                    langPickerUseCase.saveCurrentLang(eff.numericCode)
+                    createDictionaryUseCase.addLang(eff.numericCode, eff.langName)
+                    createDictionaryUseCase.saveCurrentLang(eff.numericCode)
                 }
                 Msg.Close
             }

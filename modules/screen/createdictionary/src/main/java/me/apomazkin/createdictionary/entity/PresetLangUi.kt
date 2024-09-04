@@ -1,4 +1,4 @@
-package me.apomazkin.langpicker.entity
+package me.apomazkin.createdictionary.entity
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes

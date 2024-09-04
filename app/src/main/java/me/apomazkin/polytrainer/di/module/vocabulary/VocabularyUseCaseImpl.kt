@@ -1,5 +1,7 @@
 package me.apomazkin.polytrainer.di.module.vocabulary
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.flags.FlagProvider
 import me.apomazkin.prefs.PrefKey
@@ -27,6 +29,17 @@ class VocabularyUseCaseImpl @Inject constructor(
                 title = it.name ?: "",
                 numericCode = it.numericCode,
             )
+        }
+
+    override fun flowAvailableLang(): Flow<List<LangUiEntity>> =
+        dbApi.flowLang().map {
+            it.map { lang ->
+                LangUiEntity(
+                    iconRes = flagProvider.getFlagRes(lang.numericCode),
+                    title = lang.name ?: "",
+                    numericCode = lang.numericCode,
+                )
+            }
         }
 
     override suspend fun addWord(value: String): Long =

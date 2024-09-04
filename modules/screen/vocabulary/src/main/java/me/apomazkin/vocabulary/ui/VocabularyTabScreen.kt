@@ -11,9 +11,18 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,6 +40,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.gradientPrimary
 import me.apomazkin.ui.StatusBarColorWidget
 import me.apomazkin.ui.btn.SecondaryFabWidget
+import me.apomazkin.ui.lifecycle.LifecycleEventHandler
 import me.apomazkin.ui.lifecycle.LifecycleResume
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.vocabulary.R
@@ -39,6 +49,7 @@ import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.logic.UiMsg
 import me.apomazkin.vocabulary.logic.VocabularyTabState
 import me.apomazkin.vocabulary.logic.isEmpty
+import me.apomazkin.vocabulary.logic.processor.toMateEvent
 import me.apomazkin.vocabulary.tools.DataHelper
 import me.apomazkin.vocabulary.ui.widget.AddWordWidget
 import me.apomazkin.vocabulary.ui.widget.EmptyWidget
@@ -55,6 +66,7 @@ fun VocabularyTabScreen(
     onAddLang: () -> Unit,
     onOpenWordCard: (wordId: Long) -> Unit,
 ) {
+    LifecycleEventHandler(action = { viewModel.accept(UiMsg.LifeCycleEvent(it.toMateEvent())) })
     val state: VocabularyTabState by viewModel.state.collectAsStateWithLifecycle()
     VocabularyTabScreen(
         state = state,

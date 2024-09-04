@@ -3,8 +3,9 @@ package me.apomazkin.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
+val Yellow = Color.Yellow
 val White = Color(0xFFFFFFFF)
-val Black = Color(0xFF10324C)
+val Black = Color(0xFF000000)
 val BlackDisabled = Color(0x1F10324C)
 val SecondarySelected = Color(0x1FFF7D05)
 val Tonal = Color(0xFFE0EEF9)
@@ -35,29 +36,35 @@ val clr1F10324C = Color(0x1F10324C)
 val bgAlfa = Color(0x5210324C)
 
 object LexemeColor {
-    val primary = Color.Black
+    // brand
+    val primary = Color(0xFF4A49BC)
     val onPrimary = White
     val primaryContainer = primary
     val onPrimaryContainer = onPrimary
 
-    val secondary = Color(0xFFED8F03)
-    val onSecondary = Black
+    // gray
+    val secondary = Color(0xFFF2F2F3)
+    val onSecondary = Color(0xFF19191B)
     val secondaryContainer = secondary
     val onSecondaryContainer = onSecondary
 
-    val tertiary = Color(0xFF53D4AF)
-    val onTertiary = White
+    // positive
+    val tertiary = Color(0xFF3AA981)
+    val onTertiary = Color(0xFF23785B)
     val tertiaryContainer = tertiary
     val onTertiaryContainer = onTertiary
 
-    val error = Color(0xFFFF5449)
+    // danger and error
+    val error = Color(0xFFF03D3D)
+    val onError = Color(0xFFDE2424)
     val errorContainer = error
-    val onError = White
     val onErrorContainer = onError
 
-    val background = Color(0xFFF7FBFE)
-    val onBackground = Black
+    //
+    val background = White
+    val onBackground = onSecondary
 
+    //
     val surface = White
     val onSurface = Black
 

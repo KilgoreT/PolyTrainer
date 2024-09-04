@@ -1,4 +1,4 @@
-package me.apomazkin.langpicker.entity
+package me.apomazkin.createdictionary.entity
 
 data class LangUpdateUi(
     val countryNumericCode: Int,

@@ -5,7 +5,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import me.apomazkin.langpicker.LangPickerScreen
+import me.apomazkin.createdictionary.CreateDictionaryScreen
 import me.apomazkin.polytrainer.appComponent
 import me.apomazkin.splash.SplashScreen
 
@@ -13,7 +13,7 @@ enum class RootPoint(
     val route: String
 ) {
     SPLASH("SPLASH"),
-    INIT_LANG("INIT_LANG"),
+    CREATE_DICTIONARY("CREATE_DICTIONARY"),
     MAIN_ROUTER("MAIN_ROUTER")
 }
 
@@ -48,23 +48,23 @@ fun RootRouter(
                 splashUseCase = context.appComponent.getSplashUseCase()
             ) { isInitLaunch ->
                 if (isInitLaunch) {
-                    navigator?.openInitLangScreen()
+                    navigator?.openCreateDictionaryScreen()
                 } else {
                     navigator?.openMainScreen()
                 }
             }
         }
-        composable(RootPoint.INIT_LANG.route) {
-            LangPickerScreen(
-                langPickerUseCase = context.appComponent.getLangPickerUseCase()
+        composable(RootPoint.CREATE_DICTIONARY.route) {
+            CreateDictionaryScreen(
+                createDictionaryUseCase = context.appComponent.getCreateDictionaryUseCase()
             ) {
                 navigator?.openMainScreen()
             }
         }
         mainRouter(
             route = RootPoint.MAIN_ROUTER.route,
-            onAddLang = {
-                navigator?.openInitLangScreen()
+            onAddDictionary = {
+                navigator?.openCreateDictionaryScreen()
             }
         )
     }
@@ -74,8 +74,8 @@ fun RootRouter(
             navController.navigate(RootPoint.SPLASH.route)
         }
 
-        override fun openInitLangScreen() {
-            navController.navigate(RootPoint.INIT_LANG.route) {
+        override fun openCreateDictionaryScreen() {
+            navController.navigate(RootPoint.CREATE_DICTIONARY.route) {
                 popUpTo(RootPoint.SPLASH.route) { inclusive = true }
             }
         }
@@ -98,6 +98,6 @@ fun RootRouter(
 
 interface RootRouterNavigation {
     fun openSplashScreen()
-    fun openInitLangScreen()
+    fun openCreateDictionaryScreen()
     fun openMainScreen()
 }

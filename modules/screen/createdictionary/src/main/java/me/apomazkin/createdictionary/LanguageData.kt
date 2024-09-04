@@ -1,9 +1,9 @@
-package me.apomazkin.langpicker
+package me.apomazkin.createdictionary
 
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import me.apomazkin.langpicker.entity.PresetLangUi
+import me.apomazkin.createdictionary.entity.PresetLangUi
 
 object LanguageData {
     val langList = listOf(
