@@ -14,7 +14,7 @@ include(":modules:core:tools")
 
 //Screen
 include(":modules:screen:splash")
-include(":modules:screen:langpicker")
+include(":modules:screen:createdictionary")
 include(":modules:screen:main")
 include(":modules:screen:vocabulary")
 include(":modules:screen:wordcard")

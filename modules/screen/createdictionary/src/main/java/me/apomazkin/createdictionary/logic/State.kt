@@ -1,8 +1,8 @@
-package me.apomazkin.langpicker.logic
+package me.apomazkin.createdictionary.logic
 
-import me.apomazkin.langpicker.entity.PresetLangUi
+import me.apomazkin.createdictionary.entity.PresetLangUi
 
-data class LangPickerState(
+data class CreateDictionaryState(
     val isLoading: Boolean = true,
     val needClose: Boolean = false,
     val langState: LangState = LangState()

@@ -8,25 +8,31 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 private val appColorScheme = lightColorScheme(
+
+    //brand
     primary = LexemeColor.primary,
     onPrimary = LexemeColor.onPrimary,
     primaryContainer = LexemeColor.primaryContainer,
     onPrimaryContainer = LexemeColor.onPrimaryContainer,
     inversePrimary = LexemeColor.inversePrimary,
 
+    // gray
     secondary = LexemeColor.secondary,
     onSecondary = LexemeColor.onSecondary,
     secondaryContainer = LexemeColor.secondaryContainer,
     onSecondaryContainer = LexemeColor.onSecondaryContainer,
 
+    // positive
     tertiary = LexemeColor.tertiary,
     onTertiary = LexemeColor.onTertiary,
     tertiaryContainer = LexemeColor.tertiaryContainer,
     onTertiaryContainer = LexemeColor.onTertiaryContainer,
 
+    // ????
     background = LexemeColor.background,
     onBackground = LexemeColor.onBackground,
 
+    // info
     surface = LexemeColor.surface,
     onSurface = LexemeColor.onSurface,
     surfaceVariant = LexemeColor.surfaceVariant,
@@ -35,6 +41,7 @@ private val appColorScheme = lightColorScheme(
     inverseSurface = LexemeColor.inverseSurface,
     inverseOnSurface = LexemeColor.inverseOnSurface,
 
+    // error
     error = LexemeColor.error,
     onError = LexemeColor.onError,
     errorContainer = LexemeColor.errorContainer,

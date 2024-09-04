@@ -39,15 +39,15 @@
     <string name="button_cancel">Отменить</string>
 
     <!--LANGUAGE SELECTION-->
-    <string name="lang_selection_title">Я изучаю…</string>
+    <string name="lang_selection_title">Создание словаря</string>
+    <string name="lang_selection_subtitle">Язык</string>
     <string name="lang_english">Английский</string>
     <string name="lang_german">Немецкий</string>
     <string name="lang_french">Французский</string>
     <string name="lang_spanish">Испанский</string>
     <string name="lang_italian">Итальянский</string>
     <string name="lang_portuguese">Португальский</string>
-    <string name="lang_selection_subtitle">или добавьте другой</string>
-    <string name="lang_selection_button">Продолжить</string>
+    <string name="lang_selection_button">Создать</string>
     <string name="lang_selection_error">Язык уже добавлен</string>
 
     <!--MAIN SCREEN-->
