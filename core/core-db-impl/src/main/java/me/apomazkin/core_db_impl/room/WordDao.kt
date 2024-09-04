@@ -24,10 +24,10 @@ interface WordDao {
     suspend fun addLanguageSuspend(languageDb: LanguageDb): Long
 
     @Query("SELECT * FROM languages")
-    fun getLanguagesFlow(): Flow<List<LanguageDb>>
+    suspend fun getLanguagesSuspend(): List<LanguageDb>
 
     @Query("SELECT * FROM languages")
-    suspend fun getLanguagesSuspend(): List<LanguageDb>
+    fun flowLanguages(): Flow<List<LanguageDb>>
 
     /**
      * WORD

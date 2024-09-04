@@ -49,15 +49,15 @@
 
 
     <!--LANGUAGE SELECTION-->
-    <string name="lang_selection_title">I am studying…</string>
+    <string name="lang_selection_title">Creating a dictionary</string>
+    <string name="lang_selection_subtitle">Select language</string>
     <string name="lang_english">English</string>
     <string name="lang_german">German</string>
     <string name="lang_french">French</string>
     <string name="lang_spanish">Spanish</string>
     <string name="lang_italian">Italian</string>
     <string name="lang_portuguese">Portuguese</string>
-    <string name="lang_selection_subtitle">or add another</string>
-    <string name="lang_selection_button">Continue</string>
+    <string name="lang_selection_button">Create</string>
     <string name="lang_selection_error">Language already added</string>
 
     <!--MAIN SCREEN-->

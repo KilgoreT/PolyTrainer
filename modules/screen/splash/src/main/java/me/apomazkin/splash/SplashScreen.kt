@@ -18,9 +18,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.theme.Black
 import me.apomazkin.ui.ImageTitledWidget
 import me.apomazkin.ui.StatusBarColorWidget
 import me.apomazkin.ui.preview.PreviewWidget
+
+private val colorBackground = Black
 
 @Composable
 fun SplashScreen(
@@ -33,20 +36,20 @@ fun SplashScreen(
 
     val checkIfNeedInitLang by viewModel.checkIfNeedAddLang.collectAsStateWithLifecycle()
     LaunchedEffect(checkIfNeedInitLang) {
-        delay(600)
+        delay(6000)
         checkIfNeedInitLang?.let {
             onExit.invoke(it)
         }
     }
 
     StatusBarColorWidget(
-        color = MaterialTheme.colorScheme.primary,
+        color = colorBackground,
         statusBarDarkIcon = false,
     )
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary),
+            .background(colorBackground),
         contentAlignment = Alignment.Center,
     ) {
         ImageTitledWidget(

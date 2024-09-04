@@ -36,12 +36,12 @@ class CoreDbApiImpl @Inject constructor(
         )
     }
 
-    override fun getLangFlow(): Flow<List<Language>> {
-        return wordDao.getLanguagesFlow().map { it.toAppEntity() }
-    }
-
     override suspend fun getLangSuspend(): List<Language> {
         return wordDao.getLanguagesSuspend().map { it.toAppEntity() }
+    }
+
+    override fun flowLang(): Flow<List<Language>> {
+        return wordDao.flowLanguages().map { it.toAppEntity() }
     }
 
     override fun addWord(value: String, langId: Long): Completable {

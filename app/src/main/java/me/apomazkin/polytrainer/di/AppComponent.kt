@@ -5,11 +5,11 @@ import dagger.BindsInstance
 import dagger.Component
 import dagger.Module
 import me.apomazkin.core_db_api.CoreDbProvider
-import me.apomazkin.langpicker.LangPickerUseCase
+import me.apomazkin.createdictionary.CreateDictionaryUseCase
 import me.apomazkin.polytrainer.MainActivity
 import me.apomazkin.polytrainer.api.AppProvider
+import me.apomazkin.polytrainer.di.module.createDictionary.CreateDictionaryModule
 import me.apomazkin.polytrainer.di.module.flags.FlagProviderModule
-import me.apomazkin.polytrainer.di.module.langPicker.LangPickerModule
 import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
 import me.apomazkin.polytrainer.di.module.splash.SplashModule
 import me.apomazkin.polytrainer.di.module.vocabulary.VocabularyModule
@@ -37,7 +37,7 @@ interface AppComponent : AppProvider {
     }
 
     fun getSplashUseCase(): SplashUseCase
-    fun getLangPickerUseCase(): LangPickerUseCase
+    fun getCreateDictionaryUseCase(): CreateDictionaryUseCase
     fun getVocabularyUseCase(): VocabularyUseCase
     fun getWordCardUseCase(): WordCardUseCase
 
@@ -48,7 +48,7 @@ interface AppComponent : AppProvider {
 @Module(
     includes = [
         SplashModule::class,
-        LangPickerModule::class,
+        CreateDictionaryModule::class,
         VocabularyModule::class,
         WordCardModule::class,
         FlagProviderModule::class,

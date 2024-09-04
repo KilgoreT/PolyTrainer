@@ -1,11 +1,13 @@
 package me.apomazkin.vocabulary.deps
 
+import kotlinx.coroutines.flow.Flow
 import me.apomazkin.vocabulary.entity.LangUiEntity
 import me.apomazkin.vocabulary.entity.TermUiItem
 
 interface VocabularyUseCase {
     suspend fun getCurrentLang(): Int
     suspend fun getAvailableLang(): List<LangUiEntity>
+    fun flowAvailableLang(): Flow<List<LangUiEntity>>
     suspend fun changeLang(numericCode: Int)
     suspend fun getWordList(): List<TermUiItem>
     suspend fun addWord(value: String): Long

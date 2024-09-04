@@ -4,7 +4,15 @@ import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
 import kotlinx.coroutines.flow.Flow
-import me.apomazkin.core_db_api.entity.*
+import me.apomazkin.core_db_api.entity.Definition
+import me.apomazkin.core_db_api.entity.Dump
+import me.apomazkin.core_db_api.entity.Hint
+import me.apomazkin.core_db_api.entity.Language
+import me.apomazkin.core_db_api.entity.Sample
+import me.apomazkin.core_db_api.entity.Term
+import me.apomazkin.core_db_api.entity.TermMate
+import me.apomazkin.core_db_api.entity.Word
+import me.apomazkin.core_db_api.entity.WriteQuiz
 
 interface CoreDbApi {
 
@@ -22,6 +30,7 @@ interface CoreDbApi {
     //New API
 
     suspend fun getLangSuspend(): List<Language>
+    fun flowLang(): Flow<List<Language>>
 
     suspend fun getTermList(langId: Long): List<TermMate>
     suspend fun getTermById(id: Long): TermMate
@@ -47,7 +56,6 @@ interface CoreDbApi {
     // Old API
     fun getLang(): Single<List<Language>>
     suspend fun addLangSuspend(numericCode: Int, name: String): Long
-    fun getLangFlow(): Flow<List<Language>>
 
     fun addWord(value: String, langId: Long): Completable
     fun getWord(id: Long): Single<Word>

@@ -1,17 +1,9 @@
 plugins {
-    id("android-library-convention")
+    id("polytrainer.android.feature")
 }
 
-apply(from = rootProject.file("varch.gradle.kts"))
-
 android {
-    namespace = "me.apomazkin.langpicker"
-    buildFeatures {
-        compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = project.extra["kCompilerExtensionVersion"] as String
-    }
+    namespace = "me.apomazkin.createdictionary"
 }
 
 dependencies {

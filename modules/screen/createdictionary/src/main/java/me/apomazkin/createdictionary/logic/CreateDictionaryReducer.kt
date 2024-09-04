@@ -1,16 +1,16 @@
-package me.apomazkin.langpicker.logic
+package me.apomazkin.createdictionary.logic
 
 import android.util.Log
-import me.apomazkin.langpicker.entity.PresetLangUi
+import me.apomazkin.createdictionary.entity.PresetLangUi
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
 
-internal class LangPickerReducer : MateReducer<LangPickerState, Msg, Effect> {
+internal class CreateDictionaryReducer : MateReducer<CreateDictionaryState, Msg, Effect> {
     override fun reduce(
-        state: LangPickerState,
+        state: CreateDictionaryState,
         message: Msg
-    ): ReducerResult<LangPickerState, Effect> {
+    ): ReducerResult<CreateDictionaryState, Effect> {
         Log.d("##MATE##", "Reduce --prevState--: $state ")
         Log.d("##MATE##", "Reduce ---message---: $message ")
         return when (message) {
@@ -27,9 +27,9 @@ internal class LangPickerReducer : MateReducer<LangPickerState, Msg, Effect> {
         }
     }
 
-    private fun LangPickerState.loadLang(
+    private fun CreateDictionaryState.loadLang(
         list: List<PresetLangUi>
-    ): Pair<LangPickerState, Set<Effect>> {
+    ): Pair<CreateDictionaryState, Set<Effect>> {
         return this.copy(
             isLoading = false,
             langState = langState.copy(
@@ -38,9 +38,9 @@ internal class LangPickerReducer : MateReducer<LangPickerState, Msg, Effect> {
         ) to setOf()
     }
 
-    private fun LangPickerState.selectLang(
+    private fun CreateDictionaryState.selectLang(
         numericCode: Int,
-    ): Pair<LangPickerState, Set<Effect>> {
+    ): Pair<CreateDictionaryState, Set<Effect>> {
         return copy(
             langState = langState.copy(
                 selectedNumericCode = if (langState.selectedNumericCode == numericCode) null
@@ -50,10 +50,10 @@ internal class LangPickerReducer : MateReducer<LangPickerState, Msg, Effect> {
         ) to setOf()
     }
 
-    private fun LangPickerState.saveLang(
+    private fun CreateDictionaryState.saveLang(
         numericCode: Int,
         langName: String
-    ): Pair<LangPickerState, Set<Effect>> =
+    ): Pair<CreateDictionaryState, Set<Effect>> =
         copy(
             langState = langState.copy(
                 addLangButtonEnable = false
@@ -62,6 +62,6 @@ internal class LangPickerReducer : MateReducer<LangPickerState, Msg, Effect> {
             DatasourceEffect.SaveLangList(numericCode, langName)
         )
 
-    private fun LangPickerState.closeScreen(): Pair<LangPickerState, Set<Effect>> =
+    private fun CreateDictionaryState.closeScreen(): Pair<CreateDictionaryState, Set<Effect>> =
         copy(needClose = true) to setOf()
 }

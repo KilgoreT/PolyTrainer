@@ -1,17 +1,17 @@
-package me.apomazkin.polytrainer.di.module.langPicker
+package me.apomazkin.polytrainer.di.module.createDictionary
 
 import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.createdictionary.CreateDictionaryUseCase
 import me.apomazkin.flags.FlagProvider
-import me.apomazkin.langpicker.LangPickerUseCase
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
 
-class LangPickerUseCaseImpl @Inject constructor(
+class CreateDictionaryUseCaseImpl @Inject constructor(
     private val dbApi: CoreDbApi,
     private val flagProvider: FlagProvider,
     private val prefsProvider: PrefsProvider,
-) : LangPickerUseCase {
+) : CreateDictionaryUseCase {
     override suspend fun getFlagRes(numericCode: Int): Int =
         flagProvider.getFlagRes(numericCode)
 

@@ -1,9 +1,10 @@
-package me.apomazkin.langpicker.widget
+package me.apomazkin.createdictionary.widget
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,14 +16,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import me.apomazkin.langpicker.R
+import me.apomazkin.createdictionary.R
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.SecondarySelected
+import me.apomazkin.theme.White
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
+
+private const val DEFAULT_HORIZONTAL_PADDING = 8
 
 @Composable
 fun LanguageItemWidget(
@@ -32,25 +34,19 @@ fun LanguageItemWidget(
     isSelected: Boolean,
     onClick: (numericCode: Int) -> Unit,
 ) {
-    val color = if (isSelected) {
-        SecondarySelected
-    } else {
-        Color.Transparent
-    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(color)
+            .clip(RoundedCornerShape(8.dp))
             .clickable { onClick.invoke(langNumericCode) }
             .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ImageFlagWidget(
             flagRes = flagRes,
             modifier = Modifier
-                .padding(start = 12.dp),
+                .padding(start = DEFAULT_HORIZONTAL_PADDING.dp),
             contentDescription = langName,
         )
         Text(
@@ -62,9 +58,9 @@ fun LanguageItemWidget(
         if (isSelected) {
             Icon(
                 modifier = Modifier
-                    .padding(end = 12.dp),
+                    .padding(end = DEFAULT_HORIZONTAL_PADDING.dp),
                 painter = painterResource(id = R.drawable.ic_selected),
-                tint = MaterialTheme.colorScheme.tertiary,
+                tint = MaterialTheme.colorScheme.onSecondary,
                 contentDescription = ""
             )
         }
@@ -75,12 +71,17 @@ fun LanguageItemWidget(
 @PreviewWidget
 private fun PreviewNotSelect() {
     AppTheme {
-        LanguageItemWidget(
-            flagRes = R.drawable.ic_more_on_primary,
-            langName = "English",
-            langNumericCode = 0,
-            isSelected = false
-        ) {}
+        Box(
+            modifier = Modifier
+                .background(White)
+        ) {
+            LanguageItemWidget(
+                flagRes = R.drawable.example_ic_flag_gb,
+                langName = "English",
+                langNumericCode = 0,
+                isSelected = false
+            ) {}
+        }
     }
 }
 
@@ -88,11 +89,16 @@ private fun PreviewNotSelect() {
 @PreviewWidget
 private fun PreviewSelected() {
     AppTheme {
-        LanguageItemWidget(
-            flagRes = R.drawable.ic_more_on_primary,
-            langName = "English",
-            langNumericCode = 0,
-            isSelected = true
-        ) {}
+        Box(
+            modifier = Modifier
+                .background(White)
+        ) {
+            LanguageItemWidget(
+                flagRes = R.drawable.example_ic_flag_gb,
+                langName = "English",
+                langNumericCode = 0,
+                isSelected = true
+            ) {}
+        }
     }
 }
