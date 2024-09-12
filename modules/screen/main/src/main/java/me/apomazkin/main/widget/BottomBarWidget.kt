@@ -2,8 +2,18 @@ package me.apomazkin.main.widget
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.NavigationBar
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -21,27 +31,29 @@ sealed class Tabs(
     val point: TabPoint,
     @StringRes val titleRes: Int,
     @DrawableRes val iconRes: Int,
-    @DrawableRes val iconSelectedRes: Int,
 ) {
-    object Vocabulary : Tabs(
+    data object Vocabulary : Tabs(
         point = TabPoint.VOCABULARY,
         titleRes = R.string.item_title_vocabulary,
         iconRes = R.drawable.ic_tab_vocabulary,
-        iconSelectedRes = R.drawable.ic_tab_vocabulary_selected,
     )
 
-    object Training : Tabs(
+    data object Training : Tabs(
         point = TabPoint.TRAINING,
         titleRes = R.string.item_title_training,
         iconRes = R.drawable.ic_tab_training,
-        iconSelectedRes = R.drawable.ic_tab_training_selected,
     )
 
-    object Dashboard : Tabs(
-        point = TabPoint.DASHBOARD,
-        titleRes = R.string.item_title_dashboard,
-        iconRes = R.drawable.ic_tab_dashboard,
-        iconSelectedRes = R.drawable.ic_tab_dashboard_selected,
+    data object Stats : Tabs(
+        point = TabPoint.STATS,
+        titleRes = R.string.item_title_stats,
+        iconRes = R.drawable.ic_tab_stats,
+    )
+
+    data object Settings : Tabs(
+        point = TabPoint.SETTINGS,
+        titleRes = R.string.item_title_settings,
+        iconRes = R.drawable.ic_tab_settings,
     )
 }
 
@@ -54,7 +66,8 @@ fun BottomBarWidget(
         listOf(
             Tabs.Vocabulary,
             Tabs.Training,
-            Tabs.Dashboard,
+            Tabs.Stats,
+            Tabs.Settings,
         )
     }
 
@@ -78,14 +91,14 @@ fun BottomBarWidget(
     }
     destination?.let { navDest ->
         if (navDest.route in tabs.map { it.point.route }) {
-            NavigationBar {
-
+            NavigationBar(
+                containerColor = Color.Transparent,
+            ) {
                 tabs.forEach { tab ->
                     key(tab.point.route) {
                         BottomBarItem(
                             titleRes = tab.titleRes,
                             iconRes = tab.iconRes,
-                            iconSelectedRes = tab.iconSelectedRes,
                             isSelected = destination?.route == tab.point.route
                         ) {
                             tabNavigator.openTab(tab.point)
@@ -101,8 +114,14 @@ fun BottomBarWidget(
 @PreviewWidget
 private fun Preview() {
     AppTheme {
-        BottomBarWidget(
-            navController = rememberNavController()
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            BottomBarWidget(
+                navController = rememberNavController()
+            )
+        }
     }
 }

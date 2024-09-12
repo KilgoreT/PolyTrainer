@@ -3,15 +3,10 @@ package me.apomazkin.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-val Yellow = Color.Yellow
 val White = Color(0xFFFFFFFF)
 val Black = Color(0xFF000000)
 val BlackDisabled = Color(0x1F10324C)
-val SecondarySelected = Color(0x1FFF7D05)
 val Tonal = Color(0xFFE0EEF9)
-
-@Deprecated("Outdated")
-val M3Primary95 = Color(0xFFB9FFE8)
 
 @Deprecated("Outdated")
 val FFD9E3 = Color(0x80FFD9E3)
@@ -34,6 +29,8 @@ val gradientSecondaryHorizontal = Brush
 val clr1F10324C = Color(0x1F10324C)
 
 val bgAlfa = Color(0x5210324C)
+
+val unselectedGreyColor = Color(0xff95989D)
 
 object LexemeColor {
     // brand

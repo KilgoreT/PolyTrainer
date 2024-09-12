@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
@@ -37,12 +35,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.gradientPrimary
-import me.apomazkin.ui.StatusBarColorWidget
-import me.apomazkin.ui.btn.SecondaryFabWidget
+import me.apomazkin.theme.White
+import me.apomazkin.ui.btn.PrimaryFabWidget
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
 import me.apomazkin.ui.lifecycle.LifecycleResume
 import me.apomazkin.ui.preview.PreviewWidgetEn
+import me.apomazkin.ui.preview.PreviewWidgetRu
 import me.apomazkin.vocabulary.R
 import me.apomazkin.vocabulary.deps.VocabularyUseCase
 import me.apomazkin.vocabulary.logic.Msg
@@ -97,16 +95,10 @@ internal fun VocabularyTabScreen(
         sendMessage.invoke(Msg.TermDataLoad)
     }
 
-    StatusBarColorWidget(
-        statusBarDarkIcon = false,
-        navigationBarDarkIcon = true,
-        navigationBarContrastEnforced = true,
-    )
-
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(brush = gradientPrimary)
+            .background(color = White)
             .statusBarsPadding(),
         topBar = {
             TopBarWidget(
@@ -127,7 +119,7 @@ internal fun VocabularyTabScreen(
                 enter = scaleIn(),
                 exit = scaleOut(),
             ) {
-                SecondaryFabWidget(
+                PrimaryFabWidget(
                     iconRes = R.drawable.ic_add,
                     enabled = !state.addWordDialogState.isAddWordWidgetOpen
                 ) { sendMessage(Msg.AddWordWidget(show = true)) }
@@ -138,7 +130,6 @@ internal fun VocabularyTabScreen(
             modifier = Modifier
                 .padding(paddingValue)
                 .fillMaxSize()
-                .clip(RoundedCornerShape(topStart = 32.dp))
                 .background(MaterialTheme.colorScheme.background),
         ) {
             when {
@@ -146,7 +137,7 @@ internal fun VocabularyTabScreen(
                     CircularProgressIndicator(
                         modifier = Modifier
                             .align(Alignment.Center),
-                        color = Color.Red
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
                 state.isEmpty() -> {
@@ -202,7 +193,7 @@ private fun PreviewEmpty() {
     }
 }
 
-@PreviewWidgetEn
+@PreviewWidgetRu
 @Composable
 private fun PreviewLoaded() {
     AppTheme {
