@@ -63,7 +63,8 @@
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Vocabulary</string>
     <string name="item_title_training">Training</string>
-    <string name="item_title_dashboard">Dashboard</string>
+    <string name="item_title_stats">Statistics</string>
+    <string name="item_title_settings">Settings</string>
     <string name="menu_item_title_add_lang">Add language</string>
 
     <!--VocabularyTab-->

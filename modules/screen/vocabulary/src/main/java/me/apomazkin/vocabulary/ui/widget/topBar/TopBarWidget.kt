@@ -22,7 +22,11 @@ fun TopBarWidget(
 ) {
     TopAppBar(
         title = {
-            Text(text = stringResource(id = R.string.item_title_vocabulary))
+            Text(
+                text = stringResource(id = R.string.item_title_vocabulary),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSecondary,
+            )
         },
         actions = {
             if (!state.isLoading) {

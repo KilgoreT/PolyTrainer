@@ -5,15 +5,20 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.main.R
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.M3Primary95
+import me.apomazkin.theme.unselectedGreyColor
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
@@ -21,7 +26,6 @@ import me.apomazkin.ui.preview.PreviewWidgetRu
 fun RowScope.BottomBarItem(
     @StringRes titleRes: Int,
     @DrawableRes iconRes: Int,
-    @DrawableRes iconSelectedRes: Int,
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -29,18 +33,22 @@ fun RowScope.BottomBarItem(
         selected = isSelected,
         icon = {
             Icon(
-                painter = painterResource(id = if (isSelected) iconSelectedRes else iconRes),
-                contentDescription = stringResource(id = titleRes)
+                painter = painterResource(id = iconRes),
+                contentDescription = stringResource(id = titleRes),
             )
         },
         label = {
             Text(
                 text = stringResource(id = titleRes),
-                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.labelMedium,
             )
         },
         colors = NavigationBarItemDefaults.colors(
-            indicatorColor = M3Primary95
+            selectedIconColor = MaterialTheme.colorScheme.primary,
+            selectedTextColor = MaterialTheme.colorScheme.primary,
+            unselectedIconColor = unselectedGreyColor,
+            unselectedTextColor = unselectedGreyColor,
+            indicatorColor = Color.White,
         ),
         onClick = onClick,
     )
@@ -58,7 +66,6 @@ private fun Preview() {
             BottomBarItem(
                 titleRes = R.string.item_title_vocabulary,
                 iconRes = R.drawable.ic_tab_vocabulary,
-                iconSelectedRes = R.drawable.ic_tab_vocabulary_selected,
                 isSelected = false
             ) {}
         }
@@ -77,7 +84,6 @@ private fun PreviewSelected() {
             BottomBarItem(
                 titleRes = R.string.item_title_vocabulary,
                 iconRes = R.drawable.ic_tab_vocabulary,
-                iconSelectedRes = R.drawable.ic_tab_vocabulary_selected,
                 isSelected = true
             ) {}
         }

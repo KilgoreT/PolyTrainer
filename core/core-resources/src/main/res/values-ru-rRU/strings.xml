@@ -53,7 +53,8 @@
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Словарь</string>
     <string name="item_title_training">Тренировки</string>
-    <string name="item_title_dashboard">Дашборд</string>
+    <string name="item_title_stats">Статистика</string>
+    <string name="item_title_settings">Настройки</string>
     <string name="menu_item_title_add_lang">Добавить язык</string>
 
     <!--VocabularyTab-->

@@ -35,7 +35,7 @@ class AndroidAppConventionPlugin : Plugin<Project> {
                     explainIssues = false
 //                    lintConfig = file("../lint/lint-dependency-updates.xml")
                     quiet = false
-                    abortOnError = false
+                    abortOnError = true
                     warningsAsErrors = true
                     ignoreWarnings = false
                     textReport = false
