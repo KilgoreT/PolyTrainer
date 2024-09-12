@@ -81,9 +81,9 @@ val Typography = Typography(
     ),
     // labelMedium      : B S
     labelMedium = TextStyle(
-        fontFamily = PoppinsMedium,
-        fontWeight = FontWeight.W500,
-        fontSize = 12.sp,
+        fontFamily = defaultFontFamily,
+        fontWeight = FontWeight.W400,
+        fontSize = 13.sp,
     )
     // labelSmall      : B XS
 )

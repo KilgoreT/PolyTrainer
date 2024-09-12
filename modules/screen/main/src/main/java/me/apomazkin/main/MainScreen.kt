@@ -5,15 +5,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import me.apomazkin.main.widget.BottomBarWidget
+import me.apomazkin.ui.StatusBarColorWidget
 
 enum class TabPoint(val route: String) {
     VOCABULARY("vocabulary"),
     TRAINING("training"),
-    DASHBOARD("dashboard"),
+    STATS("statistic"),
+    SETTINGS("settings"),
 }
 
 @Composable
@@ -23,6 +26,9 @@ fun MainScreen(
 ) {
     val navController = rememberNavController()
 
+    StatusBarColorWidget(
+        color = Color.White,
+    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -39,28 +45,10 @@ fun MainScreen(
                 mainUiDeps = mainUiDeps,
                 onAddDictionary = onAddDictionary,
             )
-//            composable(TabPoint.VOCABULARY.route) {
-//                mainUiDeps.VocabularyTab(onAddLang = onAddLang)
-//            }
             composable(TabPoint.TRAINING.route) {}
-            composable(TabPoint.DASHBOARD.route) {}
+            composable(TabPoint.STATS.route) {}
+            composable(TabPoint.SETTINGS.route) {}
         }
         BottomBarWidget(navController = navController)
     }
 }
-
-//@Composable
-//@PreviewScreen
-//private fun Preview() {
-//    AppTheme {
-//        MainScreen(
-//            mainUiDeps = object : MainUiDeps {
-//                @Composable
-//                override fun VocabularyTab(
-//                    onAddLang: () -> Unit,
-//                ) {
-//                }
-//            },
-//        ) {}
-//    }
-//}

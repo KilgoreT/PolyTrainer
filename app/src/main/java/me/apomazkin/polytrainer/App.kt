@@ -2,7 +2,6 @@ package me.apomazkin.polytrainer
 
 import android.app.Application
 import android.content.Context
-import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import me.apomazkin.core_db.di.CoreDbComponent
@@ -33,7 +32,6 @@ class App : Application() {
         FirebaseApp.initializeApp(applicationContext)
         val isCrashlyticsEnable = !BuildConfig.DEBUG
         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(isCrashlyticsEnable)
-        Log.d("###", ">>>> Enable Crashlytics: $isCrashlyticsEnable")
     }
 }
 
