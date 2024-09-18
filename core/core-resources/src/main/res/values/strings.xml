@@ -65,7 +65,7 @@
     <string name="item_title_training">Training</string>
     <string name="item_title_stats">Statistics</string>
     <string name="item_title_settings">Settings</string>
-    <string name="menu_item_title_add_lang">Add language</string>
+    <string name="menu_item_title_add_dict">Add dictionary</string>
 
     <!--VocabularyTab-->
     <string name="vocabulary_empty_title">Press + to add word</string>

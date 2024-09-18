@@ -1,7 +1,7 @@
 package me.apomazkin.vocabulary.logic
 
 import androidx.compose.material3.DropdownMenu
-import me.apomazkin.vocabulary.entity.LangUiEntity
+import me.apomazkin.vocabulary.entity.DictUiEntity
 import me.apomazkin.vocabulary.entity.LexemeLabel
 import me.apomazkin.vocabulary.entity.TermUiItem
 
@@ -51,22 +51,22 @@ sealed interface TopBarActionMsg : Msg {
     /**
      * Message to show languages.
      */
-    data class AvailableLang(val list: List<LangUiEntity>) : TopBarActionMsg
+    data class AvailableDict(val list: List<DictUiEntity>) : TopBarActionMsg
 
     /**
      * Message to show current language.
      */
-    data class CurrentLang(val numericCode: Int) : TopBarActionMsg
+    data class CurrentDict(val numericCode: Int) : TopBarActionMsg
 
     /**
      * Message to change current language.
      */
-    data class ChangeLang(val numericCode: Int) : TopBarActionMsg
+    data class ChangeDict(val numericCode: Int) : TopBarActionMsg
 
     /**
      * Message to expand or collapse Language [DropdownMenu].
      */
-    data class ExpandLangMenu(val expand: Boolean) : TopBarActionMsg
+    data class ExpandDictMenu(val expand: Boolean) : TopBarActionMsg
 }
 
 sealed interface WordDetailMsg : Msg {

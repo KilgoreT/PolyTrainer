@@ -17,7 +17,7 @@ import me.apomazkin.vocabulary.tools.DataHelper
 @Composable
 fun TopBarWidget(
     state: TopBarActionState,
-    onAddLang: () -> Unit,
+    onAddDict: () -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
     TopAppBar(
@@ -30,12 +30,13 @@ fun TopBarWidget(
         },
         actions = {
             if (!state.isLoading) {
-                LangDropDownWidget(
-                    iconRes = state.currentLang?.iconRes ?: throw IllegalStateException(""),
-                    langList = state.availableLangList,
+                DictDropDownWidget(
+                    iconRes = state.currentDict?.flagRes ?: throw IllegalStateException(""),
+                    currentDictCode = state.currentDict.numericCode,
+                    dictList = state.availableDictList,
                     isExpand = state.isDropDownMenuOpen,
-                    onChangeLang = { sendMessage(TopBarActionMsg.ChangeLang(numericCode = it)) },
-                    onAddLang = onAddLang,
+                    onChangeDict = { sendMessage(TopBarActionMsg.ChangeDict(numericCode = it)) },
+                    onAddDict = onAddDict,
                     sendMessage = sendMessage,
                 )
             }
@@ -54,7 +55,7 @@ private fun Preview() {
     AppTheme {
         TopBarWidget(
             state = DataHelper.State.loaded.topBarActionState,
-            onAddLang = {},
+            onAddDict = {},
         ) {}
     }
 }

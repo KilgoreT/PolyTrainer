@@ -1,11 +1,11 @@
 package me.apomazkin.vocabulary.tools
 
 import me.apomazkin.vocabulary.R
-import me.apomazkin.vocabulary.entity.LangUiEntity
+import me.apomazkin.vocabulary.entity.DictUiEntity
 import me.apomazkin.vocabulary.entity.TermUiItem
 import me.apomazkin.vocabulary.logic.TopBarActionState
 import me.apomazkin.vocabulary.logic.VocabularyTabState
-import java.util.*
+import java.util.Date
 
 
 object DataHelper {
@@ -45,8 +45,8 @@ object DataHelper {
             termList = Data.termList,
             topBarActionState = TopBarActionState(
                 isLoading = false,
-                currentLang = LangUiEntity(
-                    iconRes = R.drawable.example_ic_flag_gb,
+                currentDict = DictUiEntity(
+                    flagRes = R.drawable.example_ic_flag_gb,
                     title = "Британи",
                     numericCode = 0,
                 )

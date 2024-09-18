@@ -15,7 +15,7 @@ import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
 @Composable
-internal fun Item(
+internal fun MenuItem(
     item: DropDataItem,
     onClick: () -> Unit,
 ) {
@@ -43,7 +43,7 @@ private fun Preview() {
     AppTheme {
         Column {
             dataHelper.items.forEach {
-                Item(item = it) {}
+                MenuItem(item = it) {}
             }
         }
     }

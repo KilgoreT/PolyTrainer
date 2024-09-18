@@ -11,6 +11,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import me.apomazkin.theme.AppTheme
+import me.apomazkin.ui.preview.PreviewWidgetEn
+import me.apomazkin.ui.preview.PreviewWidgetRu
 
 @Composable
 fun ImageFlagWidget(
@@ -26,4 +29,15 @@ fun ImageFlagWidget(
         contentScale = ContentScale.FillHeight,
         contentDescription = contentDescription
     )
+}
+
+@PreviewWidgetEn
+@PreviewWidgetRu
+@Composable
+private fun Preview() {
+    AppTheme {
+        ImageFlagWidget(
+            flagRes = R.drawable.example_ic_flag_gb,
+        )
+    }
 }

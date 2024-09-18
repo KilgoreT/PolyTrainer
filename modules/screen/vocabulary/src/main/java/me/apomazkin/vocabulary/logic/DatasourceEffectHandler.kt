@@ -15,22 +15,22 @@ internal sealed interface DatasourceEffect : Effect {
     /**
      * Effect to get available languages.
      */
-    object LoadLangList : DatasourceEffect
+    data object LoadDictList : DatasourceEffect
 
     /**
      * Effect to get current language.
      */
-    object LoadCurrentLang : DatasourceEffect
+    data object LoadCurrentDict : DatasourceEffect
 
     /**
      * Effect to change current language.
      */
-    data class ChangeLang(val numericCode: Int) : DatasourceEffect
+    data class ChangeDict(val numericCode: Int) : DatasourceEffect
 
     /**
      * Effect to load data.
      */
-    object LoadTermData : DatasourceEffect
+    data object LoadTermData : DatasourceEffect
 
     /**
      * Effect to add new word.
@@ -66,25 +66,28 @@ internal class DatasourceEffectHandler(
     ) {
         Log.d("##MATE##", "RunEffect: $effect")
         return when (val eff = effect as? DatasourceEffect) {
-            is DatasourceEffect.LoadLangList -> {
+            is DatasourceEffect.LoadDictList -> {
                 withContext(Dispatchers.IO) {
-                    vocabularyUseCase.getAvailableLang().let {
-                        TopBarActionMsg.AvailableLang(list = it)
+                    vocabularyUseCase.getAvailableDict().let {
+                        TopBarActionMsg.AvailableDict(list = it)
                     }
                 }
             }
-            is DatasourceEffect.LoadCurrentLang -> {
+
+            is DatasourceEffect.LoadCurrentDict -> {
                 withContext(Dispatchers.IO) {
-                    vocabularyUseCase.getCurrentLang()
-                        .let { TopBarActionMsg.CurrentLang(numericCode = it) }
+                    vocabularyUseCase.getCurrentDict()
+                        .let { TopBarActionMsg.CurrentDict(numericCode = it) }
                 }
             }
-            is DatasourceEffect.ChangeLang -> {
+
+            is DatasourceEffect.ChangeDict -> {
                 withContext(Dispatchers.IO) {
-                    vocabularyUseCase.changeLang(numericCode = eff.numericCode)
-                        .let { TopBarActionMsg.CurrentLang(numericCode = eff.numericCode) }
+                    vocabularyUseCase.changeDict(numericCode = eff.numericCode)
+                        .let { TopBarActionMsg.CurrentDict(numericCode = eff.numericCode) }
                 }
             }
+
             is DatasourceEffect.LoadTermData -> {
                 withContext(Dispatchers.IO) {
                     vocabularyUseCase.getWordList()
