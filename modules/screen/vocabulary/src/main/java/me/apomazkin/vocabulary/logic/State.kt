@@ -2,7 +2,7 @@ package me.apomazkin.vocabulary.logic
 
 import androidx.compose.runtime.Immutable
 import me.apomazkin.mate.EMPTY_STRING
-import me.apomazkin.vocabulary.entity.LangUiEntity
+import me.apomazkin.vocabulary.entity.DictUiEntity
 import me.apomazkin.vocabulary.entity.LexemeLabel
 import me.apomazkin.vocabulary.entity.TermUiItem
 
@@ -22,8 +22,8 @@ data class VocabularyTabState(
 @Immutable
 data class TopBarActionState(
     val isLoading: Boolean = true,
-    val currentLang: LangUiEntity? = null,
-    val availableLangList: List<LangUiEntity> = emptyList(),
+    val currentDict: DictUiEntity? = null,
+    val availableDictList: List<DictUiEntity> = emptyList(),
     val isDropDownMenuOpen: Boolean = false,
 )
 

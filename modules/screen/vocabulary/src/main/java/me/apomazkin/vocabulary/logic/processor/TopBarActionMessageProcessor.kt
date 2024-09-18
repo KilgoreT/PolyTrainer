@@ -2,7 +2,7 @@ package me.apomazkin.vocabulary.logic.processor
 
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.ReducerResult
-import me.apomazkin.vocabulary.entity.LangUiEntity
+import me.apomazkin.vocabulary.entity.DictUiEntity
 import me.apomazkin.vocabulary.logic.DatasourceEffect
 import me.apomazkin.vocabulary.logic.TopBarActionMsg
 import me.apomazkin.vocabulary.logic.VocabularyTabState
@@ -12,44 +12,44 @@ internal fun processTopBarActionMessage(
     message: TopBarActionMsg
 ): ReducerResult<VocabularyTabState, Effect> {
     return when (message) {
-        is TopBarActionMsg.AvailableLang -> onLoadAvailableLang(state, message.list)
-        is TopBarActionMsg.CurrentLang -> onLoadCurrentLang(state, message.numericCode)
-        is TopBarActionMsg.ChangeLang -> onChangeLang(state, message.numericCode)
-        is TopBarActionMsg.ExpandLangMenu -> onExpandLangMenu(state, message.expand)
+        is TopBarActionMsg.AvailableDict -> onLoadAvailableDict(state, message.list)
+        is TopBarActionMsg.CurrentDict -> onLoadCurrentDict(state, message.numericCode)
+        is TopBarActionMsg.ChangeDict -> onChangeDict(state, message.numericCode)
+        is TopBarActionMsg.ExpandDictMenu -> onExpandDictMenu(state, message.expand)
     }
 }
 
-private fun onLoadAvailableLang(
+private fun onLoadAvailableDict(
     state: VocabularyTabState,
-    langList: List<LangUiEntity>,
+    dictList: List<DictUiEntity>,
 ): ReducerResult<VocabularyTabState, Effect> = state
     .copy(
         topBarActionState = state.topBarActionState.copy(
-            isLoading = state.topBarActionState.currentLang == null,
-            availableLangList = langList
+            isLoading = state.topBarActionState.currentDict == null,
+            availableDictList = dictList
         )
-    ) to setOf(DatasourceEffect.LoadCurrentLang)
+    ) to setOf(DatasourceEffect.LoadCurrentDict)
 
-private fun onChangeLang(
+private fun onChangeDict(
     state: VocabularyTabState,
     numericCode: Int,
 ): ReducerResult<VocabularyTabState, Effect> =
-    state to setOf(DatasourceEffect.ChangeLang(numericCode = numericCode))
+    state to setOf(DatasourceEffect.ChangeDict(numericCode = numericCode))
 
-private fun onLoadCurrentLang(
+private fun onLoadCurrentDict(
     state: VocabularyTabState,
     numericCode: Int,
 ): ReducerResult<VocabularyTabState, Effect> = state
     .copy(
         topBarActionState = state.topBarActionState.copy(
             isLoading = false,
-            currentLang = state.topBarActionState.availableLangList
+            currentDict = state.topBarActionState.availableDictList
                 .first { it.numericCode == numericCode }
         )
     ) to setOf(DatasourceEffect.LoadTermData)
 
 
-private fun onExpandLangMenu(
+private fun onExpandDictMenu(
     state: VocabularyTabState,
     isExpand: Boolean,
 ): ReducerResult<VocabularyTabState, Effect> = state

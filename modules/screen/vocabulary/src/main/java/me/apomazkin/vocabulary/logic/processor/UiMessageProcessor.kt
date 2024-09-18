@@ -20,7 +20,7 @@ internal fun processUiMessage(
 
         is UiMsg.LifeCycleEvent -> {
             if (message.lifeCycle == UiMsg.LifeCycleEvent.LifeCycle.ON_START) {
-                state to setOf(DatasourceEffect.LoadLangList)
+                state to setOf(DatasourceEffect.LoadDictList)
             } else {
                 state to emptySet()
             }

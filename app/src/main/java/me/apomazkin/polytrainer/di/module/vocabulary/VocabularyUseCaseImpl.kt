@@ -7,7 +7,7 @@ import me.apomazkin.flags.FlagProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.vocabulary.deps.VocabularyUseCase
-import me.apomazkin.vocabulary.entity.LangUiEntity
+import me.apomazkin.vocabulary.entity.DictUiEntity
 import me.apomazkin.vocabulary.entity.LexemeUiItem
 import me.apomazkin.vocabulary.entity.TermUiItem
 import me.apomazkin.vocabulary.entity.toLexemeLabel
@@ -19,23 +19,23 @@ class VocabularyUseCaseImpl @Inject constructor(
     private val flagProvider: FlagProvider,
 ) : VocabularyUseCase {
 
-    override suspend fun getCurrentLang(): Int =
+    override suspend fun getCurrentDict(): Int =
         prefsProvider.getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
 
-    override suspend fun getAvailableLang(): List<LangUiEntity> =
+    override suspend fun getAvailableDict(): List<DictUiEntity> =
         dbApi.getLangSuspend().map {
-            LangUiEntity(
-                iconRes = flagProvider.getFlagRes(it.numericCode),
+            DictUiEntity(
+                flagRes = flagProvider.getFlagRes(it.numericCode),
                 title = it.name ?: "",
                 numericCode = it.numericCode,
             )
         }
 
-    override fun flowAvailableLang(): Flow<List<LangUiEntity>> =
+    override fun flowAvailableDict(): Flow<List<DictUiEntity>> =
         dbApi.flowLang().map {
             it.map { lang ->
-                LangUiEntity(
-                    iconRes = flagProvider.getFlagRes(lang.numericCode),
+                DictUiEntity(
+                    flagRes = flagProvider.getFlagRes(lang.numericCode),
                     title = lang.name ?: "",
                     numericCode = lang.numericCode,
                 )
@@ -54,7 +54,7 @@ class VocabularyUseCaseImpl @Inject constructor(
         dbApi.deleteWordSuspend(wordId)
     }
 
-    override suspend fun changeLang(numericCode: Int) {
+    override suspend fun changeDict(numericCode: Int) {
         prefsProvider.setInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT, numericCode)
     }
 

@@ -104,7 +104,7 @@ internal fun VocabularyTabScreen(
             TopBarWidget(
                 state = state.topBarActionState,
                 sendMessage = sendMessage,
-                onAddLang = onAddLang,
+                onAddDict = onAddLang,
             )
         },
         snackbarHost = {
