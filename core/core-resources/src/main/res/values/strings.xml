@@ -61,7 +61,7 @@
     <string name="lang_selection_error">Language already added</string>
 
     <!--MAIN SCREEN-->
-    <string name="item_title_vocabulary">Vocabulary</string>
+    <string name="item_title_vocabulary">Dictionary</string>
     <string name="item_title_training">Training</string>
     <string name="item_title_stats">Statistics</string>
     <string name="item_title_settings">Settings</string>
@@ -69,7 +69,6 @@
 
     <!--VocabularyTab-->
     <string name="vocabulary_empty_title">Press + to add word</string>
-    <string name="vocabulary_enter_word">Enter word</string>
     <string name="vocabulary_translation_now">Add the translation right away</string>
     <string name="vocabulary_detail_save_title">Save</string>
     <string name="vocabulary_detail_speech_part">Part of speech</string>

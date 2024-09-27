@@ -87,11 +87,11 @@ fun WordDetailTextField(
                 }
             },
             shape = RoundedCornerShape(8.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedBorderColor = MaterialTheme.colorScheme.secondary,
-                cursorColor = MaterialTheme.colorScheme.secondary,
-            )
+//            colors = TextFieldDefaults.outlinedTextFieldColors(
+//                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+//                focusedBorderColor = MaterialTheme.colorScheme.secondary,
+//                cursorColor = MaterialTheme.colorScheme.secondary,
+//            )
         )
     }
 }

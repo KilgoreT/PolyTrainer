@@ -71,6 +71,7 @@ dependencies {
 
     // Common
     implementation(androidLibs.coreKtx)
+    implementation(androidLibs.activityKtx) // for insets support: enableEdgeToEdge()
     implementation(androidLibs.material)
     implementation(composeLibs.activityCompose)
 

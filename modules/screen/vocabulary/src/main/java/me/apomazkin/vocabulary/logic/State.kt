@@ -31,7 +31,6 @@ data class TopBarActionState(
 data class AddWordDialogState(
     val isAddWordWidgetOpen: Boolean = false,
     val addWordValue: String = EMPTY_STRING,
-    val isAddDetailEnable: Boolean = false,
 )
 
 @Immutable

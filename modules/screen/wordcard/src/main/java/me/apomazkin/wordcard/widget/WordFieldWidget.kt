@@ -31,7 +31,7 @@ fun WordFieldWidget(
         )
         IconBoxed(
             iconRes = R.drawable.ic_edit,
-            color = Black,
+            colorEnabled = Black,
             enabled = !wordState.isEdit
         ) { onEditClick.invoke() }
     }
