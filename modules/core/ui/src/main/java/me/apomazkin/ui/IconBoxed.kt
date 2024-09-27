@@ -14,29 +14,55 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import me.apomazkin.theme.AppTheme
+import me.apomazkin.ui.preview.PreviewWidget
 
-private const val DefaultSize = 48
+private const val DEFAULT_SIZE = 56
 
 @Composable
 fun IconBoxed(
     @DrawableRes iconRes: Int,
     enabled: Boolean = false,
     @StringRes contentDescriptionRes: Int = R.string.content_description_icon,
-    size: Int = DefaultSize,
-    color: Color = MaterialTheme.colorScheme.onPrimary,
+    size: Int = DEFAULT_SIZE,
+    colorEnabled: Color = MaterialTheme.colorScheme.onPrimary,
+    colorDisabled: Color = MaterialTheme.colorScheme.secondary,
     onClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
-            .size(size.dp),
+            .size(size.dp)
+            .clickable(enabled) { onClick.invoke() },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            modifier = Modifier
-                .clickable(enabled) { onClick.invoke() },
             painter = painterResource(id = iconRes),
-            tint = color,
+            tint = if (enabled) colorEnabled else colorDisabled,
             contentDescription = stringResource(id = contentDescriptionRes)
         )
+    }
+}
+
+@PreviewWidget
+@Composable
+private fun PreviewEnabled() {
+    AppTheme {
+        IconBoxed(
+            iconRes = R.drawable.ic_send,
+            enabled = true,
+            colorEnabled = MaterialTheme.colorScheme.primary,
+        ) {}
+    }
+}
+
+@PreviewWidget
+@Composable
+private fun PreviewDisabled() {
+    AppTheme {
+        IconBoxed(
+            iconRes = R.drawable.ic_send,
+            enabled = false,
+            colorDisabled = Color.Gray
+        ) {}
     }
 }

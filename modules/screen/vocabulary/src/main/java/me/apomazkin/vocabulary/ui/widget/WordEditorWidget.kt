@@ -74,10 +74,10 @@ internal fun WordEditorWidget(
         keyboardActions = KeyboardActions(
             onDone = { if (isTextTyped) onAddWord(wordValue) }
         ),
-        colors = TextFieldDefaults.textFieldColors(
-            containerColor = MaterialTheme.colorScheme.background,
-            focusedIndicatorColor = MaterialTheme.colorScheme.primary
-        )
+//        colors = TextFieldDefaults.textFieldColors(
+//            containerColor = MaterialTheme.colorScheme.background,
+//            focusedIndicatorColor = MaterialTheme.colorScheme.primary
+//        )
     )
 }
 

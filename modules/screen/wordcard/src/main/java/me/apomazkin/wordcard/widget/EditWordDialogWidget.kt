@@ -1,7 +1,7 @@
 package me.apomazkin.wordcard.widget
 
 import androidx.compose.runtime.Composable
-import me.apomazkin.ui.OutlineTextFieldWidget
+import me.apomazkin.ui.TextFieldWidget
 import me.apomazkin.wordcard.R
 import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.WordState
@@ -19,9 +19,10 @@ fun EditWordDialogWidget(
             onDismiss = { sendMessage(Msg.CloseEditWord) },
             onDismissEnabled = true
         ) {
-            OutlineTextFieldWidget(
+            TextFieldWidget(
                 value = state.edited,
-                onValueChange = { sendMessage(Msg.ChangeWordValue(it)) }
+                onValueChange = { sendMessage(Msg.ChangeWordValue(it)) },
+                onKeyboardActions = { sendMessage(Msg.SaveWordValue) }
             )
         }
     }

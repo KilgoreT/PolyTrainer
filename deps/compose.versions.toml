@@ -1,7 +1,7 @@
 [versions]
 composeVersion = "1.3.3"
 activityComposeVersion = "1.6.1"
-material3-version = "1.0.1"
+material3Version = "1.3.0"
 lifecycle-viewmodel-compose-version = "2.5.1"
 lifecycle-runtime-compose-version = "2.6.0-alpha03"
 navigation-compose-version = "2.5.3"
@@ -9,7 +9,7 @@ accompanist-systemuicontroller-version = "0.26.3-beta"
 
 [libraries]
 activityCompose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityComposeVersion" }
-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3-version" }
+material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Version" }
 lifecycleViewmodelCompose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle-viewmodel-compose-version" }
 lifecycleRuntimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle-runtime-compose-version" }
 uiToolingPreview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "composeVersion" }

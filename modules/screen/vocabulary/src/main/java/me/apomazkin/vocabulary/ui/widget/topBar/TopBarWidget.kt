@@ -2,7 +2,6 @@ package me.apomazkin.vocabulary.ui.widget.topBar
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.AppTheme
@@ -41,10 +40,6 @@ fun TopBarWidget(
                 )
             }
         },
-        colors = TopAppBarDefaults.smallTopAppBarColors(
-            containerColor = Color.Transparent,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-        ),
     )
 }
 

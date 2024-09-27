@@ -59,7 +59,6 @@
 
     <!--VocabularyTab-->
     <string name="vocabulary_empty_title">Нажмите на +, чтобы добавить слово</string>
-    <string name="vocabulary_enter_word">Введите слово</string>
     <string name="vocabulary_translation_now">Добавить перевод сразу</string>
     <string name="vocabulary_detail_save_title">Сохранить</string>
     <string name="vocabulary_detail_speech_part">Часть речи</string>
