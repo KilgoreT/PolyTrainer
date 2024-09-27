@@ -28,8 +28,8 @@ val gradientSecondaryHorizontal = Brush
 
 val clr1F10324C = Color(0x1F10324C)
 
-val bgAlfa = Color(0x5210324C)
 
+val bgAlfa = Color(0xA3333333)
 val unselectedGreyColor = Color(0xff95989D)
 val dividerColor = Color(0xffE4E5E7)
 

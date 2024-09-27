@@ -10,7 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import me.apomazkin.main.widget.BottomBarWidget
-import me.apomazkin.ui.StatusBarColorWidget
+import me.apomazkin.ui.SystemBarsWidget
 
 enum class TabPoint(val route: String) {
     VOCABULARY("vocabulary"),
@@ -26,7 +26,7 @@ fun MainScreen(
 ) {
     val navController = rememberNavController()
 
-    StatusBarColorWidget(
+    SystemBarsWidget(
         color = Color.White,
     )
     Column(

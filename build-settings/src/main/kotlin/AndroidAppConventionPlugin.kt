@@ -38,9 +38,10 @@ class AndroidAppConventionPlugin : Plugin<Project> {
                     abortOnError = true
                     warningsAsErrors = true
                     ignoreWarnings = false
+                    htmlReport = true
                     textReport = false
                     xmlReport = false
-                    htmlReport = true
+                    disable.add("ObsoleteLintCustomCheck")
 //                    disable.add("TrustAllX509TrustManager")
 //                    disable.add("NullSafeMutableLiveData")
 //                    disable.add("UnknownIssueId")

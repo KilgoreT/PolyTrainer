@@ -1,6 +1,5 @@
 @file:OptIn(
     ExperimentalMaterial3Api::class,
-    ExperimentalLifecycleComposeApi::class,
 )
 
 package me.apomazkin.wordcard
@@ -30,13 +29,12 @@ import androidx.compose.ui.Alignment.Companion.End
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.gradientSecondaryHorizontal
-import me.apomazkin.ui.StatusBarColorWidget
+import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewScreenEn
 import me.apomazkin.ui.preview.PreviewScreenRu
 import me.apomazkin.wordcard.deps.WordCardUseCase
@@ -90,7 +88,7 @@ internal fun WordCardScreen(
         if (state.closeScreen) onBackPress.invoke()
     }
 
-    StatusBarColorWidget(
+    SystemBarsWidget(
         statusBarDarkIcon = false,
         navigationBarDarkIcon = true,
         navigationBarContrastEnforced = true,

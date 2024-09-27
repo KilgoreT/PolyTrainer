@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalLifecycleComposeApi::class)
-
 package me.apomazkin.splash
 
 import androidx.compose.foundation.background
@@ -11,7 +9,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
@@ -20,7 +17,7 @@ import kotlinx.coroutines.flow.flowOf
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.Black
 import me.apomazkin.ui.ImageTitledWidget
-import me.apomazkin.ui.StatusBarColorWidget
+import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
 private val colorBackground = Black
@@ -42,7 +39,7 @@ fun SplashScreen(
         }
     }
 
-    StatusBarColorWidget(
+    SystemBarsWidget(
         color = colorBackground,
         statusBarDarkIcon = false,
     )

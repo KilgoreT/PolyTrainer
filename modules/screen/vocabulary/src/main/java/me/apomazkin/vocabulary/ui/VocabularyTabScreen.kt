@@ -1,13 +1,6 @@
-@file:OptIn(
-    ExperimentalAnimationApi::class,
-    ExperimentalMaterial3Api::class,
-    ExperimentalLifecycleComposeApi::class,
-)
-
 package me.apomazkin.vocabulary.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
@@ -17,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -30,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.mate.EMPTY_STRING
@@ -49,7 +40,7 @@ import me.apomazkin.vocabulary.logic.VocabularyTabState
 import me.apomazkin.vocabulary.logic.isEmpty
 import me.apomazkin.vocabulary.logic.processor.toMateEvent
 import me.apomazkin.vocabulary.tools.DataHelper
-import me.apomazkin.vocabulary.ui.widget.AddWordWidget
+import me.apomazkin.vocabulary.ui.widget.AddWordBottomSheetWidget
 import me.apomazkin.vocabulary.ui.widget.EmptyWidget
 import me.apomazkin.vocabulary.ui.widget.WordListWidget
 import me.apomazkin.vocabulary.ui.widget.detailDialog.WordDetailDialogWidget
@@ -159,14 +150,14 @@ internal fun VocabularyTabScreen(
                     sendMsg = sendMessage,
                 )
             }
+            if (state.addWordDialogState.isAddWordWidgetOpen) {
+                AddWordBottomSheetWidget(
+                    state = state.addWordDialogState,
+                    sendMessage = sendMessage,
+                )
+            }
         }
     }
-    AddWordWidget(
-        state = state.addWordDialogState,
-        wordValue = state.addWordDialogState.addWordValue,
-        checkValue = { state.addWordDialogState.isAddDetailEnable },
-        sendMessage = sendMessage,
-    )
 }
 
 @PreviewWidgetEn

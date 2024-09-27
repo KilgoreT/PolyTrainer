@@ -99,14 +99,6 @@ internal class VocabularyTabReducer : MateReducer<VocabularyTabState, Msg, Effec
             addWordDialogState = state.addWordDialogState.copy(addWordValue = newValue)
         ) to emptySet()
 
-    private fun onEnableAddWordDetail(
-        state: VocabularyTabState,
-        isEnable: Boolean
-    ): ReducerResult<VocabularyTabState, Effect> = state
-        .copy(
-            addWordDialogState = state.addWordDialogState.copy(isAddDetailEnable = isEnable)
-        ) to emptySet()
-
     private fun onAddWord(
         state: VocabularyTabState,
         value: String
