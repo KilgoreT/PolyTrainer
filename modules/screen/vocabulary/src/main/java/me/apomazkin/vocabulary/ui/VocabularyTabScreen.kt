@@ -1,14 +1,15 @@
 package me.apomazkin.vocabulary.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -26,7 +27,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.White
+import me.apomazkin.theme.actionBarColor
+import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.btn.PrimaryFabWidget
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
 import me.apomazkin.ui.lifecycle.LifecycleResume
@@ -44,6 +46,7 @@ import me.apomazkin.vocabulary.ui.widget.AddWordBottomSheetWidget
 import me.apomazkin.vocabulary.ui.widget.EmptyWidget
 import me.apomazkin.vocabulary.ui.widget.WordListWidget
 import me.apomazkin.vocabulary.ui.widget.detailDialog.WordDetailDialogWidget
+import me.apomazkin.vocabulary.ui.widget.topBar.ActionTopBarWidget
 import me.apomazkin.vocabulary.ui.widget.topBar.TopBarWidget
 
 @Composable
@@ -86,17 +89,30 @@ internal fun VocabularyTabScreen(
         sendMessage.invoke(Msg.TermDataLoad)
     }
 
+    SystemBarsWidget(
+        statusBarColor = if (state.topBarState.isActionMode) actionBarColor else Color.Transparent,
+        statusBarDarkIcon = !state.topBarState.isActionMode
+    )
+
+    BackHandler(enabled = state.topBarState.isActionMode) {
+        sendMessage(Msg.ChangeActionMode(false, null))
+    }
+
     Scaffold(
         modifier = Modifier
-            .fillMaxSize()
-            .background(color = White)
-            .statusBarsPadding(),
+            .fillMaxSize(),
         topBar = {
-            TopBarWidget(
-                state = state.topBarActionState,
-                sendMessage = sendMessage,
-                onAddDict = onAddLang,
-            )
+            if (state.topBarState.isActionMode)
+                ActionTopBarWidget(
+                    state = state.topBarState.actionState,
+                    sendMessage = sendMessage,
+                )
+            else
+                TopBarWidget(
+                    state = state.topBarState.mainState,
+                    sendMessage = sendMessage,
+                    onAddDict = onAddLang,
+                )
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
@@ -116,7 +132,7 @@ internal fun VocabularyTabScreen(
                 ) { sendMessage(Msg.AddWordWidget(show = true)) }
             }
         }
-    ) { paddingValue ->
+    ) { paddingValue: PaddingValues ->
         Box(
             modifier = Modifier
                 .padding(paddingValue)
@@ -131,15 +147,28 @@ internal fun VocabularyTabScreen(
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
+
                 state.isEmpty() -> {
                     EmptyWidget()
                 }
+
                 !state.isEmpty() -> {
                     WordListWidget(
                         modifier = Modifier
                             .padding(top = 20.dp),
                         termList = state.termList,
-                        onOpenWordCard = onOpenWordCard,
+                        onOpenWordCard = { id ->
+                            if (state.topBarState.isActionMode) {
+                                sendMessage(
+                                    Msg.ChangeActionMode(
+                                        isActionMode = true,
+                                        targetTermId = id
+                                    )
+                                )
+                            } else {
+                                onOpenWordCard.invoke(id)
+                            }
+                        },
                         sendMessage = sendMessage,
                     )
                 }

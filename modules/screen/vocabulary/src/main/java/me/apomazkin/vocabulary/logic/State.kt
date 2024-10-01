@@ -12,7 +12,7 @@ import me.apomazkin.vocabulary.entity.TermUiItem
 @Immutable
 data class VocabularyTabState(
     val isLoading: Boolean = true,
-    val topBarActionState: TopBarActionState = TopBarActionState(),
+    val topBarState: TopBarState = TopBarState(),
     val termList: List<TermUiItem> = emptyList(),
     val addWordDialogState: AddWordDialogState = AddWordDialogState(),
     val wordDetailDialogState: WordDetailDialogState = WordDetailDialogState(),
@@ -20,12 +20,24 @@ data class VocabularyTabState(
 )
 
 @Immutable
-data class TopBarActionState(
-    val isLoading: Boolean = true,
-    val currentDict: DictUiEntity? = null,
-    val availableDictList: List<DictUiEntity> = emptyList(),
-    val isDropDownMenuOpen: Boolean = false,
-)
+data class TopBarState(
+    val isActionMode: Boolean = false,
+    val mainState: Main = Main(),
+    val actionState: Action = Action(),
+) {
+    @Immutable
+    data class Main(
+        val isLoading: Boolean = true,
+        val currentDict: DictUiEntity? = null,
+        val availableDictList: List<DictUiEntity> = emptyList(),
+        val isDropDownMenuOpen: Boolean = false,
+    )
+
+    @Immutable
+    data class Action(
+        val selectedTermIds: Set<Long> = emptySet(),
+    )
+}
 
 @Immutable
 data class AddWordDialogState(

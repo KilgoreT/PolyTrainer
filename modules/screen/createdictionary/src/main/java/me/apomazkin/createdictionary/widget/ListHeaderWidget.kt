@@ -11,7 +11,7 @@ import androidx.compose.ui.res.stringResource
 import me.apomazkin.createdictionary.R
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.Typography
-import me.apomazkin.theme.White
+import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
@@ -40,7 +40,7 @@ private fun Preview() {
     AppTheme {
         Column(
             modifier = Modifier
-                .background(White)
+                .background(whiteColor)
         ) {
             ListHeaderWidget(
                 titleRes = R.string.unknown_error,

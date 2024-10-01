@@ -29,7 +29,7 @@ internal fun WordListWidget(
             end = 16.dp,
             bottom = 16.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(termList) { item: TermUiItem ->
             TermItem(

@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.White
+import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.R
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
@@ -33,7 +33,7 @@ fun ColoredFabWidget(
     @DrawableRes iconRes: Int,
     color: Color,
     enabled: Boolean = true,
-    iconColor: Color = White,
+    iconColor: Color = whiteColor,
     cornerRadius: Int = DEFAULT_CORNER_RADIUS,
     contentDescription: String = "Floating action button",
     onClick: () -> Unit,

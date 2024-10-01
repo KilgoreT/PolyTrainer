@@ -1,24 +1,27 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package me.apomazkin.vocabulary.ui.widget
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.IconBoxed
+import me.apomazkin.theme.LexemeStyle
+import me.apomazkin.theme.blackColor
+import me.apomazkin.theme.dividerColor
 import me.apomazkin.ui.preview.PreviewWidgetRu
-import me.apomazkin.vocabulary.R
 import me.apomazkin.vocabulary.entity.TermUiItem
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.tools.DataHelper
@@ -29,64 +32,37 @@ internal fun TermItem(
     onOpenWordCard: (wordId: Long) -> Unit,
     sendMsg: (Msg) -> Unit,
 ) {
-
     Surface(
-        modifier = Modifier,
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .combinedClickable(
+                onLongClick = { sendMsg(Msg.ChangeActionMode(true, termItem.id)) },
+                onClick = { onOpenWordCard(termItem.id) }
+            ),
+        shape = RoundedCornerShape(12.dp),
         shadowElevation = 4.dp,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (termItem.isSelected) blackColor else dividerColor
+        ),
     ) {
         Column {
-            Row(
+            Text(
                 modifier = Modifier
-                    .padding(4.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .clickable { sendMsg(Msg.ExpandTerm(termItem.id, !termItem.isExpand)) },
-                verticalAlignment = CenterVertically,
-            ) {
-                Text(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .weight(1F),
-                    text = termItem.wordValue,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-                if (termItem.lexemeList.isEmpty()) {
-                    IconBoxed(
-                        iconRes = R.drawable.ic_add_circled
-                    ) {}
-                }
-                IconBoxed(
-                    iconRes = R.drawable.ic_edit,
-                    enabled = true, //TODO
-                ) {
-                    onOpenWordCard.invoke(termItem.id)
-                }
-            }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                text = termItem.wordValue,
+                style = LexemeStyle.BodyXLBold,
+                color = MaterialTheme.colorScheme.onSecondary,
+            )
         }
     }
-
-//    Column {
-//        if (termItem.lexemeList.isNotEmpty()) {
-//            Divider(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//            )
-//        }
-//        termItem.lexemeList.forEach {
-//            key(it.id) {
-//                LexemeItem(lexeme = it)
-//            }
-//        }
-//    }
 }
 
 @PreviewWidgetRu
 @Composable
 private fun Preview() {
     AppTheme {
-
         Box(
             modifier = Modifier
                 .padding(16.dp)

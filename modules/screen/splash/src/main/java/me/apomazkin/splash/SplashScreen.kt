@@ -15,12 +15,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.Black
+import me.apomazkin.theme.blackColor
 import me.apomazkin.ui.ImageTitledWidget
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
-private val colorBackground = Black
+private val colorBackground = blackColor
 
 @Composable
 fun SplashScreen(
