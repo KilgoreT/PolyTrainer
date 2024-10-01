@@ -1,6 +1,6 @@
 package me.apomazkin.vocabulary.entity
 
-import java.util.*
+import java.util.Date
 
 
 data class TermUiItem(
@@ -11,7 +11,7 @@ data class TermUiItem(
     val changeDate: Date? = null,
     val lexemeList: List<LexemeUiItem> = listOf(),
     val isExpand: Boolean = false,
-    val isDropDownOpen: Boolean = false,
+    val isSelected: Boolean = false,
 )
 
 data class LexemeUiItem(

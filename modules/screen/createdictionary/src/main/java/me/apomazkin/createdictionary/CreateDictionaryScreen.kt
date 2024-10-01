@@ -16,7 +16,7 @@ import me.apomazkin.createdictionary.logic.Msg
 import me.apomazkin.createdictionary.widget.LangPickerWidget
 import me.apomazkin.createdictionary.widget.LoadingWidget
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.White
+import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
@@ -43,7 +43,7 @@ fun CreateDictionaryScreen(
     sendMsg: (Msg) -> Unit,
 ) {
     SystemBarsWidget(
-        color = White,
+        color = whiteColor,
     )
     Box(
         modifier = Modifier
@@ -51,7 +51,7 @@ fun CreateDictionaryScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
             .background(
-                color = White
+                color = whiteColor
             )
     ) {
         if (state.needClose) {

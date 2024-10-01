@@ -18,8 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.White
 import me.apomazkin.theme.gradientPrimary
+import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.R
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
@@ -34,7 +34,7 @@ fun GradientFabWidget(
     @DrawableRes iconRes: Int,
     gradient: Brush,
     enabled: Boolean = true,
-    iconColor: Color = White,
+    iconColor: Color = whiteColor,
     cornerRadius: Int = DefaultCornerRadius,
     contentDescription: String = "Floating action button",
     onClick: () -> Unit,

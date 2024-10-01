@@ -3,7 +3,7 @@ package me.apomazkin.vocabulary.tools
 import me.apomazkin.vocabulary.R
 import me.apomazkin.vocabulary.entity.DictUiEntity
 import me.apomazkin.vocabulary.entity.TermUiItem
-import me.apomazkin.vocabulary.logic.TopBarActionState
+import me.apomazkin.vocabulary.logic.TopBarState
 import me.apomazkin.vocabulary.logic.VocabularyTabState
 import java.util.Date
 
@@ -18,7 +18,6 @@ object DataHelper {
                 langId = 0,
                 addDate = Date(0),
                 isExpand = false,
-                isDropDownOpen = true
             ),
             TermUiItem(
                 id = 1,
@@ -43,12 +42,18 @@ object DataHelper {
         val loaded = VocabularyTabState(
             isLoading = false,
             termList = Data.termList,
-            topBarActionState = TopBarActionState(
-                isLoading = false,
-                currentDict = DictUiEntity(
-                    flagRes = R.drawable.example_ic_flag_gb,
-                    title = "Британи",
-                    numericCode = 0,
+            topBarState = TopBarState(
+                isActionMode = true,
+                mainState = TopBarState.Main(
+                    isLoading = false,
+                    currentDict = DictUiEntity(
+                        flagRes = R.drawable.example_ic_flag_gb,
+                        title = "Британи",
+                        numericCode = 0,
+                    )
+                ),
+                actionState = TopBarState.Action(
+                    selectedTermIds = setOf(0)
                 )
             )
         )

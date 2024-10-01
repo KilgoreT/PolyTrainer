@@ -6,6 +6,7 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
 import me.apomazkin.vocabulary.entity.TermUiItem
+import me.apomazkin.vocabulary.logic.processor.onChangeActionMode
 import me.apomazkin.vocabulary.logic.processor.processTopBarActionMessage
 import me.apomazkin.vocabulary.logic.processor.processUiMessage
 import me.apomazkin.vocabulary.logic.processor.processWordDetailMessage
@@ -23,11 +24,16 @@ internal class VocabularyTabReducer : MateReducer<VocabularyTabState, Msg, Effec
             is Msg.TermDataLoad -> onTermDataLoad(state)
             is Msg.TermDataLoaded -> onTermDataLoaded(state, message.termList)
             is Msg.ExpandTerm -> onExpandTerm(state, message.targetId, message.expand)
+            is Msg.ChangeActionMode -> onChangeActionMode(
+                state,
+                message.isActionMode,
+                message.targetTermId
+            )
+
             is Msg.AddWordWidget -> onOpenAddWordWidget(state, message.show)
             is Msg.WordValueChange -> onWordValueChange(state, message.value)
 //            is Msg.EnableAddWordDetail -> onEnableAddWordDetail(state, message.value)
             is Msg.AddWord -> onAddWord(state, message.value)
-//            is Msg.DropDownMenu -> onOpenDropDownMenu(state, message.wordId, message.isOpen)
 //            is Msg.DeleteWord -> onDeleteWord(state, message.wordId, message.wordValue)
 //            is Msg.DeleteLexeme -> onDeleteLexeme(state, message.lexemeId)
             is WordDetailMsg -> processWordDetailMessage(state, message)
@@ -41,6 +47,7 @@ internal class VocabularyTabReducer : MateReducer<VocabularyTabState, Msg, Effec
         }
     }
 
+
     private fun onTermDataLoad(
         state: VocabularyTabState,
     ): ReducerResult<VocabularyTabState, Effect> = state
@@ -53,18 +60,6 @@ internal class VocabularyTabReducer : MateReducer<VocabularyTabState, Msg, Effec
         .copy(
             isLoading = false,
             termList = termList
-        ) to emptySet()
-
-    private fun onOpenDropDownMenu(
-        state: VocabularyTabState,
-        wordId: Long,
-        open: Boolean
-    ): ReducerResult<VocabularyTabState, DatasourceEffect> = state
-        .copy(termList = state.termList
-            .modifyFiltered(
-                predicate = { it.id == wordId },
-                action = { it.copy(isDropDownOpen = open) }
-            )
         ) to emptySet()
 
     private fun onExpandTerm(

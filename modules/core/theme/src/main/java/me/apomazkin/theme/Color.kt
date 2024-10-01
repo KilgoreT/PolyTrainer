@@ -3,17 +3,15 @@ package me.apomazkin.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-val White = Color(0xFFFFFFFF)
-val Black = Color(0xFF000000)
-val BlackDisabled = Color(0x1F10324C)
-val Tonal = Color(0xFFE0EEF9)
-
 @Deprecated("Outdated")
 val FFD9E3 = Color(0x80FFD9E3)
 
 @Deprecated("Outdated")
 val clr1F001F24 = Color(0x1F001F24)
 
+// Unused
+val blackDisabledColor = Color(0x1F10324C)
+val Tonal = Color(0xFFE0EEF9)
 val clr242792 = Color(0xFF242792)
 val clr3170D7 = Color(0xFF3170D7)
 val gradientPrimary = Brush
@@ -25,18 +23,20 @@ val gradientSecondaryVertical = Brush
     .verticalGradient(listOf(clrED8F03, clrFFB75E))
 val gradientSecondaryHorizontal = Brush
     .horizontalGradient(listOf(clrFFB75E, clrED8F03))
-
 val clr1F10324C = Color(0x1F10324C)
 
 
 val bgAlfa = Color(0xA3333333)
+val whiteColor = Color(0xFFFFFFFF)
+val blackColor = Color(0xFF000000)
 val unselectedGreyColor = Color(0xff95989D)
 val dividerColor = Color(0xffE4E5E7)
+val actionBarColor = Color(0xff19191B)
 
 object LexemeColor {
     // brand
     val primary = Color(0xFF4A49BC)
-    val onPrimary = White
+    val onPrimary = whiteColor
     val primaryContainer = primary
     val onPrimaryContainer = onPrimary
 
@@ -59,22 +59,22 @@ object LexemeColor {
     val onErrorContainer = onError
 
     //
-    val background = White
+    val background = whiteColor
     val onBackground = onSecondary
 
     //
-    val surface = White
-    val onSurface = Black
+    val surface = whiteColor
+    val onSurface = blackColor
 
     val surfaceVariant = background
-    val onSurfaceVariant = Black
+    val onSurfaceVariant = blackColor
 
     val outline = background
-    val outlineVariant = Black
+    val outlineVariant = blackColor
 
     val inverseOnSurface = background
-    val inverseSurface = Black
+    val inverseSurface = blackColor
 
-    val surfaceTint = Black
-    val inversePrimary = White
+    val surfaceTint = blackColor
+    val inversePrimary = whiteColor
 }
