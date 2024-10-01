@@ -16,7 +16,7 @@ import me.apomazkin.createdictionary.R
 import me.apomazkin.createdictionary.entity.PresetLangUi
 import me.apomazkin.createdictionary.logic.Msg
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.White
+import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
@@ -66,7 +66,7 @@ private fun Preview() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(White)
+                .background(whiteColor)
         ) {
             LangListWidget(
                 langList = LanguageData.langPreviewList,

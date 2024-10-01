@@ -11,7 +11,7 @@ sealed interface Msg {
     /**
      * Message to Load or Reload Data.
      */
-    object TermDataLoad : Msg
+    data object TermDataLoad : Msg
 
     /**
      * Message to show Term Data.
@@ -23,6 +23,7 @@ sealed interface Msg {
      * @param targetId id of Term
      * @param expand if true - expand, else - collapse
      */
+    @Deprecated("Not used now.")
     data class ExpandTerm(val targetId: Long, val expand: Boolean) : Msg
 
     /**
@@ -41,9 +42,15 @@ sealed interface Msg {
     data class AddWord(val value: String) : Msg
 
     /**
+     * Message to show or hide ActionBar with action buttons.
+     * Also can add new word to action mode.
+     */
+    data class ChangeActionMode(val isActionMode: Boolean, val targetTermId: Long? = null) : Msg
+
+    /**
      * When no need action after Effect.
      */
-    object Empty : Msg
+    data object Empty : Msg
 }
 
 sealed interface TopBarActionMsg : Msg {

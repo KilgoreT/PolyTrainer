@@ -24,9 +24,11 @@ private fun onLoadAvailableDict(
     dictList: List<DictUiEntity>,
 ): ReducerResult<VocabularyTabState, Effect> = state
     .copy(
-        topBarActionState = state.topBarActionState.copy(
-            isLoading = state.topBarActionState.currentDict == null,
-            availableDictList = dictList
+        topBarState = state.topBarState.copy(
+            mainState = state.topBarState.mainState.copy(
+                isLoading = state.topBarState.mainState.currentDict == null,
+                availableDictList = dictList
+            )
         )
     ) to setOf(DatasourceEffect.LoadCurrentDict)
 
@@ -41,10 +43,12 @@ private fun onLoadCurrentDict(
     numericCode: Int,
 ): ReducerResult<VocabularyTabState, Effect> = state
     .copy(
-        topBarActionState = state.topBarActionState.copy(
-            isLoading = false,
-            currentDict = state.topBarActionState.availableDictList
-                .first { it.numericCode == numericCode }
+        topBarState = state.topBarState.copy(
+            mainState = state.topBarState.mainState.copy(
+                isLoading = false,
+                currentDict = state.topBarState.mainState.availableDictList
+                    .first { it.numericCode == numericCode }
+            )
         )
     ) to setOf(DatasourceEffect.LoadTermData)
 
@@ -54,5 +58,8 @@ private fun onExpandDictMenu(
     isExpand: Boolean,
 ): ReducerResult<VocabularyTabState, Effect> = state
     .copy(
-        topBarActionState = state.topBarActionState.copy(isDropDownMenuOpen = isExpand)
+        topBarState = state.topBarState.copy(
+            mainState = state.topBarState.mainState
+                .copy(isDropDownMenuOpen = isExpand)
+        )
     ) to emptySet()

@@ -17,7 +17,7 @@ import me.apomazkin.createdictionary.logic.LangState
 import me.apomazkin.createdictionary.logic.Msg
 import me.apomazkin.createdictionary.toLangNameRes
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.White
+import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.btn.PrimaryButtonWidget
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
@@ -61,7 +61,7 @@ private fun Preview() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(White)
+                .background(whiteColor)
         ) {
             LangPickerWidget(
                 langState = LangState(

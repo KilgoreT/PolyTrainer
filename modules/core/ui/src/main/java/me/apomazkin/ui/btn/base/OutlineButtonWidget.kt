@@ -3,9 +3,17 @@ package me.apomazkin.ui.btn.base
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -19,7 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.Black
+import me.apomazkin.theme.blackColor
 import me.apomazkin.ui.R
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
@@ -33,7 +41,7 @@ fun OutlineButtonWidget(
     @DrawableRes iconRes: Int? = null,
     @StringRes titleRes: Int,
     enabledColor: Color,
-    disabledColor: Color = Black,
+    disabledColor: Color = blackColor,
     enabled: Boolean = false,
     @StringRes contentDescription: Int = R.string.content_description_button,
     borderStroke: Int = DefaultBorderStroke,

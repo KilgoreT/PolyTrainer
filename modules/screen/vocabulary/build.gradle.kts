@@ -1,19 +1,9 @@
-@file:Suppress("UnstableApiUsage")
-
 plugins {
-    id("android-library-convention")
+    id("polytrainer.android.feature")
 }
-
-apply(from = rootProject.file("varch.gradle.kts"))
 
 android {
     namespace = "me.apomazkin.vocabulary"
-    buildFeatures(Action {
-        compose = true
-    })
-    composeOptions(Action {
-        kotlinCompilerExtensionVersion = project.extra["kCompilerExtensionVersion"] as String
-    })
 }
 
 dependencies {
@@ -27,6 +17,7 @@ dependencies {
 
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)
+    implementation(composeLibs.activityCompose)
 
     testImplementation(testLibs.junit)
     androidTestImplementation(testLibs.androidxTestExt)

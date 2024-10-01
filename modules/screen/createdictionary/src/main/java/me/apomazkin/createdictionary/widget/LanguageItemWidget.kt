@@ -20,7 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.createdictionary.R
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.White
+import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
@@ -73,7 +73,7 @@ private fun PreviewNotSelect() {
     AppTheme {
         Box(
             modifier = Modifier
-                .background(White)
+                .background(whiteColor)
         ) {
             LanguageItemWidget(
                 flagRes = R.drawable.example_ic_flag_gb,
@@ -91,7 +91,7 @@ private fun PreviewSelected() {
     AppTheme {
         Box(
             modifier = Modifier
-                .background(White)
+                .background(whiteColor)
         ) {
             LanguageItemWidget(
                 flagRes = R.drawable.example_ic_flag_gb,

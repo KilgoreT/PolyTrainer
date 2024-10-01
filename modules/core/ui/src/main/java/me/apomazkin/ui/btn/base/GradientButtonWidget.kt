@@ -2,7 +2,13 @@ package me.apomazkin.ui.btn.base
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -17,7 +23,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import me.apomazkin.theme.*
+import me.apomazkin.theme.AppTheme
+import me.apomazkin.theme.Typography
+import me.apomazkin.theme.blackDisabledColor
+import me.apomazkin.theme.clr1F10324C
+import me.apomazkin.theme.gradientPrimary
+import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.R
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
@@ -30,8 +41,8 @@ fun GradientButtonWidget(
     @StringRes titleRes: Int,
     enabled: Boolean = false,
     gradient: Brush,
-    titleColorEnabled: Color = White,
-    titleColorDisabled: Color = BlackDisabled,
+    titleColorEnabled: Color = whiteColor,
+    titleColorDisabled: Color = blackDisabledColor,
     titleStyle: TextStyle = Typography.labelLarge,
     horizontalPadding: Dp = DefaultPadding.dp,
     shape: Shape = RoundedCornerShape(DefaultShape.dp),

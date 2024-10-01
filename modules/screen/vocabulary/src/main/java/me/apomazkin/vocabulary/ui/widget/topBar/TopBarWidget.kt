@@ -9,13 +9,13 @@ import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.logic.TopBarActionMsg
-import me.apomazkin.vocabulary.logic.TopBarActionState
+import me.apomazkin.vocabulary.logic.TopBarState
 import me.apomazkin.vocabulary.tools.DataHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBarWidget(
-    state: TopBarActionState,
+    state: TopBarState.Main,
     onAddDict: () -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
@@ -49,7 +49,7 @@ fun TopBarWidget(
 private fun Preview() {
     AppTheme {
         TopBarWidget(
-            state = DataHelper.State.loaded.topBarActionState,
+            state = DataHelper.State.loaded.topBarState.mainState,
             onAddDict = {},
         ) {}
     }
