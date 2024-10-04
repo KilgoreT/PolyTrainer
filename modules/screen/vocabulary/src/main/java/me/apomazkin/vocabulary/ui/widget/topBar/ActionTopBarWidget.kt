@@ -45,7 +45,14 @@ fun ActionTopBarWidget(
                     iconRes = R.drawable.ic_edit,
                     size = TOP_BAR_ICON_SIZE,
                     enabled = true,
-                ) {}
+                ) {
+                    sendMessage(
+                        Msg.StartChangeWord(
+                            state.selectedTermIds.first().id,
+                            state.selectedTermIds.first().wordValue,
+                        )
+                    )
+                }
             }
             IconBoxed(
                 iconRes = R.drawable.ic_move,
@@ -56,7 +63,14 @@ fun ActionTopBarWidget(
                 iconRes = R.drawable.ic_remove,
                 size = 44,
                 enabled = true,
-            ) {}
+            ) {
+                sendMessage(
+                    Msg.ConfirmDeleteWordDialog(
+                        isOpen = true,
+                        wordIds = state.selectedTermIds
+                    )
+                )
+            }
         },
     )
 }

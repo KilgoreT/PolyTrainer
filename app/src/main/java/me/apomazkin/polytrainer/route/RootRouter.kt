@@ -63,7 +63,7 @@ fun RootRouter(
         }
         mainRouter(
             route = RootPoint.MAIN_ROUTER.route,
-            onAddDictionary = {
+            openAddDict = {
                 navigator?.openCreateDictionaryScreen()
             }
         )

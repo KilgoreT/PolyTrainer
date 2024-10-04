@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,7 +32,8 @@ fun BoxScope.LangPickerWidget(
 ) {
     val context = LocalContext.current
     Column(
-        modifier = Modifier,
+        modifier = Modifier
+            .padding(horizontal = 16.dp),
     ) {
         LangListWidget(
             langList = langState.langList,
@@ -66,6 +68,7 @@ private fun Preview() {
             LangPickerWidget(
                 langState = LangState(
                     langList = LanguageData.langPreviewList,
+                    addLangButtonEnable = true,
                 )
             ) {}
         }

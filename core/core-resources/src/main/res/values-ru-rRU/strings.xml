@@ -37,6 +37,7 @@
     <string name="unknown_error">Неизвестная ошибка</string>
     <string name="button_ok">ОК</string>
     <string name="button_cancel">Отменить</string>
+    <string name="button_delete">Удалить</string>
 
     <!--LANGUAGE SELECTION-->
     <string name="lang_selection_title">Создание словаря</string>
@@ -72,5 +73,7 @@
     <string name="word_card_edit_word">Редактировать слово</string>
     <string name="word_card_add_lexeme">Добавить значение</string>
     <string name="word_card_delete_warning_dialog_title">Вы хотите удалить слово?</string>
+    <string name="vocabulary_delete_word">Удалить слово?</string>
+    <string name="vocabulary_delete_words">Удалить слова?</string>
 
 </resources>

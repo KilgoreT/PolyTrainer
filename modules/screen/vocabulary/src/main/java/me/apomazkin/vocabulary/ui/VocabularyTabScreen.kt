@@ -43,6 +43,7 @@ import me.apomazkin.vocabulary.logic.isEmpty
 import me.apomazkin.vocabulary.logic.processor.toMateEvent
 import me.apomazkin.vocabulary.tools.DataHelper
 import me.apomazkin.vocabulary.ui.widget.AddWordBottomSheetWidget
+import me.apomazkin.vocabulary.ui.widget.ConfirmDeleteWordWidget
 import me.apomazkin.vocabulary.ui.widget.EmptyWidget
 import me.apomazkin.vocabulary.ui.widget.WordListWidget
 import me.apomazkin.vocabulary.ui.widget.detailDialog.WordDetailDialogWidget
@@ -55,15 +56,15 @@ fun VocabularyTabScreen(
     viewModel: VocabularyTabViewModel = viewModel(
         factory = VocabularyTabViewModel.Factory(vocabularyUseCase)
     ),
-    onAddLang: () -> Unit,
-    onOpenWordCard: (wordId: Long) -> Unit,
+    openAddDict: () -> Unit,
+    openWordCard: (wordId: Long) -> Unit,
 ) {
     LifecycleEventHandler(action = { viewModel.accept(UiMsg.LifeCycleEvent(it.toMateEvent())) })
     val state: VocabularyTabState by viewModel.state.collectAsStateWithLifecycle()
     VocabularyTabScreen(
         state = state,
-        onAddLang = onAddLang,
-        onOpenWordCard = onOpenWordCard,
+        openAddDict = openAddDict,
+        openWordCard = openWordCard,
     ) { viewModel.accept(it) }
 }
 
@@ -71,8 +72,8 @@ fun VocabularyTabScreen(
 @Composable
 internal fun VocabularyTabScreen(
     state: VocabularyTabState,
-    onAddLang: () -> Unit,
-    onOpenWordCard: (wordId: Long) -> Unit,
+    openAddDict: () -> Unit,
+    openWordCard: (wordId: Long) -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
 
@@ -111,7 +112,7 @@ internal fun VocabularyTabScreen(
                 TopBarWidget(
                     state = state.topBarState.mainState,
                     sendMessage = sendMessage,
-                    onAddDict = onAddLang,
+                    openAddDict = openAddDict,
                 )
         },
         snackbarHost = {
@@ -121,15 +122,15 @@ internal fun VocabularyTabScreen(
         contentWindowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
         floatingActionButton = {
             AnimatedVisibility(
-                visible = !state.addWordDialogState.isAddWordWidgetOpen,
+                visible = !state.addWordDialogState.isOpen,
                 modifier = Modifier,
                 enter = scaleIn(),
                 exit = scaleOut(),
             ) {
                 PrimaryFabWidget(
                     iconRes = R.drawable.ic_add,
-                    enabled = !state.addWordDialogState.isAddWordWidgetOpen
-                ) { sendMessage(Msg.AddWordWidget(show = true)) }
+                    enabled = !state.addWordDialogState.isOpen
+                ) { sendMessage(Msg.StartAddWord(show = true)) }
             }
         }
     ) { paddingValue: PaddingValues ->
@@ -157,16 +158,13 @@ internal fun VocabularyTabScreen(
                         modifier = Modifier
                             .padding(top = 20.dp),
                         termList = state.termList,
-                        onOpenWordCard = { id ->
+                        openWordCard = { word ->
                             if (state.topBarState.isActionMode) {
                                 sendMessage(
-                                    Msg.ChangeActionMode(
-                                        isActionMode = true,
-                                        targetTermId = id
-                                    )
+                                    Msg.ChangeActionMode(isActionMode = true, targetWord = word)
                                 )
                             } else {
-                                onOpenWordCard.invoke(id)
+                                openWordCard.invoke(word.id)
                             }
                         },
                         sendMessage = sendMessage,
@@ -179,9 +177,15 @@ internal fun VocabularyTabScreen(
                     sendMsg = sendMessage,
                 )
             }
-            if (state.addWordDialogState.isAddWordWidgetOpen) {
+            if (state.addWordDialogState.isOpen) {
                 AddWordBottomSheetWidget(
                     state = state.addWordDialogState,
+                    sendMessage = sendMessage,
+                )
+            }
+            if (state.confirmWordDeleteDialogState.isOpen) {
+                ConfirmDeleteWordWidget(
+                    state = state.confirmWordDeleteDialogState,
                     sendMessage = sendMessage,
                 )
             }
@@ -195,8 +199,8 @@ private fun PreviewLoading() {
     AppTheme {
         VocabularyTabScreen(
             state = DataHelper.State.loading,
-            onAddLang = {},
-            onOpenWordCard = {},
+            openAddDict = {},
+            openWordCard = {},
         ) {}
     }
 }
@@ -207,8 +211,8 @@ private fun PreviewEmpty() {
     AppTheme {
         VocabularyTabScreen(
             state = DataHelper.State.empty,
-            onAddLang = {},
-            onOpenWordCard = {},
+            openAddDict = {},
+            openWordCard = {},
         ) {}
     }
 }
@@ -219,8 +223,8 @@ private fun PreviewLoaded() {
     AppTheme {
         VocabularyTabScreen(
             state = DataHelper.State.loaded,
-            onAddLang = {},
-            onOpenWordCard = {},
+            openAddDict = {},
+            openWordCard = {},
         ) {}
     }
 }

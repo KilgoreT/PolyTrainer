@@ -5,6 +5,7 @@ import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.vocabulary.entity.DictUiEntity
 import me.apomazkin.vocabulary.entity.LexemeLabel
 import me.apomazkin.vocabulary.entity.TermUiItem
+import me.apomazkin.vocabulary.entity.WordInfo
 
 /**
  * State
@@ -16,7 +17,8 @@ data class VocabularyTabState(
     val termList: List<TermUiItem> = emptyList(),
     val addWordDialogState: AddWordDialogState = AddWordDialogState(),
     val wordDetailDialogState: WordDetailDialogState = WordDetailDialogState(),
-    val snackbarState: SnackbarState = SnackbarState()
+    val snackbarState: SnackbarState = SnackbarState(),
+    val confirmWordDeleteDialogState: ConfirmWordDeleteDialogState = ConfirmWordDeleteDialogState(),
 )
 
 @Immutable
@@ -35,14 +37,15 @@ data class TopBarState(
 
     @Immutable
     data class Action(
-        val selectedTermIds: Set<Long> = emptySet(),
+        val selectedTermIds: Set<WordInfo> = emptySet(),
     )
 }
 
 @Immutable
 data class AddWordDialogState(
-    val isAddWordWidgetOpen: Boolean = false,
-    val addWordValue: String = EMPTY_STRING,
+    val isOpen: Boolean = false,
+    val wordValue: String = EMPTY_STRING,
+    val wordId: Long? = null,
 )
 
 @Immutable
@@ -80,6 +83,12 @@ data class EditableTextState(
 data class SnackbarState(
     val title: String = EMPTY_STRING,
     val show: Boolean = false,
+)
+
+@Immutable
+data class ConfirmWordDeleteDialogState(
+    val isOpen: Boolean = false,
+    val wordIds: Set<WordInfo> = emptySet(),
 )
 
 internal fun VocabularyTabState.isEmpty(): Boolean =

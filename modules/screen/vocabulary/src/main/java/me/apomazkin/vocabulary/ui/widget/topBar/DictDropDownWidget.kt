@@ -19,8 +19,7 @@ fun DictDropDownWidget(
     currentDictCode: Int?,
     dictList: List<DictUiEntity>,
     isExpand: Boolean,
-    onChangeDict: (numericCode: Int) -> Unit,
-    onAddDict: () -> Unit,
+    openAddDict: () -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
     IconDropdownMenuWidget(
@@ -35,16 +34,13 @@ fun DictDropDownWidget(
                     iconRes = it.flagRes,
                     title = it.title,
                     isSelected = it.numericCode == currentDictCode,
-                ) {
-                    sendMessage(TopBarActionMsg.ExpandDictMenu(expand = false))
-                    onChangeDict.invoke(it.numericCode)
-                }
+                ) { sendMessage(TopBarActionMsg.ChangeDict(numericCode = it.numericCode)) }
             }
         }
         MenuDivider()
         AddDictMenuItem {
             sendMessage(TopBarActionMsg.ExpandDictMenu(expand = false))
-            onAddDict.invoke()
+            openAddDict.invoke()
         }
     }
 }
@@ -74,8 +70,7 @@ private fun Preview() {
                     numericCode = 3,
                 ),
             ),
-            onChangeDict = {},
-            onAddDict = {},
+            openAddDict = {},
             sendMessage = {}
         )
     }

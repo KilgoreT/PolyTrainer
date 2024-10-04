@@ -2,10 +2,12 @@ package me.apomazkin.vocabulary.logic
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
 import me.apomazkin.vocabulary.deps.VocabularyUseCase
+import me.apomazkin.vocabulary.entity.WordInfo
 
 /**
  * Effect
@@ -36,11 +38,12 @@ internal sealed interface DatasourceEffect : Effect {
      * Effect to add new word.
      */
     data class AddWord(val value: String) : DatasourceEffect
+    data class ChangeWord(val wordId: Long, val value: String) : DatasourceEffect
 
     /**
      * Effect to delete word.
      */
-    data class DeleteWord(val id: Long) : DatasourceEffect
+    data class DeleteWord(val wordSet: Set<WordInfo>) : DatasourceEffect
 
     /**
      * Effect to save(add or update) lexeme.
@@ -94,14 +97,31 @@ internal class DatasourceEffectHandler(
                         .let { Msg.TermDataLoaded(termList = it) }
                 }
             }
+
             is DatasourceEffect.AddWord -> {
                 withContext(Dispatchers.IO) {
                     vocabularyUseCase.addWord(eff.value).let { Msg.TermDataLoad }
                 }
             }
-            is DatasourceEffect.DeleteWord -> {
-                vocabularyUseCase.deleteWord(eff.id).let { Msg.TermDataLoad }
+
+            is DatasourceEffect.ChangeWord -> {
+                withContext(Dispatchers.IO) {
+                    async { vocabularyUseCase.updateWord(eff.wordId, eff.value) }
+                        .await()
+                        .let { if (it) Msg.TermDataLoad else Msg.TermDataLoad }
+                }
             }
+
+            is DatasourceEffect.DeleteWord -> {
+                withContext(Dispatchers.IO) {
+                    eff.wordSet.map { id ->
+                        async { vocabularyUseCase.deleteWord(id.id) }.await()
+                    }
+                }.let {
+                    Msg.TermDataLoad
+                }
+            }
+
             is DatasourceEffect.SaveLexeme -> {
                 withContext(Dispatchers.IO) {
                     // TODO: Проследить, чтобы обновлялись только те лексемы, которые реально были изменены
@@ -123,12 +143,14 @@ internal class DatasourceEffectHandler(
                     }.let { Msg.TermDataLoad }
                 }
             }
+
             is DatasourceEffect.DeleteLexeme -> {
                 withContext(Dispatchers.IO) {
                     vocabularyUseCase.deleteLexeme(eff.lexemeId)
                         .let { Msg.TermDataLoad }
                 }
             }
+
             null -> Msg.Empty
         }.let(consumer)
     }

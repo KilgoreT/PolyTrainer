@@ -23,13 +23,14 @@ import me.apomazkin.theme.blackColor
 import me.apomazkin.theme.dividerColor
 import me.apomazkin.ui.preview.PreviewWidgetRu
 import me.apomazkin.vocabulary.entity.TermUiItem
+import me.apomazkin.vocabulary.entity.WordInfo
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.tools.DataHelper
 
 @Composable
 internal fun TermItem(
     termItem: TermUiItem,
-    onOpenWordCard: (wordId: Long) -> Unit,
+    openWordCard: (word: WordInfo) -> Unit,
     sendMsg: (Msg) -> Unit,
 ) {
     Surface(
@@ -37,8 +38,15 @@ internal fun TermItem(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .combinedClickable(
-                onLongClick = { sendMsg(Msg.ChangeActionMode(true, termItem.id)) },
-                onClick = { onOpenWordCard(termItem.id) }
+                onLongClick = {
+                    sendMsg(
+                        Msg.ChangeActionMode(
+                            isActionMode = true,
+                            targetWord = WordInfo(termItem.id, termItem.wordValue),
+                        )
+                    )
+                },
+                onClick = { openWordCard(WordInfo(termItem.id, termItem.wordValue)) }
             ),
         shape = RoundedCornerShape(12.dp),
         shadowElevation = 4.dp,
@@ -69,7 +77,7 @@ private fun Preview() {
         ) {
             TermItem(
                 termItem = DataHelper.Data.termList.first(),
-                onOpenWordCard = {},
+                openWordCard = {},
             ) {}
         }
     }

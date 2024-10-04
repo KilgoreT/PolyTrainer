@@ -12,6 +12,7 @@ interface VocabularyUseCase {
     suspend fun getWordList(): List<TermUiItem>
     suspend fun addWord(value: String): Long
     suspend fun deleteWord(wordId: Long)
+    suspend fun updateWord(id: Long, value: String): Boolean
     suspend fun addLexeme(wordId: Long, category: String, definition: String)
     suspend fun editLexeme(wordId: Long, lexemeId: Long, category: String, definition: String)
     suspend fun deleteLexeme(lexemeId: Long)
