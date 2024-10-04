@@ -22,21 +22,26 @@ internal fun AddWordBottomSheetWidget(
 ) {
 
     ModalBottomSheet(
-        onDismissRequest = { sendMessage(Msg.AddWordWidget(show = false)) },
+        onDismissRequest = { sendMessage(Msg.StartAddWord(show = false)) },
         modifier = Modifier,
         containerColor = MaterialTheme.colorScheme.onPrimary,
         dragHandle = {},
         shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
     ) {
         AddWordWidget(
-            wordValue = state.addWordValue,
-            isActionEnable = state.addWordValue.isNotBlank(),
+            wordValue = state.wordValue,
+            isActionEnable = state.wordValue.isNotBlank(),
             onWordValueChange = { sendMessage(Msg.WordValueChange(it)) },
             onAddWord = {
-                if (it.trim().isNotEmpty()) {
-                    sendMessage(Msg.AddWord(state.addWordValue.trim()))
+                if (it.trim().isBlank()) {
+                    sendMessage(Msg.StartAddWord(show = false))
+                    return@AddWordWidget
                 }
-                sendMessage(Msg.AddWordWidget(show = false))
+                if (state.wordId != null) {
+                    sendMessage(Msg.ChangeWord(state.wordId, state.wordValue.trim()))
+                } else {
+                    sendMessage(Msg.AddWord(state.wordValue.trim()))
+                }
             },
         )
     }
@@ -49,7 +54,7 @@ private fun Preview() {
     AppTheme {
         AddWordBottomSheetWidget(
             state = AddWordDialogState(
-                isAddWordWidgetOpen = true
+                isOpen = true
             ),
         ) {}
     }

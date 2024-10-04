@@ -11,6 +11,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 import me.apomazkin.vocabulary.entity.TermUiItem
+import me.apomazkin.vocabulary.entity.WordInfo
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.tools.DataHelper
 
@@ -18,7 +19,7 @@ import me.apomazkin.vocabulary.tools.DataHelper
 internal fun WordListWidget(
     termList: List<TermUiItem>,
     modifier: Modifier = Modifier,
-    onOpenWordCard: (wordId: Long) -> Unit,
+    openWordCard: (word: WordInfo) -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
     LazyColumn(
@@ -34,7 +35,7 @@ internal fun WordListWidget(
         items(termList) { item: TermUiItem ->
             TermItem(
                 termItem = item,
-                onOpenWordCard = onOpenWordCard,
+                openWordCard = openWordCard,
             ) { sendMessage(it) }
         }
     }
@@ -47,7 +48,7 @@ private fun Preview() {
     AppTheme {
         WordListWidget(
             termList = DataHelper.Data.termList,
-            onOpenWordCard = {}
+            openWordCard = {}
         ) {}
     }
 }

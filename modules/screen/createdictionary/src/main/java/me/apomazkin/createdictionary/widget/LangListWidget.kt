@@ -20,9 +20,8 @@ import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
-private const val HEADER_HORIZONTAL_PADDING = 16
 private const val HEADER_TOP_PADDING = 16
-private const val LIST_HORIZONTAL_PADDING = 12
+private const val LIST_HORIZONTAL_PADDING = 0
 private const val LIST_VERTICAL_PADDING = 12
 private const val LIST_VERTICAL_GAP = 4
 
@@ -36,7 +35,6 @@ fun ColumnScope.LangListWidget(
         titleRes = R.string.lang_selection_title,
         subTitleRes = R.string.lang_selection_subtitle,
         modifier = Modifier
-            .padding(horizontal = HEADER_HORIZONTAL_PADDING.dp)
             .padding(top = HEADER_TOP_PADDING.dp)
     )
 

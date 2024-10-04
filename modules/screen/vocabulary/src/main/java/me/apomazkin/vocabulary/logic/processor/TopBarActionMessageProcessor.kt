@@ -14,7 +14,12 @@ internal fun processTopBarActionMessage(
     return when (message) {
         is TopBarActionMsg.AvailableDict -> onLoadAvailableDict(state, message.list)
         is TopBarActionMsg.CurrentDict -> onLoadCurrentDict(state, message.numericCode)
-        is TopBarActionMsg.ChangeDict -> onChangeDict(state, message.numericCode)
+        is TopBarActionMsg.ChangeDict -> {
+            val (midState, onExpandDictMenuEffects) = onExpandDictMenu(state, false)
+            val (updatedState, onChangeDictEffects) = onChangeDict(midState, message.numericCode)
+            updatedState to (onExpandDictMenuEffects + onChangeDictEffects)
+        }
+
         is TopBarActionMsg.ExpandDictMenu -> onExpandDictMenu(state, message.expand)
     }
 }

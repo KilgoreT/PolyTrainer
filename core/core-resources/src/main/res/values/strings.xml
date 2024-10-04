@@ -75,6 +75,8 @@
     <string name="vocabulary_detail_definition_title">Definition</string>
     <string name="vocabulary_detail_translation_title">Translation</string>
     <string name="vocabulary_detail_example_title">Example</string>
+    <string name="vocabulary_delete_word">Delete word?</string>
+    <string name="vocabulary_delete_words">Delete words?</string>
 
     <!--WordCard-->
     <string name="word_card_toolbar_title">Word card</string>
@@ -82,5 +84,6 @@
     <string name="word_card_edit_word">Edit word</string>
     <string name="word_card_add_lexeme">Add meaning</string>
     <string name="word_card_delete_warning_dialog_title">Do you want to delete the word?</string>
+    <string name="button_delete">Delete</string>
 
 </resources>

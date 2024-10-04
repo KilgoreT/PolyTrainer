@@ -1,23 +1,24 @@
 package me.apomazkin.vocabulary.logic.processor
 
 import me.apomazkin.mate.Effect
+import me.apomazkin.vocabulary.entity.WordInfo
 import me.apomazkin.vocabulary.logic.VocabularyTabState
 import me.apomazkin.vocabulary.tools.modifyFiltered
 
 internal fun onChangeActionMode(
     state: VocabularyTabState,
     actionMode: Boolean,
-    targetTermId: Long?
+    targetWord: WordInfo?
 ): Pair<VocabularyTabState, Set<Effect>> {
 
     val set = state.topBarState.actionState.selectedTermIds
         .toMutableSet()
-    val apply = if (set.contains(targetTermId)) {
-        set.remove(targetTermId)
+    val apply = if (set.contains(targetWord)) {
+        set.remove(targetWord)
         false
     } else {
-        targetTermId?.let { set.add(it) }
-        targetTermId != null
+        targetWord?.let { set.add(it) }
+        targetWord != null
     }
 
     return state
@@ -31,12 +32,12 @@ internal fun onChangeActionMode(
             termList = if (actionMode && set.isNotEmpty())
                 state.termList
                     .modifyFiltered(
-                        predicate = { it.id == targetTermId },
+                        predicate = { it.id == targetWord?.id },
                         action = { it.copy(isSelected = apply) }
                     )
             else state.termList
                 .modifyFiltered(
-                    predicate = { set.contains(it.id) },
+                    predicate = { term -> set.any { word -> word.id == term.id } },
                     action = { it.copy(isSelected = false) }
                 )
         ) to emptySet()

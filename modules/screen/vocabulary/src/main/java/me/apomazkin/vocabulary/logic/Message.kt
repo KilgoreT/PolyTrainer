@@ -4,6 +4,7 @@ import androidx.compose.material3.DropdownMenu
 import me.apomazkin.vocabulary.entity.DictUiEntity
 import me.apomazkin.vocabulary.entity.LexemeLabel
 import me.apomazkin.vocabulary.entity.TermUiItem
+import me.apomazkin.vocabulary.entity.WordInfo
 
 
 sealed interface Msg {
@@ -19,17 +20,21 @@ sealed interface Msg {
     data class TermDataLoaded(val termList: List<TermUiItem>) : Msg
 
     /**
-     * Message to Expand or Collapse Term.
-     * @param targetId id of Term
-     * @param expand if true - expand, else - collapse
-     */
-    @Deprecated("Not used now.")
-    data class ExpandTerm(val targetId: Long, val expand: Boolean) : Msg
-
-    /**
      * Message to control AddWord dialog visibility.
      */
-    data class AddWordWidget(val show: Boolean) : Msg
+    data class StartAddWord(
+        val show: Boolean,
+        val wordValue: String? = null,
+    ) : Msg
+
+    /**
+     * Message to Start AddWord dialog to modify word.
+     * @param wordId id of word to modify.
+     */
+    data class StartChangeWord(
+        val wordId: Long,
+        val wordValue: String
+    ) : Msg
 
     /**
      * Message to handle AddWord's TextField.onValueChange.
@@ -42,10 +47,27 @@ sealed interface Msg {
     data class AddWord(val value: String) : Msg
 
     /**
+     * Message to change word.
+     * @param wordId id of word to change.
+     * @param value new value of word.
+     */
+    data class ChangeWord(val wordId: Long, val value: String) : Msg
+
+    /**
+     * Message to control ConfirmDeleteWord dialog visibility.
+     */
+    data class ConfirmDeleteWordDialog(val isOpen: Boolean, val wordIds: Set<WordInfo>) : Msg
+
+    /**
+     * Message to delete word.
+     */
+    data class DeleteWord(val wordIds: Set<WordInfo>) : Msg
+
+    /**
      * Message to show or hide ActionBar with action buttons.
      * Also can add new word to action mode.
      */
-    data class ChangeActionMode(val isActionMode: Boolean, val targetTermId: Long? = null) : Msg
+    data class ChangeActionMode(val isActionMode: Boolean, val targetWord: WordInfo? = null) : Msg
 
     /**
      * When no need action after Effect.

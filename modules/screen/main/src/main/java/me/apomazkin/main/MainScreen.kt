@@ -21,7 +21,7 @@ enum class TabPoint(val route: String) {
 @Composable
 fun MainScreen(
     mainUiDeps: MainUiDeps,
-    onAddDictionary: () -> Unit,
+    openAddDict: () -> Unit,
 ) {
     val navController = rememberNavController()
 
@@ -41,7 +41,7 @@ fun MainScreen(
             vocabulary(
                 navController = navController,
                 mainUiDeps = mainUiDeps,
-                onAddDictionary = onAddDictionary,
+                openAddDict = openAddDict,
             )
             composable(TabPoint.TRAINING.route) {}
             composable(TabPoint.STATS.route) {}
