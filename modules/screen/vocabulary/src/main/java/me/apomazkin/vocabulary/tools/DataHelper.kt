@@ -3,6 +3,7 @@ package me.apomazkin.vocabulary.tools
 import me.apomazkin.vocabulary.R
 import me.apomazkin.vocabulary.entity.DictUiEntity
 import me.apomazkin.vocabulary.entity.TermUiItem
+import me.apomazkin.vocabulary.entity.WordInfo
 import me.apomazkin.vocabulary.logic.TopBarState
 import me.apomazkin.vocabulary.logic.VocabularyTabState
 import java.util.Date
@@ -53,7 +54,9 @@ object DataHelper {
                     )
                 ),
                 actionState = TopBarState.Action(
-                    selectedTermIds = setOf(0)
+                    selectedTermIds = setOf(
+                        WordInfo(id = 0, wordValue = "uno")
+                    )
                 )
             )
         )

@@ -34,7 +34,7 @@ class WordCardUseCaseImpl @Inject constructor(
         return dbApi.deleteWordSuspend(wordId)
     }
 
-    override suspend fun updateWord(wordId: Long, value: String): Int {
+    override suspend fun updateWord(wordId: Long, value: String): Boolean {
         return dbApi.updateWordSuspend(wordId, value)
     }
 

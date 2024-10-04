@@ -118,10 +118,10 @@ class CoreDbApiImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateWordSuspend(id: Long, value: String): Int {
+    override suspend fun updateWordSuspend(id: Long, value: String): Boolean {
         val wordRel = wordDao.getWordSuspend(id)
         val wordDb = wordRel.wordDb.copy(word = value)
-        return wordDao.updateWorldSuspend(wordDb)
+        return wordDao.updateWorldSuspend(wordDb) == 1
     }
 
     override fun addDefinition(definition: Definition, langId: Long): Completable {

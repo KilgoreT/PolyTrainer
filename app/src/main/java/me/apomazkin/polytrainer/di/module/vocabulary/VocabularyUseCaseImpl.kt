@@ -50,6 +50,9 @@ class VocabularyUseCaseImpl @Inject constructor(
                 } ?: throw IllegalStateException("Language not found")
         }
 
+    override suspend fun updateWord(id: Long, value: String): Boolean =
+        dbApi.updateWordSuspend(id, value)
+
     override suspend fun deleteWord(wordId: Long) {
         dbApi.deleteWordSuspend(wordId)
     }

@@ -37,7 +37,7 @@ interface CoreDbApi {
 
     fun addWordSuspend(value: String, langId: Long): Long
     suspend fun deleteWordSuspend(id: Long): Int
-    suspend fun updateWordSuspend(id: Long, value: String): Int
+    suspend fun updateWordSuspend(id: Long, value: String): Boolean
 
     suspend fun addLexemeSuspend(wordId: Long, category: String, definition: String): Long
     suspend fun editLexemeSuspend(

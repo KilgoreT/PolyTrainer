@@ -1,9 +1,11 @@
 package me.apomazkin.ui.btn
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
@@ -13,7 +15,7 @@ import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 
 @Composable
-fun PrimaryButtonWidget(
+fun AlarmButtonWidget(
     @StringRes titleRes: Int,
     enabled: Boolean = true,
     onClick: () -> Unit,
@@ -21,12 +23,10 @@ fun PrimaryButtonWidget(
     LexemeButton(
         titleRes = titleRes,
         enabled = enabled,
-        modifier = Modifier
-            .fillMaxWidth(),
-        height = 56.dp,
-        enabledColor = MaterialTheme.colorScheme.primary,
-        titleTextColor = MaterialTheme.colorScheme.onPrimary,
-        onClick = onClick
+        height = 44.dp,
+        enabledColor = MaterialTheme.colorScheme.error,
+        titleTextColor = MaterialTheme.colorScheme.onError,
+        onClick = onClick,
     )
 }
 
@@ -35,8 +35,14 @@ fun PrimaryButtonWidget(
 @Composable
 private fun Preview() {
     AppTheme {
-        PrimaryButtonWidget(
-            titleRes = R.string.logo_title
-        ) {}
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            AlarmButtonWidget(
+                titleRes = R.string.button_delete
+            ) {}
+        }
     }
 }

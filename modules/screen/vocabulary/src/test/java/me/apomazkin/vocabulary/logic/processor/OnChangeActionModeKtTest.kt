@@ -1,6 +1,7 @@
 package me.apomazkin.vocabulary.logic.processor
 
 import me.apomazkin.vocabulary.entity.TermUiItem
+import me.apomazkin.vocabulary.entity.WordInfo
 import me.apomazkin.vocabulary.logic.TopBarState
 import me.apomazkin.vocabulary.logic.VocabularyTabState
 import org.hamcrest.CoreMatchers.equalTo
@@ -48,8 +49,12 @@ class OnChangeActionModeKtTest {
             termList = termList,
         )
 
-        val targetTerm = termList[0]
-        val result = onChangeActionMode(state, true, targetTerm.id)
+        val targetTerm: TermUiItem = termList[0]
+        val result = onChangeActionMode(
+            state = state,
+            actionMode = true,
+            targetWord = WordInfo(id = targetTerm.id, wordValue = targetTerm.wordValue)
+        )
         assertTrue("Is action mode set?", result.first.topBarState.isActionMode)
         assertTrue("Is target term selected?", result.first.termList[0].isSelected)
         assertThat(
@@ -94,14 +99,19 @@ class OnChangeActionModeKtTest {
             topBarState = TopBarState(
                 isActionMode = true,
                 actionState = TopBarState.Action(
-                    selectedTermIds = setOf(1)
+                    selectedTermIds = setOf(WordInfo(1, "1"))
                 ),
             ),
             termList = termList,
         )
 
         val targetTerm = termList[1]
-        val result = onChangeActionMode(state, true, targetTerm.id)
+        val result = onChangeActionMode(
+            state = state,
+            actionMode = true,
+            targetWord = WordInfo(id = targetTerm.id, wordValue = targetTerm.wordValue)
+        )
+//        val result = onChangeActionMode(state, true, targetTerm.id)
         assertTrue("Is action mode set?", result.first.topBarState.isActionMode)
         assertTrue("Is init term selected?", result.first.termList[0].isSelected)
         assertTrue("Is target term selected?", result.first.termList[1].isSelected)
@@ -148,14 +158,22 @@ class OnChangeActionModeKtTest {
             topBarState = TopBarState(
                 isActionMode = true,
                 actionState = TopBarState.Action(
-                    selectedTermIds = setOf(1, 2)
+                    selectedTermIds = setOf(
+                        WordInfo(1, "1"),
+                        WordInfo(2, "2"),
+                    ),
                 ),
             ),
             termList = termList,
         )
 
         val targetTerm = termList[1]
-        val result = onChangeActionMode(state, true, targetTerm.id)
+        val result = onChangeActionMode(
+            state = state,
+            actionMode = true,
+            targetWord = WordInfo(id = targetTerm.id, wordValue = targetTerm.wordValue)
+        )
+//        val result = onChangeActionMode(state, true, targetTerm.id)
         assertTrue("Is action mode set?", result.first.topBarState.isActionMode)
         assertTrue("Is init term selected?", result.first.termList[0].isSelected)
         assertTrue("Is target term selected?", !result.first.termList[1].isSelected)
@@ -202,7 +220,10 @@ class OnChangeActionModeKtTest {
             topBarState = TopBarState(
                 isActionMode = true,
                 actionState = TopBarState.Action(
-                    selectedTermIds = setOf(1, 2)
+                    selectedTermIds = setOf(
+                        WordInfo(1, "1"),
+                        WordInfo(2, "2"),
+                    )
                 ),
             ),
             termList = termList,

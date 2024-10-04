@@ -8,7 +8,6 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 import me.apomazkin.vocabulary.logic.Msg
-import me.apomazkin.vocabulary.logic.TopBarActionMsg
 import me.apomazkin.vocabulary.logic.TopBarState
 import me.apomazkin.vocabulary.tools.DataHelper
 
@@ -16,7 +15,7 @@ import me.apomazkin.vocabulary.tools.DataHelper
 @Composable
 fun TopBarWidget(
     state: TopBarState.Main,
-    onAddDict: () -> Unit,
+    openAddDict: () -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
     TopAppBar(
@@ -34,8 +33,7 @@ fun TopBarWidget(
                     currentDictCode = state.currentDict.numericCode,
                     dictList = state.availableDictList,
                     isExpand = state.isDropDownMenuOpen,
-                    onChangeDict = { sendMessage(TopBarActionMsg.ChangeDict(numericCode = it)) },
-                    onAddDict = onAddDict,
+                    openAddDict = openAddDict,
                     sendMessage = sendMessage,
                 )
             }
@@ -50,7 +48,7 @@ private fun Preview() {
     AppTheme {
         TopBarWidget(
             state = DataHelper.State.loaded.topBarState.mainState,
-            onAddDict = {},
+            openAddDict = {},
         ) {}
     }
 }

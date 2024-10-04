@@ -7,8 +7,8 @@ import androidx.compose.runtime.Stable
 interface MainUiDeps {
     @Composable
     fun VocabularyTab(
-        onAddDictionary: () -> Unit,
-        onOpenWordCard: (wordId: Long) -> Unit,
+        openAddDict: () -> Unit,
+        openWordCard: (wordId: Long) -> Unit,
     )
 
     @Composable

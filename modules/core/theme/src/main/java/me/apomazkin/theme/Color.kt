@@ -53,7 +53,7 @@ object LexemeColor {
     val onTertiaryContainer = onTertiary
 
     // danger and error
-    val error = Color(0xFFF03D3D)
+    val error = Color(0xFFFEE2E2)
     val onError = Color(0xFFDE2424)
     val errorContainer = error
     val onErrorContainer = onError
