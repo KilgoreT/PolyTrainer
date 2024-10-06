@@ -29,15 +29,13 @@ internal fun onChangeActionMode(
                     selectedTermIds = if (actionMode) set else emptySet()
                 )
             ),
-            termList = if (actionMode && set.isNotEmpty())
-                state.termList
-                    .modifyFiltered(
-                        predicate = { it.id == targetWord?.id },
-                        action = { it.copy(isSelected = apply) }
-                    )
-            else state.termList
+            termList = state.termList
                 .modifyFiltered(
-                    predicate = { term -> set.any { word -> word.id == term.id } },
+                    predicate = { it.id == targetWord?.id },
+                    action = { it.copy(isSelected = apply) }
+                )
+                .modifyFiltered(
+                    predicate = { !actionMode },
                     action = { it.copy(isSelected = false) }
                 )
         ) to emptySet()

@@ -26,6 +26,7 @@ fun NavGraphBuilder.mainRouter(
                 mainUiDeps = MainUiDepsProvider(
                     vocabularyUseCase = context.appComponent.getVocabularyUseCase(),
                     wordCardUseCase = context.appComponent.getWordCardUseCase(),
+                    logger = context.appComponent.getLogger(),
                 ),
                 openAddDict = openAddDict
             )

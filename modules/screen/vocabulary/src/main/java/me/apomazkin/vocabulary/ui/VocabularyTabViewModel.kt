@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.mate.Mate
 import me.apomazkin.mate.MateStateHolder
+import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.vocabulary.deps.VocabularyUseCase
 import me.apomazkin.vocabulary.logic.*
 
 class VocabularyTabViewModel(
     vocabularyUseCase: VocabularyUseCase,
+    logger: LexemeLogger,
 ) : ViewModel(), MateStateHolder<VocabularyTabState, Msg> {
 
 //    init {
@@ -48,7 +50,7 @@ class VocabularyTabViewModel(
         initState = VocabularyTabState(),
         initEffects = setOf(),
         coroutineScope = viewModelScope,
-        reducer = VocabularyTabReducer(),
+        reducer = VocabularyTabReducer(logger = logger),
         effectHandlerSet = setOf(
             DatasourceEffectHandler(vocabularyUseCase = vocabularyUseCase),
             UiEffectHandler()
@@ -62,10 +64,11 @@ class VocabularyTabViewModel(
 
     class Factory(
         private val vocabularyUseCase: VocabularyUseCase,
+        private val logger: LexemeLogger,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return VocabularyTabViewModel(vocabularyUseCase) as T
+            return VocabularyTabViewModel(vocabularyUseCase, logger) as T
         }
     }
 }
