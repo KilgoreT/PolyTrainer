@@ -32,6 +32,7 @@ import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.btn.PrimaryFabWidget
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
 import me.apomazkin.ui.lifecycle.LifecycleResume
+import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewWidgetEn
 import me.apomazkin.ui.preview.PreviewWidgetRu
 import me.apomazkin.vocabulary.R
@@ -53,8 +54,9 @@ import me.apomazkin.vocabulary.ui.widget.topBar.TopBarWidget
 @Composable
 fun VocabularyTabScreen(
     vocabularyUseCase: VocabularyUseCase,
+    logger: LexemeLogger,
     viewModel: VocabularyTabViewModel = viewModel(
-        factory = VocabularyTabViewModel.Factory(vocabularyUseCase)
+        factory = VocabularyTabViewModel.Factory(vocabularyUseCase, logger)
     ),
     openAddDict: () -> Unit,
     openWordCard: (wordId: Long) -> Unit,

@@ -1,10 +1,10 @@
 package me.apomazkin.vocabulary.logic
 
-import android.util.Log
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
+import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.vocabulary.entity.TermUiItem
 import me.apomazkin.vocabulary.entity.WordInfo
 import me.apomazkin.vocabulary.logic.processor.onChangeActionMode
@@ -13,13 +13,15 @@ import me.apomazkin.vocabulary.logic.processor.processUiMessage
 import me.apomazkin.vocabulary.logic.processor.processWordDetailMessage
 import me.apomazkin.vocabulary.tools.modifyFiltered
 
-internal class VocabularyTabReducer : MateReducer<VocabularyTabState, Msg, Effect> {
+internal class VocabularyTabReducer(
+    val logger: LexemeLogger,
+) : MateReducer<VocabularyTabState, Msg, Effect> {
     override fun reduce(
         state: VocabularyTabState,
         message: Msg
     ): ReducerResult<VocabularyTabState, Effect> {
-        Log.d("##MATE##", "Reduce --prevState--: $state ")
-        Log.d("##MATE##", "Reduce ---message---: $message ")
+        logger.log(message = "Reduce --prevState--: $state ")
+        logger.log(message = "Reduce ---message---: $message ")
         return when (message) {
             is TopBarActionMsg -> processTopBarActionMessage(state = state, message = message)
             is Msg.TermDataLoad -> onTermDataLoad(state = state)
@@ -110,9 +112,9 @@ internal class VocabularyTabReducer : MateReducer<VocabularyTabState, Msg, Effec
             is UiMsg -> processUiMessage(state, message)
             Msg.Empty -> state to emptySet()
         }.also {
-            Log.d("##MATE##", "Reduce --newState--: ${it.first} ")
+            logger.log(message = "Reduce --newState--: ${it.first} ")
             it.second.forEach { effect ->
-                Log.d("##MATE##", "Reduce --toEffect--: $effect ")
+                logger.log(message = "Reduce --toEffect--: $effect ")
             }
         }
     }
