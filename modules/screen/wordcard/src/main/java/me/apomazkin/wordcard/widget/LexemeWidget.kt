@@ -1,7 +1,13 @@
 package me.apomazkin.wordcard.widget
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -20,7 +26,7 @@ import me.apomazkin.chippicker.ChipPickerWidget
 import me.apomazkin.chippicker.lexicalCategory
 import me.apomazkin.chippicker.toChipPicker
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.preview.PreviewWidgetEn
+import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.wordcard.R
 import me.apomazkin.wordcard.mate.DefinitionState
 import me.apomazkin.wordcard.mate.LexemeState
@@ -93,7 +99,7 @@ fun LexemeWidget(
     }
 }
 
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

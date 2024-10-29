@@ -16,12 +16,12 @@ import androidx.compose.ui.res.painterResource
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.gradientSecondaryVertical
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 /**
  * Widget for background with Image and gradient.
  */
+@Deprecated(message = "Not used")
 @Composable
 fun ImageBgGradWidget(
     @DrawableRes imageRes: Int,
@@ -55,13 +55,12 @@ fun ImageBgGradWidget(
     }
 }
 
-@PreviewWidgetEn
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {
         ImageBgGradWidget(
-            imageRes = R.drawable.ic_lang_pick_bg,
+            imageRes = R.drawable.example_ic_flag_gb,
             brush = gradientSecondaryVertical
         ) {}
     }

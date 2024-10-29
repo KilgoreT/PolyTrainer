@@ -21,7 +21,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.blackColor
 import me.apomazkin.theme.dividerColor
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.vocabulary.entity.TermUiItem
 import me.apomazkin.vocabulary.entity.WordInfo
 import me.apomazkin.vocabulary.logic.Msg
@@ -67,7 +67,7 @@ internal fun TermItem(
     }
 }
 
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

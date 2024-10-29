@@ -15,6 +15,7 @@ import me.apomazkin.ui.preview.PreviewWidget
 private const val DEFAULT_SHAPE = 0
 private const val DEFAULT_DESCRIPTION = ""
 
+@Deprecated(message = "Not Used")
 @Composable
 fun ImageRoundedWidget(
     @DrawableRes imageRes: Int,
@@ -45,7 +46,7 @@ fun ImageRoundedWidget(
 private fun Preview() {
     AppTheme {
         ImageRoundedWidget(
-            imageRes = R.drawable.image_lang_selection,
+            imageRes = R.drawable.example_ic_flag_gb,
             topStart = 24,
             bottomStart = 24,
         )

@@ -17,8 +17,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.ui.btn.AlarmButtonWidget
 import me.apomazkin.ui.btn.CancelButtonWidget
-import me.apomazkin.ui.preview.PreviewScreenEn
-import me.apomazkin.ui.preview.PreviewScreenRu
+import me.apomazkin.ui.preview.PreviewScreen
 import me.apomazkin.vocabulary.R
 import me.apomazkin.vocabulary.logic.ConfirmWordDeleteDialogState
 import me.apomazkin.vocabulary.logic.Msg
@@ -84,8 +83,7 @@ fun ConfirmDeleteWordWidget(
     }
 }
 
-@PreviewScreenRu
-@PreviewScreenEn
+@PreviewScreen
 @Composable
 private fun Preview() {
     AppTheme {

@@ -5,8 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.logic.TopBarState
 import me.apomazkin.vocabulary.tools.DataHelper
@@ -42,8 +41,7 @@ fun TopBarWidget(
 }
 
 @Composable
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 private fun Preview() {
     AppTheme {
         TopBarWidget(

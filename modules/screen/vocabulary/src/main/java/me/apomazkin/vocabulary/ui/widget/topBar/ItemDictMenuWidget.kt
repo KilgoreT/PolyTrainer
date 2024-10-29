@@ -13,8 +13,7 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.ui.ImageFlagWidget
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.vocabulary.R
 
 @Composable
@@ -52,8 +51,7 @@ fun ItemDictMenuWidget(
     )
 }
 
-@PreviewWidgetEn
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

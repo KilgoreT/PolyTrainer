@@ -11,8 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.vocabulary.R
 
 @Composable
@@ -31,8 +30,7 @@ internal fun BoxScope.EmptyWidget() {
     }
 }
 
-@PreviewWidgetEn
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

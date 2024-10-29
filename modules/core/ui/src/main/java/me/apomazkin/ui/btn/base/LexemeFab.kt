@@ -20,8 +20,7 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.R
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 private const val DEFAULT_CORNER_RADIUS = 16
 
@@ -29,7 +28,7 @@ private const val DEFAULT_CORNER_RADIUS = 16
  * FAB Widget with custom color.
  */
 @Composable
-fun ColoredFabWidget(
+fun LexemeFab(
     @DrawableRes iconRes: Int,
     color: Color,
     enabled: Boolean = true,
@@ -65,12 +64,11 @@ fun ColoredFabWidget(
     }
 }
 
-@PreviewWidgetEn
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {
-        ColoredFabWidget(
+        LexemeFab(
             iconRes = R.drawable.ic_send,
             color = MaterialTheme.colorScheme.primary,
         ) {}

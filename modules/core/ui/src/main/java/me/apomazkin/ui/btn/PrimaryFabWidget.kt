@@ -5,9 +5,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.R
-import me.apomazkin.ui.btn.base.ColoredFabWidget
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.btn.base.LexemeFab
+import me.apomazkin.ui.preview.PreviewWidget
 
 /**
  * FAB with primary color.
@@ -18,7 +17,7 @@ fun PrimaryFabWidget(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    ColoredFabWidget(
+    LexemeFab(
         iconRes = iconRes,
         enabled = enabled,
         color = MaterialTheme.colorScheme.primary,
@@ -26,8 +25,7 @@ fun PrimaryFabWidget(
     )
 }
 
-@PreviewWidgetEn
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

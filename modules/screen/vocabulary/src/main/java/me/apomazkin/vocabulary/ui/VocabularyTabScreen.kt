@@ -33,8 +33,7 @@ import me.apomazkin.ui.btn.PrimaryFabWidget
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
 import me.apomazkin.ui.lifecycle.LifecycleResume
 import me.apomazkin.ui.logger.LexemeLogger
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.vocabulary.R
 import me.apomazkin.vocabulary.deps.VocabularyUseCase
 import me.apomazkin.vocabulary.logic.Msg
@@ -195,7 +194,7 @@ internal fun VocabularyTabScreen(
     }
 }
 
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun PreviewLoading() {
     AppTheme {
@@ -207,7 +206,7 @@ private fun PreviewLoading() {
     }
 }
 
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun PreviewEmpty() {
     AppTheme {
@@ -219,7 +218,7 @@ private fun PreviewEmpty() {
     }
 }
 
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun PreviewLoaded() {
     AppTheme {

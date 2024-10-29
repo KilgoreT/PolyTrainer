@@ -17,8 +17,7 @@ import me.apomazkin.createdictionary.entity.PresetLangUi
 import me.apomazkin.createdictionary.logic.Msg
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 private const val HEADER_TOP_PADDING = 16
 private const val LIST_HORIZONTAL_PADDING = 0
@@ -56,8 +55,7 @@ fun ColumnScope.LangListWidget(
     }
 }
 
-@PreviewWidgetEn
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

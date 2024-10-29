@@ -12,8 +12,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.blackColor
 import me.apomazkin.ui.R
 import me.apomazkin.ui.btn.base.LexemeButton
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun CancelButtonWidget(
@@ -31,8 +30,7 @@ fun CancelButtonWidget(
     )
 }
 
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {
