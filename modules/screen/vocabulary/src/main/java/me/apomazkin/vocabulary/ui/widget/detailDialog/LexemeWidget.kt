@@ -1,7 +1,13 @@
 package me.apomazkin.vocabulary.ui.widget.detailDialog
 
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
@@ -17,7 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.chippicker.ChipPickerWidget
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.preview.PreviewWidgetEn
+import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.vocabulary.R
 import me.apomazkin.vocabulary.entity.LexemeLabel
 import me.apomazkin.vocabulary.entity.lexicalCategory
@@ -104,7 +110,7 @@ fun LexemeWidget(
     }
 }
 
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {
@@ -118,7 +124,7 @@ private fun Preview() {
     }
 }
 
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun PreviewEdit() {
     AppTheme {

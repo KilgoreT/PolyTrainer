@@ -20,8 +20,7 @@ import me.apomazkin.createdictionary.toLangNameRes
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.btn.PrimaryButtonWidget
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 private const val BOTTOM_PADDING = 16
 
@@ -55,8 +54,7 @@ fun BoxScope.LangPickerWidget(
     }
 }
 
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

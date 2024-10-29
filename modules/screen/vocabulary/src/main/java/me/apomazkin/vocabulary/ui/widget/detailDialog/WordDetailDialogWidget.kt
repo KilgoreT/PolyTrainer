@@ -22,8 +22,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.FFD9E3
-import me.apomazkin.ui.preview.PreviewScreenEn
-import me.apomazkin.ui.preview.PreviewScreenRu
+import me.apomazkin.ui.preview.PreviewScreen
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.logic.WordDetailDialogState
 import me.apomazkin.vocabulary.logic.WordDetailMsg
@@ -113,8 +112,7 @@ fun WordDetailDialogWidget(
     }
 }
 
-@PreviewScreenRu
-@PreviewScreenEn
+@PreviewScreen
 @Composable
 private fun Preview() {
     AppTheme {

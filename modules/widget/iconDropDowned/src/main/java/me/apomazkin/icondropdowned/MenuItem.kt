@@ -11,8 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 internal fun MenuItem(
@@ -36,8 +35,7 @@ internal fun MenuItem(
     )
 }
 
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

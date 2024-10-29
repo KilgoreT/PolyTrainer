@@ -30,8 +30,7 @@ import me.apomazkin.theme.clr1F10324C
 import me.apomazkin.theme.gradientPrimary
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.R
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 private const val DefaultPadding = 24
 private const val DefaultShape = 12
@@ -83,8 +82,7 @@ fun GradientButtonWidget(
     }
 }
 
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

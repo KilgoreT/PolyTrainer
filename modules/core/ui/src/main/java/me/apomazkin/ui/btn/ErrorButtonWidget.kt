@@ -7,8 +7,7 @@ import androidx.compose.runtime.Composable
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.R
 import me.apomazkin.ui.btn.base.OutlineButtonWidget
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun ErrorButtonWidget(
@@ -28,8 +27,7 @@ fun ErrorButtonWidget(
     )
 }
 
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun PreviewEnable() {
     AppTheme {
@@ -41,8 +39,7 @@ private fun PreviewEnable() {
     }
 }
 
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun PreviewDisable() {
     AppTheme {

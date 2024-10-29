@@ -7,8 +7,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.gradientSecondaryHorizontal
 import me.apomazkin.ui.R
 import me.apomazkin.ui.btn.base.GradientFabWidget
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 /**
  * FAB with secondary horizontal gradient.
@@ -28,8 +27,7 @@ fun SecondaryFabWidget(
     )
 }
 
-@PreviewWidgetEn
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

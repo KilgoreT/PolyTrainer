@@ -12,7 +12,7 @@ fun DeleteWordWarningDialog(
 ) {
     if (state.showWarningDialog) {
         DialogWidget(
-            titleRes = R.string.word_card_delete_warning_dialog_title,
+            titleRes = R.string.logo_title,
             onClickEnabled = true,
             onDismissEnabled = true,
             onClick = { sendMessage.invoke(Msg.DeleteWord(state.id)) },

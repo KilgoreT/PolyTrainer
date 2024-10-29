@@ -6,8 +6,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.actionBarColor
 import me.apomazkin.ui.IconBoxed
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.vocabulary.R
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.logic.TopBarState
@@ -76,8 +75,7 @@ fun ActionTopBarWidget(
 }
 
 @Composable
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 private fun Preview() {
     AppTheme {
         ActionTopBarWidget(

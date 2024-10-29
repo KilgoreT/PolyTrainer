@@ -19,8 +19,7 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.main.R
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.unselectedGreyColor
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun RowScope.BottomBarItem(
@@ -55,8 +54,7 @@ fun RowScope.BottomBarItem(
 }
 
 @Composable
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 private fun Preview() {
     AppTheme {
         Row(
@@ -73,8 +71,7 @@ private fun Preview() {
 }
 
 @Composable
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 private fun PreviewSelected() {
     AppTheme {
         Row(

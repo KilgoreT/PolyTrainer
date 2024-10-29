@@ -18,6 +18,7 @@ class WordCardUseCaseImpl @Inject constructor(
             Term(
                 wordId = WordId(it.word.id ?: throw IllegalStateException("WordId is null")),
                 word = Word(it.word.value ?: throw IllegalStateException("WordId is null")),
+                added = it.word.addDate ?: throw IllegalStateException("addDate is null"),
                 lexemeList = it.defList
                     .map { lexeme ->
                         Lexeme(
