@@ -1,19 +1,9 @@
-@file:Suppress("UnstableApiUsage")
-
 plugins {
-    id("android-library-convention")
+    id("polytrainer.android.feature")
 }
-
-apply(from = rootProject.file("varch.gradle.kts"))
 
 android {
     namespace = "me.apomazkin.wordcard"
-    buildFeatures(Action {
-        compose = true
-    })
-    composeOptions(Action {
-        kotlinCompilerExtensionVersion = project.extra["kCompilerExtensionVersion"] as String
-    })
 }
 
 dependencies {

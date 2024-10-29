@@ -32,6 +32,9 @@ val blackColor = Color(0xFF000000)
 val unselectedGreyColor = Color(0xff95989D)
 val dividerColor = Color(0xffE4E5E7)
 val actionBarColor = Color(0xff19191B)
+val enableIconColor = Color(0xff252628)
+val disableButtonTitleColor = Color(0xffB5AEE1)
+val grayTextColor = Color(0xFF7B7E85)
 
 object LexemeColor {
     // brand
@@ -47,8 +50,8 @@ object LexemeColor {
     val onSecondaryContainer = onSecondary
 
     // positive
-    val tertiary = Color(0xFF3AA981)
-    val onTertiary = Color(0xFF23785B)
+    val tertiary = Color(0xFFF1E9FA)
+    val onTertiary = blackColor
     val tertiaryContainer = tertiary
     val onTertiaryContainer = onTertiary
 

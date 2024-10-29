@@ -12,8 +12,7 @@ import me.apomazkin.createdictionary.R
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.Typography
 import me.apomazkin.theme.whiteColor
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun ColumnScope.ListHeaderWidget(
@@ -33,8 +32,7 @@ fun ColumnScope.ListHeaderWidget(
     )
 }
 
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

@@ -61,19 +61,19 @@
     <!--VocabularyTab-->
     <string name="vocabulary_empty_title">Нажмите на +, чтобы добавить слово</string>
     <string name="vocabulary_translation_now">Добавить перевод сразу</string>
-    <string name="vocabulary_detail_save_title">Сохранить</string>
     <string name="vocabulary_detail_speech_part">Часть речи</string>
     <string name="vocabulary_detail_definition_title">Определение</string>
     <string name="vocabulary_detail_translation_title">Перевод</string>
     <string name="vocabulary_detail_example_title">Пример</string>
+    <string name="vocabulary_delete_word">Удалить слово?</string>
+    <string name="vocabulary_delete_words">Удалить слова?</string>
 
     <!--WordCard-->
-    <string name="word_card_toolbar_title">Карточка слова</string>
+    <string name="word_card_save_title">Сохранить</string>
     <string name="word_card_delete_word">Удалить слово</string>
     <string name="word_card_edit_word">Редактировать слово</string>
     <string name="word_card_add_lexeme">Добавить значение</string>
-    <string name="word_card_delete_warning_dialog_title">Вы хотите удалить слово?</string>
-    <string name="vocabulary_delete_word">Удалить слово?</string>
-    <string name="vocabulary_delete_words">Удалить слова?</string>
+    <!--    <string name="word_card_toolbar_title">Карточка слова</string>-->
+    <!--    <string name="word_card_delete_warning_dialog_title">Вы хотите удалить слово?</string>-->
 
 </resources>

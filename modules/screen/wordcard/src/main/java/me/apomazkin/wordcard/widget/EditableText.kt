@@ -21,7 +21,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.preview.PreviewWidgetEn
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun EditableText(
@@ -76,7 +76,7 @@ fun EditableText(
     }
 }
 
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {
@@ -94,7 +94,7 @@ private fun Preview() {
     }
 }
 
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
 private fun PreviewEditable() {
     AppTheme {

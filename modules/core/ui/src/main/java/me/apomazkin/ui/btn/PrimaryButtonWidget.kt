@@ -5,12 +5,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.R
 import me.apomazkin.ui.btn.base.LexemeButton
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.BoolParam
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun PrimaryButtonWidget(
@@ -30,13 +31,15 @@ fun PrimaryButtonWidget(
     )
 }
 
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 @Composable
-private fun Preview() {
+private fun Preview(
+    @PreviewParameter(BoolParam::class) enabled: Boolean
+) {
     AppTheme {
         PrimaryButtonWidget(
-            titleRes = R.string.logo_title
+            titleRes = R.string.logo_title,
+            enabled = enabled
         ) {}
     }
 }

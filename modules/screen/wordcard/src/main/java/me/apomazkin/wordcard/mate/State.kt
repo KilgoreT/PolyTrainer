@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import me.apomazkin.chippicker.CategoryLabel
 import me.apomazkin.mate.EMPTY_STRING
+import java.util.Date
 
 const val NOT_IN_DB = -1L
 
@@ -20,6 +21,7 @@ data class WordCardState(
 @Stable
 data class WordState(
     val id: Long = NOT_IN_DB,
+    val added: Date? = null,
     val value: String = "",
     val isEdit: Boolean = false,
     val edited: String = "",

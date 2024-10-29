@@ -2,43 +2,35 @@ package me.apomazkin.ui.preview
 
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
-
-@Preview(
-    showBackground = true
-)
-annotation class PreviewWidget
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 
 @Preview(
     showBackground = true,
-    locale = "Ru"
+    locale = "Ru",
 )
-annotation class PreviewWidgetRu
-
 @Preview(
     showBackground = true,
-    locale = "En"
+    locale = "En",
 )
-annotation class PreviewWidgetEn
+annotation class PreviewWidget(
+    val group: String = "",
+    val name: String = "",
+)
 
 @Preview(
     showBackground = true,
     showSystemUi = true,
     device = Devices.PIXEL_3,
+    locale = "Ru"
+)
+@Preview(
+    showBackground = true,
+    showSystemUi = true,
+    device = Devices.PIXEL_3,
+    locale = "En"
 )
 annotation class PreviewScreen
 
-@Preview(
-    showBackground = true,
-    showSystemUi = true,
-    device = Devices.PIXEL_3,
-    locale = "Ru"
-)
-annotation class PreviewScreenRu
-
-@Preview(
-    showBackground = true,
-    showSystemUi = true,
-    device = Devices.PIXEL_3,
-    locale = "En"
-)
-annotation class PreviewScreenEn
+class BoolParam : PreviewParameterProvider<Boolean> {
+    override val values: Sequence<Boolean> = sequenceOf(true, false)
+}

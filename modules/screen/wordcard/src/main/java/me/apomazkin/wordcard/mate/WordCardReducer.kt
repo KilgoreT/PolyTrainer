@@ -52,6 +52,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         wordState = WordState(
             id = term.wordId.id,
             value = term.word.value,
+            added = term.added,
         ),
         lexemeList = term.lexemeList.map {
             LexemeState(

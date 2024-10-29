@@ -1,8 +1,11 @@
 package me.apomazkin.wordcard.entity
 
+import java.util.Date
+
 data class Term(
     val wordId: WordId,
     val word: Word,
+    val added: Date,
     val lexemeList: List<Lexeme>
 )
 

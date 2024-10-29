@@ -24,13 +24,14 @@ fun IconBoxed(
     @DrawableRes iconRes: Int,
     enabled: Boolean = false,
     @StringRes contentDescriptionRes: Int = R.string.content_description_icon,
+    modifier: Modifier = Modifier,
     size: Int = DEFAULT_SIZE,
     colorEnabled: Color = MaterialTheme.colorScheme.onPrimary,
     colorDisabled: Color = MaterialTheme.colorScheme.secondary,
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(size.dp)
             .clickable(enabled) { onClick.invoke() },
         contentAlignment = Alignment.Center,

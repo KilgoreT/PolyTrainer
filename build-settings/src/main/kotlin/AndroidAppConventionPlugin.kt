@@ -39,12 +39,11 @@ class AndroidAppConventionPlugin : Plugin<Project> {
                     warningsAsErrors = true
                     ignoreWarnings = false
                     htmlReport = true
-                    textReport = false
+                    textReport = true
                     xmlReport = false
                     disable.add("ObsoleteLintCustomCheck")
-//                    disable.add("TrustAllX509TrustManager")
-//                    disable.add("NullSafeMutableLiveData")
-//                    disable.add("UnknownIssueId")
+                    disable.add("UnusedAttribute") // vector
+                    disable.add("VectorPath") // veсtor
                 }
             }
         }

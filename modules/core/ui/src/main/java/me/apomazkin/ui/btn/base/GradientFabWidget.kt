@@ -21,8 +21,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.gradientPrimary
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.R
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 private const val DefaultCornerRadius = 16
 
@@ -66,8 +65,7 @@ fun GradientFabWidget(
     }
 }
 
-@PreviewWidgetEn
-@PreviewWidgetRu
+@PreviewWidget
 @Composable
 private fun Preview() {
     AppTheme {

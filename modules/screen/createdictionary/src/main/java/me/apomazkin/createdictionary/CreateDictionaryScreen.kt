@@ -18,8 +18,7 @@ import me.apomazkin.createdictionary.widget.LoadingWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.SystemBarsWidget
-import me.apomazkin.ui.preview.PreviewWidgetEn
-import me.apomazkin.ui.preview.PreviewWidgetRu
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun CreateDictionaryScreen(
@@ -69,8 +68,7 @@ fun CreateDictionaryScreen(
 }
 
 @Composable
-@PreviewWidgetRu
-@PreviewWidgetEn
+@PreviewWidget
 private fun Preview() {
     AppTheme {
         CreateDictionaryScreen(
