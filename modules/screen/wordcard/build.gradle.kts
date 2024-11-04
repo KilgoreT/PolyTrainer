@@ -15,6 +15,7 @@ dependencies {
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":modules:widget:coloredText"))
     implementation(project("path" to ":modules:widget:chipPicker"))
+    implementation(project("path" to ":modules:widget:iconDropDowned"))
 
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)
