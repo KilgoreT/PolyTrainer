@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
@@ -21,7 +22,9 @@ import me.apomazkin.theme.blackColor
 import me.apomazkin.theme.grayTextColor
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
+import me.apomazkin.ui.text.LexemeEditableText
 import me.apomazkin.wordcard.R
+import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.WordState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -30,6 +33,7 @@ import java.util.Locale
 @Composable
 fun WordFieldWidget(
     wordState: WordState,
+    sendMessage: (Msg) -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -45,13 +49,18 @@ fun WordFieldWidget(
                 modifier = Modifier
                     .fillMaxWidth(),
             ) {
-                Text(
-                    modifier = Modifier
-                        .padding(bottom = 16.dp),
-                    text = wordState.value,
-                    style = LexemeStyle.H5,
-                    color = blackColor,
-                    maxLines = 1,
+                LexemeEditableText(
+                    originValue = wordState.value,
+                    changedValue = wordState.edited,
+                    isEditMode = wordState.isEditMode,
+                    textColor = blackColor,
+                    textStyle = LexemeStyle.H5,
+                    onTextChange = { sendMessage(Msg.ChangeWordValue(it)) },
+                    onOpenEditMode = { sendMessage(Msg.OpenEditWord) },
+                    onCloseEditMode = {
+                        sendMessage(Msg.CloseEditWord)
+                        sendMessage(Msg.SaveWordValue)
+                    },
                 )
                 wordState.added?.let { date ->
                     Row(
@@ -62,7 +71,7 @@ fun WordFieldWidget(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Добавлено",
+                            text = stringResource(id = R.string.word_card_added_field),
                             style = LexemeStyle.BodyM,
                             color = grayTextColor,
                         )
@@ -103,7 +112,7 @@ private fun Preview() {
                     value = "apple",
                     added = Date(),
                 ),
-            )
+            ) {}
         }
     }
 }

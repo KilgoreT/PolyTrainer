@@ -4,16 +4,18 @@ import me.apomazkin.chippicker.CategoryLabel
 import me.apomazkin.wordcard.entity.Term
 
 sealed interface Msg {
-    object TermLoading : Msg
+    data object TermLoading : Msg
     data class TermLoaded(val term: Term) : Msg
-    object ShowDeleteWordDialog : Msg
-    object HideDeleteWordDialog : Msg
+    data object ShowDropdownMenu : Msg
+    data object HideDropdownMenu : Msg
+    data object ShowDeleteWordDialog : Msg
+    data object HideDeleteWordDialog : Msg
     data class DeleteWord(val wordId: Long) : Msg
     data class ChangeWordValue(val value: String) : Msg
-    object OpenEditWord : Msg
-    object CloseEditWord : Msg
-    object SaveWordValue : Msg
-    object AddLexeme : Msg
+    data object OpenEditWord : Msg
+    data object CloseEditWord : Msg
+    data object SaveWordValue : Msg
+    data object AddLexeme : Msg
     data class DeleteLexeme(val lexemeId: Long) : Msg
     data class EditLexeme(val lexemeId: Long?) : Msg
     data class ResetLexeme(val lexemeId: Long) : Msg

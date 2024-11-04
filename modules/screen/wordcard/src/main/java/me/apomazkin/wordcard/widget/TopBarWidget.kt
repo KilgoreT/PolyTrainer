@@ -5,15 +5,19 @@ package me.apomazkin.wordcard.widget
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import me.apomazkin.core_resources.R
+import me.apomazkin.icondropdowned.IconDropdownMenuWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.enableIconColor
 import me.apomazkin.ui.IconBoxed
-import me.apomazkin.ui.btn.PrimaryTextButtonWidget
 import me.apomazkin.ui.preview.PreviewWidget
+import me.apomazkin.wordcard.mate.Msg
+import me.apomazkin.wordcard.mate.TopBarState
 
 @Composable
 internal fun TopBarWidget(
+    topBarState: TopBarState,
     onBackPress: () -> Unit,
+    sendMessage: (Msg) -> Unit,
 ) {
     TopAppBar(
         navigationIcon = {
@@ -22,20 +26,29 @@ internal fun TopBarWidget(
                 enabled = true,
                 colorEnabled = enableIconColor,
                 size = 44,
-            ) { onBackPress.invoke() }
+                onClick = onBackPress,
+            )
         },
         title = {},
         actions = {
-            PrimaryTextButtonWidget(
-                title = R.string.word_card_save_title,
-                enabled = true,
-            ) {}
-            IconBoxed(
-                iconRes = R.drawable.ic_more,
-                enabled = true,
-                colorEnabled = enableIconColor,
-                size = 44,
-            ) {}
+            IconDropdownMenuWidget(
+                isDropDownOpen = topBarState.isMenuOpen,
+                onClickDropDown = { sendMessage(Msg.ShowDropdownMenu) },
+                onDismissRequest = { sendMessage(Msg.HideDropdownMenu) },
+                icon = {
+                    IconBoxed(
+                        iconRes = R.drawable.ic_more,
+                        enabled = true,
+                        colorEnabled = enableIconColor,
+                        size = 44,
+                    )
+                }
+            ) {
+                DeleteMenuItem {
+                    sendMessage(Msg.HideDropdownMenu)
+                    sendMessage(Msg.ShowDeleteWordDialog)
+                }
+            }
         }
     )
 }
@@ -44,6 +57,10 @@ internal fun TopBarWidget(
 @PreviewWidget
 private fun Preview() {
     AppTheme {
-        TopBarWidget {}
+        TopBarWidget(
+            topBarState = TopBarState(),
+            onBackPress = {},
+            sendMessage = {},
+        )
     }
 }

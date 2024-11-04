@@ -79,13 +79,9 @@
     <string name="vocabulary_delete_words">Delete words?</string>
 
     <!--WordCard-->
+    <string name="word_card_added_field">Added</string>
     <string name="word_card_save_title">Save</string>
-    <string name="word_card_delete_word">Delete word</string>
-    <string name="word_card_edit_word">Edit word</string>
     <string name="word_card_add_lexeme">Add meaning</string>
-
-
-    <!--    <string name="word_card_delete_warning_dialog_title">Do you want to delete the word?</string>-->
-    <!--    <string name="word_card_toolbar_title">Word card</string>-->
+    <string name="word_card_delete_word_subheading">All associated data will also be deleted</string>
 
 </resources>

@@ -69,11 +69,9 @@
     <string name="vocabulary_delete_words">Удалить слова?</string>
 
     <!--WordCard-->
+    <string name="word_card_added_field">Добавлено</string>
     <string name="word_card_save_title">Сохранить</string>
-    <string name="word_card_delete_word">Удалить слово</string>
-    <string name="word_card_edit_word">Редактировать слово</string>
     <string name="word_card_add_lexeme">Добавить значение</string>
-    <!--    <string name="word_card_toolbar_title">Карточка слова</string>-->
-    <!--    <string name="word_card_delete_warning_dialog_title">Вы хотите удалить слово?</string>-->
+    <string name="word_card_delete_word_subheading">Все связанные данные будут также удалены</string>
 
 </resources>
