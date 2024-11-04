@@ -38,6 +38,7 @@ import me.apomazkin.wordcard.mate.UiMsg
 import me.apomazkin.wordcard.mate.WordCardState
 import me.apomazkin.wordcard.mate.WordState
 import me.apomazkin.wordcard.widget.AddLexemeWidget
+import me.apomazkin.wordcard.widget.ConfirmDeleteWordWidget
 import me.apomazkin.wordcard.widget.LexemeWidget
 import me.apomazkin.wordcard.widget.SnackbarLaunchEffect
 import me.apomazkin.wordcard.widget.TopBarWidget
@@ -86,7 +87,13 @@ internal fun WordCardScreen(
     )
 
     Scaffold(
-        topBar = { TopBarWidget(onBackPress = onBackPress) },
+        topBar = {
+            TopBarWidget(
+                topBarState = state.topBarState,
+                onBackPress = onBackPress,
+                sendMessage = sendMessage,
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
@@ -104,7 +111,10 @@ internal fun WordCardScreen(
                     .padding(horizontal = 16.dp, vertical = 16.dp)
                     .verticalScroll(rememberScrollState()),
             ) {
-                WordFieldWidget(wordState = state.wordState)
+                WordFieldWidget(
+                    wordState = state.wordState,
+                    sendMessage = sendMessage,
+                )
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -133,14 +143,12 @@ internal fun WordCardScreen(
                     .padding(end = 16.dp, bottom = 16.dp),
             )
         }
-//        EditWordDialogWidget(
-//            state = state.wordState,
-//            sendMessage = sendMessage,
-//        )
-//        DeleteWordWarningDialog(
-//            state = state.wordState,
-//            sendMessage = sendMessage,
-//        )
+        if (state.wordState.showWarningDialog) {
+            ConfirmDeleteWordWidget(
+                state = state.wordState,
+                sendMessage = sendMessage
+            )
+        }
     }
 }
 

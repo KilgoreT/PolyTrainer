@@ -15,6 +15,8 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         return when (message) {
             is Msg.TermLoading -> onTermLoading(state)
             is Msg.TermLoaded -> onTermLoaded(state, message.term)
+            is Msg.ShowDropdownMenu -> onChangeDropdownMenu(state = state, isShow = true)
+            is Msg.HideDropdownMenu -> onChangeDropdownMenu(state = state, isShow = false)
             is Msg.ShowDeleteWordDialog -> onShowDeleteWordDialog(state)
             is Msg.HideDeleteWordDialog -> onCloseDeleteWordDialog(state)
             is Msg.DeleteWord -> onWordDelete(state, message.wordId)
@@ -64,6 +66,13 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         }
     ) to setOf()
 
+    private fun onChangeDropdownMenu(
+        state: WordCardState,
+        isShow: Boolean
+    ): Pair<WordCardState, Set<Effect>> = state.copy(
+        topBarState = state.topBarState.copy(isMenuOpen = isShow)
+    ) to setOf()
+
     private fun onShowDeleteWordDialog(
         state: WordCardState,
     ): Pair<WordCardState, Set<Effect>> = state
@@ -103,7 +112,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
     ): ReducerResult<WordCardState, Effect> = state.copy(
         wordState = state.wordState.copy(
             edited = state.wordState.value,
-            isEdit = true
+            isEditMode = true
         )
     ) to setOf()
 
@@ -111,7 +120,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         state: WordCardState,
     ): ReducerResult<WordCardState, Effect> = state.copy(
         wordState = state.wordState.copy(
-            isEdit = false,
+            isEditMode = false,
         )
     ) to setOf()
 

@@ -10,6 +10,7 @@ const val NOT_IN_DB = -1L
 
 @Stable
 data class WordCardState(
+    val topBarState: TopBarState = TopBarState(),
     val closeScreen: Boolean = false,
     val isLoading: Boolean = true,
     val canAddLexeme: Boolean = true,
@@ -19,11 +20,16 @@ data class WordCardState(
 )
 
 @Stable
+data class TopBarState(
+    val isMenuOpen: Boolean = false
+)
+
+@Stable
 data class WordState(
     val id: Long = NOT_IN_DB,
     val added: Date? = null,
     val value: String = "",
-    val isEdit: Boolean = false,
+    val isEditMode: Boolean = false,
     val edited: String = "",
     val showWarningDialog: Boolean = false,
     val deleteButtonEnabled: Boolean = true,
