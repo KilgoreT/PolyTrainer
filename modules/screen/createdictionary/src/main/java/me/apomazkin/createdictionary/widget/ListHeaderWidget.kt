@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,11 +25,13 @@ fun ColumnScope.ListHeaderWidget(
         modifier = modifier,
         text = stringResource(id = titleRes),
         style = Typography.headlineMedium
+            .copy(color = MaterialTheme.colorScheme.secondary)
     )
     Text(
         modifier = modifier,
         text = stringResource(id = subTitleRes),
         style = Typography.headlineSmall
+            .copy(color = MaterialTheme.colorScheme.secondary)
     )
 }
 

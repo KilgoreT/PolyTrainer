@@ -73,5 +73,10 @@
     <string name="word_card_save_title">Сохранить</string>
     <string name="word_card_add_lexeme">Добавить значение</string>
     <string name="word_card_delete_word_subheading">Все связанные данные будут также удалены</string>
+    <string name="word_card_bottom_title">Значение слова</string>
+    <string name="word_card_bottom_translation">Перевод</string>
+    <string name="word_card_bottom_definition">Определение</string>
+    <string name="word_card_bottom_title_append">Добавить</string>
+    <string name="word_card_lexeme_order_title">Значение %d</string>
 
 </resources>

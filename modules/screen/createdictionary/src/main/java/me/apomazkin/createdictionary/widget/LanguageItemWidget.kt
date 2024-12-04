@@ -54,13 +54,14 @@ fun LanguageItemWidget(
                 .weight(1F),
             text = langName,
             style = MaterialTheme.typography.bodyLarge
+                .copy(color = MaterialTheme.colorScheme.secondary)
         )
         if (isSelected) {
             Icon(
                 modifier = Modifier
                     .padding(end = DEFAULT_HORIZONTAL_PADDING.dp),
                 painter = painterResource(id = R.drawable.ic_selected),
-                tint = MaterialTheme.colorScheme.onSecondary,
+                tint = MaterialTheme.colorScheme.secondary,
                 contentDescription = ""
             )
         }

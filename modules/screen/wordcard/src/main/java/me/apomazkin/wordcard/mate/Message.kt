@@ -1,6 +1,5 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.chippicker.CategoryLabel
 import me.apomazkin.wordcard.entity.Term
 
 sealed interface Msg {
@@ -15,18 +14,30 @@ sealed interface Msg {
     data object OpenEditWord : Msg
     data object CloseEditWord : Msg
     data object SaveWordValue : Msg
+    data object ShowAddLexemeBottom : Msg
+    data object HideAddLexemeBottom : Msg
+    data class AddLexemeBottomTranslation(val isAdded: Boolean) : Msg
+    data class AddLexemeBottomDefinition(val isAdded: Boolean) : Msg
     data object AddLexeme : Msg
     data class DeleteLexeme(val lexemeId: Long) : Msg
     data class EditLexeme(val lexemeId: Long?) : Msg
     data class ResetLexeme(val lexemeId: Long) : Msg
-    data class SaveLexeme(val lexemeId: Long) : Msg
-    data class LexicalCategoryChange(val lexemeId: Long, val category: CategoryLabel) : Msg
-    data class LexicalCategoryReset(val lexemeId: Long) : Msg
-    data class DefinitionChange(val lexemeId: Long, val value: String) : Msg
 
-    object CloseScreen : Msg
+//    data class SaveLexeme(val lexemeId: Long) : Msg
+//    data class LexicalCategoryChange(val lexemeId: Long, val category: CategoryLabel) : Msg
+//    data class LexicalCategoryReset(val lexemeId: Long) : Msg
 
-    object Empty : Msg
+    data class TranslationTextChange(val lexemeId: Long, val value: String) : Msg
+    data class TranslationCloseEdit(val lexemeId: Long) : Msg
+    data class TranslationOpenEdit(val lexemeId: Long) : Msg
+
+    data class DefinitionTextChange(val lexemeId: Long, val value: String) : Msg
+    data class DefinitionCloseEdit(val lexemeId: Long) : Msg
+    data class DefinitionOpenEdit(val lexemeId: Long) : Msg
+
+    data object CloseScreen : Msg
+
+    data object Empty : Msg
 }
 
 internal sealed interface UiMsg : Msg {

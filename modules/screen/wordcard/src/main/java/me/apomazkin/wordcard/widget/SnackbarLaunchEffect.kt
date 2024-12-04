@@ -6,7 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import me.apomazkin.wordcard.mate.SnackbarState
 
 @Composable
-fun SnackbarLaunchEffect(
+internal fun SnackbarLaunchEffect(
     snackState: SnackbarState,
     host: SnackbarHostState,
     onResetState: () -> Unit

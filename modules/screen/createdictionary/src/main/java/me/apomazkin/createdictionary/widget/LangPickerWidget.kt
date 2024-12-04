@@ -19,7 +19,7 @@ import me.apomazkin.createdictionary.logic.Msg
 import me.apomazkin.createdictionary.toLangNameRes
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
-import me.apomazkin.ui.btn.PrimaryButtonWidget
+import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
 private const val BOTTOM_PADDING = 16
@@ -41,7 +41,7 @@ fun BoxScope.LangPickerWidget(
         )
         Spacer(modifier = Modifier.weight(1F))
 
-        PrimaryButtonWidget(
+        PrimaryFullButtonWidget(
             titleRes = R.string.lang_selection_button,
             enabled = langState.addLangButtonEnable
         ) {

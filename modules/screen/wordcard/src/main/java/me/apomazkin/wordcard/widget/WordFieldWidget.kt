@@ -22,7 +22,7 @@ import me.apomazkin.theme.blackColor
 import me.apomazkin.theme.grayTextColor
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
-import me.apomazkin.ui.text.LexemeEditableText
+import me.apomazkin.ui.text.base.LexemeEditableText
 import me.apomazkin.wordcard.R
 import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.WordState
@@ -31,7 +31,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun WordFieldWidget(
+internal fun WordFieldWidget(
     wordState: WordState,
     sendMessage: (Msg) -> Unit,
 ) {
@@ -78,7 +78,7 @@ fun WordFieldWidget(
                         Text(
                             text = getDate(date = date),
                             style = LexemeStyle.BodyMBold,
-                            color = MaterialTheme.colorScheme.onSecondary,
+                            color = MaterialTheme.colorScheme.secondary,
                         )
                     }
                 }

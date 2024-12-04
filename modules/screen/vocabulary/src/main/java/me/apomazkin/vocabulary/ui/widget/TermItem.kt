@@ -61,7 +61,7 @@ internal fun TermItem(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 text = termItem.wordValue,
                 style = LexemeStyle.BodyXLBold,
-                color = MaterialTheme.colorScheme.onSecondary,
+                color = MaterialTheme.colorScheme.secondary,
             )
         }
     }

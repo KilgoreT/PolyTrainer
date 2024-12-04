@@ -2,6 +2,7 @@ package me.apomazkin.wordcard.widget
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,7 +18,7 @@ import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.WordState
 
 @Composable
-fun ConfirmDeleteWordWidget(
+internal fun ConfirmDeleteWordWidget(
     state: WordState,
     sendMessage: (Msg) -> Unit,
 ) {
@@ -35,6 +36,7 @@ fun ConfirmDeleteWordWidget(
                 id = R.string.vocabulary_delete_word
             ),
             style = LexemeStyle.H6,
+            color = MaterialTheme.colorScheme.secondary,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
