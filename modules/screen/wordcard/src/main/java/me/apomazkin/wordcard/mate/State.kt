@@ -11,9 +11,9 @@ const val NOT_IN_DB = -1L
 @Stable
 data class WordCardState(
     val topBarState: TopBarState = TopBarState(),
+    val addLexemeBottomState: AddLexemeBottomState = AddLexemeBottomState(),
     val closeScreen: Boolean = false,
     val isLoading: Boolean = true,
-    val canAddLexeme: Boolean = true,
     val wordState: WordState = WordState(),
     val lexemeList: List<LexemeState> = listOf(),
     val snackbarState: SnackbarState = SnackbarState()
@@ -22,6 +22,13 @@ data class WordCardState(
 @Stable
 data class TopBarState(
     val isMenuOpen: Boolean = false
+)
+
+@Stable
+data class AddLexemeBottomState(
+    val show: Boolean = false,
+    val isTranslationCheck: Boolean = false,
+    val isDefinitionCheck: Boolean = false,
 )
 
 @Stable
@@ -37,10 +44,10 @@ data class WordState(
 
 @Stable
 data class LexemeState(
-    val isEdit: Boolean = true,
     val id: Long = NOT_IN_DB,
-    val category: CategoryState = CategoryState(),
-    val definition: DefinitionState = DefinitionState(),
+    val translation: TextValueState? = null,
+    val definition: TextValueState? = null,
+//    val category: CategoryState = CategoryState(),
 )
 
 @Stable
@@ -53,13 +60,14 @@ fun CategoryState.toValue(isEdit: Boolean) = if (isEdit) edited else origin
 fun CategoryState.isChanged() = origin != edited
 
 @Stable
-data class DefinitionState(
+data class TextValueState(
+    val isEdit: Boolean = true,
     val origin: String = "",
     val edited: String = origin,
 )
 
-fun DefinitionState.toValue(isEdit: Boolean) = if (isEdit) edited else origin
-fun DefinitionState.isChanged() = origin != edited
+fun TextValueState.toValue(isEdit: Boolean) = if (isEdit) edited else origin
+fun TextValueState.isChanged() = origin != edited
 
 // TODO: вынести в mate
 @Immutable

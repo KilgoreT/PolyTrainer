@@ -44,8 +44,8 @@ object LexemeColor {
     val onPrimaryContainer = onPrimary
 
     // gray
-    val secondary = Color(0xFFF2F2F3)
-    val onSecondary = Color(0xFF19191B)
+    val secondary = Color(0xFF19191B)
+    val onSecondary = Color(0xFFF2F2F3)
     val secondaryContainer = secondary
     val onSecondaryContainer = onSecondary
 

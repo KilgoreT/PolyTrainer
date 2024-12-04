@@ -59,7 +59,7 @@ fun ActionTopBarWidget(
                 enabled = true,
             ) {}
             IconBoxed(
-                iconRes = R.drawable.ic_remove,
+                iconRes = R.drawable.ic_trash,
                 size = 44,
                 enabled = true,
             ) {

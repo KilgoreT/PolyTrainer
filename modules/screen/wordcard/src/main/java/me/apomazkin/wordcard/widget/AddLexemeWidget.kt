@@ -1,7 +1,6 @@
 package me.apomazkin.wordcard.widget
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -13,7 +12,7 @@ import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.wordcard.R
 
 @Composable
-fun BoxScope.AddLexemeWidget(
+internal fun AddLexemeWidget(
     modifier: Modifier = Modifier,
     enabled: Boolean = false,
     onAddLexeme: () -> Unit,
@@ -34,9 +33,8 @@ private fun Preview(
     AppTheme {
         Box {
             AddLexemeWidget(
-                enabled = enabled,
-                onAddLexeme = {}
-            )
+                enabled = enabled
+            ) {}
         }
     }
 }

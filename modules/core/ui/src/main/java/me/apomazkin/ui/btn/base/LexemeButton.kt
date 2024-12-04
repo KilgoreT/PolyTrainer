@@ -37,14 +37,16 @@ fun LexemeButton(
     height: Dp,
     enabledColor: Color,
     titleTextColor: Color,
+    disabledTitleTextColor: Color = MaterialTheme.colorScheme.secondary,
     enabled: Boolean = false,
     horizontalPadding: Int = DEFAULT_HORIZONTAL_PADDING,
-    disabledColor: Color = MaterialTheme.colorScheme.secondary,
+    disabledColor: Color = MaterialTheme.colorScheme.onSecondary,
     titleTextStyle: TextStyle = LexemeStyle.BodyM,
     onClick: () -> Unit,
 ) {
     Button(
-        modifier = Modifier
+        modifier = modifier
+            .fillMaxWidth()
             .height(height),
         colors = ButtonDefaults.buttonColors(
             containerColor = enabledColor,
@@ -56,14 +58,15 @@ fun LexemeButton(
         onClick = onClick,
     ) {
         Box(
-            modifier = modifier
+            modifier = Modifier
+                .fillMaxWidth()
                 .padding(horizontal = horizontalPadding.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = stringResource(id = titleRes),
                 style = titleTextStyle,
-                color = titleTextColor,
+                color = if (enabled) titleTextColor else disabledTitleTextColor,
             )
         }
     }
@@ -106,7 +109,7 @@ private fun PreviewCancel(
                 titleRes = R.string.button_delete,
                 enabled = enabled,
                 height = 44.dp,
-                enabledColor = MaterialTheme.colorScheme.secondary,
+                enabledColor = MaterialTheme.colorScheme.onSecondary,
                 titleTextColor = blackColor,
             ) {}
         }

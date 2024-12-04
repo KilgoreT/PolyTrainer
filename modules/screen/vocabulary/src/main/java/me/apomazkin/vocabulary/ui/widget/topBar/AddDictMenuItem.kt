@@ -19,7 +19,7 @@ fun AddDictMenuItem(
     DropdownMenuItem(
         leadingIcon = {
             Icon(
-                painter = painterResource(id = R.drawable.ic_menu_item_add),
+                painter = painterResource(id = R.drawable.ic_add_circled),
                 contentDescription = stringResource(id = R.string.menu_item_title_add_dict)
             )
         },

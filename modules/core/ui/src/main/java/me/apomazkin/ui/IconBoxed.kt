@@ -30,7 +30,7 @@ fun IconBoxed(
     modifier: Modifier = Modifier,
     size: Int = DEFAULT_SIZE,
     colorEnabled: Color = MaterialTheme.colorScheme.onPrimary,
-    colorDisabled: Color = MaterialTheme.colorScheme.secondary,
+    colorDisabled: Color = MaterialTheme.colorScheme.onSecondary,
     clipShape: Shape = CircleShape,
     onClick: (() -> Unit)? = null,
 ) {
