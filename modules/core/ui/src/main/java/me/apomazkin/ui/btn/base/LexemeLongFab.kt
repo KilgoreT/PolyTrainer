@@ -49,7 +49,7 @@ fun LexemeLongFab(
     enabledColor: Color,
     enabled: Boolean = false,
     horizontalPadding: Int = DEFAULT_HORIZONTAL_PADDING,
-    disabledColor: Color = MaterialTheme.colorScheme.secondary,
+    disabledColor: Color = MaterialTheme.colorScheme.onSecondary,
     titleTextStyle: TextStyle = LexemeStyle.BodyL,
     onClick: () -> Unit,
 ) {

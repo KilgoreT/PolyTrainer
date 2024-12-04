@@ -22,7 +22,7 @@ fun TopBarWidget(
             Text(
                 text = stringResource(id = R.string.item_title_vocabulary),
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSecondary,
+                color = MaterialTheme.colorScheme.secondary,
             )
         },
         actions = {

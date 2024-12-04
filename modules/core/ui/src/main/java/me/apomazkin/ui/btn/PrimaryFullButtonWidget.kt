@@ -1,36 +1,33 @@
 package me.apomazkin.ui.btn
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.blackColor
 import me.apomazkin.ui.R
 import me.apomazkin.ui.btn.base.LexemeButton
 import me.apomazkin.ui.preview.BoolParam
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
-fun CancelButtonWidget(
-    modifier: Modifier = Modifier,
-    @StringRes titleRes: Int = R.string.button_cancel,
+fun PrimaryFullButtonWidget(
+    @StringRes titleRes: Int,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     LexemeButton(
-        modifier = modifier,
         titleRes = titleRes,
         enabled = enabled,
-        height = 44.dp,
-        enabledColor = MaterialTheme.colorScheme.onSecondary,
-        titleTextColor = blackColor,
-        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth(),
+        height = 56.dp,
+        enabledColor = MaterialTheme.colorScheme.primary,
+        titleTextColor = MaterialTheme.colorScheme.onPrimary,
+        onClick = onClick
     )
 }
 
@@ -40,15 +37,9 @@ private fun Preview(
     @PreviewParameter(BoolParam::class) enabled: Boolean
 ) {
     AppTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            CancelButtonWidget(
-                titleRes = R.string.button_cancel,
-                enabled = enabled,
-            ) {}
-        }
+        PrimaryFullButtonWidget(
+            titleRes = R.string.logo_title,
+            enabled = enabled
+        ) {}
     }
 }

@@ -1,4 +1,4 @@
-package me.apomazkin.ui.text
+package me.apomazkin.ui.text.base
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
@@ -17,9 +17,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
@@ -57,7 +60,12 @@ fun LexemeEditableText(
     }
 
     Box(
-        modifier = Modifier,
+        modifier = Modifier
+            .onFocusChanged { focusState ->
+                if (!focusState.hasFocus) {
+                    if (isEditMode) onCloseEditMode.invoke()
+                }
+            },
     ) {
         if (isEditMode) {
             Row(
@@ -110,6 +118,7 @@ fun LexemeEditableText(
                     text = originValue,
                     color = textColor,
                     style = textStyle,
+                    lineHeight = TextUnit(value = 280f, TextUnitType.Unspecified),
                 )
                 iconOpen?.let { icon ->
                     IconBoxed(

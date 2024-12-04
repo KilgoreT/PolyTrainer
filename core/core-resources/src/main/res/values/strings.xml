@@ -83,5 +83,10 @@
     <string name="word_card_save_title">Save</string>
     <string name="word_card_add_lexeme">Add meaning</string>
     <string name="word_card_delete_word_subheading">All associated data will also be deleted</string>
+    <string name="word_card_bottom_title">Word meaning</string>
+    <string name="word_card_bottom_translation">Translation</string>
+    <string name="word_card_bottom_definition">Definition</string>
+    <string name="word_card_bottom_title_append">Add</string>
+    <string name="word_card_lexeme_order_title">Value %d</string>
 
 </resources>

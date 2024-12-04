@@ -16,10 +16,12 @@ import me.apomazkin.ui.preview.PreviewWidget
 @Composable
 fun AlarmButtonWidget(
     @StringRes titleRes: Int,
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     LexemeButton(
+        modifier = modifier,
         titleRes = titleRes,
         enabled = enabled,
         height = 44.dp,

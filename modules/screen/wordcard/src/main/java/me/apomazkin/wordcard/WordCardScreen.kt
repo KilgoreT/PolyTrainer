@@ -1,6 +1,9 @@
 package me.apomazkin.wordcard
 
+import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -21,9 +25,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment.Companion.BottomEnd
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,16 +38,19 @@ import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewScreen
 import me.apomazkin.wordcard.deps.WordCardUseCase
+import me.apomazkin.wordcard.mate.LexemeState
 import me.apomazkin.wordcard.mate.Msg
+import me.apomazkin.wordcard.mate.TextValueState
 import me.apomazkin.wordcard.mate.UiMsg
 import me.apomazkin.wordcard.mate.WordCardState
 import me.apomazkin.wordcard.mate.WordState
 import me.apomazkin.wordcard.widget.AddLexemeWidget
 import me.apomazkin.wordcard.widget.ConfirmDeleteWordWidget
-import me.apomazkin.wordcard.widget.LexemeWidget
+import me.apomazkin.wordcard.widget.LexemeItemWidget
 import me.apomazkin.wordcard.widget.SnackbarLaunchEffect
 import me.apomazkin.wordcard.widget.TopBarWidget
 import me.apomazkin.wordcard.widget.WordFieldWidget
+import me.apomazkin.wordcard.widget.addlexeme.AddLexemeBottomWidget
 import java.util.Date
 
 @Composable
@@ -64,6 +72,7 @@ fun WordCardScreen(
     ) { viewModel.accept(it) }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun WordCardScreen(
     state: WordCardState,
@@ -94,15 +103,34 @@ internal fun WordCardScreen(
                 sendMessage = sendMessage,
             )
         },
+        floatingActionButton = {
+            AddLexemeWidget(
+                enabled = true,
+                onAddLexeme = { sendMessage(Msg.ShowAddLexemeBottom) },
+                modifier = Modifier
+                    .navigationBarsPadding(),
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
     ) { paddingValue ->
+
+        val focusManager = LocalFocusManager.current
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValue)
                 .navigationBarsPadding()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            Log.d("###", "<WordCardScreen.kt>::WordCardScreen => TAP")
+                            focusManager.clearFocus()
+                        }
+                    )
+                }
         ) {
             Column(
                 modifier = Modifier
@@ -115,38 +143,36 @@ internal fun WordCardScreen(
                     wordState = state.wordState,
                     sendMessage = sendMessage,
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1F),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     state.lexemeList.forEachIndexed { index, lexemeState ->
                         key(lexemeState.id) {
-                            LexemeWidget(
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp),
+                            LexemeItemWidget(
+                                order = index + 1,
                                 state = lexemeState,
-                                sendMessage = sendMessage
+                                sendMessage = sendMessage,
                             )
-                            if (index < state.lexemeList.size - 1) {
-                                Spacer(modifier = Modifier.height(16.dp))
-                            }
                         }
                     }
                 }
             }
-            AddLexemeWidget(
-                enabled = state.canAddLexeme,
-                onAddLexeme = { sendMessage(Msg.AddLexeme) },
-                modifier = Modifier
-                    .align(BottomEnd)
-                    .padding(end = 16.dp, bottom = 16.dp),
-            )
         }
         if (state.wordState.showWarningDialog) {
             ConfirmDeleteWordWidget(
                 state = state.wordState,
                 sendMessage = sendMessage
+            )
+        }
+        if (state.addLexemeBottomState.show) {
+            AddLexemeBottomWidget(
+                state = state.addLexemeBottomState,
+                onDismiss = { sendMessage(Msg.HideAddLexemeBottom) },
+                sendMessage = sendMessage,
             )
         }
     }
@@ -161,6 +187,34 @@ private fun Preview() {
                 wordState = WordState(
                     value = "Word",
                     added = Date(),
+                )
+            ),
+            onBackPress = {},
+            sendMessage = {}
+        )
+    }
+}
+
+@PreviewScreen
+@Composable
+private fun PreviewWithLexeme() {
+    AppTheme {
+        WordCardScreen(
+            state = WordCardState(
+                wordState = WordState(
+                    value = "Word",
+                    added = Date(),
+                ),
+                lexemeList = listOf(
+                    LexemeState(
+                        id = 1,
+                        translation = TextValueState(
+                            origin = "Translation",
+                        ),
+                        definition = TextValueState(
+                            origin = "Definition",
+                        )
+                    )
                 )
             ),
             onBackPress = {},

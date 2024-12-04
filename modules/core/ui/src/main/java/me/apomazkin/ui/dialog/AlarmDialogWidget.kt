@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -39,13 +38,17 @@ fun AlarmDialogWidget(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = DEFAULT_PADDING_ABOVE_BUTTONS.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CancelButtonWidget { onDismissRequest.invoke() }
-            Spacer(modifier = Modifier.width(12.dp))
-            AlarmButtonWidget(titleRes = alarmButtonText) {
-                onAlarmClick.invoke()
-            }
+            CancelButtonWidget(
+                modifier = Modifier
+                    .weight(1f),
+            ) { onDismissRequest.invoke() }
+            AlarmButtonWidget(
+                modifier = Modifier
+                    .weight(1f),
+                titleRes = alarmButtonText
+            ) { onAlarmClick.invoke() }
         }
     }
 }

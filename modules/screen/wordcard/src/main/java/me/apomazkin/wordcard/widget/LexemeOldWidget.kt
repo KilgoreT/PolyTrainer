@@ -20,21 +20,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import me.apomazkin.chippicker.ChipPickerWidget
-import me.apomazkin.chippicker.lexicalCategory
-import me.apomazkin.chippicker.toChipPicker
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.preview.PreviewWidget
-import me.apomazkin.wordcard.R
-import me.apomazkin.wordcard.mate.DefinitionState
 import me.apomazkin.wordcard.mate.LexemeState
 import me.apomazkin.wordcard.mate.Msg
-import me.apomazkin.wordcard.mate.toValue
 
+@Deprecated("Don't Use LexemeWidget")
 @Composable
-fun LexemeWidget(
+fun LexemeOldWidget(
     state: LexemeState,
     sendMessage: (Msg) -> Unit,
     modifier: Modifier = Modifier,
@@ -56,14 +50,16 @@ fun LexemeWidget(
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
-                if (state.isEdit) {
+                if (true) {
                     OutlinedIconButton(
                         onClick = { sendMessage(Msg.ResetLexeme(lexemeId = state.id)) }
                     ) {
                         Icon(imageVector = Icons.Default.ExitToApp, contentDescription = "")
                     }
                     OutlinedIconButton(
-                        onClick = { sendMessage(Msg.SaveLexeme(lexemeId = state.id)) }
+                        onClick = {
+//                            sendMessage(Msg.SaveLexeme(lexemeId = state.id))
+                        }
                     ) {
                         Icon(imageVector = Icons.Default.Done, contentDescription = "")
                     }
@@ -80,21 +76,21 @@ fun LexemeWidget(
                     }
                 }
             }
-            ChipPickerWidget(
-                title = stringResource(id = R.string.vocabulary_detail_speech_part),
-                pickerValue = state.category.toValue(state.isEdit).toChipPicker(),
-                chipList = lexicalCategory,
-                onChipSelect = { sendMessage(Msg.LexicalCategoryChange(state.id, it)) },
-                onResetChip = { sendMessage(Msg.LexicalCategoryReset(state.id)) },
-                editable = state.isEdit
-            )
+//            ChipPickerWidget(
+//                title = stringResource(id = R.string.vocabulary_detail_speech_part),
+//                pickerValue = state.category.toValue(state.isEdit).toChipPicker(),
+//                chipList = lexicalCategory,
+//                onChipSelect = { sendMessage(Msg.LexicalCategoryChange(state.id, it)) },
+//                onResetChip = { sendMessage(Msg.LexicalCategoryReset(state.id)) },
+//                editable = state.isEdit
+//            )
             Spacer(modifier = Modifier.height(16.dp))
-            EditableText(
-                title = stringResource(id = R.string.vocabulary_detail_definition_title),
-                isEdit = state.isEdit,
-                value = state.definition.toValue(state.isEdit),
-                onTextChange = { sendMessage(Msg.DefinitionChange(state.id, it)) }
-            )
+//            EditableText(
+//                title = stringResource(id = R.string.vocabulary_detail_definition_title),
+//                isEdit = state.isEdit,
+//                value = state.definition.toValue(state.isEdit),
+//                onTextChange = { sendMessage(Msg.DefinitionChange(state.id, it)) }
+//            )
         }
     }
 }
@@ -103,11 +99,11 @@ fun LexemeWidget(
 @Composable
 private fun Preview() {
     AppTheme {
-        LexemeWidget(
+        LexemeOldWidget(
             state = LexemeState(
-                isEdit = false,
+//                isEdit = false,
                 id = 0,
-                definition = DefinitionState("a unit of meaning in a language, consisting of a word or group of words")
+//                definition = DefinitionState("a unit of meaning in a language, consisting of a word or group of words")
             ),
             sendMessage = {}
         )
