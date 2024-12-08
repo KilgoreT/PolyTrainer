@@ -10,23 +10,30 @@ import org.gradle.kotlin.dsl.provideDelegate
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val Project.varch
-    get(): VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("general")
+val Project.projectVersionCatalog
+    get(): VersionCatalog = extensions.getByType<VersionCatalogsExtension>()
+        .named("projectVersions")
+
+val Project.testLibCatalog
+    get(): VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("testLibs")
+
+val Project.kotlinLibCatalog
+    get(): VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("kotlinLibs")
 
 internal fun Project.configureKotlinAndroid(
-    commonExtension: CommonExtension<*, *, *, *, *>,
+    commonExtension: CommonExtension<*, *, *, *, *, *>,
 ) {
     commonExtension.apply {
-        compileSdk = varch.findVersion("compileSdk").get().toString().toInt()
+        compileSdk = projectVersionCatalog.findVersion("compileSdk").get().toString().toInt()
         defaultConfig {
-            minSdk = varch.findVersion("minSdk").get().toString().toInt()
+            minSdk = projectVersionCatalog.findVersion("minSdk").get().toString().toInt()
         }
         compileOptions {
-            sourceCompatibility = JavaVersion.VERSION_17
-            targetCompatibility = JavaVersion.VERSION_17
+            sourceCompatibility = JavaVersion.VERSION_11
+            targetCompatibility = JavaVersion.VERSION_11
         }
     }
-    configureKotlin()
+    configureKotlin(JavaVersion.VERSION_11)
 }
 
 internal fun Project.configureKotlinJvm() {
@@ -34,22 +41,19 @@ internal fun Project.configureKotlinJvm() {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    configureKotlin()
+    configureKotlin(JavaVersion.VERSION_17)
 }
 
-private fun Project.configureKotlin() {
+private fun Project.configureKotlin(javaVersion: JavaVersion) {
     tasks.withType<KotlinCompile>().configureEach {
         kotlinOptions {
-            jvmTarget = JavaVersion.VERSION_17.toString()
+            jvmTarget = javaVersion.toString()
             // Treat all Kotlin warnings as errors (disabled by default)
             // Override by setting warningsAsErrors=true in your ~/.gradle/gradle.properties
             val warningsAsErrors: String? by project
             allWarningsAsErrors = warningsAsErrors.toBoolean()
             freeCompilerArgs = freeCompilerArgs + listOf(
                 "-opt-in=kotlin.RequiresOptIn",
-                // Enable experimental coroutines APIs, including Flow
-                "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-                "-opt-in=kotlinx.coroutines.FlowPreview",
             )
         }
     }

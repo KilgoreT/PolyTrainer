@@ -1,0 +1,5 @@
+[versions]
+flagLibVersion = "v1.5.4-alpha-1"
+
+[libraries]
+flagLib = { group = "com.github.blongho", name = "worldCountryData", version.ref = "flagLibVersion" }

@@ -1,5 +1,5 @@
 plugins {
-    id("android-library-convention")
+    id("lexeme.android.library")
 }
 
 android {
@@ -7,10 +7,5 @@ android {
 }
 
 dependencies {
-
     implementation(datastoreLibs.preferences)
-
-    testImplementation(testLibs.junit)
-    androidTestImplementation(testLibs.androidxTestExt)
-    androidTestImplementation(testLibs.espressoCore)
 }

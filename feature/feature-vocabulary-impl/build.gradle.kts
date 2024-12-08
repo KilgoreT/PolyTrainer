@@ -1,5 +1,5 @@
 plugins {
-    id("android-library-convention")
+    id("polytrainer.android.library")
     id("kotlin-kapt")
     id("androidx.navigation.safeargs.kotlin")
 //    id("com.google.gms.google-services")

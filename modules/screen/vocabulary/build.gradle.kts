@@ -1,5 +1,5 @@
 plugins {
-    id("polytrainer.android.feature")
+    id("lexeme.android.feature")
 }
 
 android {
@@ -7,7 +7,6 @@ android {
 }
 
 dependencies {
-
     implementation(project("path" to ":modules:core:mate"))
     implementation(project("path" to ":modules:core:theme"))
     implementation(project("path" to ":modules:core:ui"))
@@ -18,8 +17,4 @@ dependencies {
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)
     implementation(composeLibs.activityCompose)
-
-    testImplementation(testLibs.junit)
-    androidTestImplementation(testLibs.androidxTestExt)
-    androidTestImplementation(testLibs.espressoCore)
 }
