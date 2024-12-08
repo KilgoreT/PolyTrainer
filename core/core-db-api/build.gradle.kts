@@ -1,5 +1,5 @@
 plugins {
-    id("android-library-convention")
+    id("lexeme.android.library")
 }
 
 android {
@@ -14,8 +14,4 @@ dependencies {
     //Rx
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
-
-    testImplementation(testLibs.junit)
-    androidTestImplementation(testLibs.androidxTestExt)
-    androidTestImplementation(testLibs.espressoCore)
 }

@@ -1,12 +1,10 @@
 import java.util.Properties
 
 plugins {
-    id("polytrainer.android.application")
+    id("lexeme.android.application")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
 }
-
-apply(from = rootProject.file("varch.gradle.kts"))
 
 android {
 

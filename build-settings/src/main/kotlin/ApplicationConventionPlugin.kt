@@ -3,27 +3,28 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 
-class AndroidAppConventionPlugin : Plugin<Project> {
+class ApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
-            with(pluginManager) {
-                apply("com.android.application")
-                apply("org.jetbrains.kotlin.android")
-                apply("kotlin-kapt")
-            }
+
+            plugins.apply(projectVersionCatalog.findPlugin("android-app-gp").get().get().pluginId)
+            plugins.apply(projectVersionCatalog.findPlugin("kotlin-gp").get().get().pluginId)
+            plugins.apply(projectVersionCatalog.findPlugin("kotlin-compose").get().get().pluginId)
+            plugins.apply("kotlin-kapt")
+
             extensions.configure<ApplicationExtension> {
                 configureKotlinAndroid(this)
                 defaultConfig.applicationId = "me.apomazkin.polytrainer"
-                defaultConfig.targetSdk = varch.findVersion("targetSdk").get().toString().toInt()
+                defaultConfig.targetSdk = this@with.projectVersionCatalog
+                    .findVersion("targetSdk").get().toString().toInt()
                 defaultConfig.versionName = getVersionName()
                 defaultConfig.versionCode = getVersionCode(getVersionName())
                 defaultConfig.multiDexEnabled = true
                 buildFeatures {
-                    dataBinding = true
                     compose = true
                 }
                 composeOptions {
-                    kotlinCompilerExtensionVersion = varch
+                    kotlinCompilerExtensionVersion = projectVersionCatalog
                         .findVersion("kotlinCompilerExtensionVersion").get().toString()
                 }
                 lint {
