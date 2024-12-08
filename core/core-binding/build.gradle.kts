@@ -1,5 +1,4 @@
 plugins {
-    id("android-library-convention")
     id("kotlin-kapt")
 }
 
@@ -14,7 +13,7 @@ dependencies {
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
     implementation(libKotlin.stdlib)
 
-    implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.core:core-ktx:1.9.10")
     implementation("androidx.appcompat:appcompat:1.6.1")
 
     // Material

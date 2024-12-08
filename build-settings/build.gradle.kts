@@ -7,12 +7,12 @@ plugins {
 group = "me.apomazkin.polytrainer.buildsettings"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 tasks.withType<KotlinCompile>().configureEach {
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 }
 
@@ -22,24 +22,27 @@ repositories {
 }
 
 dependencies {
-    //TODO kilg 02.09.2024 10:45 move version to version catalog
-    implementation("com.android.tools.build:gradle:8.1.1")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0")
+    implementation(projectVersions.kotlin.gradlePlugin)
+    implementation(projectVersions.android.gradlePlugin)
 }
 
 gradlePlugin {
     plugins {
         register("androidApplication") {
-            id = "polytrainer.android.application"
-            implementationClass = "AndroidAppConventionPlugin"
-        }
-        register("androidLibrary") {
-            id = "polytrainer.android.library"
-            implementationClass = "AndroidLibConventionPlugin"
+            id = "lexeme.android.application"
+            implementationClass = "ApplicationConventionPlugin"
         }
         register("androidFeature") {
-            id = "polytrainer.android.feature"
-            implementationClass = "AndroidFeatureConventionPlugin"
+            id = "lexeme.android.feature"
+            implementationClass = "FeatureConventionPlugin"
+        }
+        register("androidLibrary") {
+            id = "lexeme.android.library"
+            implementationClass = "AndroidLibraryConventionPlugin"
+        }
+        register("kotlinJvmLibrary") {
+            id = "lexeme.kotlin.jvm"
+            implementationClass = "KotlinJvmConventionPlugin"
         }
     }
 }

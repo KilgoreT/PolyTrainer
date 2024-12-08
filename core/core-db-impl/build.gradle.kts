@@ -1,18 +1,11 @@
 plugins {
-    id("android-library-convention")
+    id("lexeme.android.library")
     id("androidx.room")
     id("com.google.devtools.ksp") version "2.0.20-1.0.24" apply false
     id("kotlin-kapt")
 }
 
 android {
-//    defaultConfig {
-////        javaCompileOptions {
-////            annotationProcessorOptions {
-////                arguments += mapOf("room.schemaLocation" to "$projectDir/schemas")
-////            }
-////        }
-//    }
     room {
         schemaDirectory("$projectDir/schemas")
     }
@@ -24,6 +17,8 @@ android {
 
 dependencies {
     implementation(project("path" to ":core:core-db-api"))
+
+    implementation(androidLibs.coreKtx)
 
     //Room
     implementation(datastoreLibs.roomRuntime)
@@ -40,8 +35,5 @@ dependencies {
     implementation(diLibs.dagger)
     kapt(diLibs.daggerCompiler)
 
-    testImplementation(testLibs.junit)
-    androidTestImplementation(testLibs.androidxTestExt)
-    androidTestImplementation(testLibs.espressoCore)
     androidTestImplementation(datastoreLibs.roomTesting)
 }

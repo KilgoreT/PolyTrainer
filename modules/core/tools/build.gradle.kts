@@ -1,6 +1,5 @@
 plugins {
-    id("kotlin-jvm-convention")
-    id("com.android.lint")
+    id("lexeme.kotlin.jvm")
 }
 
 java {
@@ -11,6 +10,4 @@ java {
     }
 }
 
-dependencies {
-    implementation(kotlinLibs.coroutinesCore)
-}
+dependencies {}

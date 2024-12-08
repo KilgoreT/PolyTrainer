@@ -1,5 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
+
 rootProject.name = "PolyTrainer"
 
 includeBuild("build-settings")
@@ -44,13 +45,14 @@ pluginManagement {
     }
 
     plugins {
-        id("org.jetbrains.kotlin.jvm") version "1.9.0"
-        id("com.android.library") version "8.1.1" apply false
-        id("com.android.application") version "8.1.4"
+        id("com.android.application") version "8.7.3" apply false // AGP
+        id("com.android.library") version "8.7.3" apply false
+        id("org.jetbrains.kotlin.android") version "2.0.20" apply false // Kotlin Android Plugin
         id("androidx.navigation.safeargs.kotlin") version "2.5.3"
         id("com.google.gms.google-services") version "4.4.1"
         id("com.google.firebase.crashlytics") version "2.9.9"
         id("androidx.room") version "2.6.1" apply false
+        id("org.jetbrains.kotlin.jvm") version "1.9.10"
     }
 }
 
@@ -73,8 +75,8 @@ dependencyResolutionManagement {
          * @see [https://developer.android.com/jetpack/androidx/releases/compose-kotlin]
          */
 
-        create("general") {
-            from(files("deps/general.versions.toml"))
+        create("projectVersions") {
+            from(files("deps/project.versions.toml"))
         }
         create("kotlinLibs") {
             from(files("deps/kotlin.versions.toml"))
@@ -98,7 +100,7 @@ dependencyResolutionManagement {
             from(files("deps/test-libs.versions.toml"))
         }
         create("otherLibs") {
-            library("flags", "com.github.blongho:worldCountryData:v1.5.4-alpha-1")
+            from(files("deps/other-libs.versions.toml"))
         }
     }
 }

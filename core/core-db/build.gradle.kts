@@ -1,5 +1,5 @@
 plugins {
-    id("android-library-convention")
+    id("lexeme.android.library")
     id("kotlin-kapt")
 }
 android {
@@ -14,8 +14,4 @@ dependencies {
     //Dagger2
     implementation(diLibs.dagger)
     kapt(diLibs.daggerCompiler)
-
-    testImplementation(testLibs.junit)
-    androidTestImplementation(testLibs.androidxTestExt)
-    androidTestImplementation(testLibs.espressoCore)
 }
