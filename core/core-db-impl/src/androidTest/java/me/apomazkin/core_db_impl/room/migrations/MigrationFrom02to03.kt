@@ -5,7 +5,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import me.apomazkin.core_db_impl.room.Schema
 import me.apomazkin.core_db_impl.room.base.BaseMigration
 import me.apomazkin.core_db_impl.room.dataSource.DataProvider
-import me.apomazkin.core_db_impl.room.utils.*
+import me.apomazkin.core_db_impl.room.utils.checkCount
+import me.apomazkin.core_db_impl.room.utils.toDatabase
 import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,32 +21,30 @@ class MigrationFrom02to03 : BaseMigration() {
     fun from02to03() {
         runMigrateDbTest(
             onCreate = { db ->
-                DataProvider
-                    .wordList
-                    .asContentValue()
+                Schema.WordV1
+                    .asContentValue(DataProvider.wordList)
                     .toDatabase(
                         database = db,
-                        table = Schema.Word.tableName
+                        table = Schema.WordV2.tableName
                     )
-                DataProvider
-                    .writeQuizList
-                    .asContentValue()
+                Schema.WriteQuizV1
+                    .asContentValue(DataProvider.writeQuizList)
                     .toDatabase(
                         database = db,
-                        table = Schema.WriteQuiz.tableName,
+                        table = Schema.WriteQuizV1.tableName,
                     )
             },
-            onCreateCheck = { database ->
-                database
-                    .getWordsFromDatabase()
+            afterCreateCheck = { database ->
+                Schema.WordV1
+                    .getFromDatabase(database)
                     .checkCount(DataProvider.wordList)
-                database
-                    .getWriteQuizFromDatabase()
+                Schema.WriteQuizV1
+                    .getFromDatabase(database)
                     .checkCount(DataProvider.writeQuizList)
             },
-            onMigrationCheck = { database ->
-                database
-                    .getWordsFromDatabase()
+            afterMigrationCheck = { database ->
+                Schema.WordV1
+                    .getFromDatabase(database)
                     .forEachIndexed { index, word ->
                         Assert.assertTrue(
                             "WordId must be ${DataProvider.wordList[index].id}, but here is ${word.id}",
@@ -60,8 +59,7 @@ class MigrationFrom02to03 : BaseMigration() {
                             word.changeDate?.time == null
                         )
                     }
-                database
-                    .getWriteQuizFromDatabase()
+                Schema.WriteQuizV1.getFromDatabase(database)
                     .forEachIndexed { index, writeQuiz ->
                         Assert.assertTrue(
                             "Id must be ${DataProvider.writeQuizList[index].id}, but here is ${writeQuiz.id}",

@@ -1,11 +1,24 @@
 package me.apomazkin.core_db_impl.room
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
 import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
 import kotlinx.coroutines.flow.Flow
-import me.apomazkin.core_db_impl.entity.*
+import me.apomazkin.core_db_impl.entity.HintDb
+import me.apomazkin.core_db_impl.entity.LanguageDb
+import me.apomazkin.core_db_impl.entity.LexemeDb
+import me.apomazkin.core_db_impl.entity.SampleDb
+import me.apomazkin.core_db_impl.entity.WordDb
+import me.apomazkin.core_db_impl.entity.WordDefinitionRel
+import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.entity.WriteQuizDefinitionRel
 
 // TODO: 20.03.2021 переименгвать Dao
 @Dao
@@ -72,50 +85,50 @@ interface WordDao {
     suspend fun getTermById(id: Long): WordDefinitionRel
 
     @Transaction
-    @Query("SELECT * FROM words WHERE word LIKE :pattern AND langId = :langId ORDER BY id DESC")
+    @Query("SELECT * FROM words WHERE value LIKE :pattern AND langId = :langId ORDER BY id DESC")
     fun searchTerms(pattern: String, langId: Long): Observable<List<WordDefinitionRel>>
 
     /**
      * DEFINITION
      */
     @Insert
-    fun addDefinition(definitionDb: DefinitionDb): Single<Long>
+    fun addDefinition(lexemeDb: LexemeDb): Single<Long>
 
     @Insert
-    suspend fun addDefinitionSuspend(definitionDb: DefinitionDb): Long
+    suspend fun addDefinitionSuspend(lexemeDb: LexemeDb): Long
 
     @Update
-    suspend fun updateDefinitionSuspend(definitionDb: DefinitionDb): Int
+    suspend fun updateDefinitionSuspend(lexemeDb: LexemeDb): Int
 
-    @Query("UPDATE definitions SET definition = :value WHERE id = :id")
+    @Query("UPDATE lexemes SET definition = :value WHERE id = :id")
     suspend fun updateLexemeDefinition(id: Long, value: String): Int
 
-    @Query("UPDATE definitions SET wordClass = :value WHERE id = :id")
+    @Query("UPDATE lexemes SET wordClass = :value WHERE id = :id")
     suspend fun updateLexemeCategory(id: Long, value: String): Int
 
-    @Query("SELECT * FROM definitions")
-    fun getAllDefinition(): Single<List<DefinitionDb>>
+    @Query("SELECT * FROM lexemes")
+    fun getAllDefinition(): Single<List<LexemeDb>>
 
-    @Query("SELECT * FROM definitions WHERE id = :id")
-    fun getDefinitionById(id: Long): Single<DefinitionDb>
+    @Query("SELECT * FROM lexemes WHERE id = :id")
+    fun getDefinitionById(id: Long): Single<LexemeDb>
 
-    @Query("SELECT * FROM definitions WHERE wordId = :wordId")
-    fun getDefinitionListByWordId(wordId: Long): Single<List<DefinitionDb>>
+    @Query("SELECT * FROM lexemes WHERE wordId = :wordId")
+    fun getDefinitionListByWordId(wordId: Long): Single<List<LexemeDb>>
 
     @Update
-    fun updateDefinition(definitionDb: DefinitionDb): Completable
+    fun updateDefinition(lexemeDb: LexemeDb): Completable
 
-    @Query("DELETE FROM definitions WHERE id = :id")
+    @Query("DELETE FROM lexemes WHERE id = :id")
     fun deleteDefinition(vararg id: Long): Completable
 
-    @Query("DELETE FROM definitions WHERE id = :id")
+    @Query("DELETE FROM lexemes WHERE id = :id")
     suspend fun deleteDefinitionSuspend(vararg id: Long): Int
 
     @Delete
-    fun deleteDefinitions(vararg definition: DefinitionDb): Completable
+    fun deleteDefinitions(vararg definition: LexemeDb): Completable
 
     @Delete
-    suspend fun deleteDefinitionsSuspend(vararg definition: DefinitionDb)
+    suspend fun deleteDefinitionsSuspend(vararg definition: LexemeDb)
 
     // TODO: 18.02.2021 used to manual remove definition before removing word
     @Transaction
@@ -132,16 +145,16 @@ interface WordDao {
     @Insert
     fun addHint(hintDb: HintDb): Completable
 
-    @Query("SELECT * FROM hint")
+    @Query("SELECT * FROM hints")
     fun getAllHint(): Single<List<HintDb>>
 
-    @Query("SELECT * FROM hint WHERE definitionId = :definitionId")
-    fun getHintListByDefinitionId(definitionId: Long): Single<HintDb>
+    @Query("SELECT * FROM hints WHERE lexemeId = :lexemeId")
+    fun getHintListByDefinitionId(lexemeId: Long): Single<HintDb>
 
     @Update
     fun updateHint(hintDb: HintDb): Completable
 
-    @Query("DELETE FROM hint WHERE id = :id")
+    @Query("DELETE FROM hints WHERE id = :id")
     fun removeHint(id: Long): Completable
 
     @Delete
@@ -153,13 +166,13 @@ interface WordDao {
     @Insert
     fun addSample(sampleDb: SampleDb): Completable
 
-    @Query("SELECT * FROM sample WHERE definitionId = :definitionId")
-    fun getSampleListByDefinitionId(definitionId: Long): Single<List<SampleDb>>
+    @Query("SELECT * FROM samples WHERE lexemeId = :lexemeId")
+    fun getSampleListByDefinitionId(lexemeId: Long): Single<List<SampleDb>>
 
-    @Query("SELECT * FROM sample")
+    @Query("SELECT * FROM samples")
     fun getAllSample(): Single<List<SampleDb>>
 
-    @Query("SELECT * FROM sample")
+    @Query("SELECT * FROM samples")
     fun getSampleList(): Observable<List<SampleDb>>
 
     @Delete
@@ -209,10 +222,10 @@ interface WordDao {
     @Query("SELECT COUNT(*) FROM words WHERE langId = :langId")
     fun getWordCount(langId: Long): Single<Int>
 
-    @Query("SELECT COUNT(*) FROM definitions")
+    @Query("SELECT COUNT(*) FROM lexemes")
     fun getDefinitionCount(): Single<Int>
 
-    @Query("SELECT COUNT(*) FROM definitions WHERE wordClass = :wordClass")
+    @Query("SELECT COUNT(*) FROM lexemes WHERE wordClass = :wordClass")
     fun getDefinitionTypeCount(wordClass: String): Single<Int>
 
     @Query("SELECT COUNT(*) FROM writeQuiz WHERE grade = :tier AND langId = :langId")

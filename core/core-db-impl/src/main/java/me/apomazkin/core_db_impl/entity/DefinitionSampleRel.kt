@@ -4,10 +4,10 @@ import androidx.room.Embedded
 import androidx.room.Relation
 
 data class DefinitionSampleRel(
-    @Embedded val definitionDb: DefinitionDb,
+    @Embedded val lexemeDb: LexemeDb,
     @Relation(
         parentColumn = "id",
-        entityColumn = "definitionId"
+        entityColumn = "lexemeId"
     )
     val sampleDbList: List<SampleDb>
 )

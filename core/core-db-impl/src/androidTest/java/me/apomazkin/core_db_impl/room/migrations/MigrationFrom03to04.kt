@@ -4,7 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import me.apomazkin.core_db_impl.room.Schema
 import me.apomazkin.core_db_impl.room.base.BaseMigration
 import me.apomazkin.core_db_impl.room.dataSource.DataProvider
-import me.apomazkin.core_db_impl.room.utils.*
+import me.apomazkin.core_db_impl.room.utils.checkCount
+import me.apomazkin.core_db_impl.room.utils.toDatabase
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -18,35 +19,34 @@ class MigrationFrom03to04 : BaseMigration() {
     fun from03to04() {
         runMigrateDbTest(
             onCreate = { database ->
-                DataProvider
-                    .definitionList
-                    .asContentValue()
+                Schema.Definition
+                    .asContentValue(DataProvider.lexemeDbList)
                     .toDatabase(
                         database = database,
                         table = Schema.Definition.tableName,
                     )
             },
-            onCreateCheck = { database ->
-                database
-                    .getDefinitionsFromDatabase()
-                    .checkCount(DataProvider.definitionList)
+            afterCreateCheck = { database ->
+                Schema.Definition
+                    .getFromDatabase(database)
+                    .checkCount(DataProvider.lexemeDbList)
             },
-            onMigrationCheck = { database ->
+            afterMigrationCheck = { database ->
                 // check hint insert
-                DataProvider
-                    .hintList
-                    .asContentValue()
+                Schema.HintV1
+                    .asContentValue(DataProvider.hintList)
                     .toDatabase(
                         database = database,
-                        table = Schema.Hint.tableName
+                        table = Schema.HintV1.tableName
                     )
-                    .getHintsFromDatabase()
+                Schema.HintV1
+                    .getFromDatabase(database)
                     .checkCount(DataProvider.hintList)
 
                 // check that definitions isn't erase
-                database
-                    .getDefinitionsFromDatabase()
-                    .checkCount(DataProvider.definitionList)
+                Schema.Definition
+                    .getFromDatabase(database)
+                    .checkCount(DataProvider.lexemeDbList)
             }
         )
     }

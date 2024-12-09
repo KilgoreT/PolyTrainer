@@ -5,7 +5,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import me.apomazkin.core_db_impl.room.Schema
 import me.apomazkin.core_db_impl.room.base.BaseMigration
 import me.apomazkin.core_db_impl.room.dataSource.DataProvider
-import me.apomazkin.core_db_impl.room.utils.*
+import me.apomazkin.core_db_impl.room.utils.checkCount
+import me.apomazkin.core_db_impl.room.utils.toDatabase
 import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,26 +21,25 @@ class MigrationFrom01to02 : BaseMigration() {
     fun from01to02() {
         runMigrateDbTest(
             onCreate = { database ->
-                DataProvider
-                    .definitionList
-                    .asContentValue()
+                Schema.Definition
+                    .asContentValue(DataProvider.lexemeDbList)
                     .toDatabase(
                         database = database,
                         table = Schema.Definition.tableName,
                     )
             },
-            onCreateCheck = { database ->
-                database
-                    .getDefinitionsFromDatabase()
-                    .checkCount(DataProvider.definitionList)
+            afterCreateCheck = { database ->
+                Schema.Definition
+                    .getFromDatabase(database)
+                    .checkCount(DataProvider.lexemeDbList)
             },
-            onMigrationCheck = { database ->
-                database
-                    .getWriteQuizFromDatabase()
+            afterMigrationCheck = { database ->
+                Schema.WriteQuizV1
+                    .getFromDatabase(database)
                     .forEachIndexed { index, writeQuiz ->
                         Assert.assertTrue(
-                            "DefinitionId must be ${DataProvider.definitionList[index].id}, but here is ${writeQuiz.definitionId}",
-                            writeQuiz.definitionId == DataProvider.definitionList[index].id
+                            "DefinitionId must be ${DataProvider.lexemeDbList[index].id}, but here is ${writeQuiz.definitionId}",
+                            writeQuiz.definitionId == DataProvider.lexemeDbList[index].id
                         )
                     }
             }

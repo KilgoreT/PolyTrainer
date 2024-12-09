@@ -32,3 +32,6 @@
 /.idea/androidTestResultsUserPreferences.xml
 /modules/datastore/prefs/build/*
 /.idea/kotlinc.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/migrations.xml
+/.kotlin

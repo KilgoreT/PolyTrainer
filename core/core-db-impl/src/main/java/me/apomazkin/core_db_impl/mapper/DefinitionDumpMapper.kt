@@ -1,10 +1,10 @@
 package me.apomazkin.core_db_impl.mapper
 
 import me.apomazkin.core_db_api.entity.DefinitionDump
-import me.apomazkin.core_db_impl.entity.DefinitionDb
+import me.apomazkin.core_db_impl.entity.LexemeDb
 
 
-fun DefinitionDb.toDumpEntity() = DefinitionDump(
+fun LexemeDb.toDumpEntity() = DefinitionDump(
     id = id,
     wordId = wordId,
     definition = definition,
@@ -12,10 +12,10 @@ fun DefinitionDb.toDumpEntity() = DefinitionDump(
     options = options
 )
 
-fun List<DefinitionDb>.toDumpEntity() = this.map { it.toDumpEntity() }
+fun List<LexemeDb>.toDumpEntity() = this.map { it.toDumpEntity() }
 
 
-fun DefinitionDump.toDbEntity() = DefinitionDb(
+fun DefinitionDump.toDbEntity() = LexemeDb(
     id = id,
     wordId = wordId,
     definition = definition,

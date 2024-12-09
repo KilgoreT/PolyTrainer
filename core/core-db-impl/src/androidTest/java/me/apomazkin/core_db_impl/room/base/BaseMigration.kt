@@ -3,7 +3,6 @@ package me.apomazkin.core_db_impl.room.base
 import androidx.room.migration.Migration
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.SupportSQLiteDatabase
-import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import me.apomazkin.core_db_impl.room.Database
@@ -19,8 +18,7 @@ abstract class BaseMigration {
     @get:Rule
     val helper: MigrationTestHelper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
-        Database::class.java.canonicalName,
-        FrameworkSQLiteOpenHelperFactory()
+        Database::class.java
     )
 
     @Before
@@ -43,23 +41,22 @@ abstract class BaseMigration {
      * @param migration - migration class for next version of scheme.
      *
      * @param onCreate - function to put test data to database.
-     * @param onCreateCheck - function to check test data after initiation. for example, check count of rows.
-     * @param onMigrationCheck - function to check data after migration
+     * @param afterCreateCheck - function to check test data after initiation. for example, check count of rows.
+     * @param afterMigrationCheck - function to check data after migration
      */
     fun runMigrateDbTest(
         migrationTestHelper: MigrationTestHelper = helper,
-        databaseName: String = Schema.databaseName,
+        databaseName: String = Schema.DATABASE_NAME,
         currentVersion: Int = getCurrentVersion(),
         migration: Migration = getMigrationClass(),
         onCreate: (SupportSQLiteDatabase) -> Unit,
-        onCreateCheck: (SupportSQLiteDatabase) -> Unit,
-        onMigrationCheck: (SupportSQLiteDatabase) -> Unit,
+        afterCreateCheck: (SupportSQLiteDatabase) -> Unit,
+        afterMigrationCheck: (SupportSQLiteDatabase) -> Unit,
     ) {
         var db = migrationTestHelper.createDatabase(databaseName, currentVersion).apply {
             onCreate.invoke(this)
-            onCreateCheck.invoke(this)
+            afterCreateCheck.invoke(this)
         }
-            ?: throw IllegalArgumentException("Failed to create $databaseName with version: $currentVersion")
         db.close()
         db = migrationTestHelper.runMigrationsAndValidate(
             databaseName,
@@ -67,7 +64,7 @@ abstract class BaseMigration {
             true,
             migration
         )
-        onMigrationCheck.invoke(db)
+        afterMigrationCheck.invoke(db)
     }
 
     companion object {

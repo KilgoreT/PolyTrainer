@@ -1,13 +1,32 @@
 package me.apomazkin.core_db_impl.mapper
 
-import me.apomazkin.core_db_api.entity.*
-import me.apomazkin.core_db_api.entity.Adjective.Gradability.*
-import me.apomazkin.core_db_api.entity.Adjective.Order.*
-import me.apomazkin.core_db_api.entity.Grade.*
-import me.apomazkin.core_db_api.entity.Noun.Countability.*
+import me.apomazkin.core_db_api.entity.Adjective
+import me.apomazkin.core_db_api.entity.Adjective.Gradability.COMPARATIVE
+import me.apomazkin.core_db_api.entity.Adjective.Gradability.NOT_GRADABLE
+import me.apomazkin.core_db_api.entity.Adjective.Gradability.SUPERLATIVE
+import me.apomazkin.core_db_api.entity.Adjective.Order.AFTER_NOUN
+import me.apomazkin.core_db_api.entity.Adjective.Order.AFTER_VERB
+import me.apomazkin.core_db_api.entity.Adjective.Order.BEFORE_NOUN
+import me.apomazkin.core_db_api.entity.Adverb
+import me.apomazkin.core_db_api.entity.Definition
+import me.apomazkin.core_db_api.entity.Grade
+import me.apomazkin.core_db_api.entity.Grade.A1
+import me.apomazkin.core_db_api.entity.Grade.A2
+import me.apomazkin.core_db_api.entity.Grade.B1
+import me.apomazkin.core_db_api.entity.Grade.B2
+import me.apomazkin.core_db_api.entity.Grade.C1
+import me.apomazkin.core_db_api.entity.Grade.C2
+import me.apomazkin.core_db_api.entity.Noun
+import me.apomazkin.core_db_api.entity.Noun.Countability.COUNTABLE
+import me.apomazkin.core_db_api.entity.Noun.Countability.PLURAL
+import me.apomazkin.core_db_api.entity.Noun.Countability.UNCOUNTABLE
+import me.apomazkin.core_db_api.entity.Noun.Countability.USUALLY_PLURAL
+import me.apomazkin.core_db_api.entity.Noun.Countability.USUALLY_SINGULAR
+import me.apomazkin.core_db_api.entity.Verb
 import me.apomazkin.core_db_api.entity.Verb.Transitivity.INTRANSITIVE
 import me.apomazkin.core_db_api.entity.Verb.Transitivity.TRANSITIVE
-import me.apomazkin.core_db_impl.entity.DefinitionDb
+import me.apomazkin.core_db_api.entity.WordClass
+import me.apomazkin.core_db_impl.entity.LexemeDb
 
 private const val NOUN = "noun"
 private const val VERB = "verb"
@@ -43,16 +62,16 @@ private val COMPARATIVE_INDEX = 1L shl (ADJ_ORDER_OFFSET + COMPARATIVE.ordinal)
 private val SUPERLATIVE_INDEX = 1L shl (ADJ_ORDER_OFFSET + SUPERLATIVE.ordinal)
 private val NOT_GRADABLE_INDEX = 1L shl (ADJ_ORDER_OFFSET + NOT_GRADABLE.ordinal)
 
-class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
+class DefinitionMapper : Mapper<LexemeDb, Definition>() {
 
-    override fun map(value: DefinitionDb) = Definition(
+    override fun map(value: LexemeDb) = Definition(
         value.id ?: 0,
         value.wordId,
         value.definition,
         mapWordClass(value)
     )
 
-    private fun mapWordClass(value: DefinitionDb): WordClass? {
+    private fun mapWordClass(value: LexemeDb): WordClass? {
         return when (value.wordClass) {
             NOUN -> getNoun(value.options)
             VERB -> getVerb(value.options)
@@ -127,7 +146,7 @@ class DefinitionMapper : Mapper<DefinitionDb, Definition>() {
         }
     }
 
-    override fun reverseMap(value: Definition) = DefinitionDb(
+    override fun reverseMap(value: Definition) = LexemeDb(
         id = value.id,
         wordId = value.wordId,
         definition = value.value,

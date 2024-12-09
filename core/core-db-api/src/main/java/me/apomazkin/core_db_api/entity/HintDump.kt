@@ -1,10 +1,10 @@
 package me.apomazkin.core_db_api.entity
 
-import java.util.*
+import java.util.Date
 
 data class HintDump(
     val id: Long? = null,
-    val definitionId: Long,
+    val lexemeId: Long? = null,
     val value: String,
     val addDate: Date,
     val changeDate: Date? = null,

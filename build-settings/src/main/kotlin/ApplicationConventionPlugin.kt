@@ -17,9 +17,18 @@ class ApplicationConventionPlugin : Plugin<Project> {
                 defaultConfig.applicationId = "me.apomazkin.polytrainer"
                 defaultConfig.targetSdk = this@with.projectVersionCatalog
                     .findVersion("targetSdk").get().toString().toInt()
-                defaultConfig.versionName = getVersionName()
-                defaultConfig.versionCode = getVersionCode(getVersionName())
+                val versionName = getVersionName().also {
+                    println("=================================")
+                    println("| Version Name: $it")
+                }
+                val versionCode = getVersionCode(versionName).also {
+                    println("| Version Code: $it")
+                    println("=================================")
+                }
+                defaultConfig.versionName = versionName
+                defaultConfig.versionCode = versionCode
                 defaultConfig.multiDexEnabled = true
+                defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                 buildFeatures {
                     compose = true
                 }
@@ -54,7 +63,6 @@ class ApplicationConventionPlugin : Plugin<Project> {
 fun getVersionName(): String {
     val value: String? = System.getenv("RELEASE_VERSION")
     val result = value ?: "undefined"
-    println(">>>getVersion>>> version: $result")
     return result
 }
 
@@ -76,21 +84,22 @@ fun getVersionCode(versionName: String): Int {
 
     if (major.isInt() && major.toInt() <= MAX_MAJOR_VERSION) {
         result += alignVersion(major, LENGTH_MAJOR_VERSION)
-        println(">>>getVersionCode>>> major: $result")
+        println("| Version Code major: $result")
     } else {
         return DEFAULT_VERSION_CODE
     }
 
     if (minor.isInt() && minor.toInt() <= MAX_MINOR_VERSION) {
         result += alignVersion(minor, LENGTH_MINOR_VERSION)
-        println(">>>getVersionCode>>> +minor: $result")
+        println("| Version Code minor: $result")
     } else {
         return DEFAULT_VERSION_CODE
     }
 
     if (patch.isInt() && patch.toInt() <= MAX_PATCH_VERSION) {
         result += alignVersion(patch, LENGTH_PATCH_VERSION)
-        println(">>>getVersionCode>>> +patch: $result")
+        println("| Version Code patch: $result")
+
     } else {
         return DEFAULT_VERSION_CODE
     }
