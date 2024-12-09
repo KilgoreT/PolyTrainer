@@ -5,7 +5,7 @@ import me.apomazkin.core_db_impl.entity.SampleDb
 
 fun SampleDb.toAppEntity() = Sample(
     id = this.id ?: throw IllegalStateException("SampleDb hasn't id field."),
-    definitionId = this.definitionId,
+    lexemeId = this.lexemeId,
     value = this.value,
     source = this.source,
     addDate = this.addDate,
@@ -17,7 +17,7 @@ fun List<SampleDb>.toAppEntity() = this.map { it.toAppEntity() }
 
 fun Sample.toDbEntity() = SampleDb(
     id = this.id,
-    definitionId = this.definitionId,
+    lexemeId = this.lexemeId,
     value = this.value,
     source = this.source,
     addDate = this.addDate,

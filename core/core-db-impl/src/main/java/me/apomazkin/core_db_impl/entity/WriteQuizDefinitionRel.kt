@@ -6,7 +6,7 @@ import androidx.room.Relation
 data class WriteQuizDefinitionRel(
     @Embedded val writeQuizDb: WriteQuizDb,
     @Relation(
-        entity = DefinitionDb::class,
+        entity = LexemeDb::class,
         parentColumn = "definitionId",
         entityColumn = "id"
     )

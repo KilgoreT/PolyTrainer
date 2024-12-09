@@ -2,14 +2,15 @@ package me.apomazkin.core_db_impl.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.util.*
+import java.util.Date
 
-@Entity(tableName = "hint")
+@Entity(tableName = "hints")
 data class HintDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long? = null,
-    val definitionId: Long,
+    val lexemeId: Long? = null,
     val value: String,
     val addDate: Date,
     val changeDate: Date? = null,
+    val removeDate: Date? = null,
 )

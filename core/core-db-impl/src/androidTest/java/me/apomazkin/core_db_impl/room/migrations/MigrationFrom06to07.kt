@@ -4,7 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import me.apomazkin.core_db_impl.room.Schema
 import me.apomazkin.core_db_impl.room.base.BaseMigration
 import me.apomazkin.core_db_impl.room.dataSource.DataProvider
-import me.apomazkin.core_db_impl.room.utils.*
+import me.apomazkin.core_db_impl.room.utils.checkCount
+import me.apomazkin.core_db_impl.room.utils.toDatabase
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -18,22 +19,21 @@ class MigrationFrom06to07 : BaseMigration() {
     fun from06to07() {
         runMigrateDbTest(
             onCreate = { database ->
-                DataProvider
-                    .languageList
-                    .asContentValue()
+                Schema.Languages
+                    .asContentValue(DataProvider.languageList)
                     .toDatabase(
                         database = database,
-                        table = Schema.Languages.tableName
+                        table = Schema.LanguagesV1.tableName
                     )
             },
-            onCreateCheck = { database ->
-                database
-                    .getLanguagesFromDatabase()
+            afterCreateCheck = { database ->
+                Schema.Languages
+                    .getFromDatabase(database)
                     .checkCount(DataProvider.languageList)
             },
-            onMigrationCheck = { database ->
-                database
-                    .getLanguagesFromDatabase()
+            afterMigrationCheck = { database ->
+                Schema.Languages
+                    .getFromDatabase(database)
                     .checkCount(DataProvider.languageList)
             }
         )

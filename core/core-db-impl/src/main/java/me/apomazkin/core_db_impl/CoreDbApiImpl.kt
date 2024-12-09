@@ -9,11 +9,33 @@ import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
-import me.apomazkin.core_db_api.entity.*
-import me.apomazkin.core_db_impl.entity.*
-import me.apomazkin.core_db_impl.mapper.*
+import me.apomazkin.core_db_api.entity.Definition
+import me.apomazkin.core_db_api.entity.Dump
+import me.apomazkin.core_db_api.entity.Hint
+import me.apomazkin.core_db_api.entity.Language
+import me.apomazkin.core_db_api.entity.Sample
+import me.apomazkin.core_db_api.entity.Term
+import me.apomazkin.core_db_api.entity.TermMate
+import me.apomazkin.core_db_api.entity.Word
+import me.apomazkin.core_db_api.entity.WriteQuiz
+import me.apomazkin.core_db_impl.entity.HintDb
+import me.apomazkin.core_db_impl.entity.LanguageDb
+import me.apomazkin.core_db_impl.entity.LexemeDb
+import me.apomazkin.core_db_impl.entity.SampleDb
+import me.apomazkin.core_db_impl.entity.WordDb
+import me.apomazkin.core_db_impl.entity.WordDefinitionRel
+import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.mapper.DefinitionMapper
+import me.apomazkin.core_db_impl.mapper.HintMapper
+import me.apomazkin.core_db_impl.mapper.toAppData
+import me.apomazkin.core_db_impl.mapper.toAppEntity
+import me.apomazkin.core_db_impl.mapper.toDb
+import me.apomazkin.core_db_impl.mapper.toDbEntity
+import me.apomazkin.core_db_impl.mapper.toDump
+import me.apomazkin.core_db_impl.mapper.toDumpEntity
+import me.apomazkin.core_db_impl.mapper.toMateApp
 import me.apomazkin.core_db_impl.room.WordDao
-import java.util.*
+import java.util.Date
 import javax.inject.Inject
 
 class CoreDbApiImpl @Inject constructor(
@@ -48,7 +70,7 @@ class CoreDbApiImpl @Inject constructor(
         val currentDate = Date(System.currentTimeMillis())
         return wordDao.addWord(
             WordDb(
-                word = value,
+                value = value,
                 langId = langId,
                 addDate = currentDate,
             )
@@ -59,7 +81,7 @@ class CoreDbApiImpl @Inject constructor(
         val currentDate = Date(System.currentTimeMillis())
         return wordDao.addWordSuspend(
             WordDb(
-                word = value,
+                value = value,
                 langId = langId,
                 addDate = currentDate,
             )
@@ -92,7 +114,7 @@ class CoreDbApiImpl @Inject constructor(
             .flatMap { list ->
                 removeDefinition(
                     *list
-                        .map { item -> item.definitionDb }
+                        .map { item -> item.lexemeDb }
                         .toTypedArray()
                 )
                     .toSingle { list }
@@ -103,7 +125,7 @@ class CoreDbApiImpl @Inject constructor(
                     .toSingle { list }
             }
             .flattenAsObservable { list -> list.asIterable() }
-            .flatMapCompletable { item -> wordDao.removeWriteQuiz(item.definitionDb.id ?: -1) }
+            .flatMapCompletable { item -> wordDao.removeWriteQuiz(item.lexemeDb.id ?: -1) }
     }
 
     override suspend fun deleteWordSuspend(id: Long): Int {
@@ -112,7 +134,7 @@ class CoreDbApiImpl @Inject constructor(
                 *word.definitionSampleRelList.map { it.sampleDbList }.flatten().toTypedArray()
             )
             wordDao.deleteDefinitionsSuspend(
-                *word.definitionSampleRelList.map { it.definitionDb }.toTypedArray()
+                *word.definitionSampleRelList.map { it.lexemeDb }.toTypedArray()
             )
             return wordDao.removeWordSuspend(id)
         }
@@ -120,7 +142,7 @@ class CoreDbApiImpl @Inject constructor(
 
     override suspend fun updateWordSuspend(id: Long, value: String): Boolean {
         val wordRel = wordDao.getWordSuspend(id)
-        val wordDb = wordRel.wordDb.copy(word = value)
+        val wordDb = wordRel.wordDb.copy(value = value)
         return wordDao.updateWorldSuspend(wordDb) == 1
     }
 
@@ -146,12 +168,12 @@ class CoreDbApiImpl @Inject constructor(
         definition: String,
     ): Long {
         // TODO: Не забыть добавить WriteQuizDb
-        val definitionDb = DefinitionDb(
+        val lexemeDb = LexemeDb(
             wordId = wordId,
             definition = definition,
             wordClass = category,
         )
-        return wordDao.addDefinitionSuspend(definitionDb)
+        return wordDao.addDefinitionSuspend(lexemeDb)
     }
 
     override suspend fun editLexemeSuspend(
@@ -160,13 +182,13 @@ class CoreDbApiImpl @Inject constructor(
         category: String,
         definition: String
     ): Int {
-        val definitionDb = DefinitionDb(
+        val lexemeDb = LexemeDb(
             id = lexemeId,
             wordId = wordId,
             definition = definition,
             wordClass = category,
         )
-        return wordDao.updateDefinitionSuspend(definitionDb)
+        return wordDao.updateDefinitionSuspend(lexemeDb)
     }
 
     override suspend fun updateLexemeDefinition(definitionId: Long, value: String): Int {
@@ -208,7 +230,7 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.deleteDefinitionSuspend(*id.toTypedArray().toLongArray())
     }
 
-    private fun removeDefinition(vararg definition: DefinitionDb): Completable {
+    private fun removeDefinition(vararg definition: LexemeDb): Completable {
         return wordDao.deleteDefinitions(*definition.toList().toTypedArray())
     }
 
@@ -288,10 +310,10 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.removeWriteQuiz(definitionId)
     }
 
-    override fun addHint(definitionId: Long, value: String): Completable {
+    override fun addHint(lexemeId: Long, value: String): Completable {
         return wordDao.addHint(
             HintDb(
-                definitionId = definitionId,
+                lexemeId = lexemeId,
                 value = value,
                 addDate = Date(System.currentTimeMillis())
             )
@@ -312,10 +334,10 @@ class CoreDbApiImpl @Inject constructor(
         return wordDao.updateHint(mapper.reverseMap(hint))
     }
 
-    override fun addSample(definitionId: Long, value: String, source: String?): Completable {
+    override fun addSample(lexemeId: Long, value: String, source: String?): Completable {
         return wordDao.addSample(
             SampleDb(
-                definitionId = definitionId,
+                lexemeId = lexemeId,
                 value = value,
                 source = source,
                 addDate = Date(System.currentTimeMillis())

@@ -6,7 +6,13 @@ import dagger.Module
 import dagger.Provides
 import me.apomazkin.core_db_impl.room.Database
 import me.apomazkin.core_db_impl.room.WordDao
-import me.apomazkin.core_db_impl.room.migrations.*
+import me.apomazkin.core_db_impl.room.migrations.migration_1_2
+import me.apomazkin.core_db_impl.room.migrations.migration_2_3
+import me.apomazkin.core_db_impl.room.migrations.migration_3_4
+import me.apomazkin.core_db_impl.room.migrations.migration_4_5
+import me.apomazkin.core_db_impl.room.migrations.migration_5_6
+import me.apomazkin.core_db_impl.room.migrations.migration_6_7
+import me.apomazkin.core_db_impl.room.migrations.migration_7_8
 
 @Module
 class RoomModule {
@@ -22,6 +28,7 @@ class RoomModule {
                 migration_4_5,
                 migration_5_6,
                 migration_6_7,
+                migration_7_8,
             )
             .build()
     }

@@ -5,7 +5,7 @@ import me.apomazkin.core_db_impl.entity.HintDb
 
 fun HintDb.toDumpEntity() = HintDump(
     id = id,
-    definitionId = definitionId,
+    lexemeId = lexemeId,
     value = value,
     addDate = addDate,
     changeDate = changeDate
@@ -15,7 +15,7 @@ fun List<HintDb>.toDumpEntity() = this.map { it.toDumpEntity() }
 
 fun HintDump.toDbEntity() = HintDb(
     id = id,
-    definitionId = definitionId,
+    lexemeId = lexemeId,
     value = value,
     addDate = addDate,
     changeDate = changeDate

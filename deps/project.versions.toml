@@ -2,6 +2,7 @@
 kotlinGPVersion = "2.0.0"
 aGPVersion = "8.7.3" # AGP
 kotlinJvmPluginVersion = "1.9.10"
+testLoggerVersion = "4.0.0"
 minSdk = "21"
 targetSdk = "34"
 compileSdk = "34"
@@ -17,4 +18,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 android-lib-gp = { id = "com.android.library", version.ref = "aGPVersion" }
 kotlin-gp = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinGPVersion" }
 kotlin-jvm-gp = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinJvmPluginVersion" }
+test-logger = { id = "com.adarshr.test-logger", version.ref = "testLoggerVersion" }
 
