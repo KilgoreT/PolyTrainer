@@ -4,7 +4,7 @@ import androidx.room.Embedded
 import androidx.room.Relation
 
 data class DefinitionWordSampleRel(
-    @Embedded val definitionDb: DefinitionDb,
+    @Embedded val lexemeDb: LexemeDb,
     @Relation(
         parentColumn = "wordId",
         entityColumn = "id"
@@ -12,7 +12,7 @@ data class DefinitionWordSampleRel(
     val wordDb: WordDb,
     @Relation(
         parentColumn = "id",
-        entityColumn = "definitionId"
+        entityColumn = "lexemeId"
     )
     val sampleDbList: List<SampleDb>,
 )

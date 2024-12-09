@@ -15,14 +15,23 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 configureKotlinAndroid(this)
                 compileSdk =
                     projectVersionCatalog.findVersion("compileSdk").get().toString().toInt()
+                defaultConfig {
+                    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+                }
             }
             dependencies {
-                add("testImplementation", testLibCatalog.findLibrary("junit").get())
+                add(
+                    "testImplementation",
+                    testLibCatalog.findLibrary("junit").get()
+                )
                 add(
                     "androidTestImplementation",
                     testLibCatalog.findLibrary("androidxTestExt").get()
                 )
-                add("androidTestImplementation", testLibCatalog.findLibrary("espressoCore").get())
+                add(
+                    "androidTestImplementation",
+                    testLibCatalog.findLibrary("espressoCore").get()
+                )
             }
         }
     }
