@@ -3,14 +3,15 @@ package me.apomazkin.polytrainer.di.module.vocabulary
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.dictionarytab.deps.VocabularyUseCase
+import me.apomazkin.dictionarytab.entity.DefinitionUiEntity
+import me.apomazkin.dictionarytab.entity.DictUiEntity
+import me.apomazkin.dictionarytab.entity.LexemeUiItem
+import me.apomazkin.dictionarytab.entity.TermUiItem
+import me.apomazkin.dictionarytab.entity.TranslationUiEntity
 import me.apomazkin.flags.FlagProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
-import me.apomazkin.vocabulary.deps.VocabularyUseCase
-import me.apomazkin.vocabulary.entity.DictUiEntity
-import me.apomazkin.vocabulary.entity.LexemeUiItem
-import me.apomazkin.vocabulary.entity.TermUiItem
-import me.apomazkin.vocabulary.entity.toLexemeLabel
 import javax.inject.Inject
 
 class VocabularyUseCaseImpl @Inject constructor(
@@ -67,26 +68,29 @@ class VocabularyUseCaseImpl @Inject constructor(
     override suspend fun getWordList(): List<TermUiItem> {
         return prefsProvider.getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT).let { numericCode ->
             dbApi.getLangSuspend()
-                .firstOrNull { it.numericCode == numericCode }?.id?.let {
-                    termApi.getTermList(it)
+                .firstOrNull { it.numericCode == numericCode }?.id?.let { langId: Long ->
+                    termApi.getTermList(langId)
                         .map { term ->
                             TermUiItem(
                                 id = term.word.id
                                     ?: throw IllegalStateException("Word id not found"),
-                                wordValue = term.word.value
-                                    ?: throw IllegalStateException("Word value not found"),
+                                wordValue = term.word.value,
                                 langId = term.word.langId,
-                                addDate = term.word.addDate
-                                    ?: throw IllegalStateException("Word addData not found"),
+                                addDate = term.word.addDate,
                                 changeDate = term.word.changeDate,
                                 lexemeList = term.lexemes.map { defMate ->
                                     LexemeUiItem(
                                         id = defMate.id,
-                                        wordId = defMate.wordId
-                                            ?: throw IllegalStateException("Word id not found"),
-                                        definition = "defMate.value",
-//                                        category = defMate.category.toLexemeLabel(),
-                                        category = "".toLexemeLabel(),
+                                        wordId = defMate.wordId,
+                                        translation = defMate.translation?.let {
+                                            TranslationUiEntity(
+                                                it.value
+                                            )
+                                        },
+                                        definition = defMate.definition?.let { DefinitionUiEntity(it.value) },
+                                        addDate = defMate.addDate,
+                                        changeDate = defMate.changeDate,
+                                        removeDate = defMate.removeDate,
                                     )
                                 }
                             )

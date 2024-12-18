@@ -58,7 +58,7 @@ dependencies {
     implementation(project("path" to ":modules:screen:splash"))
     implementation(project("path" to ":modules:screen:createdictionary"))
     implementation(project("path" to ":modules:screen:main"))
-    implementation(project("path" to ":modules:screen:vocabulary"))
+    implementation(project("path" to ":modules:screen:dictionaryTab"))
     implementation(project("path" to ":modules:screen:wordcard"))
 
     implementation(project("path" to ":modules:library:flags"))

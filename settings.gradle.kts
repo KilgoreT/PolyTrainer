@@ -17,13 +17,12 @@ include(":modules:core:tools")
 include(":modules:screen:splash")
 include(":modules:screen:createdictionary")
 include(":modules:screen:main")
-include(":modules:screen:vocabulary")
+include(":modules:screen:dictionaryTab")
 include(":modules:screen:wordcard")
 
 //Widget
 include(":modules:widget:iconDropDowned")
 include(":modules:widget:chipPicker")
-include(":modules:widget:coloredText")
 
 //Libraries
 include(":modules:library:flags")

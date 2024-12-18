@@ -35,6 +35,7 @@ val actionBarColor = Color(0xff19191B)
 val enableIconColor = Color(0xff252628)
 val disableButtonTitleColor = Color(0xffB5AEE1)
 val grayTextColor = Color(0xFF7B7E85)
+val translationBgColor = Color(0xFF938CD5)
 
 object LexemeColor {
     // brand

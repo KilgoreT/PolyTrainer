@@ -2,7 +2,6 @@ package me.apomazkin.wordcard.mate
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
-import me.apomazkin.chippicker.CategoryLabel
 import me.apomazkin.mate.EMPTY_STRING
 import java.util.Date
 
@@ -48,17 +47,7 @@ data class LexemeState(
     val translation: TextValueState? = null,
     val definition: TextValueState? = null,
     val isMenuOpen: Boolean = false,
-//    val category: CategoryState = CategoryState(),
 )
-
-@Stable
-data class CategoryState(
-    val origin: CategoryLabel = CategoryLabel.UNDEFINED,
-    val edited: CategoryLabel = origin,
-)
-
-fun CategoryState.toValue(isEdit: Boolean) = if (isEdit) edited else origin
-fun CategoryState.isChanged() = origin != edited
 
 @Stable
 data class TextValueState(
