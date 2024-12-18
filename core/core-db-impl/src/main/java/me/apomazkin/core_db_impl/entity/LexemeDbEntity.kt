@@ -17,7 +17,7 @@ data class LexemeDbEntity(
 
 fun LexemeDbEntity.toApiEntity() = LexemeApiEntity(
     id = lexemeDb.id ?: throw IllegalArgumentException("Lexeme id is null"),
-    wordId = lexemeDb.wordId,
+    wordId = lexemeDb.wordId ?: throw IllegalArgumentException("Word id is null"),
     translation = lexemeDb.translation?.let { TranslationApiEntity(it) },
     definition = lexemeDb.definition?.let { DefinitionApiEntity(it) },
     wordClass = lexemeDb.wordClass,

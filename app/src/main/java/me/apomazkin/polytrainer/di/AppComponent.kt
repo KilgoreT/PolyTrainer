@@ -6,6 +6,7 @@ import dagger.Component
 import dagger.Module
 import me.apomazkin.core_db_api.CoreDbProvider
 import me.apomazkin.createdictionary.CreateDictionaryUseCase
+import me.apomazkin.dictionarytab.deps.VocabularyUseCase
 import me.apomazkin.polytrainer.MainActivity
 import me.apomazkin.polytrainer.api.AppProvider
 import me.apomazkin.polytrainer.di.module.LoggerModule
@@ -17,7 +18,6 @@ import me.apomazkin.polytrainer.di.module.vocabulary.VocabularyModule
 import me.apomazkin.polytrainer.di.module.wordCard.WordCardModule
 import me.apomazkin.splash.SplashUseCase
 import me.apomazkin.ui.logger.LexemeLogger
-import me.apomazkin.vocabulary.deps.VocabularyUseCase
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import javax.inject.Singleton
 
