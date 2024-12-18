@@ -204,10 +204,10 @@ class MigrationFrom07to08 : BaseMigration() {
                         }
                     )
 
-                database.hasTable(tableName = Schema.Lexeme.tableName)
+                database.hasTable(tableName = Schema.LexemeV1.tableName)
                 database.hasColumns(
-                    tableName = Schema.Lexeme.tableName,
-                    columns = with(Schema.Lexeme) {
+                    tableName = Schema.LexemeV1.tableName,
+                    columns = with(Schema.LexemeV1) {
                         arrayOf(
                             columnId,
                             COLUMN_WORD_ID,
@@ -218,7 +218,7 @@ class MigrationFrom07to08 : BaseMigration() {
                         )
                     }
                 )
-                Schema.Lexeme
+                Schema.LexemeV1
                     .getFromDatabase(database)
                     .checkCount(DataProvider.lexemeDbList)
                     .checkItems(

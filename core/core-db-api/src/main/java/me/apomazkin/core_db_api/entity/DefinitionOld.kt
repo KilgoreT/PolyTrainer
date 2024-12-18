@@ -9,12 +9,12 @@ private const val TRANSITIVE_INDEX = 0 + VERB_OFFSET
 const val OPT_UNCOUNTABLE = 1L shl UNCOUNTABLE_INDEX
 const val OPT_TRANSITIVE = 1L shl TRANSITIVE_INDEX
 
-data class Definition(
+data class DefinitionOld(
     val id: Long? = null,
     val wordId: Long? = null,
     val value: String? = null,
     val wordClass: WordClass? = null,
-    val sampleList: List<Sample>? = null
+    val sampleList: List<SampleApiEntity>? = null
 )
 
 enum class Grade {

@@ -47,6 +47,7 @@ data class LexemeState(
     val id: Long = NOT_IN_DB,
     val translation: TextValueState? = null,
     val definition: TextValueState? = null,
+    val isMenuOpen: Boolean = false,
 //    val category: CategoryState = CategoryState(),
 )
 

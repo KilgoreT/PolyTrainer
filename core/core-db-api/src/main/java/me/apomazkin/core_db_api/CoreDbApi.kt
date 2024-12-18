@@ -4,14 +4,15 @@ import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Single
 import kotlinx.coroutines.flow.Flow
-import me.apomazkin.core_db_api.entity.Definition
+import me.apomazkin.core_db_api.entity.DefinitionApiEntity
 import me.apomazkin.core_db_api.entity.Dump
 import me.apomazkin.core_db_api.entity.Hint
 import me.apomazkin.core_db_api.entity.Language
-import me.apomazkin.core_db_api.entity.Sample
-import me.apomazkin.core_db_api.entity.Term
-import me.apomazkin.core_db_api.entity.TermMate
-import me.apomazkin.core_db_api.entity.Word
+import me.apomazkin.core_db_api.entity.LexemeApiEntity
+import me.apomazkin.core_db_api.entity.SampleApiEntity
+import me.apomazkin.core_db_api.entity.TermApiEntity
+import me.apomazkin.core_db_api.entity.TranslationApiEntity
+import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuiz
 
 interface CoreDbApi {
@@ -27,13 +28,31 @@ interface CoreDbApi {
      * Term = Word + Lexeme(s)
      */
 
-    //New API
+    /**
+     * xxx -> xxxApiEntity -> xxxDb
+     */
 
+    interface TermApi {
+        suspend fun getTermList(langId: Long): List<TermApiEntity>
+        suspend fun searchTerms(pattern: String, langId: Long): List<TermApiEntity>
+        suspend fun getTermById(id: Long): TermApiEntity?
+    }
+
+    interface LexemeApi {
+        suspend fun getLexemeById(id: Long): LexemeApiEntity?
+        suspend fun addLexeme(wordId: Long): Long
+        suspend fun addLexeme(wordId: Long, translation: TranslationApiEntity): Long
+        suspend fun addLexeme(wordId: Long, definition: DefinitionApiEntity): Long
+        suspend fun updateLexemeTranslation(id: Long, translation: TranslationApiEntity?): Long?
+        suspend fun updateLexemeDefinition(id: Long, definition: DefinitionApiEntity?): Long?
+        suspend fun deleteLexeme(id: Long): Int
+    }
+
+    //New API
     suspend fun getLangSuspend(): List<Language>
     fun flowLang(): Flow<List<Language>>
 
-    suspend fun getTermList(langId: Long): List<TermMate>
-    suspend fun getTermById(id: Long): TermMate
+    suspend fun getTermList(langId: Long): List<TermApiEntity>
 
     fun addWordSuspend(value: String, langId: Long): Long
     suspend fun deleteWordSuspend(id: Long): Int
@@ -47,31 +66,15 @@ interface CoreDbApi {
         definition: String
     ): Int
 
-    suspend fun updateLexemeDefinition(definitionId: Long, value: String): Int
-    suspend fun updateLexemeCategory(lexemeId: Long, category: String): Int
-
-    suspend fun deleteLexemeSuspend(vararg id: Long): Int
-
-
     // Old API
     fun getLang(): Single<List<Language>>
     suspend fun addLangSuspend(numericCode: Int, name: String): Long
 
     fun addWord(value: String, langId: Long): Completable
-    fun getWord(id: Long): Single<Word>
-    fun getAllWord(): Single<List<Word>>
-    fun updateWord(word: Word): Completable
+    fun getWord(id: Long): Single<WordApiEntity>
+    fun getAllWord(): Single<List<WordApiEntity>>
+    fun updateWord(wordApiEntity: WordApiEntity): Completable
     fun removeWord(id: Long): Completable
-
-    fun addDefinition(definition: Definition, langId: Long): Completable
-    fun getDefinitionAll(): Single<List<Definition>>
-    fun getDefinition(id: Long): Single<Definition>
-    fun getDefinitionListByWordId(wordId: Long): Single<List<Definition>>
-    fun updateLexemeDefinition(definition: Definition): Completable
-    fun removeDefinition(vararg id: Long): Completable
-
-    fun getTermList(): Observable<List<Term>>
-    fun searchTermList(pattern: String, langId: Long): Observable<List<Term>>
 
     fun wordCount(langId: Long): Single<Int>
     fun getDefinitionCount(): Single<Int>
@@ -92,8 +95,8 @@ interface CoreDbApi {
     fun updateHint(hint: Hint): Completable
 
     fun addSample(definitionId: Long, value: String, source: String?): Completable
-    fun getSampleList(definitionId: Long): Single<List<Sample>>
-    fun getSampleList(): Observable<List<Sample>>
+    fun getSampleList(definitionId: Long): Single<List<SampleApiEntity>>
+    fun getSampleList(): Observable<List<SampleApiEntity>>
 
     fun getDump(): Single<Dump>
     fun restoreDump(dump: Dump)

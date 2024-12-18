@@ -3,7 +3,7 @@ package me.apomazkin.core_db_impl.mapper
 import me.apomazkin.core_db_api.entity.Language
 import me.apomazkin.core_db_impl.entity.LanguageDb
 
-fun LanguageDb.toAppEntity() = Language(
+fun LanguageDb.toApiEntity() = Language(
     id = this.id,
     numericCode = this.numericCode,
     code = this.code,
@@ -12,7 +12,7 @@ fun LanguageDb.toAppEntity() = Language(
     changeDate = this.changeDate,
 )
 
-fun List<LanguageDb>.toAppEntity() = this.map { it.toAppEntity() }
+fun List<LanguageDb>.toApiEntity() = this.map { it.toApiEntity() }
 
 fun Language.toDbEntity() = LanguageDb(
     id = this.id,

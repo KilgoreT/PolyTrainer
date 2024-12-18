@@ -8,8 +8,7 @@ import me.apomazkin.core_db_api.entity.Adjective.Order.AFTER_NOUN
 import me.apomazkin.core_db_api.entity.Adjective.Order.AFTER_VERB
 import me.apomazkin.core_db_api.entity.Adjective.Order.BEFORE_NOUN
 import me.apomazkin.core_db_api.entity.Adverb
-import me.apomazkin.core_db_api.entity.Definition
-import me.apomazkin.core_db_api.entity.DefinitionMate
+import me.apomazkin.core_db_api.entity.DefinitionOld
 import me.apomazkin.core_db_api.entity.Grade
 import me.apomazkin.core_db_api.entity.Grade.A1
 import me.apomazkin.core_db_api.entity.Grade.A2
@@ -27,8 +26,8 @@ import me.apomazkin.core_db_api.entity.Verb
 import me.apomazkin.core_db_api.entity.Verb.Transitivity.INTRANSITIVE
 import me.apomazkin.core_db_api.entity.Verb.Transitivity.TRANSITIVE
 import me.apomazkin.core_db_api.entity.WordClass
-import me.apomazkin.core_db_impl.entity.DefinitionSampleRel
 import me.apomazkin.core_db_impl.entity.LexemeDb
+import me.apomazkin.core_db_impl.entity.LexemeDbEntity
 
 private const val NOUN = "noun"
 private const val VERB = "verb"
@@ -64,23 +63,23 @@ private val COMPARATIVE_INDEX = 1L shl (ADJ_ORDER_OFFSET + COMPARATIVE.ordinal)
 private val SUPERLATIVE_INDEX = 1L shl (ADJ_ORDER_OFFSET + SUPERLATIVE.ordinal)
 private val NOT_GRADABLE_INDEX = 1L shl (ADJ_ORDER_OFFSET + NOT_GRADABLE.ordinal)
 
-fun DefinitionSampleRel.toAppEntity() = Definition(
-    id = lexemeDb.id ?: 0,
-    wordId = lexemeDb.wordId,
-    value = lexemeDb.definition,
-    wordClass = lexemeDb.toWordClass(),
-    sampleList = sampleDbList.map { item -> item.toAppEntity() }
-)
+//fun LexemeDbEntity.toApiEntity() = DefinitionOld(
+//    id = lexemeDb.id ?: 0,
+//    wordId = lexemeDb.wordId,
+//    value = lexemeDb.definition,
+//    wordClass = lexemeDb.toWordClass(),
+//    sampleList = sampleDbList.map { item -> item.toApiEntity() }
+//)
 
-fun DefinitionSampleRel.toMateApp() = DefinitionMate(
+fun LexemeDbEntity.toMateApp() = DefinitionOld(
     id = lexemeDb.id ?: throw IllegalArgumentException("Id not found."),
     wordId = lexemeDb.wordId ?: throw IllegalArgumentException("WordId not found."),
     value = lexemeDb.definition ?: "Empty value",
-    category = lexemeDb.wordClass ?: throw IllegalArgumentException("WordClass not found."),
+//    category = lexemeDb.wordClass ?: throw IllegalArgumentException("WordClass not found."),
 )
 
-fun List<DefinitionSampleRel>.toAppEntity() = this.map { item -> item.toAppEntity() }
-fun List<DefinitionSampleRel>.toMateApp() = this.map { item -> item.toMateApp() }
+//fun List<LexemeDbEntity>.toApiEntity() = this.map { item -> item.toApiEntity() }
+//fun List<LexemeDbEntity>.toMateApp() = this.map { item -> item.toMateApp() }
 
 fun LexemeDb.toWordClass(): WordClass? {
     return when (wordClass) {

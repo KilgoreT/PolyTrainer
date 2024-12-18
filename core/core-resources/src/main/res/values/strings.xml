@@ -88,5 +88,8 @@
     <string name="word_card_bottom_definition">Definition</string>
     <string name="word_card_bottom_title_append">Add</string>
     <string name="word_card_lexeme_order_title">Value %d</string>
+    <string name="word_card_lexeme_delete">Delete value</string>
+    <string name="word_card_lexeme_add_translation">Add translation</string>
+    <string name="word_card_lexeme_add_definition">Add definition</string>
 
 </resources>

@@ -3,9 +3,9 @@ package me.apomazkin.wordcard.mate
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
-import me.apomazkin.tools.insertToBegin
+import me.apomazkin.tools.insertToEnd
 import me.apomazkin.tools.modifyFiltered
-import me.apomazkin.tools.modifyFilteredOrFirst
+import me.apomazkin.wordcard.entity.Lexeme
 import me.apomazkin.wordcard.entity.Term
 
 class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
@@ -13,29 +13,45 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         return when (message) {
             is Msg.TermLoading -> onTermLoading(state)
             is Msg.TermLoaded -> onTermLoaded(state, message.term)
+            is Msg.TermNotLoaded -> TODO("TermNotLoaded is not implemented")
+
             is Msg.ShowDropdownMenu -> onChangeDropdownMenu(state = state, isShow = true)
             is Msg.HideDropdownMenu -> onChangeDropdownMenu(state = state, isShow = false)
             is Msg.ShowDeleteWordDialog -> onShowDeleteWordDialog(state)
             is Msg.HideDeleteWordDialog -> onCloseDeleteWordDialog(state)
             is Msg.DeleteWord -> onWordDelete(state, message.wordId)
-            is Msg.ChangeWordValue -> onChangeWordValue(state, message.value)
+
             is Msg.OpenEditWord -> onOpenEditWord(state)
+            is Msg.ChangeWordValue -> onChangeWordValue(state, message.value)
             is Msg.CloseEditWord -> onCloseEditWord(state)
             is Msg.SaveWordValue -> onSaveWord(state)
-            is Msg.ShowAddLexemeBottom -> onShowAddLexemeBottom(state = state, isShow = true)
-            is Msg.HideAddLexemeBottom -> onShowAddLexemeBottom(state = state, isShow = false)
-            is Msg.AddLexemeBottomDefinition -> onAddLexemeBottomDefinition(
+
+            is Msg.ShowAddLexemeBottom -> onShowAddLexemeBottom(
                 state = state,
-                isAdded = message.isAdded
+                isShow = true
             )
 
+            is Msg.HideAddLexemeBottom -> onShowAddLexemeBottom(state = state, isShow = false)
             is Msg.AddLexemeBottomTranslation -> onAddLexemeBottomTranslation(
                 state = state,
                 isAdded = message.isAdded
             )
 
+            is Msg.AddLexemeBottomDefinition -> onAddLexemeBottomDefinition(
+                state = state,
+                isAdded = message.isAdded
+            )
+
             is Msg.AddLexeme -> onAddLexeme(state)
-            is Msg.TranslationOpenEdit -> onTranslationOpenEdit(
+            is Msg.LexemeUpdate -> onUpdateLexeme(state, message.lexeme)
+            is Msg.DeleteLexeme -> onDeleteLexeme(state, message.lexemeId)
+            is Msg.ShowLexemeDropDown -> onShowLexemeDropDown(
+                state = state,
+                lexemeId = message.lexemeId,
+                isShow = message.isShow
+            )
+
+            is Msg.AppendTranslation -> onAppendTranslation(
                 state = state,
                 lexemeId = message.lexemeId
             )
@@ -46,12 +62,27 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 value = message.value
             )
 
-            is Msg.TranslationCloseEdit -> onTranslationCloseEdit(
+            is Msg.TranslationOpenEdit -> onTranslationOpenEdit(
                 state = state,
                 lexemeId = message.lexemeId
             )
 
-            is Msg.DefinitionOpenEdit -> onDefinitionOpenEdit(
+            is Msg.TranslationEndEdit -> onTranslationEndEdit(
+                state = state,
+                lexemeId = message.lexemeId
+            )
+
+            is Msg.TranslationUpdate -> onTranslationRefresh(
+                state = state,
+                lexeme = message.lexeme
+            )
+
+            is Msg.DeleteTranslation -> onTranslationDelete(
+                state = state,
+                lexemeId = message.lexemeId
+            )
+
+            is Msg.AppendDefinition -> onAppendDefinition(
                 state = state,
                 lexemeId = message.lexemeId
             )
@@ -62,136 +93,30 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 value = message.value
             )
 
-            is Msg.DefinitionCloseEdit -> onDefinitionCloseEdit(
+            is Msg.DefinitionOpenEdit -> onDefinitionOpenEdit(
                 state = state,
                 lexemeId = message.lexemeId
             )
 
-            is Msg.ResetLexeme -> onResetLexeme(state, message.lexemeId)
-            is Msg.EditLexeme -> onEditLexeme(state, message.lexemeId)
-            is Msg.DeleteLexeme -> onDeleteLexeme(state, message.lexemeId)
-//            is Msg.LexicalCategoryChange -> onLexicalCategoryChange(state, message.lexemeId, message.category)
-//            is Msg.LexicalCategoryReset -> onResetLexemeCategory(state, message.lexemeId)
-//            is Msg.DefinitionChange -> onDefinitionChange(state, message.lexemeId, message.value)
-//            is Msg.SaveLexeme -> onSaveLexeme(state, message.lexemeId)
+            is Msg.DefinitionEndEdit -> onDefinitionEndEdit(
+                state = state,
+                lexemeId = message.lexemeId
+            )
+
+            is Msg.DefinitionUpdate -> onDefinitionRefresh(
+                state = state,
+                lexeme = message.lexeme
+            )
+
+            is Msg.DeleteDefinition -> onDefinitionDelete(
+                state = state,
+                lexemeId = message.lexemeId
+            )
+
             is Msg.CloseScreen -> onCloseScreen(state)
             is UiMsg.Snackbar -> onShowSnackbar(state, message.text, message.show)
             is Msg.Empty -> state to setOf()
         }
-    }
-
-    private fun onTranslationOpenEdit(
-        state: WordCardState,
-        lexemeId: Long
-    ): ReducerResult<WordCardState, Effect> {
-        return state.copy(
-            lexemeList = state.lexemeList.modifyFiltered(
-                predicate = { it.id == lexemeId },
-                action = {
-                    it.copy(
-                        translation = it.translation?.copy(
-                            isEdit = true
-                        )
-                    )
-                }
-            )
-        ) to setOf()
-    }
-
-    private fun onDefinitionOpenEdit(
-        state: WordCardState,
-        lexemeId: Long
-    ): ReducerResult<WordCardState, Effect> {
-        return state.copy(
-            lexemeList = state.lexemeList.modifyFiltered(
-                predicate = { it.id == lexemeId },
-                action = {
-                    it.copy(
-                        definition = it.definition?.copy(
-                            isEdit = true
-                        )
-                    )
-                }
-            )
-        ) to setOf()
-    }
-
-    private fun onTranslationCloseEdit(
-        state: WordCardState,
-        lexemeId: Long
-    ): ReducerResult<WordCardState, Effect> = state to setOf(
-//        DatasourceEffect.SaveLexeme(
-//            lexemeId = lexemeId,
-//            value = state.lexemeList.first { it.id == lexemeId }.translation?.edited ?: ""
-//        )
-    )
-
-    private fun onTranslationSave(
-        state: WordCardState,
-        lexemeId: Long
-    ): ReducerResult<WordCardState, Effect> {
-        return state.copy(
-            lexemeList = state.lexemeList.modifyFiltered(
-                predicate = { it.id == lexemeId },
-                action = {
-                    it.copy(
-                        translation = it.translation?.copy(
-                            isEdit = false,
-                            origin = it.translation.edited
-                        )
-                    )
-                }
-            )
-        ) to setOf()
-    }
-
-    private fun onDefinitionCloseEdit(
-        state: WordCardState,
-        lexemeId: Long
-    ): ReducerResult<WordCardState, Effect> {
-        return state.copy(
-            lexemeList = state.lexemeList.modifyFiltered(
-                predicate = { it.id == lexemeId },
-                action = {
-                    it.copy(
-                        definition = it.definition?.copy(
-                            isEdit = false,
-                            origin = it.definition.edited
-                        )
-                    )
-                }
-            )
-        ) to setOf()
-    }
-
-    private fun onTranslationTextChange(
-        state: WordCardState,
-        lexemeId: Long,
-        value: String
-    ): ReducerResult<WordCardState, Effect> {
-        return state.copy(
-            lexemeList = state.lexemeList.modifyFiltered(
-                predicate = { it.id == lexemeId },
-                action = {
-                    it.copy(translation = it.translation?.copy(edited = value))
-                }
-            )
-        ) to setOf()
-    }
-
-    private fun onDefinitionTextChange(
-        state: WordCardState,
-        lexemeId: Long,
-        value: String
-    ): ReducerResult<WordCardState, Effect> {
-        return state.copy(
-            lexemeList = state.lexemeList.modifyFiltered(
-                predicate = { it.id == lexemeId },
-                action = {
-                    it.copy(definition = it.definition?.copy(edited = value))
-                }
-            )
-        ) to setOf()
     }
 
     private fun onTermLoading(
@@ -208,13 +133,23 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         wordState = WordState(
             id = term.wordId.id,
             value = term.word.value,
-            added = term.added,
+            added = term.addedDate,
         ),
-        lexemeList = term.lexemeList.map {
+        lexemeList = term.lexemeList.map { lexeme: Lexeme ->
             LexemeState(
-                id = it.lexemeId.id,
-//                category = CategoryState(origin = it.category.toCategoryLabel()),
-//                definition = DefinitionState(origin = it.definition)
+                id = lexeme.lexemeId.id,
+                translation = lexeme.translation?.let { translation ->
+                    TextValueState(
+                        origin = translation.value,
+                        isEdit = false,
+                    )
+                },
+                definition = lexeme.definition?.let { definition ->
+                    TextValueState(
+                        origin = definition.value,
+                        isEdit = false,
+                    )
+                }
             )
         }
     ) to setOf()
@@ -253,13 +188,6 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         DatasourceEffect.DeleteWord(wordId)
     )
 
-    private fun onChangeWordValue(
-        state: WordCardState,
-        value: String
-    ): ReducerResult<WordCardState, Effect> = state.copy(
-        wordState = state.wordState.copy(edited = value)
-    ) to setOf()
-
     private fun onOpenEditWord(
         state: WordCardState,
     ): ReducerResult<WordCardState, Effect> = state.copy(
@@ -268,6 +196,14 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             isEditMode = true
         )
     ) to setOf()
+
+    private fun onChangeWordValue(
+        state: WordCardState,
+        value: String
+    ): ReducerResult<WordCardState, Effect> = state.copy(
+        wordState = state.wordState.copy(edited = value)
+    ) to setOf()
+
 
     private fun onCloseEditWord(
         state: WordCardState,
@@ -281,11 +217,13 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         state: WordCardState
     ): ReducerResult<WordCardState, Effect> = state.copy(
         wordState = state.wordState.copy(
-//            isEdit = false,
             value = state.wordState.edited,
         )
     ) to setOf(
-        DatasourceEffect.SaveWord(wordId = state.wordState.id, value = state.wordState.edited)
+        DatasourceEffect.SaveWord(
+            wordId = state.wordState.id,
+            value = state.wordState.edited,
+        )
     )
 
     private fun onShowAddLexemeBottom(
@@ -300,13 +238,6 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             )
     ) to setOf()
 
-    private fun onAddLexemeBottomDefinition(
-        state: WordCardState,
-        isAdded: Boolean
-    ): ReducerResult<WordCardState, Effect> = state.copy(
-        addLexemeBottomState = state.addLexemeBottomState.copy(isDefinitionCheck = isAdded)
-    ) to setOf()
-
     private fun onAddLexemeBottomTranslation(
         state: WordCardState,
         isAdded: Boolean
@@ -314,22 +245,41 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         addLexemeBottomState = state.addLexemeBottomState.copy(isTranslationCheck = isAdded)
     ) to setOf()
 
+    private fun onAddLexemeBottomDefinition(
+        state: WordCardState,
+        isAdded: Boolean
+    ): ReducerResult<WordCardState, Effect> = state.copy(
+        addLexemeBottomState = state.addLexemeBottomState.copy(isDefinitionCheck = isAdded)
+    ) to setOf()
+
     private fun onAddLexeme(
         state: WordCardState
+    ): ReducerResult<WordCardState, Effect> = state to setOf(
+        DatasourceEffect.AddLexeme(
+            wordId = state.wordState.id,
+        )
+    )
+
+    private fun onUpdateLexeme(
+        state: WordCardState,
+        lexeme: Lexeme
     ): ReducerResult<WordCardState, Effect> = state.copy(
         lexemeList = state.lexemeList
-            .insertToBegin(
+            .insertToEnd(
                 LexemeState(
+                    id = lexeme.lexemeId.id,
                     translation = if (state.addLexemeBottomState.isTranslationCheck) {
                         TextValueState(
-                            origin = "Перевод"
+                            origin = "",
+                            isEdit = false,
                         )
                     } else {
                         null
                     },
                     definition = if (state.addLexemeBottomState.isDefinitionCheck) {
                         TextValueState(
-                            origin = "Определение"
+                            origin = "",
+                            isEdit = false,
                         )
                     } else {
                         null
@@ -343,92 +293,133 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         )
     ) to setOf()
 
-    private fun onResetLexeme(
-        state: WordCardState,
-        lexemeId: Long
-    ): ReducerResult<WordCardState, Effect> {
-        return if (lexemeId == NOT_IN_DB) {
-            state.copy(
-                lexemeList = state.lexemeList.filter { it.id != lexemeId }
-            ) to setOf()
-        } else {
-            state.copy(
-                lexemeList = state.lexemeList.modifyFiltered(
-                    predicate = { it.id == lexemeId },
-                    action = {
-                        it.copy(
-                            definition = it.definition?.copy(
-                                isEdit = false,
-                                edited = it.definition.origin
-                            ),
-//                            category = it.category.copy(edited = it.category.origin)
-                        )
-                    }
-                )
-            ) to setOf()
-        }
-    }
-
-    private fun onEditLexeme(
-        state: WordCardState,
-        lexemeId: Long?
-    ): ReducerResult<WordCardState, Effect> = state.copy(
-        lexemeList = state.lexemeList.modifyFilteredOrFirst(
-            predicate = { it.id == lexemeId },
-            action = {
-//                it.copy(isEdit = true)
-                it
-            }
-        )
-    ) to setOf()
-
     private fun onDeleteLexeme(
         state: WordCardState,
         lexemeId: Long
     ): ReducerResult<WordCardState, Effect> =
         state to setOf(DatasourceEffect.DeleteLexeme(lexemeId))
 
-//    private fun onLexicalCategoryChange(
-//        state: WordCardState,
-//        lexemeId: Long,
-//        category: CategoryLabel,
-//    ): ReducerResult<WordCardState, Effect> = state
-//        .copy(
-//            lexemeList = state.lexemeList.modifyFilteredOrFirst(
-//                predicate = { it.id == lexemeId },
-//                action = {
-//                    it.copy(
-//                        category = it.category.copy(
-//                            edited = category,
-//                        )
-//                    )
-//                }
-//            )
-//        ) to setOf()
+    private fun onShowLexemeDropDown(
+        state: WordCardState,
+        lexemeId: Long,
+        isShow: Boolean
+    ): ReducerResult<WordCardState, Effect> = state.copy(
+        lexemeList = state.lexemeList.modifyFiltered(
+            predicate = { it.id == lexemeId },
+            action = {
+                it.copy(isMenuOpen = isShow)
+            }
+        )
+    ) to setOf()
 
-//    private fun onResetLexemeCategory(
-//        state: WordCardState,
-//        lexemeId: Long?,
-//    ): ReducerResult<WordCardState, Effect> = state
-//        .copy(
-//            lexemeList = state.lexemeList.modifyFilteredOrFirst(
-//                predicate = { it.id == lexemeId },
-//                action = {
-//                    it.copy(
-//                        category = it.category.copy(
-//                            edited = CategoryLabel.UNDEFINED
-//                        )
-//                    )
-//                }
-//            )
-//        ) to setOf()
+    private fun onAppendTranslation(
+        state: WordCardState,
+        lexemeId: Long
+    ): ReducerResult<WordCardState, Effect> = state.copy(
+        lexemeList = state.lexemeList.modifyFiltered(
+            predicate = { it.id == lexemeId },
+            action = {
+                it.copy(
+                    translation = TextValueState(
+                        origin = "",
+                        isEdit = true
+                    )
+                )
+            }
+        )
+    ) to setOf()
 
-    private fun onDefinitionChange(
+    private fun onTranslationTextChange(
         state: WordCardState,
         lexemeId: Long,
         value: String
-    ): ReducerResult<WordCardState, Effect> = state
-        .copy(
+    ): ReducerResult<WordCardState, Effect> {
+        return state.copy(
+            lexemeList = state.lexemeList.modifyFiltered(
+                predicate = { it.id == lexemeId },
+                action = {
+                    it.copy(translation = it.translation?.copy(edited = value))
+                }
+            )
+        ) to setOf()
+    }
+
+    private fun onTranslationOpenEdit(
+        state: WordCardState,
+        lexemeId: Long
+    ): ReducerResult<WordCardState, Effect> {
+        return state.copy(
+            lexemeList = state.lexemeList.modifyFiltered(
+                predicate = { it.id == lexemeId },
+                action = {
+                    it.copy(
+                        translation = it.translation?.copy(
+                            isEdit = true
+                        )
+                    )
+                }
+            )
+        ) to setOf()
+    }
+
+    private fun onTranslationEndEdit(
+        state: WordCardState,
+        lexemeId: Long
+    ): ReducerResult<WordCardState, Effect> = state to setOf(
+        DatasourceEffect.SaveLexemeTranslation(
+            wordId = state.wordState.id,
+            lexemeId = lexemeId,
+            translation = state.lexemeList.first { it.id == lexemeId }.translation?.edited ?: ""
+        )
+    )
+
+    private fun onTranslationRefresh(
+        state: WordCardState,
+        lexeme: Lexeme
+    ): ReducerResult<WordCardState, Effect> = state.copy(
+        lexemeList = state.lexemeList.modifyFiltered(
+            predicate = { it.id == lexeme.lexemeId.id },
+            action = {
+                it.copy(
+                    translation = it.translation?.copy(
+                        origin = lexeme.translation?.value ?: "",
+                        isEdit = false
+                    )
+                )
+            }
+        )
+    ) to setOf()
+
+    private fun onTranslationDelete(
+        state: WordCardState,
+        lexemeId: Long
+    ): ReducerResult<WordCardState, Effect> = state to setOf(
+        DatasourceEffect.DeleteTranslation(lexemeId)
+    )
+
+    private fun onAppendDefinition(
+        state: WordCardState,
+        lexemeId: Long
+    ): ReducerResult<WordCardState, Effect> = state.copy(
+        lexemeList = state.lexemeList.modifyFiltered(
+            predicate = { it.id == lexemeId },
+            action = {
+                it.copy(
+                    definition = TextValueState(
+                        origin = "",
+                        isEdit = true
+                    )
+                )
+            }
+        )
+    ) to setOf()
+
+    private fun onDefinitionTextChange(
+        state: WordCardState,
+        lexemeId: Long,
+        value: String
+    ): ReducerResult<WordCardState, Effect> {
+        return state.copy(
             lexemeList = state.lexemeList.modifyFiltered(
                 predicate = { it.id == lexemeId },
                 action = {
@@ -436,51 +427,60 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 }
             )
         ) to setOf()
+    }
 
-//    private fun onSaveLexeme(
-//        state: WordCardState,
-//        lexemeId: Long
-//    ): ReducerResult<WordCardState, Effect> {
-//
-//        val effectList = mutableListOf<DatasourceEffect>()
-//        val currentLexeme = state.lexemeList.first { it.id == lexemeId }
-//        if (lexemeId == NOT_IN_DB) {
-//            effectList.add(
-//                DatasourceEffect.SaveLexeme(
-//                    wordId = state.wordState.id,
-//                    category = currentLexeme.category,
-//                    definition = currentLexeme.definition.edited,
-//                )
-//            )
-//        } else {
-//            currentLexeme.also {
-//                if (it.category.isChanged()) {
-//                    effectList.add(
-//                        DatasourceEffect.ChangeLexicalCategory(
-//                            lexemeId,
-//                            it.category.edited
-//                        )
-//                    )
-//                }
-//                if (it.definition.isChanged()) {
-//                    effectList.add(
-//                        DatasourceEffect.ChangeDefinition(
-//                            lexemeId,
-//                            it.definition.edited
-//                        )
-//                    )
-//                }
-//            }
-//        }
-//
-//        return state.copy(
-//            canAddLexeme = true,
-//            lexemeList = state.lexemeList.modifyFilteredOrFirst(
-//                predicate = { it.id == lexemeId },
-//                action = { it.copy(isEdit = false) }
-//            ).filter { it.id != NOT_IN_DB }
-//        ) to effectList.toList().toSet()
-//    }
+    private fun onDefinitionOpenEdit(
+        state: WordCardState,
+        lexemeId: Long
+    ): ReducerResult<WordCardState, Effect> {
+        return state.copy(
+            lexemeList = state.lexemeList.modifyFiltered(
+                predicate = { it.id == lexemeId },
+                action = {
+                    it.copy(
+                        definition = it.definition?.copy(
+                            isEdit = true
+                        )
+                    )
+                }
+            )
+        ) to setOf()
+    }
+
+    private fun onDefinitionEndEdit(
+        state: WordCardState,
+        lexemeId: Long
+    ): ReducerResult<WordCardState, Effect> = state to setOf(
+        DatasourceEffect.SaveLexemeDefinition(
+            wordId = state.wordState.id,
+            lexemeId = lexemeId,
+            definition = state.lexemeList.first { it.id == lexemeId }.definition?.edited ?: ""
+        )
+    )
+
+    private fun onDefinitionRefresh(
+        state: WordCardState,
+        lexeme: Lexeme
+    ): ReducerResult<WordCardState, Effect> = state.copy(
+        lexemeList = state.lexemeList.modifyFiltered(
+            predicate = { it.id == lexeme.lexemeId.id },
+            action = {
+                it.copy(
+                    definition = it.definition?.copy(
+                        origin = lexeme.definition?.value ?: "",
+                        isEdit = false
+                    )
+                )
+            }
+        )
+    ) to setOf()
+
+    private fun onDefinitionDelete(
+        state: WordCardState,
+        lexemeId: Long
+    ): ReducerResult<WordCardState, Effect> = state to setOf(
+        DatasourceEffect.DeleteDefinition(lexemeId)
+    )
 
     private fun onCloseScreen(
         state: WordCardState

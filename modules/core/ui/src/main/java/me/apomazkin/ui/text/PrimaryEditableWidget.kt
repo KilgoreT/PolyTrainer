@@ -44,14 +44,12 @@ fun PrimaryEditableWidget(
             modifier = Modifier,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            if (!isEditMode) {
-                Text(
-                    modifier = Modifier,
-                    text = stringResource(id = titleRes),
-                    style = LexemeStyle.BodyS,
-                    color = grayTextColor,
-                )
-            }
+            Text(
+                modifier = Modifier,
+                text = stringResource(id = titleRes),
+                style = LexemeStyle.BodyS,
+                color = grayTextColor,
+            )
             LexemeEditableText(
                 originValue = originValue,
                 changedValue = changedValue,
