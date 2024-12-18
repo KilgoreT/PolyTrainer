@@ -1,9 +1,19 @@
 package me.apomazkin.core_db_impl.mapper
 
-import me.apomazkin.core_db_api.entity.Word
+import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_impl.entity.WordDb
 
-fun WordDb.toAppEntity() = Word(
+fun WordDb.toApiEntity() = WordApiEntity(
+    id = this.id,
+    langId = this.langId,
+    value = this.value ?: throw IllegalArgumentException("WordDb value is null"),
+    addDate = this.addDate ?: throw IllegalArgumentException("WordDb addDate is null"),
+    changeDate = this.changeDate,
+)
+
+fun List<WordDb>.toApiEntity() = this.map { it.toApiEntity() }
+
+fun WordApiEntity.toDbEntity() = WordDb(
     id = this.id,
     langId = this.langId,
     value = this.value,
@@ -11,14 +21,4 @@ fun WordDb.toAppEntity() = Word(
     changeDate = this.changeDate,
 )
 
-fun List<WordDb>.toAppEntity() = this.map { it.toAppEntity() }
-
-fun Word.toDbEntity() = WordDb(
-    id = this.id,
-    langId = this.langId,
-    value = this.value,
-    addDate = this.addDate,
-    changeDate = this.changeDate,
-)
-
-fun List<Word>.toDbEntity() = this.map { it.toDbEntity() }
+fun List<WordApiEntity>.toDbEntity() = this.map { it.toDbEntity() }

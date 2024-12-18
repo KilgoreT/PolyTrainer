@@ -61,28 +61,32 @@ class DataProvider {
                 wordId = 0L,
                 definition = "Definition Example 0",
                 wordClass = "Word Class 0",
-                options = 0L
+                options = 0L,
+                addDate = Date(0)
             ),
             LexemeDb(
                 id = 1L,
                 wordId = 1L,
                 definition = "Definition Example 1",
                 wordClass = "Word Class 1",
-                options = 0L
+                options = 0L,
+                addDate = Date(0)
             ),
             LexemeDb(
                 id = 2L,
                 wordId = 2L,
                 definition = "Definition Example 2",
                 wordClass = "Word Class 2",
-                options = 0L
+                options = 0L,
+                addDate = Date(0)
             ),
             LexemeDb(
                 id = 3L,
                 wordId = 2L,
                 definition = "Definition Example 3",
                 wordClass = "Word Class 3",
-                options = 0L
+                options = 0L,
+                addDate = Date(0)
             ),
         )
 

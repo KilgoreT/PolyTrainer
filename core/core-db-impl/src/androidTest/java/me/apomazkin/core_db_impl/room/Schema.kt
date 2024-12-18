@@ -277,7 +277,8 @@ object Schema {
                             wordId = wordId,
                             definition = definition,
                             wordClass = wordClass,
-                            options = options
+                            options = options,
+                            addDate = Date(0),
                         )
                     )
                 } while (cursorDefinition.moveToNext())
@@ -293,49 +294,102 @@ object Schema {
         const val COLUMN_DEFINITION = "definition"
         const val COLUMN_WORD_CLASS = "wordClass"
         const val COLUMN_OPTIONS = "options"
+        const val COLUMN_ADD_DATE = "addDate"
+        const val COLUMN_CHANGE_DATE = "changeDate"
+        const val COLUMN_REMOVE_DATE = "removeDate"
+
 
         override fun asContentValue(list: List<LexemeDb>): List<ContentValues> =
-            list.map { definition ->
+            list.map { lexemeDb ->
                 ContentValues().apply {
-                    put(columnId, definition.id)
-                    put(COLUMN_WORD_ID, definition.wordId)
-                    put(COLUMN_TRANSLATION, definition.translation)
-                    put(COLUMN_DEFINITION, definition.definition)
-                    put(COLUMN_WORD_CLASS, definition.wordClass)
-                    put(COLUMN_OPTIONS, definition.options)
+                    put(columnId, lexemeDb.id)
+                    put(COLUMN_WORD_ID, lexemeDb.wordId)
+                    put(COLUMN_TRANSLATION, lexemeDb.translation)
+                    put(COLUMN_DEFINITION, lexemeDb.definition)
+                    put(COLUMN_WORD_CLASS, lexemeDb.wordClass)
+                    put(COLUMN_OPTIONS, lexemeDb.options)
+                    put(COLUMN_ADD_DATE, lexemeDb.addDate.time)
+                    lexemeDb.changeDate?.let {
+                        put(COLUMN_CHANGE_DATE, it.time)
+                    } ?: putNull(COLUMN_CHANGE_DATE)
+                    lexemeDb.removeDate?.let {
+                        put(COLUMN_REMOVE_DATE, it.time)
+                    } ?: putNull(COLUMN_REMOVE_DATE)
                 }
             }
 
         override fun getFromDatabase(db: SupportSQLiteDatabase): List<LexemeDb> {
             val result = mutableListOf<LexemeDb>()
-            val cursorDefinition = db.query(selectAllFromTable(tableName))
-            if (cursorDefinition.moveToNext()) {
+            val c = db.query(selectAllFromTable(tableName))
+            if (c.moveToNext()) {
                 do {
-                    val id = cursorDefinition.getLong(
-                        cursorDefinition.getColumnIndex(columnId)
-                    )
-                    val wordId = cursorDefinition.getLong(
-                        cursorDefinition.getColumnIndex(COLUMN_WORD_ID)
-                    )
-                    val definition = cursorDefinition.getString(
-                        cursorDefinition.getColumnIndex(COLUMN_DEFINITION)
-                    )
-                    val wordClass = cursorDefinition.getString(
-                        cursorDefinition.getColumnIndex(COLUMN_WORD_CLASS)
-                    )
-                    val options = cursorDefinition.getLong(
-                        cursorDefinition.getColumnIndex(COLUMN_OPTIONS)
-                    )
+                    val id = c.getLong(c.getColumnIndex(columnId))
+                    val wordId = c.getLong(c.getColumnIndex(COLUMN_WORD_ID))
+                    val definition = c.getString(c.getColumnIndex(COLUMN_DEFINITION))
+                    val wordClass = c.getString(c.getColumnIndex(COLUMN_WORD_CLASS))
+                    val options = c.getLong(c.getColumnIndex(COLUMN_OPTIONS))
+                    val addDate = c.getLong(c.getColumnIndex(COLUMN_ADD_DATE))
+                    val changeDate = c.getLongOrNull(c.getColumnIndex(COLUMN_CHANGE_DATE))
+                    val removeDate = c.getLongOrNull(c.getColumnIndex(COLUMN_REMOVE_DATE))
                     result.add(
                         LexemeDb(
                             id = id,
                             wordId = wordId,
                             definition = definition,
                             wordClass = wordClass,
-                            options = options
+                            options = options,
+                            addDate = Date(addDate),
+                            changeDate = changeDate?.let { return@let Date(it) },
+                            removeDate = removeDate?.let { return@let Date(it) }
                         )
                     )
-                } while (cursorDefinition.moveToNext())
+                } while (c.moveToNext())
+            }
+            return result
+        }
+    }
+
+    object LexemeV1 : TableName, ColumnId, ContentValue<LexemeDb>, FromDatabase<LexemeDb> {
+        override val tableName = "lexemes"
+        const val COLUMN_WORD_ID = "wordId"
+        const val COLUMN_TRANSLATION = "translation"
+        const val COLUMN_DEFINITION = "definition"
+        const val COLUMN_WORD_CLASS = "wordClass"
+        const val COLUMN_OPTIONS = "options"
+
+        override fun asContentValue(list: List<LexemeDb>): List<ContentValues> =
+            list.map { lexemeDb ->
+                ContentValues().apply {
+                    put(columnId, lexemeDb.id)
+                    put(COLUMN_WORD_ID, lexemeDb.wordId)
+                    put(COLUMN_TRANSLATION, lexemeDb.translation)
+                    put(COLUMN_DEFINITION, lexemeDb.definition)
+                    put(COLUMN_WORD_CLASS, lexemeDb.wordClass)
+                    put(COLUMN_OPTIONS, lexemeDb.options)
+                }
+            }
+
+        override fun getFromDatabase(db: SupportSQLiteDatabase): List<LexemeDb> {
+            val result = mutableListOf<LexemeDb>()
+            val c = db.query(selectAllFromTable(tableName))
+            if (c.moveToNext()) {
+                do {
+                    val id = c.getLong(c.getColumnIndex(columnId))
+                    val wordId = c.getLong(c.getColumnIndex(COLUMN_WORD_ID))
+                    val definition = c.getString(c.getColumnIndex(COLUMN_DEFINITION))
+                    val wordClass = c.getString(c.getColumnIndex(COLUMN_WORD_CLASS))
+                    val options = c.getLong(c.getColumnIndex(COLUMN_OPTIONS))
+                    result.add(
+                        LexemeDb(
+                            id = id,
+                            wordId = wordId,
+                            definition = definition,
+                            wordClass = wordClass,
+                            options = options,
+                            addDate = Date(0),
+                        )
+                    )
+                } while (c.moveToNext())
             }
             return result
         }

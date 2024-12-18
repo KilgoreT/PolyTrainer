@@ -8,7 +8,7 @@ import me.apomazkin.core_db_api.entity.Adjective.Order.AFTER_NOUN
 import me.apomazkin.core_db_api.entity.Adjective.Order.AFTER_VERB
 import me.apomazkin.core_db_api.entity.Adjective.Order.BEFORE_NOUN
 import me.apomazkin.core_db_api.entity.Adverb
-import me.apomazkin.core_db_api.entity.Definition
+import me.apomazkin.core_db_api.entity.DefinitionOld
 import me.apomazkin.core_db_api.entity.Grade
 import me.apomazkin.core_db_api.entity.Grade.A1
 import me.apomazkin.core_db_api.entity.Grade.A2
@@ -27,6 +27,7 @@ import me.apomazkin.core_db_api.entity.Verb.Transitivity.INTRANSITIVE
 import me.apomazkin.core_db_api.entity.Verb.Transitivity.TRANSITIVE
 import me.apomazkin.core_db_api.entity.WordClass
 import me.apomazkin.core_db_impl.entity.LexemeDb
+import java.util.Date
 
 private const val NOUN = "noun"
 private const val VERB = "verb"
@@ -62,9 +63,9 @@ private val COMPARATIVE_INDEX = 1L shl (ADJ_ORDER_OFFSET + COMPARATIVE.ordinal)
 private val SUPERLATIVE_INDEX = 1L shl (ADJ_ORDER_OFFSET + SUPERLATIVE.ordinal)
 private val NOT_GRADABLE_INDEX = 1L shl (ADJ_ORDER_OFFSET + NOT_GRADABLE.ordinal)
 
-class DefinitionMapper : Mapper<LexemeDb, Definition>() {
+class DefinitionMapper : Mapper<LexemeDb, DefinitionOld>() {
 
-    override fun map(value: LexemeDb) = Definition(
+    override fun map(value: LexemeDb) = DefinitionOld(
         value.id ?: 0,
         value.wordId,
         value.definition,
@@ -146,15 +147,16 @@ class DefinitionMapper : Mapper<LexemeDb, Definition>() {
         }
     }
 
-    override fun reverseMap(value: Definition) = LexemeDb(
+    override fun reverseMap(value: DefinitionOld) = LexemeDb(
         id = value.id,
         wordId = value.wordId,
         definition = value.value,
         wordClass = reverseMapWordClass(value),
-        options = convertOptions(value.wordClass)
+        options = convertOptions(value.wordClass),
+        addDate = Date(0),
     )
 
-    private fun reverseMapWordClass(value: Definition): String? {
+    private fun reverseMapWordClass(value: DefinitionOld): String? {
         return when (value.wordClass) {
             is Verb -> VERB
             is Noun -> NOUN

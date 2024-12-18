@@ -1,14 +1,12 @@
 package me.apomazkin.wordcard
 
-import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -27,8 +25,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -46,11 +42,11 @@ import me.apomazkin.wordcard.mate.WordCardState
 import me.apomazkin.wordcard.mate.WordState
 import me.apomazkin.wordcard.widget.AddLexemeWidget
 import me.apomazkin.wordcard.widget.ConfirmDeleteWordWidget
-import me.apomazkin.wordcard.widget.LexemeItemWidget
 import me.apomazkin.wordcard.widget.SnackbarLaunchEffect
 import me.apomazkin.wordcard.widget.TopBarWidget
 import me.apomazkin.wordcard.widget.WordFieldWidget
 import me.apomazkin.wordcard.widget.addlexeme.AddLexemeBottomWidget
+import me.apomazkin.wordcard.widget.lexeme.LexemeItemWidget
 import java.util.Date
 
 @Composable
@@ -116,28 +112,18 @@ internal fun WordCardScreen(
         contentWindowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
     ) { paddingValue ->
 
-        val focusManager = LocalFocusManager.current
-
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxHeight()
                 .padding(paddingValue)
                 .navigationBarsPadding()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            Log.d("###", "<WordCardScreen.kt>::WordCardScreen => TAP")
-                            focusManager.clearFocus()
-                        }
-                    )
-                }
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxHeight()
                     .background(MaterialTheme.colorScheme.tertiary)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
             ) {
                 WordFieldWidget(
                     wordState = state.wordState,
@@ -146,8 +132,7 @@ internal fun WordCardScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1F),
+                        .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     state.lexemeList.forEachIndexed { index, lexemeState ->

@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.Date
 
+// TODO: мигрировать value и addDate в non null
 @Entity(tableName = "words")
 data class WordDb(
     @PrimaryKey(autoGenerate = true)

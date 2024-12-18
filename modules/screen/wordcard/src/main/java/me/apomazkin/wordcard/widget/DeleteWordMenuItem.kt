@@ -10,7 +10,7 @@ import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.ui.IconBoxed
 
 @Composable
-internal fun DeleteMenuItem(
+internal fun DeleteWordMenuItem(
     onDeleteClick: () -> Unit,
 ) {
     DropdownMenuItem(

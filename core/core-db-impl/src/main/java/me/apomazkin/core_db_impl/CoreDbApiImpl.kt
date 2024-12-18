@@ -9,31 +9,29 @@ import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
-import me.apomazkin.core_db_api.entity.Definition
+import me.apomazkin.core_db_api.entity.DefinitionApiEntity
 import me.apomazkin.core_db_api.entity.Dump
 import me.apomazkin.core_db_api.entity.Hint
 import me.apomazkin.core_db_api.entity.Language
-import me.apomazkin.core_db_api.entity.Sample
-import me.apomazkin.core_db_api.entity.Term
-import me.apomazkin.core_db_api.entity.TermMate
-import me.apomazkin.core_db_api.entity.Word
+import me.apomazkin.core_db_api.entity.LexemeApiEntity
+import me.apomazkin.core_db_api.entity.SampleApiEntity
+import me.apomazkin.core_db_api.entity.TermApiEntity
+import me.apomazkin.core_db_api.entity.TranslationApiEntity
+import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuiz
 import me.apomazkin.core_db_impl.entity.HintDb
 import me.apomazkin.core_db_impl.entity.LanguageDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.SampleDb
 import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WordDefinitionRel
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
-import me.apomazkin.core_db_impl.mapper.DefinitionMapper
+import me.apomazkin.core_db_impl.entity.toApiEntity
 import me.apomazkin.core_db_impl.mapper.HintMapper
+import me.apomazkin.core_db_impl.mapper.toApiEntity
 import me.apomazkin.core_db_impl.mapper.toAppData
-import me.apomazkin.core_db_impl.mapper.toAppEntity
 import me.apomazkin.core_db_impl.mapper.toDb
 import me.apomazkin.core_db_impl.mapper.toDbEntity
 import me.apomazkin.core_db_impl.mapper.toDump
 import me.apomazkin.core_db_impl.mapper.toDumpEntity
-import me.apomazkin.core_db_impl.mapper.toMateApp
 import me.apomazkin.core_db_impl.room.WordDao
 import java.util.Date
 import javax.inject.Inject
@@ -42,8 +40,86 @@ class CoreDbApiImpl @Inject constructor(
     private val wordDao: WordDao
 ) : CoreDbApi {
 
+    class TermApiImpl @Inject constructor(
+        private val wordDao: WordDao
+    ) : CoreDbApi.TermApi {
+
+        override suspend fun getTermList(langId: Long): List<TermApiEntity> {
+            return wordDao.getTermList(langId).map { it.toApiEntity() }
+        }
+
+        override suspend fun searchTerms(pattern: String, langId: Long): List<TermApiEntity> {
+            return wordDao.searchTerms(pattern, langId).map { it.toApiEntity() }
+        }
+
+        override suspend fun getTermById(id: Long): TermApiEntity? {
+            return wordDao.getTermById(id = id)?.let { it.toApiEntity() }
+        }
+    }
+
+    class LexemeApiImpl @Inject constructor(
+        private val wordDao: WordDao
+    ) : CoreDbApi.LexemeApi {
+
+        override suspend fun getLexemeById(id: Long): LexemeApiEntity? {
+            return wordDao.getLexemeById(id)?.toApiEntity()
+        }
+
+        override suspend fun addLexeme(wordId: Long): Long {
+            val date = Date(System.currentTimeMillis())
+            return wordDao.addLexeme(
+                LexemeDb(
+                    wordId = wordId,
+                    addDate = date,
+                )
+            )
+        }
+
+        override suspend fun addLexeme(wordId: Long, translation: TranslationApiEntity): Long {
+            val date = Date(System.currentTimeMillis())
+            return wordDao.addLexeme(
+                LexemeDb(
+                    wordId = wordId,
+                    translation = translation.value,
+                    addDate = date,
+                )
+            )
+        }
+
+        override suspend fun addLexeme(wordId: Long, definition: DefinitionApiEntity): Long {
+            val date = Date(System.currentTimeMillis())
+            return wordDao.addLexeme(
+                LexemeDb(
+                    wordId = wordId,
+                    definition = definition.value,
+                    addDate = date,
+                )
+            )
+        }
+
+        override suspend fun updateLexemeTranslation(
+            id: Long,
+            translation: TranslationApiEntity?
+        ): Long? {
+            val updatedRows = wordDao.updateLexemeTranslation(id, translation?.value)
+            return if (updatedRows > 0) id else null
+        }
+
+        override suspend fun updateLexemeDefinition(
+            id: Long,
+            definition: DefinitionApiEntity?
+        ): Long? {
+            val updatedRows = wordDao.updateLexemeDefinition(id, definition?.value)
+            return if (updatedRows > 0) id else null
+        }
+
+        override suspend fun deleteLexeme(id: Long): Int {
+            return wordDao.deleteLexemeById(id)
+        }
+    }
+
     override fun getLang(): Single<List<Language>> {
-        return wordDao.getLanguages().map { it.toAppEntity() }
+        return wordDao.getLanguages().map { it.toApiEntity() }
     }
 
     override suspend fun addLangSuspend(numericCode: Int, name: String): Long {
@@ -59,11 +135,11 @@ class CoreDbApiImpl @Inject constructor(
     }
 
     override suspend fun getLangSuspend(): List<Language> {
-        return wordDao.getLanguagesSuspend().map { it.toAppEntity() }
+        return wordDao.getLanguagesSuspend().map { it.toApiEntity() }
     }
 
     override fun flowLang(): Flow<List<Language>> {
-        return wordDao.flowLanguages().map { it.toAppEntity() }
+        return wordDao.flowLanguages().map { it.toApiEntity() }
     }
 
     override fun addWord(value: String, langId: Long): Completable {
@@ -88,28 +164,28 @@ class CoreDbApiImpl @Inject constructor(
         )
     }
 
-    override fun getWord(id: Long): Single<Word> {
+    override fun getWord(id: Long): Single<WordApiEntity> {
         return wordDao
             .getWordById(id)
-            .map { value -> value.toAppEntity() }
+            .map { value -> value.toApiEntity() }
     }
 
-    override fun getAllWord(): Single<List<Word>> {
+    override fun getAllWord(): Single<List<WordApiEntity>> {
         return wordDao
             .getWord()
-            .map { it.toAppEntity() }
+            .map { it.toApiEntity() }
     }
 
-    override fun updateWord(word: Word): Completable {
+    override fun updateWord(wordApiEntity: WordApiEntity): Completable {
         return wordDao
-            .updateWorld(word.toDbEntity())
+            .updateWorld(wordApiEntity.toDbEntity())
     }
 
     // TODO: 07.09.2021 всю эту логику нужно вынести в юзкейсы
     override fun removeWord(id: Long): Completable {
         return wordDao.getWord(id)
             .flatMap { word ->
-                wordDao.removeWord(id).toSingle { word.definitionSampleRelList }
+                wordDao.removeWord(id).toSingle { word.lexemeListDb }
             }
             .flatMap { list ->
                 removeDefinition(
@@ -131,10 +207,10 @@ class CoreDbApiImpl @Inject constructor(
     override suspend fun deleteWordSuspend(id: Long): Int {
         wordDao.getWordSuspend(id).also { word ->
             wordDao.removeSampleSuspend(
-                *word.definitionSampleRelList.map { it.sampleDbList }.flatten().toTypedArray()
+                *word.lexemeListDb.map { it.sampleDbList }.flatten().toTypedArray()
             )
             wordDao.deleteDefinitionsSuspend(
-                *word.definitionSampleRelList.map { it.lexemeDb }.toTypedArray()
+                *word.lexemeListDb.map { it.lexemeDb }.toTypedArray()
             )
             return wordDao.removeWordSuspend(id)
         }
@@ -144,22 +220,6 @@ class CoreDbApiImpl @Inject constructor(
         val wordRel = wordDao.getWordSuspend(id)
         val wordDb = wordRel.wordDb.copy(value = value)
         return wordDao.updateWorldSuspend(wordDb) == 1
-    }
-
-    override fun addDefinition(definition: Definition, langId: Long): Completable {
-        val mapper = DefinitionMapper()
-        return wordDao.addDefinition(mapper.reverseMap(definition))
-            .flatMapCompletable { id ->
-                val date = Date(System.currentTimeMillis())
-                wordDao.addWriteQuiz(
-                    WriteQuizDb(
-                        definitionId = id,
-                        langId = langId,
-                        addDate = date,
-                        lastSelectDate = date,
-                    )
-                )
-            }
     }
 
     override suspend fun addLexemeSuspend(
@@ -172,8 +232,10 @@ class CoreDbApiImpl @Inject constructor(
             wordId = wordId,
             definition = definition,
             wordClass = category,
+            options = 0L,
+            addDate = Date(System.currentTimeMillis())
         )
-        return wordDao.addDefinitionSuspend(lexemeDb)
+        return wordDao.addLexeme(lexemeDb)
     }
 
     override suspend fun editLexemeSuspend(
@@ -187,75 +249,22 @@ class CoreDbApiImpl @Inject constructor(
             wordId = wordId,
             definition = definition,
             wordClass = category,
+            options = 0L,
+            addDate = Date(System.currentTimeMillis())
         )
-        return wordDao.updateDefinitionSuspend(lexemeDb)
-    }
-
-    override suspend fun updateLexemeDefinition(definitionId: Long, value: String): Int {
-        return wordDao.updateLexemeDefinition(definitionId, value)
-    }
-
-    override suspend fun updateLexemeCategory(lexemeId: Long, category: String): Int {
-        return wordDao.updateLexemeCategory(lexemeId, category)
-    }
-
-    override fun getDefinitionAll(): Single<List<Definition>> {
-        val mapper = DefinitionMapper()
-        return wordDao.getAllDefinition()
-            .map { value -> mapper.map(value) }
-    }
-
-    override fun getDefinition(id: Long): Single<Definition> {
-        val mapper = DefinitionMapper()
-        return wordDao.getDefinitionById(id)
-            .map { value -> mapper.map(value) }
-    }
-
-    override fun getDefinitionListByWordId(wordId: Long): Single<List<Definition>> {
-        val mapper = DefinitionMapper()
-        return wordDao.getDefinitionListByWordId(wordId)
-            .map { list -> mapper.map(list) }
-    }
-
-    override fun updateLexemeDefinition(definition: Definition): Completable {
-        val mapper = DefinitionMapper()
-        return wordDao.updateDefinition(mapper.reverseMap(definition))
-    }
-
-    override fun removeDefinition(vararg id: Long): Completable {
-        return wordDao.deleteDefinition(*id.toTypedArray().toLongArray())
-    }
-
-    override suspend fun deleteLexemeSuspend(vararg id: Long): Int {
-        return wordDao.deleteDefinitionSuspend(*id.toTypedArray().toLongArray())
+        return wordDao.updateLexeme(lexemeDb)
     }
 
     private fun removeDefinition(vararg definition: LexemeDb): Completable {
         return wordDao.deleteDefinitions(*definition.toList().toTypedArray())
     }
 
-    override fun getTermList(): Observable<List<Term>> {
-        return wordDao
-            .getTermList()
-            .map { list -> list.map(WordDefinitionRel::toAppData) }
-    }
-
-    override suspend fun getTermById(id: Long): TermMate {
-        return wordDao
-            .getTermById(id)
-            .toMateApp()
-    }
-
-    override suspend fun getTermList(langId: Long): List<TermMate> {
-        return wordDao
-            .getTermList(langId)
-            .map(WordDefinitionRel::toMateApp)
-    }
-
-    override fun searchTermList(pattern: String, langId: Long): Observable<List<Term>> {
-        return wordDao
-            .searchTerms(pattern, langId)
-            .map { list -> list.map(WordDefinitionRel::toAppData) }
+    @Deprecated(message = "Zhopa", level = DeprecationLevel.ERROR)
+    override suspend fun getTermList(langId: Long): List<TermApiEntity> {
+//        return wordDao
+//            .getTermListRx(langId)
+//            .map(TermDbEntity::toApiEntity)
+        TODO("Not yet implemented")
     }
 
     override fun wordCount(langId: Long): Single<Int> {
@@ -345,14 +354,16 @@ class CoreDbApiImpl @Inject constructor(
         )
     }
 
-    override fun getSampleList(definitionId: Long): Single<List<Sample>> {
-        return wordDao.getSampleListByDefinitionId(definitionId)
-            .map { list -> list.toAppEntity() }
+    override fun getSampleList(definitionId: Long): Single<List<SampleApiEntity>> {
+//        return wordDao.getSampleListByDefinitionId(definitionId)
+//            .map { list -> list.toApiEntity() }
+        TODO("Not yet implemented")
     }
 
-    override fun getSampleList(): Observable<List<Sample>> {
-        return wordDao.getSampleList()
-            .map { list -> list.toAppEntity() }
+    override fun getSampleList(): Observable<List<SampleApiEntity>> {
+//        return wordDao.getSampleList()
+//            .map { list -> list.toApiEntity() }
+        TODO("Not yet implemented")
     }
 
     override fun getDump(): Single<Dump> {
@@ -390,7 +401,7 @@ class CoreDbApiImpl @Inject constructor(
                 .subscribe {}
         }
         dump.definitions.forEach { def ->
-            wordDao.addDefinition(def.toDbEntity())
+            wordDao.addLexemeRx(def.toDbEntity())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { _ -> }
