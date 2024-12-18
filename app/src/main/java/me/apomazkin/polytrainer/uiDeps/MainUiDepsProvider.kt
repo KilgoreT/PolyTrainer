@@ -2,10 +2,10 @@ package me.apomazkin.polytrainer.uiDeps
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import me.apomazkin.dictionarytab.deps.VocabularyUseCase
+import me.apomazkin.dictionarytab.ui.VocabularyTabScreen
 import me.apomazkin.main.MainUiDeps
 import me.apomazkin.ui.logger.LexemeLogger
-import me.apomazkin.vocabulary.deps.VocabularyUseCase
-import me.apomazkin.vocabulary.ui.VocabularyTabScreen
 import me.apomazkin.wordcard.WordCardScreen
 import me.apomazkin.wordcard.deps.WordCardUseCase
 
