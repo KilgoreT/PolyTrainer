@@ -78,5 +78,8 @@
     <string name="word_card_bottom_definition">Определение</string>
     <string name="word_card_bottom_title_append">Добавить</string>
     <string name="word_card_lexeme_order_title">Значение %d</string>
+    <string name="word_card_lexeme_delete">Удалить значение</string>
+    <string name="word_card_lexeme_add_translation">Добавить перевод</string>
+    <string name="word_card_lexeme_add_definition">Добавить определение</string>
 
 </resources>

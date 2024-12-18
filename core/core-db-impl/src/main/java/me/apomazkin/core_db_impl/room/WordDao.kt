@@ -14,9 +14,10 @@ import kotlinx.coroutines.flow.Flow
 import me.apomazkin.core_db_impl.entity.HintDb
 import me.apomazkin.core_db_impl.entity.LanguageDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
+import me.apomazkin.core_db_impl.entity.LexemeDbEntity
 import me.apomazkin.core_db_impl.entity.SampleDb
+import me.apomazkin.core_db_impl.entity.TermDbEntity
 import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WordDefinitionRel
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDefinitionRel
 
@@ -72,40 +73,61 @@ interface WordDao {
     /**
      * TERM
      */
-    @Transaction
-    @Query("SELECT * FROM words ORDER BY id DESC")
-    fun getTermList(): Observable<List<WordDefinitionRel>>
 
     @Transaction
     @Query("SELECT * FROM words WHERE langId = :langId ORDER BY id DESC")
-    suspend fun getTermList(langId: Long): List<WordDefinitionRel>
+    suspend fun getTermList(langId: Long): List<TermDbEntity>
 
-    @Transaction
-    @Query("SELECT * FROM words WHERE id = :id ORDER BY id DESC")
-    suspend fun getTermById(id: Long): WordDefinitionRel
 
     @Transaction
     @Query("SELECT * FROM words WHERE value LIKE :pattern AND langId = :langId ORDER BY id DESC")
-    fun searchTerms(pattern: String, langId: Long): Observable<List<WordDefinitionRel>>
+    suspend fun searchTerms(pattern: String, langId: Long): List<TermDbEntity>
+
+    @Transaction
+    @Query("SELECT * FROM words WHERE id = :id ORDER BY id DESC")
+    suspend fun getTermById(id: Long): TermDbEntity?
+
+
+    @Transaction
+    @Query("SELECT * FROM words ORDER BY id DESC")
+    fun getTermListRx(): Observable<List<TermDbEntity>>
+
+    @Transaction
+    @Query("SELECT * FROM words WHERE value LIKE :pattern AND langId = :langId ORDER BY id DESC")
+    fun searchTermsRx(pattern: String, langId: Long): Observable<List<TermDbEntity>>
 
     /**
-     * DEFINITION
+     * LEXEME
      */
     @Insert
-    fun addDefinition(lexemeDb: LexemeDb): Single<Long>
+    fun addLexemeRx(lexemeDb: LexemeDb): Single<Long>
 
     @Insert
-    suspend fun addDefinitionSuspend(lexemeDb: LexemeDb): Long
+    suspend fun addLexeme(lexemeDb: LexemeDb): Long
 
     @Update
-    suspend fun updateDefinitionSuspend(lexemeDb: LexemeDb): Int
+    suspend fun updateLexeme(lexemeDb: LexemeDb): Int
 
-    @Query("UPDATE lexemes SET definition = :value WHERE id = :id")
-    suspend fun updateLexemeDefinition(id: Long, value: String): Int
+    @Transaction
+    @Query("SELECT * FROM lexemes WHERE id = :id")
+    suspend fun getLexemeById(id: Long): LexemeDbEntity?
+
+    @Query("UPDATE lexemes SET translation = :translation WHERE id = :id")
+    suspend fun updateLexemeTranslation(id: Long, translation: String?): Int
+
+    @Query("UPDATE lexemes SET definition = :definition WHERE id = :id")
+    suspend fun updateLexemeDefinition(id: Long, definition: String?): Int
 
     @Query("UPDATE lexemes SET wordClass = :value WHERE id = :id")
     suspend fun updateLexemeCategory(id: Long, value: String): Int
 
+    @Query("DELETE FROM lexemes WHERE id = :id")
+    suspend fun deleteLexemeById(id: Long): Int
+
+
+    /**
+     * Other
+     */
     @Query("SELECT * FROM lexemes")
     fun getAllDefinition(): Single<List<LexemeDb>>
 
@@ -133,11 +155,11 @@ interface WordDao {
     // TODO: 18.02.2021 used to manual remove definition before removing word
     @Transaction
     @Query("SELECT * FROM words WHERE id = :id")
-    fun getWord(id: Long): Single<WordDefinitionRel>
+    fun getWord(id: Long): Single<TermDbEntity>
 
     @Transaction
     @Query("SELECT * FROM words WHERE id = :id")
-    suspend fun getWordSuspend(id: Long): WordDefinitionRel
+    suspend fun getWordSuspend(id: Long): TermDbEntity
 
     /**
      * HINT

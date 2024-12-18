@@ -15,5 +15,5 @@ interface VocabularyUseCase {
     suspend fun updateWord(id: Long, value: String): Boolean
     suspend fun addLexeme(wordId: Long, category: String, definition: String)
     suspend fun editLexeme(wordId: Long, lexemeId: Long, category: String, definition: String)
-    suspend fun deleteLexeme(lexemeId: Long)
+    suspend fun deleteLexeme(lexemeId: Long): Boolean
 }

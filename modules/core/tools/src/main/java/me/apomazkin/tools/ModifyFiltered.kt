@@ -12,6 +12,12 @@ fun <T> List<T>.insertToBegin(item: T): List<T> {
     }.toList()
 }
 
+fun <T> List<T>.insertToEnd(item: T): List<T> {
+    return this.toMutableList().apply {
+        add(item)
+    }.toList()
+}
+
 fun <T> List<T>.getFilteredOrFirst(
     predicate: (T) -> Boolean,
 ): T? {

@@ -2,6 +2,7 @@ package me.apomazkin.core_db_impl.mapper
 
 import me.apomazkin.core_db_api.entity.DefinitionDump
 import me.apomazkin.core_db_impl.entity.LexemeDb
+import java.util.Date
 
 
 fun LexemeDb.toDumpEntity() = DefinitionDump(
@@ -20,7 +21,8 @@ fun DefinitionDump.toDbEntity() = LexemeDb(
     wordId = wordId,
     definition = definition,
     wordClass = wordClass,
-    options = options
+    options = options,
+    addDate = Date(0),
 )
 
 fun List<DefinitionDump>.toDbEntity() = this.map { it.toDbEntity() }

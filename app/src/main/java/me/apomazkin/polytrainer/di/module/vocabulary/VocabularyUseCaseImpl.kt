@@ -15,6 +15,8 @@ import javax.inject.Inject
 
 class VocabularyUseCaseImpl @Inject constructor(
     private val dbApi: CoreDbApi,
+    private val termApi: CoreDbApi.TermApi,
+    private val lexemeApi: CoreDbApi.LexemeApi,
     private val prefsProvider: PrefsProvider,
     private val flagProvider: FlagProvider,
 ) : VocabularyUseCase {
@@ -66,7 +68,7 @@ class VocabularyUseCaseImpl @Inject constructor(
         return prefsProvider.getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT).let { numericCode ->
             dbApi.getLangSuspend()
                 .firstOrNull { it.numericCode == numericCode }?.id?.let {
-                    dbApi.getTermList(it)
+                    termApi.getTermList(it)
                         .map { term ->
                             TermUiItem(
                                 id = term.word.id
@@ -77,12 +79,14 @@ class VocabularyUseCaseImpl @Inject constructor(
                                 addDate = term.word.addDate
                                     ?: throw IllegalStateException("Word addData not found"),
                                 changeDate = term.word.changeDate,
-                                lexemeList = term.defList.map { defMate ->
+                                lexemeList = term.lexemes.map { defMate ->
                                     LexemeUiItem(
                                         id = defMate.id,
-                                        wordId = defMate.wordId,
-                                        definition = defMate.value,
-                                        category = defMate.category.toLexemeLabel(),
+                                        wordId = defMate.wordId
+                                            ?: throw IllegalStateException("Word id not found"),
+                                        definition = "defMate.value",
+//                                        category = defMate.category.toLexemeLabel(),
+                                        category = "".toLexemeLabel(),
                                     )
                                 }
                             )
@@ -108,7 +112,7 @@ class VocabularyUseCaseImpl @Inject constructor(
         dbApi.editLexemeSuspend(wordId, lexemeId, category, definition)
     }
 
-    override suspend fun deleteLexeme(lexemeId: Long) {
-        dbApi.deleteLexemeSuspend(lexemeId)
+    override suspend fun deleteLexeme(lexemeId: Long): Boolean {
+        return lexemeApi.deleteLexeme(id = lexemeId) > 0
     }
 }

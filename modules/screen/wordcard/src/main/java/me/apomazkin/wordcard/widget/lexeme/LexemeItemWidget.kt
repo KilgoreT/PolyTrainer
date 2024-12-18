@@ -1,4 +1,4 @@
-package me.apomazkin.wordcard.widget
+package me.apomazkin.wordcard.widget.lexeme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -30,7 +30,11 @@ fun LexemeItemWidget(
         modifier = Modifier
             .fillMaxWidth(),
     ) {
-        LexemeTitleWidget(order = order)
+        LexemeTitleWidget(
+            order = order,
+            state = state,
+            sendMessage = sendMessage
+        )
         Surface(
             modifier = Modifier,
             shape = RoundedCornerShape(12.dp),
@@ -55,8 +59,11 @@ fun LexemeItemWidget(
                             sendMessage(Msg.TranslationTextChange(lexemeId = state.id, value = it))
                         },
                         onCloseEditMode = {
-                            sendMessage(Msg.TranslationCloseEdit(lexemeId = state.id))
+                            sendMessage(Msg.TranslationEndEdit(lexemeId = state.id))
                         },
+                        onActionIconClick = {
+                            sendMessage(Msg.DeleteTranslation(lexemeId = state.id))
+                        }
                     )
                 }
                 state.definition?.let {
@@ -79,8 +86,11 @@ fun LexemeItemWidget(
                             sendMessage(Msg.DefinitionTextChange(lexemeId = state.id, value = it))
                         },
                         onCloseEditMode = {
-                            sendMessage(Msg.DefinitionCloseEdit(lexemeId = state.id))
+                            sendMessage(Msg.DefinitionEndEdit(lexemeId = state.id))
                         },
+                        onActionIconClick = {
+                            sendMessage(Msg.DeleteDefinition(lexemeId = state.id))
+                        }
                     )
                 }
             }

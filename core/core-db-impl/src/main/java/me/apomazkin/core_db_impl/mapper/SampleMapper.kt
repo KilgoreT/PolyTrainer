@@ -1,27 +1,28 @@
 package me.apomazkin.core_db_impl.mapper
 
-import me.apomazkin.core_db_api.entity.Sample
+import me.apomazkin.core_db_api.entity.SampleApiEntity
+import me.apomazkin.core_db_api.entity.Source
 import me.apomazkin.core_db_impl.entity.SampleDb
 
-fun SampleDb.toAppEntity() = Sample(
+fun SampleDb.toApiEntity() = SampleApiEntity(
     id = this.id ?: throw IllegalStateException("SampleDb hasn't id field."),
     lexemeId = this.lexemeId,
     value = this.value,
-    source = this.source,
+    source = this.source?.let { Source(it) },
     addDate = this.addDate,
     changeDate = this.changeDate
 
 )
 
-fun List<SampleDb>.toAppEntity() = this.map { it.toAppEntity() }
+fun List<SampleDb>.toApiEntity() = this.map { it.toApiEntity() }
 
-fun Sample.toDbEntity() = SampleDb(
+fun SampleApiEntity.toDbEntity() = SampleDb(
     id = this.id,
     lexemeId = this.lexemeId,
     value = this.value,
-    source = this.source,
+    source = this.source?.value,
     addDate = this.addDate,
     changeDate = this.changeDate
 )
 
-fun List<Sample>.toDbEntity() = this.map { it.toDbEntity() }
+fun List<SampleApiEntity>.toDbEntity() = this.map { it.toDbEntity() }

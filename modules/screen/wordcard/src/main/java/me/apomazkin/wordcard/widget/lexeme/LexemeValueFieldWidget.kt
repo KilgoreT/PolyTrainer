@@ -1,4 +1,4 @@
-package me.apomazkin.wordcard.widget
+package me.apomazkin.wordcard.widget.lexeme
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -28,6 +28,7 @@ fun LexemeValueFieldWidget(
     onTextChange: (String) -> Unit,
     onOpenEditMode: () -> Unit,
     onCloseEditMode: () -> Unit,
+    onActionIconClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
 
@@ -53,7 +54,9 @@ fun LexemeValueFieldWidget(
             size = 32,
             enabled = true,
             colorEnabled = unselectedGreyColor,
-        )
+        ) {
+            onActionIconClick.invoke()
+        }
     }
 }
 
@@ -78,6 +81,7 @@ private fun Preview(
                 onTextChange = {},
                 onOpenEditMode = {},
                 onCloseEditMode = {},
+                onActionIconClick = {},
             )
         }
     }
