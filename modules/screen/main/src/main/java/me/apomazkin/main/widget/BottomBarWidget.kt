@@ -39,7 +39,7 @@ sealed class Tabs(
     )
 
     data object Training : Tabs(
-        point = TabPoint.TRAINING,
+        point = TabPoint.QUIZ,
         titleRes = R.string.item_title_training,
         iconRes = R.drawable.ic_tab_training,
     )

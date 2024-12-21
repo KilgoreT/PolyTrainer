@@ -13,7 +13,7 @@ import me.apomazkin.ui.SystemBarsWidget
 
 enum class TabPoint(val route: String) {
     VOCABULARY("vocabulary"),
-    TRAINING("training"),
+    QUIZ("quiz"),
     STATS("statistic"),
     SETTINGS("settings"),
 }
@@ -43,9 +43,15 @@ fun MainScreen(
                 mainUiDeps = mainUiDeps,
                 openAddDict = openAddDict,
             )
-            composable(TabPoint.TRAINING.route) {}
-            composable(TabPoint.STATS.route) {}
-            composable(TabPoint.SETTINGS.route) {}
+            composable(TabPoint.QUIZ.route) {
+                mainUiDeps.QuizTabScreenDep()
+            }
+            composable(TabPoint.STATS.route) {
+                mainUiDeps.StatisticTabScreenDep()
+            }
+            composable(TabPoint.SETTINGS.route) {
+                mainUiDeps.SettingsTabScreenDep()
+            }
         }
         BottomBarWidget(navController = navController)
     }
