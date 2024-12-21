@@ -15,7 +15,7 @@ fun NavGraphBuilder.vocabulary(
     openAddDict: () -> Unit,
 ) {
     composable(TabPoint.VOCABULARY.route) {
-        mainUiDeps.VocabularyTab(
+        mainUiDeps.VocabularyTabDep(
             openAddDict = openAddDict,
             openWordCard = { navController.goToWordCard(it) },
         )

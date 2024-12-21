@@ -1,5 +1,14 @@
 @file:Suppress("UnstableApiUsage")
 
+include(":modules:screen:settingstab")
+
+
+include(":modules:screen:stattab")
+
+
+include(":modules:screen:quiztab")
+
+
 
 rootProject.name = "PolyTrainer"
 

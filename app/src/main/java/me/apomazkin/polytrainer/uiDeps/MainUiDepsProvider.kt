@@ -5,6 +5,9 @@ import androidx.compose.runtime.Stable
 import me.apomazkin.dictionarytab.deps.VocabularyUseCase
 import me.apomazkin.dictionarytab.ui.VocabularyTabScreen
 import me.apomazkin.main.MainUiDeps
+import me.apomazkin.quiztab.QuizTabScreen
+import me.apomazkin.settingstab.SettingsTabScreen
+import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.wordcard.WordCardScreen
 import me.apomazkin.wordcard.deps.WordCardUseCase
@@ -16,7 +19,7 @@ class MainUiDepsProvider(
     private val logger: LexemeLogger,
 ) : MainUiDeps {
     @Composable
-    override fun VocabularyTab(
+    override fun VocabularyTabDep(
         openAddDict: () -> Unit,
         openWordCard: (wordId: Long) -> Unit,
     ) {
@@ -38,5 +41,20 @@ class MainUiDepsProvider(
             wordCardUseCase = wordCardUseCase,
             onBackPress = onBackPress,
         )
+    }
+
+    @Composable
+    override fun QuizTabScreenDep() {
+        QuizTabScreen()
+    }
+
+    @Composable
+    override fun StatisticTabScreenDep() {
+        StatisticTabScreen()
+    }
+
+    @Composable
+    override fun SettingsTabScreenDep() {
+        SettingsTabScreen()
     }
 }

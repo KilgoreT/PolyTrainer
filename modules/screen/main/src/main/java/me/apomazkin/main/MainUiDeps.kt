@@ -6,7 +6,7 @@ import androidx.compose.runtime.Stable
 @Stable
 interface MainUiDeps {
     @Composable
-    fun VocabularyTab(
+    fun VocabularyTabDep(
         openAddDict: () -> Unit,
         openWordCard: (wordId: Long) -> Unit,
     )
@@ -16,4 +16,13 @@ interface MainUiDeps {
         wordId: Long,
         onBackPress: () -> Unit,
     )
+
+    @Composable
+    fun QuizTabScreenDep()
+
+    @Composable
+    fun StatisticTabScreenDep()
+
+    @Composable
+    fun SettingsTabScreenDep()
 }

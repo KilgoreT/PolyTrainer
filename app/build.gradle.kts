@@ -60,6 +60,9 @@ dependencies {
     implementation(project("path" to ":modules:screen:main"))
     implementation(project("path" to ":modules:screen:dictionaryTab"))
     implementation(project("path" to ":modules:screen:wordcard"))
+    implementation(project("path" to ":modules:screen:quiztab"))
+    implementation(project("path" to ":modules:screen:stattab"))
+    implementation(project("path" to ":modules:screen:settingstab"))
 
     implementation(project("path" to ":modules:library:flags"))
     implementation(project("path" to ":modules:datasource:prefs"))
