@@ -18,10 +18,10 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun PrimaryLongFabWidget(
+    modifier: Modifier = Modifier,
     @StringRes titleRes: Int,
     @DrawableRes iconRes: Int? = null,
     enabled: Boolean,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     LexemeLongFab(

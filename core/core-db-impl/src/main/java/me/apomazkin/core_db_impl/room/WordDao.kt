@@ -29,16 +29,19 @@ interface WordDao {
      * Languages
      */
     @Insert
-    fun addLanguage(languageDb: LanguageDb): Completable
+    fun addLanguageRx(languageDb: LanguageDb): Completable
 
     @Query("SELECT * FROM languages")
-    fun getLanguages(): Single<List<LanguageDb>>
+    fun getLanguagesRx(): Single<List<LanguageDb>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun addLanguageSuspend(languageDb: LanguageDb): Long
+    suspend fun addLanguage(languageDb: LanguageDb): Long
+    
+    @Query("SELECT * FROM languages WHERE numericCode = :numericCode")
+    suspend fun getLanguageByNumeric(numericCode: Int): LanguageDb?
 
     @Query("SELECT * FROM languages")
-    suspend fun getLanguagesSuspend(): List<LanguageDb>
+    suspend fun getLanguages(): List<LanguageDb>
 
     @Query("SELECT * FROM languages")
     fun flowLanguages(): Flow<List<LanguageDb>>
@@ -76,7 +79,7 @@ interface WordDao {
 
     @Transaction
     @Query("SELECT * FROM words WHERE langId = :langId ORDER BY id DESC")
-    suspend fun getTermList(langId: Long): List<TermDbEntity>
+    suspend fun getTermList(langId: Int): List<TermDbEntity>
 
 
     @Transaction

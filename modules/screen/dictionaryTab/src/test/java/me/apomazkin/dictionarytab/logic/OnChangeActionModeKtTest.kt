@@ -22,7 +22,7 @@ class OnChangeActionModeKtTest {
      */
     @Test
     fun testChangeActionModeWithoutTargetWord() {
-        val state = VocabularyTabState()
+        val state = DictionaryTabState()
         val result = reducer.reduce(state, Msg.ChangeActionMode(isActionMode = true))
         Assert.assertFalse(
             "Action mode must not be on because targetWord not set",
@@ -43,7 +43,7 @@ class OnChangeActionModeKtTest {
      */
     @Test
     fun onEnterInActionMode() {
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             isLoading = false,
             termList = DataHelper.termList,
         )
@@ -86,7 +86,7 @@ class OnChangeActionModeKtTest {
     @Test
     fun onTapAnotherTermWhenActionMode() {
         val addedTerm = DataHelper.termList.first()
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             isLoading = false,
             termList = DataHelper.termList.map { if (it.id == addedTerm.id) it.copy(isSelected = true) else it },
             topBarState = TopBarState(
@@ -135,7 +135,7 @@ class OnChangeActionModeKtTest {
     @Test
     fun onTapLastSelectedWordInActionMode() {
         val targetTerm = DataHelper.termList.first()
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             isLoading = false,
             termList = DataHelper.termList.map { if (it.id == targetTerm.id) it.copy(isSelected = true) else it },
             topBarState = TopBarState(
@@ -186,8 +186,8 @@ class OnChangeActionModeKtTest {
         val alreadyAddedWordInfo = DataHelper.termList
             .subList(0, 2)
             .map { WordInfo(it.id, it.wordValue) }
-
-        val state = VocabularyTabState(
+        
+        val state = DictionaryTabState(
             isLoading = false,
             termList = DataHelper.termList.map {
                 if (alreadyAddedIds.contains(it.id)) it.copy(isSelected = true) else it
@@ -234,7 +234,7 @@ class OnChangeActionModeKtTest {
     @Test
     fun onExitFromActionMode() {
         val alreadyAddedTerm = DataHelper.termList.first()
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             isLoading = false,
             termList = DataHelper.termList.map {
                 if (it.id == alreadyAddedTerm.id) it.copy(

@@ -6,6 +6,7 @@ import me.apomazkin.chippicker.ChipValue
 import me.apomazkin.dictionarytab.R
 
 // TODO: Rename to LexicalCategoryLabel?
+@Deprecated(message = "Old as ass hole")
 enum class LexemeLabel(
     val stringValue: String,
     @StringRes override val valueRes: Int,

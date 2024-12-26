@@ -1,22 +1,26 @@
 package me.apomazkin.dictionarytab.logic.processor
 
-import me.apomazkin.dictionarytab.entity.DictUiEntity
+import me.apomazkin.dictionarypicker.entity.DictUiEntity
+import me.apomazkin.dictionarypicker.state.LangPickerState
 import me.apomazkin.dictionarytab.logic.DatasourceEffect
+import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.TopBarActionMsg
-import me.apomazkin.dictionarytab.logic.VocabularyTabState
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.ReducerResult
 
 internal fun processTopBarActionMessage(
-    state: VocabularyTabState,
+    state: DictionaryTabState,
     message: TopBarActionMsg
-): ReducerResult<VocabularyTabState, Effect> {
+): ReducerResult<DictionaryTabState, Effect> {
     return when (message) {
         is TopBarActionMsg.AvailableDict -> onLoadAvailableDict(state, message.list)
-        is TopBarActionMsg.CurrentDict -> onLoadCurrentDict(state, message.numericCode)
+        is TopBarActionMsg.CurrentDict -> onLoadCurrentDict(state, message.lang)
         is TopBarActionMsg.ChangeDict -> {
             val (midState, onExpandDictMenuEffects) = onExpandDictMenu(state, false)
-            val (updatedState, onChangeDictEffects) = onChangeDict(midState, message.numericCode)
+            val (updatedState, onChangeDictEffects) = onChangeDict(
+                midState,
+                message.lang
+            )
             updatedState to (onExpandDictMenuEffects + onChangeDictEffects)
         }
 
@@ -25,46 +29,45 @@ internal fun processTopBarActionMessage(
 }
 
 private fun onLoadAvailableDict(
-    state: VocabularyTabState,
+    state: DictionaryTabState,
     dictList: List<DictUiEntity>,
-): ReducerResult<VocabularyTabState, Effect> = state
+): ReducerResult<DictionaryTabState, Effect> = state
     .copy(
         topBarState = state.topBarState.copy(
-            mainState = state.topBarState.mainState.copy(
-                isLoading = state.topBarState.mainState.currentDict == null,
-                availableDictList = dictList
-            )
-        )
-    ) to setOf(DatasourceEffect.LoadCurrentDict)
-
-private fun onChangeDict(
-    state: VocabularyTabState,
-    numericCode: Int,
-): ReducerResult<VocabularyTabState, Effect> =
-    state to setOf(DatasourceEffect.ChangeDict(numericCode = numericCode))
-
-private fun onLoadCurrentDict(
-    state: VocabularyTabState,
-    numericCode: Int,
-): ReducerResult<VocabularyTabState, Effect> = state
-    .copy(
-        topBarState = state.topBarState.copy(
-            mainState = state.topBarState.mainState.copy(
+            langPickerState = state.topBarState.langPickerState?.copy(
                 isLoading = false,
-                currentDict = state.topBarState.mainState.availableDictList
-                    .first { it.numericCode == numericCode }
+                availableDictList = dictList
             )
         )
     ) to setOf(DatasourceEffect.LoadTermData)
 
+private fun onChangeDict(
+    state: DictionaryTabState,
+    dict: DictUiEntity,
+): ReducerResult<DictionaryTabState, Effect> =
+    state to setOf(DatasourceEffect.ChangeDict(lang = dict))
 
-private fun onExpandDictMenu(
-    state: VocabularyTabState,
-    isExpand: Boolean,
-): ReducerResult<VocabularyTabState, Effect> = state
+private fun onLoadCurrentDict(
+    state: DictionaryTabState,
+    dict: DictUiEntity,
+): ReducerResult<DictionaryTabState, Effect> = state
     .copy(
         topBarState = state.topBarState.copy(
-            mainState = state.topBarState.mainState
-                .copy(isDropDownMenuOpen = isExpand)
+            langPickerState = LangPickerState(
+                isLoading = false,
+                currentDict = dict,
+            )
+        )
+    ) to setOf(DatasourceEffect.LoadDictList)
+
+
+private fun onExpandDictMenu(
+    state: DictionaryTabState,
+    isExpand: Boolean,
+): ReducerResult<DictionaryTabState, Effect> = state
+    .copy(
+        topBarState = state.topBarState.copy(
+            langPickerState = state.topBarState.langPickerState
+                ?.copy(isDropDownMenuOpen = isExpand)
         )
     ) to emptySet()

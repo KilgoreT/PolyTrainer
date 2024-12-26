@@ -10,6 +10,9 @@ interface ApiModule {
 
     @Binds
     fun provideApi(impl: CoreDbApiImpl): CoreDbApi
+    
+    @Binds
+    fun provideLangApi(impl: CoreDbApiImpl.LangApiImpl): CoreDbApi.LangApi
 
     @Binds
     fun provideTermApi(impl: CoreDbApiImpl.TermApiImpl): CoreDbApi.TermApi

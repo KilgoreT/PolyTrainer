@@ -24,8 +24,9 @@ fun NavGraphBuilder.mainRouter(
             val context = LocalContext.current
             MainScreen(
                 mainUiDeps = MainUiDepsProvider(
-                    vocabularyUseCase = context.appComponent.getVocabularyUseCase(),
+                    dictionaryTabUseCase = context.appComponent.getVocabularyUseCase(),
                     wordCardUseCase = context.appComponent.getWordCardUseCase(),
+                    quizTabUseCase = context.appComponent.getQuizTabUseCase(),
                     logger = context.appComponent.getLogger(),
                 ),
                 openAddDict = openAddDict

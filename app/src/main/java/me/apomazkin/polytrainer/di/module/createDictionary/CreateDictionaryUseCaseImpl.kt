@@ -8,7 +8,7 @@ import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
 
 class CreateDictionaryUseCaseImpl @Inject constructor(
-    private val dbApi: CoreDbApi,
+    private val langApi: CoreDbApi.LangApi,
     private val flagProvider: FlagProvider,
     private val prefsProvider: PrefsProvider,
 ) : CreateDictionaryUseCase {
@@ -16,7 +16,7 @@ class CreateDictionaryUseCaseImpl @Inject constructor(
         flagProvider.getFlagRes(numericCode)
 
     override suspend fun addLang(numericCode: Int, name: String): Long {
-        return dbApi.addLangSuspend(numericCode, name)
+        return langApi.addLang(numericCode, name)
     }
 
     override suspend fun saveCurrentLang(numericCode: Int) {

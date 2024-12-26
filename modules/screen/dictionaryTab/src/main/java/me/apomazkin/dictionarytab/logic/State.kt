@@ -1,7 +1,7 @@
 package me.apomazkin.dictionarytab.logic
 
 import androidx.compose.runtime.Immutable
-import me.apomazkin.dictionarytab.entity.DictUiEntity
+import me.apomazkin.dictionarypicker.state.LangPickerState
 import me.apomazkin.dictionarytab.entity.LexemeLabel
 import me.apomazkin.dictionarytab.entity.TermUiItem
 import me.apomazkin.dictionarytab.entity.WordInfo
@@ -11,7 +11,7 @@ import me.apomazkin.mate.EMPTY_STRING
  * State
  */
 @Immutable
-data class VocabularyTabState(
+data class DictionaryTabState(
     val isLoading: Boolean = true,
     val topBarState: TopBarState = TopBarState(),
     val termList: List<TermUiItem> = emptyList(),
@@ -23,17 +23,9 @@ data class VocabularyTabState(
 @Immutable
 data class TopBarState(
     val isActionMode: Boolean = false,
-    val mainState: Main = Main(),
+    val langPickerState: LangPickerState? = null,
     val actionState: Action = Action(),
 ) {
-    @Immutable
-    data class Main(
-        val isLoading: Boolean = true,
-        val currentDict: DictUiEntity? = null,
-        val availableDictList: List<DictUiEntity> = emptyList(),
-        val isDropDownMenuOpen: Boolean = false,
-    )
-
     @Immutable
     data class Action(
         val selectedTermIds: Set<WordInfo> = emptySet(),
@@ -75,5 +67,5 @@ data class ConfirmWordDeleteDialogState(
     val wordIds: Set<WordInfo> = emptySet(),
 )
 
-internal fun VocabularyTabState.isEmpty(): Boolean =
+internal fun DictionaryTabState.isEmpty(): Boolean =
     this.termList.isEmpty() && !isLoading

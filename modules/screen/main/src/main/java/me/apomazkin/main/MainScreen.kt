@@ -44,7 +44,9 @@ fun MainScreen(
                 openAddDict = openAddDict,
             )
             composable(TabPoint.QUIZ.route) {
-                mainUiDeps.QuizTabScreenDep()
+                mainUiDeps.QuizTabScreenDep(
+                    openAddDict = openAddDict,
+                )
             }
             composable(TabPoint.STATS.route) {
                 mainUiDeps.StatisticTabScreenDep()
