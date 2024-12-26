@@ -1,15 +1,15 @@
 package me.apomazkin.dictionarytab.logic.processor
 
 import me.apomazkin.dictionarytab.entity.WordInfo
-import me.apomazkin.dictionarytab.logic.VocabularyTabState
+import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.tools.modifyFiltered
 import me.apomazkin.mate.Effect
 
 internal fun onChangeActionMode(
-    state: VocabularyTabState,
+    state: DictionaryTabState,
     actionMode: Boolean,
     targetWord: WordInfo?
-): Pair<VocabularyTabState, Set<Effect>> {
+): Pair<DictionaryTabState, Set<Effect>> {
 
     val set = state.topBarState.actionState.selectedTermIds
         .toMutableSet()

@@ -6,16 +6,18 @@ import dagger.Component
 import dagger.Module
 import me.apomazkin.core_db_api.CoreDbProvider
 import me.apomazkin.createdictionary.CreateDictionaryUseCase
-import me.apomazkin.dictionarytab.deps.VocabularyUseCase
+import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.polytrainer.MainActivity
 import me.apomazkin.polytrainer.api.AppProvider
 import me.apomazkin.polytrainer.di.module.LoggerModule
 import me.apomazkin.polytrainer.di.module.createDictionary.CreateDictionaryModule
+import me.apomazkin.polytrainer.di.module.dictionarytab.DictionaryTabModule
 import me.apomazkin.polytrainer.di.module.flags.FlagProviderModule
 import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
+import me.apomazkin.polytrainer.di.module.quiztab.QuizTabModule
 import me.apomazkin.polytrainer.di.module.splash.SplashModule
-import me.apomazkin.polytrainer.di.module.vocabulary.VocabularyModule
 import me.apomazkin.polytrainer.di.module.wordCard.WordCardModule
+import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.splash.SplashUseCase
 import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.wordcard.deps.WordCardUseCase
@@ -40,8 +42,9 @@ interface AppComponent : AppProvider {
 
     fun getSplashUseCase(): SplashUseCase
     fun getCreateDictionaryUseCase(): CreateDictionaryUseCase
-    fun getVocabularyUseCase(): VocabularyUseCase
+    fun getVocabularyUseCase(): DictionaryTabUseCase
     fun getWordCardUseCase(): WordCardUseCase
+    fun getQuizTabUseCase(): QuizTabUseCase
     fun getLogger(): LexemeLogger
 
     @Component(dependencies = [CoreDbProvider::class])
@@ -52,8 +55,9 @@ interface AppComponent : AppProvider {
     includes = [
         SplashModule::class,
         CreateDictionaryModule::class,
-        VocabularyModule::class,
+        DictionaryTabModule::class,
         WordCardModule::class,
+        QuizTabModule::class,
         FlagProviderModule::class,
         PrefsProviderModule::class,
         LoggerModule::class,

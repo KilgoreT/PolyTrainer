@@ -4,7 +4,8 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
-import me.apomazkin.dictionarytab.deps.VocabularyUseCase
+import me.apomazkin.dictionarypicker.entity.DictUiEntity
+import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.entity.WordInfo
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
@@ -27,7 +28,7 @@ internal sealed interface DatasourceEffect : Effect {
     /**
      * Effect to change current language.
      */
-    data class ChangeDict(val numericCode: Int) : DatasourceEffect
+    data class ChangeDict(val lang: DictUiEntity) : DatasourceEffect
 
     /**
      * Effect to load data.
@@ -60,7 +61,7 @@ internal sealed interface DatasourceEffect : Effect {
  * EffectHandler for datastore calls.
  */
 internal class DatasourceEffectHandler(
-    private val vocabularyUseCase: VocabularyUseCase,
+    private val dictionaryTabUseCase: DictionaryTabUseCase,
 ) : MateEffectHandler<Msg, Effect> {
 
     override suspend fun runEffect(
@@ -71,7 +72,7 @@ internal class DatasourceEffectHandler(
         return when (val eff = effect as? DatasourceEffect) {
             is DatasourceEffect.LoadDictList -> {
                 withContext(Dispatchers.IO) {
-                    vocabularyUseCase.getAvailableDict().let {
+                    dictionaryTabUseCase.getAvailableDict().let {
                         TopBarActionMsg.AvailableDict(list = it)
                     }
                 }
@@ -79,34 +80,42 @@ internal class DatasourceEffectHandler(
 
             is DatasourceEffect.LoadCurrentDict -> {
                 withContext(Dispatchers.IO) {
-                    vocabularyUseCase.getCurrentDict()
-                        .let { TopBarActionMsg.CurrentDict(numericCode = it) }
+                    dictionaryTabUseCase.getCurrentDict()
+                        .let { TopBarActionMsg.CurrentDict(lang = it) }
                 }
             }
 
             is DatasourceEffect.ChangeDict -> {
                 withContext(Dispatchers.IO) {
-                    vocabularyUseCase.changeDict(numericCode = eff.numericCode)
-                        .let { TopBarActionMsg.CurrentDict(numericCode = eff.numericCode) }
+                    dictionaryTabUseCase
+                        .changeDict(numericCode = eff.lang.numericCode)
+                        .let { TopBarActionMsg.CurrentDict(lang = eff.lang) }
                 }
             }
 
             is DatasourceEffect.LoadTermData -> {
                 withContext(Dispatchers.IO) {
-                    vocabularyUseCase.getWordList()
+                    dictionaryTabUseCase.getWordList()
                         .let { Msg.TermDataLoaded(termList = it) }
                 }
             }
 
             is DatasourceEffect.AddWord -> {
                 withContext(Dispatchers.IO) {
-                    vocabularyUseCase.addWord(eff.value).let { Msg.TermDataLoad }
+                    dictionaryTabUseCase
+                        .addWord(eff.value)
+                        .let { Msg.TermDataLoad }
                 }
             }
 
             is DatasourceEffect.ChangeWord -> {
                 withContext(Dispatchers.IO) {
-                    async { vocabularyUseCase.updateWord(eff.wordId, eff.value) }
+                    async {
+                        dictionaryTabUseCase.updateWord(
+                            eff.wordId,
+                            eff.value
+                        )
+                    }
                         .await()
                         .let { if (it) Msg.TermDataLoad else Msg.TermDataLoad }
                 }
@@ -115,7 +124,7 @@ internal class DatasourceEffectHandler(
             is DatasourceEffect.DeleteWord -> {
                 withContext(Dispatchers.IO) {
                     eff.wordSet.map { id ->
-                        async { vocabularyUseCase.deleteWord(id.id) }.await()
+                        async { dictionaryTabUseCase.deleteWord(id.id) }.await()
                     }
                 }.let {
                     Msg.TermDataLoad
@@ -127,14 +136,14 @@ internal class DatasourceEffectHandler(
                     // TODO: Проследить, чтобы обновлялись только те лексемы, которые реально были изменены
                     eff.lexemeList.forEach { lexeme ->
                         lexeme.lexemeId?.let { lexemeId ->
-                            vocabularyUseCase.editLexeme(
+                            dictionaryTabUseCase.editLexeme(
                                 eff.wordId,
                                 lexemeId,
                                 lexeme.category.stringValue,
                                 lexeme.definition.editedText,
                             )
                         } ?: run {
-                            vocabularyUseCase.addLexeme(
+                            dictionaryTabUseCase.addLexeme(
                                 eff.wordId,
                                 lexeme.category.stringValue,
                                 lexeme.definition.editedText,
@@ -146,7 +155,7 @@ internal class DatasourceEffectHandler(
 
             is DatasourceEffect.DeleteLexeme -> {
                 withContext(Dispatchers.IO) {
-                    vocabularyUseCase.deleteLexeme(eff.lexemeId)
+                    dictionaryTabUseCase.deleteLexeme(eff.lexemeId)
                         .let { Msg.TermDataLoad }
                 }
             }

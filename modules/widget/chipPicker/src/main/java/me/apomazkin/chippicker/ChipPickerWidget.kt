@@ -28,7 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -60,18 +60,18 @@ fun <T : ChipValue> ChipPickerWidget(
 ) {
     /*  backUp... variable need for animation,
         when picker value is changed, but value is needed for exit animation. */
-    val backUpValue = remember { mutableStateOf(-1) }
+    val backUpValue = remember { mutableIntStateOf(-1) }
     val backUpChip = remember {
         object : ChipValue {
             override val valueRes: Int
-                get() = backUpValue.value
+                get() = backUpValue.intValue
         }
     }
     val currentChip: State<ChipValue> = remember(pickerValue) {
         derivedStateOf {
             when (pickerValue) {
                 is ChipPicker.Selected<*> -> {
-                    backUpValue.value = pickerValue.chipValue.valueRes
+                    backUpValue.intValue = pickerValue.chipValue.valueRes
                     pickerValue.chipValue
                 }
                 is ChipPicker.Off -> backUpChip

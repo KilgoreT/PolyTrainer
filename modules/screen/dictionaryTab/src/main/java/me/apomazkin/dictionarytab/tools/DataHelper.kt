@@ -1,14 +1,15 @@
 package me.apomazkin.dictionarytab.tools
 
+import me.apomazkin.dictionarypicker.entity.DictUiEntity
+import me.apomazkin.dictionarypicker.state.LangPickerState
 import me.apomazkin.dictionarytab.R
 import me.apomazkin.dictionarytab.entity.DefinitionUiEntity
-import me.apomazkin.dictionarytab.entity.DictUiEntity
 import me.apomazkin.dictionarytab.entity.LexemeUiItem
 import me.apomazkin.dictionarytab.entity.TermUiItem
 import me.apomazkin.dictionarytab.entity.TranslationUiEntity
 import me.apomazkin.dictionarytab.entity.WordInfo
+import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.TopBarState
-import me.apomazkin.dictionarytab.logic.VocabularyTabState
 import java.util.Date
 
 
@@ -66,14 +67,14 @@ object DataHelper {
     }
 
     object State {
-        val empty = VocabularyTabState(isLoading = false)
-        val loading = VocabularyTabState(isLoading = true)
-        val loaded = VocabularyTabState(
+        val empty = DictionaryTabState(isLoading = false)
+        val loading = DictionaryTabState(isLoading = true)
+        val loaded = DictionaryTabState(
             isLoading = false,
             termList = Data.termList,
             topBarState = TopBarState(
                 isActionMode = true,
-                mainState = TopBarState.Main(
+                langPickerState = LangPickerState(
                     isLoading = false,
                     currentDict = DictUiEntity(
                         flagRes = R.drawable.example_ic_flag_gb,

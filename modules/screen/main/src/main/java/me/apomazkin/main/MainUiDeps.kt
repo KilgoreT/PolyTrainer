@@ -18,7 +18,9 @@ interface MainUiDeps {
     )
 
     @Composable
-    fun QuizTabScreenDep()
+    fun QuizTabScreenDep(
+        openAddDict: () -> Unit,
+    )
 
     @Composable
     fun StatisticTabScreenDep()

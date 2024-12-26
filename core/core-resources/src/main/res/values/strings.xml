@@ -92,4 +92,9 @@
     <string name="word_card_lexeme_add_translation">Add translation</string>
     <string name="word_card_lexeme_add_definition">Add definition</string>
 
+    <!--Quiz-->
+    <string name="quiz_tab_title">Quizzes</string>
+    <string name="quiz_item_title_write">Correct spelling</string>
+    <string name="quiz_item_subtitle_write">Write the word correctly based on the translation or definition.</string>
+
 </resources>

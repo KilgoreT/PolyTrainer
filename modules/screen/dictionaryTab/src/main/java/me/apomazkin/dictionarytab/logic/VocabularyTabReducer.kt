@@ -14,11 +14,11 @@ import me.apomazkin.ui.logger.LexemeLogger
 
 internal class VocabularyTabReducer(
     val logger: LexemeLogger,
-) : MateReducer<VocabularyTabState, Msg, Effect> {
+) : MateReducer<DictionaryTabState, Msg, Effect> {
     override fun reduce(
-        state: VocabularyTabState,
+        state: DictionaryTabState,
         message: Msg
-    ): ReducerResult<VocabularyTabState, Effect> {
+    ): ReducerResult<DictionaryTabState, Effect> {
         logger.log(message = "Reduce --prevState--: $state ")
         logger.log(message = "Reduce ---message---: $message ")
         return when (message) {
@@ -117,24 +117,24 @@ internal class VocabularyTabReducer(
     }
 
     private fun onTermDataLoad(
-        state: VocabularyTabState,
-    ): ReducerResult<VocabularyTabState, Effect> = state
+        state: DictionaryTabState,
+    ): ReducerResult<DictionaryTabState, Effect> = state
         .copy(isLoading = true) to setOf(DatasourceEffect.LoadTermData)
 
     private fun onTermDataLoaded(
-        state: VocabularyTabState,
+        state: DictionaryTabState,
         termList: List<TermUiItem>,
-    ): ReducerResult<VocabularyTabState, Effect> = state
+    ): ReducerResult<DictionaryTabState, Effect> = state
         .copy(
             isLoading = false,
             termList = termList
         ) to emptySet()
 
     private fun onExpandTerm(
-        state: VocabularyTabState,
+        state: DictionaryTabState,
         itemId: Long,
         expand: Boolean
-    ): ReducerResult<VocabularyTabState, Effect> = state
+    ): ReducerResult<DictionaryTabState, Effect> = state
         .copy(
             termList = state.termList
                 .modifyFiltered(
@@ -144,11 +144,11 @@ internal class VocabularyTabReducer(
         ) to emptySet()
 
     private fun onOpenAddWordWidget(
-        state: VocabularyTabState,
+        state: DictionaryTabState,
         show: Boolean,
         wordValue: String? = null,
         wordId: Long? = null,
-    ): ReducerResult<VocabularyTabState, Effect> = state
+    ): ReducerResult<DictionaryTabState, Effect> = state
         .copy(
             addWordDialogState = state.addWordDialogState.copy(
                 isOpen = show,
@@ -158,34 +158,34 @@ internal class VocabularyTabReducer(
         ) to emptySet()
 
     private fun onWordValueChange(
-        state: VocabularyTabState,
+        state: DictionaryTabState,
         newValue: String
-    ): ReducerResult<VocabularyTabState, Effect> = state
+    ): ReducerResult<DictionaryTabState, Effect> = state
         .copy(
             addWordDialogState = state.addWordDialogState.copy(wordValue = newValue)
         ) to emptySet()
 
     private fun onAddWord(
-        state: VocabularyTabState,
+        state: DictionaryTabState,
         value: String
-    ): ReducerResult<VocabularyTabState, Effect> =
+    ): ReducerResult<DictionaryTabState, Effect> =
         state to setOf(
             DatasourceEffect.AddWord(value),
         )
 
     private fun onChangeWord(
-        state: VocabularyTabState,
+        state: DictionaryTabState,
         wordId: Long,
         value: String
-    ): ReducerResult<VocabularyTabState, Effect> = state to setOf(
+    ): ReducerResult<DictionaryTabState, Effect> = state to setOf(
         DatasourceEffect.ChangeWord(wordId = wordId, value = value),
     )
 
     private fun onConfirmDeleteWordDialog(
-        state: VocabularyTabState,
+        state: DictionaryTabState,
         isOpen: Boolean,
         wordIds: Set<WordInfo>
-    ): ReducerResult<VocabularyTabState, Effect> = state.copy(
+    ): ReducerResult<DictionaryTabState, Effect> = state.copy(
         confirmWordDeleteDialogState = state.confirmWordDeleteDialogState.copy(
             isOpen = isOpen,
             wordIds = wordIds
@@ -193,21 +193,21 @@ internal class VocabularyTabReducer(
     ) to emptySet()
 
     private fun onDeleteWord(
-        state: VocabularyTabState,
+        state: DictionaryTabState,
         wordIds: Set<WordInfo>,
-    ): ReducerResult<VocabularyTabState, Effect> =
+    ): ReducerResult<DictionaryTabState, Effect> =
         state to setOf(
             DatasourceEffect.DeleteWord(wordSet = wordIds),
             UiEffect.ShowSnackbar(title = "Слово удалено")
         )
 }
 
-typealias StateUpdater = (VocabularyTabState) -> ReducerResult<VocabularyTabState, Effect>
+typealias StateUpdater = (DictionaryTabState) -> ReducerResult<DictionaryTabState, Effect>
 
 fun combineMsgHandlers(
     stateUpdaters: List<StateUpdater>,
-    initState: VocabularyTabState
-): ReducerResult<VocabularyTabState, Effect> {
+    initState: DictionaryTabState
+): ReducerResult<DictionaryTabState, Effect> {
     return stateUpdaters.fold(
         initial = initState to setOf(),
         operation = { (state, accEffects), stateUpdater: StateUpdater ->

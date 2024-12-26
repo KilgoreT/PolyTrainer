@@ -1,7 +1,7 @@
 package me.apomazkin.dictionarytab.logic
 
 import androidx.compose.material3.DropdownMenu
-import me.apomazkin.dictionarytab.entity.DictUiEntity
+import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarytab.entity.TermUiItem
 import me.apomazkin.dictionarytab.entity.WordInfo
 
@@ -84,12 +84,12 @@ sealed interface TopBarActionMsg : Msg {
     /**
      * Message to show current language.
      */
-    data class CurrentDict(val numericCode: Int) : TopBarActionMsg
+    data class CurrentDict(val lang: DictUiEntity) : TopBarActionMsg
 
     /**
      * Message to change current language.
      */
-    data class ChangeDict(val numericCode: Int) : TopBarActionMsg
+    data class ChangeDict(val lang: DictUiEntity) : TopBarActionMsg
 
     /**
      * Message to expand or collapse Language [DropdownMenu].

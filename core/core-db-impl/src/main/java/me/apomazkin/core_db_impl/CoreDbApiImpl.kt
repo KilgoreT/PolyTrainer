@@ -12,7 +12,7 @@ import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DefinitionApiEntity
 import me.apomazkin.core_db_api.entity.Dump
 import me.apomazkin.core_db_api.entity.Hint
-import me.apomazkin.core_db_api.entity.Language
+import me.apomazkin.core_db_api.entity.LanguageApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.SampleApiEntity
 import me.apomazkin.core_db_api.entity.TermApiEntity
@@ -39,12 +39,43 @@ import javax.inject.Inject
 class CoreDbApiImpl @Inject constructor(
     private val wordDao: WordDao
 ) : CoreDbApi {
+    
+    class LangApiImpl @Inject constructor(
+        private val wordDao: WordDao
+    ) : CoreDbApi.LangApi {
+        
+        override suspend fun addLang(numericCode: Int, name: String): Long {
+            val currentDate = Date(System.currentTimeMillis())
+            return wordDao.addLanguage(
+                LanguageDb(
+                    numericCode = numericCode,
+                    code = "",
+                    name = name,
+                    addDate = currentDate,
+                )
+            )
+        }
+        
+        override suspend fun getLang(numericCode: Int): LanguageApiEntity? {
+            return wordDao.getLanguageByNumeric(numericCode)
+                ?.let { return it.toApiEntity() }
+        }
+        
+        override suspend fun getLangList(): List<LanguageApiEntity> {
+            return wordDao.getLanguages().map { it.toApiEntity() }
+        }
+        
+        override fun flowLangList(): Flow<List<LanguageApiEntity>> {
+            return wordDao.flowLanguages().map { it.toApiEntity() }
+        }
+        
+    }
 
     class TermApiImpl @Inject constructor(
         private val wordDao: WordDao
     ) : CoreDbApi.TermApi {
-
-        override suspend fun getTermList(langId: Long): List<TermApiEntity> {
+        
+        override suspend fun getTermList(langId: Int): List<TermApiEntity> {
             return wordDao.getTermList(langId).map { it.toApiEntity() }
         }
 
@@ -118,30 +149,6 @@ class CoreDbApiImpl @Inject constructor(
         }
     }
 
-    override fun getLang(): Single<List<Language>> {
-        return wordDao.getLanguages().map { it.toApiEntity() }
-    }
-
-    override suspend fun addLangSuspend(numericCode: Int, name: String): Long {
-        val currentDate = Date(System.currentTimeMillis())
-        return wordDao.addLanguageSuspend(
-            LanguageDb(
-                numericCode = numericCode,
-                code = "",
-                name = name,
-                addDate = currentDate,
-            )
-        )
-    }
-
-    override suspend fun getLangSuspend(): List<Language> {
-        return wordDao.getLanguagesSuspend().map { it.toApiEntity() }
-    }
-
-    override fun flowLang(): Flow<List<Language>> {
-        return wordDao.flowLanguages().map { it.toApiEntity() }
-    }
-
     override fun addWord(value: String, langId: Long): Completable {
         val currentDate = Date(System.currentTimeMillis())
         return wordDao.addWord(
@@ -152,13 +159,13 @@ class CoreDbApiImpl @Inject constructor(
             )
         )
     }
-
-    override fun addWordSuspend(value: String, langId: Long): Long {
+    
+    override fun addWordSuspend(value: String, langId: Int): Long {
         val currentDate = Date(System.currentTimeMillis())
         return wordDao.addWordSuspend(
             WordDb(
                 value = value,
-                langId = langId,
+                langId = langId.toLong(),
                 addDate = currentDate,
             )
         )
@@ -257,14 +264,6 @@ class CoreDbApiImpl @Inject constructor(
 
     private fun removeDefinition(vararg definition: LexemeDb): Completable {
         return wordDao.deleteDefinitions(*definition.toList().toTypedArray())
-    }
-
-    @Deprecated(message = "Zhopa", level = DeprecationLevel.ERROR)
-    override suspend fun getTermList(langId: Long): List<TermApiEntity> {
-//        return wordDao
-//            .getTermListRx(langId)
-//            .map(TermDbEntity::toApiEntity)
-        TODO("Not yet implemented")
     }
 
     override fun wordCount(langId: Long): Single<Int> {
@@ -368,7 +367,7 @@ class CoreDbApiImpl @Inject constructor(
 
     override fun getDump(): Single<Dump> {
         return Single.zip(
-            wordDao.getLanguages(),
+            wordDao.getLanguagesRx(),
             wordDao.getWord(),
             wordDao.getAllDefinition(),
             wordDao.getAllHint(),
@@ -389,7 +388,7 @@ class CoreDbApiImpl @Inject constructor(
     @SuppressLint("CheckResult")
     override fun restoreDump(dump: Dump) {
         dump.languages.forEach { lang ->
-            wordDao.addLanguage(lang.toDbEntity())
+            wordDao.addLanguageRx(lang.toDbEntity())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {}

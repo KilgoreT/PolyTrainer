@@ -12,7 +12,6 @@ import me.apomazkin.dictionarytab.logic.TopBarState
 import me.apomazkin.dictionarytab.tools.DataHelper
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
-import me.apomazkin.theme.actionBarColor
 import me.apomazkin.ui.IconBoxed
 import me.apomazkin.ui.preview.PreviewWidget
 
@@ -27,7 +26,7 @@ fun ActionTopBarWidget(
 ) {
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = actionBarColor,
+            containerColor = MaterialTheme.colorScheme.secondary,
         ),
         navigationIcon = {
             IconBoxed(
