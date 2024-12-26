@@ -12,6 +12,7 @@ dependencies {
     implementation(project("path" to ":modules:core:ui"))
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":modules:widget:iconDropDowned"))
+    implementation(project("path" to ":modules:widget:dictionarypicker"))
     implementation(project("path" to ":modules:widget:chipPicker"))
 
     implementation(composeLibs.lifecycleViewmodelCompose)

@@ -2,10 +2,11 @@ package me.apomazkin.polytrainer.uiDeps
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
-import me.apomazkin.dictionarytab.deps.VocabularyUseCase
-import me.apomazkin.dictionarytab.ui.VocabularyTabScreen
+import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
+import me.apomazkin.dictionarytab.ui.DictionaryTabScreen
 import me.apomazkin.main.MainUiDeps
 import me.apomazkin.quiztab.QuizTabScreen
+import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.settingstab.SettingsTabScreen
 import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.ui.logger.LexemeLogger
@@ -14,8 +15,9 @@ import me.apomazkin.wordcard.deps.WordCardUseCase
 
 @Stable
 class MainUiDepsProvider(
-    private val vocabularyUseCase: VocabularyUseCase,
+    private val dictionaryTabUseCase: DictionaryTabUseCase,
     private val wordCardUseCase: WordCardUseCase,
+    private val quizTabUseCase: QuizTabUseCase,
     private val logger: LexemeLogger,
 ) : MainUiDeps {
     @Composable
@@ -23,8 +25,8 @@ class MainUiDepsProvider(
         openAddDict: () -> Unit,
         openWordCard: (wordId: Long) -> Unit,
     ) {
-        VocabularyTabScreen(
-            vocabularyUseCase = vocabularyUseCase,
+        DictionaryTabScreen(
+            dictionaryTabUseCase = dictionaryTabUseCase,
             logger = logger,
             openAddDict = openAddDict,
             openWordCard = openWordCard,
@@ -44,8 +46,14 @@ class MainUiDepsProvider(
     }
 
     @Composable
-    override fun QuizTabScreenDep() {
-        QuizTabScreen()
+    override fun QuizTabScreenDep(
+        openAddDict: () -> Unit,
+    ) {
+        QuizTabScreen(
+            quizTabUseCase = quizTabUseCase,
+            logger = logger,
+            openAddDict = openAddDict,
+        )
     }
 
     @Composable

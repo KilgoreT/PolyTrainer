@@ -9,6 +9,7 @@ class KotlinJvmConventionPlugin : Plugin<Project> {
         with(target) {
 
             plugins.apply(projectVersionCatalog.findPlugin("kotlin-jvm-gp").get().get().pluginId)
+            plugins.apply("com.android.lint")
 
             extensions.configure<KotlinJvmProjectExtension> {
                 configureKotlinJvm()

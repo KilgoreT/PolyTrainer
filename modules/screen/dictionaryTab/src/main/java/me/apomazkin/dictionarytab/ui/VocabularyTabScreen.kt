@@ -26,10 +26,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.dictionarytab.R
-import me.apomazkin.dictionarytab.deps.VocabularyUseCase
+import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
+import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.Msg
 import me.apomazkin.dictionarytab.logic.UiMsg
-import me.apomazkin.dictionarytab.logic.VocabularyTabState
 import me.apomazkin.dictionarytab.logic.isEmpty
 import me.apomazkin.dictionarytab.logic.processor.toMateEvent
 import me.apomazkin.dictionarytab.tools.DataHelper
@@ -41,7 +41,6 @@ import me.apomazkin.dictionarytab.ui.widget.topBar.ActionTopBarWidget
 import me.apomazkin.dictionarytab.ui.widget.topBar.TopBarWidget
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.actionBarColor
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.btn.PrimaryFabWidget
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
@@ -50,18 +49,18 @@ import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
-fun VocabularyTabScreen(
-    vocabularyUseCase: VocabularyUseCase,
+fun DictionaryTabScreen(
+    dictionaryTabUseCase: DictionaryTabUseCase,
     logger: LexemeLogger,
-    viewModel: VocabularyTabViewModel = viewModel(
-        factory = VocabularyTabViewModel.Factory(vocabularyUseCase, logger)
+    viewModel: DictionaryTabViewModel = viewModel(
+        factory = DictionaryTabViewModel.Factory(dictionaryTabUseCase, logger)
     ),
     openAddDict: () -> Unit,
     openWordCard: (wordId: Long) -> Unit,
 ) {
     LifecycleEventHandler(action = { viewModel.accept(UiMsg.LifeCycleEvent(it.toMateEvent())) })
-    val state: VocabularyTabState by viewModel.state.collectAsStateWithLifecycle()
-    VocabularyTabScreen(
+    val state: DictionaryTabState by viewModel.state.collectAsStateWithLifecycle()
+    DictionaryTabScreen(
         state = state,
         openAddDict = openAddDict,
         openWordCard = openWordCard,
@@ -70,56 +69,62 @@ fun VocabularyTabScreen(
 
 
 @Composable
-internal fun VocabularyTabScreen(
-    state: VocabularyTabState,
+internal fun DictionaryTabScreen(
+    state: DictionaryTabState,
     openAddDict: () -> Unit,
     openWordCard: (wordId: Long) -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
-
+    
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(state.snackbarState.show) {
         if (state.snackbarState.show) {
             snackbarHostState.showSnackbar(state.snackbarState.title).also {
-                sendMessage(UiMsg.Snackbar(message = EMPTY_STRING, show = false))
+                sendMessage(
+                    UiMsg.Snackbar(
+                        message = EMPTY_STRING, show = false
+                    )
+                )
             }
         }
     }
-
+    
     LifecycleResume {
         sendMessage.invoke(Msg.TermDataLoad)
     }
-
+    
     SystemBarsWidget(
-        statusBarColor = if (state.topBarState.isActionMode) actionBarColor else Color.Transparent,
+        statusBarColor = if (state.topBarState.isActionMode) {
+            MaterialTheme.colorScheme.secondary
+        } else {
+            Color.Transparent
+        },
         statusBarDarkIcon = !state.topBarState.isActionMode
     )
-
+    
     BackHandler(enabled = state.topBarState.isActionMode) {
         sendMessage(Msg.ChangeActionMode(false, null))
     }
-
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize(),
+    
+    Scaffold(modifier = Modifier.fillMaxSize(),
         topBar = {
-            if (state.topBarState.isActionMode)
-                ActionTopBarWidget(
-                    state = state.topBarState.actionState,
-                    sendMessage = sendMessage,
-                )
-            else
-                TopBarWidget(
-                    state = state.topBarState.mainState,
-                    sendMessage = sendMessage,
-                    openAddDict = openAddDict,
-                )
+            if (state.topBarState.isActionMode) ActionTopBarWidget(
+                state = state.topBarState.actionState,
+                sendMessage = sendMessage,
+            )
+            else TopBarWidget(
+                state = state.topBarState.langPickerState,
+                sendMessage = sendMessage,
+                openAddDict = openAddDict,
+            )
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
         containerColor = Color.Transparent,
-        contentWindowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
+             contentWindowInsets = WindowInsets(
+                 left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp
+             ),
         floatingActionButton = {
             AnimatedVisibility(
                 visible = !state.addWordDialogState.isOpen,
@@ -132,8 +137,7 @@ internal fun VocabularyTabScreen(
                     enabled = !state.addWordDialogState.isOpen
                 ) { sendMessage(Msg.StartAddWord(show = true)) }
             }
-        }
-    ) { paddingValue: PaddingValues ->
+        }) { paddingValue: PaddingValues ->
         Box(
             modifier = Modifier
                 .padding(paddingValue)
@@ -143,25 +147,25 @@ internal fun VocabularyTabScreen(
             when {
                 state.isLoading -> {
                     CircularProgressIndicator(
-                        modifier = Modifier
-                            .align(Alignment.Center),
+                        modifier = Modifier.align(Alignment.Center),
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
-
+                
                 state.isEmpty() -> {
                     EmptyWidget()
                 }
-
+                
                 !state.isEmpty() -> {
                     WordListWidget(
-                        modifier = Modifier
-                            .padding(top = 20.dp),
+                        modifier = Modifier.padding(top = 20.dp),
                         termList = state.termList,
                         openWordCard = { word ->
                             if (state.topBarState.isActionMode) {
                                 sendMessage(
-                                    Msg.ChangeActionMode(isActionMode = true, targetWord = word)
+                                    Msg.ChangeActionMode(
+                                        isActionMode = true, targetWord = word
+                                    )
                                 )
                             } else {
                                 openWordCard.invoke(word.id)
@@ -191,7 +195,7 @@ internal fun VocabularyTabScreen(
 @Composable
 private fun PreviewLoading() {
     AppTheme {
-        VocabularyTabScreen(
+        DictionaryTabScreen(
             state = DataHelper.State.loading,
             openAddDict = {},
             openWordCard = {},
@@ -203,7 +207,7 @@ private fun PreviewLoading() {
 @Composable
 private fun PreviewEmpty() {
     AppTheme {
-        VocabularyTabScreen(
+        DictionaryTabScreen(
             state = DataHelper.State.empty,
             openAddDict = {},
             openWordCard = {},
@@ -215,7 +219,7 @@ private fun PreviewEmpty() {
 @Composable
 private fun PreviewLoaded() {
     AppTheme {
-        VocabularyTabScreen(
+        DictionaryTabScreen(
             state = DataHelper.State.loaded,
             openAddDict = {},
             openWordCard = {},

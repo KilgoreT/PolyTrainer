@@ -21,7 +21,7 @@ class VocabularyTabReducerKtTest {
 
     @Test
     fun testTermDataLoadMsg() {
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             isLoading = false
         )
         val result = reducer.reduce(state, Msg.TermDataLoad)
@@ -40,7 +40,7 @@ class VocabularyTabReducerKtTest {
 
     @Test
     fun testTermDataLoaded() {
-        val state = VocabularyTabState()
+        val state = DictionaryTabState()
         assertTrue("Must be loading state", state.isLoading)
 
         val result = reducer.reduce(state, Msg.TermDataLoaded(termList = DataHelper.termList))
@@ -55,7 +55,7 @@ class VocabularyTabReducerKtTest {
 
     @Test
     fun testStartAddWord() {
-        val state = VocabularyTabState()
+        val state = DictionaryTabState()
 
         val result = reducer.reduce(state, Msg.StartAddWord(show = true))
         assertTrue(
@@ -75,7 +75,7 @@ class VocabularyTabReducerKtTest {
 
     @Test
     fun testWordValueChange() {
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             addWordDialogState = AddWordDialogState(
                 isOpen = true,
                 wordValue = ""
@@ -96,7 +96,7 @@ class VocabularyTabReducerKtTest {
     @Test
     fun testStartChangeWord() {
         val targetTerm = DataHelper.termList.first()
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             topBarState = TopBarState(
                 isActionMode = true
             )
@@ -121,7 +121,7 @@ class VocabularyTabReducerKtTest {
     @Test
     fun testAddWord() {
         val targetTerm = DataHelper.termList.first()
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             addWordDialogState = AddWordDialogState(
                 isOpen = true,
                 wordValue = targetTerm.wordValue
@@ -144,7 +144,7 @@ class VocabularyTabReducerKtTest {
     @Test
     fun testChangeWord() {
         val targetTerm = DataHelper.termList.first()
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             topBarState = TopBarState(
                 isActionMode = true
             ),
@@ -180,7 +180,7 @@ class VocabularyTabReducerKtTest {
 
     @Test
     fun testConfirmDeleteWordDialog() {
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             topBarState = TopBarState(
                 isActionMode = true
             ),
@@ -208,7 +208,7 @@ class VocabularyTabReducerKtTest {
 
     @Test
     fun testDeleteWord() {
-        val state = VocabularyTabState(
+        val state = DictionaryTabState(
             topBarState = TopBarState(
                 isActionMode = true
             ),

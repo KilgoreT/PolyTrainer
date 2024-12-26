@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import me.apomazkin.core_db_api.entity.DefinitionApiEntity
 import me.apomazkin.core_db_api.entity.Dump
 import me.apomazkin.core_db_api.entity.Hint
-import me.apomazkin.core_db_api.entity.Language
+import me.apomazkin.core_db_api.entity.LanguageApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.SampleApiEntity
 import me.apomazkin.core_db_api.entity.TermApiEntity
@@ -31,9 +31,15 @@ interface CoreDbApi {
     /**
      * xxx -> xxxApiEntity -> xxxDb
      */
-
+    
+    interface LangApi {
+        suspend fun addLang(numericCode: Int, name: String): Long
+        suspend fun getLang(numericCode: Int): LanguageApiEntity?
+        suspend fun getLangList(): List<LanguageApiEntity>
+        fun flowLangList(): Flow<List<LanguageApiEntity>>
+    }
     interface TermApi {
-        suspend fun getTermList(langId: Long): List<TermApiEntity>
+        suspend fun getTermList(langId: Int): List<TermApiEntity>
         suspend fun searchTerms(pattern: String, langId: Long): List<TermApiEntity>
         suspend fun getTermById(id: Long): TermApiEntity?
     }
@@ -49,12 +55,8 @@ interface CoreDbApi {
     }
 
     //New API
-    suspend fun getLangSuspend(): List<Language>
-    fun flowLang(): Flow<List<Language>>
-
-    suspend fun getTermList(langId: Long): List<TermApiEntity>
-
-    fun addWordSuspend(value: String, langId: Long): Long
+    
+    fun addWordSuspend(value: String, langId: Int): Long
     suspend fun deleteWordSuspend(id: Long): Int
     suspend fun updateWordSuspend(id: Long, value: String): Boolean
 
@@ -65,10 +67,6 @@ interface CoreDbApi {
         category: String,
         definition: String
     ): Int
-
-    // Old API
-    fun getLang(): Single<List<Language>>
-    suspend fun addLangSuspend(numericCode: Int, name: String): Long
 
     fun addWord(value: String, langId: Long): Completable
     fun getWord(id: Long): Single<WordApiEntity>

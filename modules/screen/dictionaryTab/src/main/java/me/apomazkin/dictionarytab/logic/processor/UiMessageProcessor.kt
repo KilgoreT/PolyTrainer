@@ -2,15 +2,15 @@ package me.apomazkin.dictionarytab.logic.processor
 
 import androidx.lifecycle.Lifecycle
 import me.apomazkin.dictionarytab.logic.DatasourceEffect
+import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.UiMsg
-import me.apomazkin.dictionarytab.logic.VocabularyTabState
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.ReducerResult
 
 internal fun processUiMessage(
-    state: VocabularyTabState,
+    state: DictionaryTabState,
     message: UiMsg
-): ReducerResult<VocabularyTabState, Effect> {
+): ReducerResult<DictionaryTabState, Effect> {
     return when (message) {
         is UiMsg.Snackbar -> state
             .copy(
@@ -20,7 +20,7 @@ internal fun processUiMessage(
 
         is UiMsg.LifeCycleEvent -> {
             if (message.lifeCycle == UiMsg.LifeCycleEvent.LifeCycle.ON_START) {
-                state to setOf(DatasourceEffect.LoadDictList)
+                state to setOf(DatasourceEffect.LoadCurrentDict)
             } else {
                 state to emptySet()
             }
