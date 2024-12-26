@@ -29,11 +29,11 @@ internal fun Project.configureKotlinAndroid(
             minSdk = projectVersionCatalog.findVersion("minSdk").get().toString().toInt()
         }
         compileOptions {
-            sourceCompatibility = JavaVersion.VERSION_11
-            targetCompatibility = JavaVersion.VERSION_11
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
         }
     }
-    configureKotlin(JavaVersion.VERSION_11)
+    configureKotlin(JavaVersion.VERSION_17)
 }
 
 internal fun Project.configureKotlinJvm() {
