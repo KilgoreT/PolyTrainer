@@ -9,9 +9,7 @@ val FFD9E3 = Color(0x80FFD9E3)
 @Deprecated("Outdated")
 val clr1F001F24 = Color(0x1F001F24)
 
-// Unused
 val blackDisabledColor = Color(0x1F10324C)
-val Tonal = Color(0xFFE0EEF9)
 val clr242792 = Color(0xFF242792)
 val clr3170D7 = Color(0xFF3170D7)
 val gradientPrimary = Brush

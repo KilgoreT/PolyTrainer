@@ -10,21 +10,27 @@ interface MainUiDeps {
         openAddDict: () -> Unit,
         openWordCard: (wordId: Long) -> Unit,
     )
-
+    
     @Composable
     fun WordCardScreenDep(
         wordId: Long,
         onBackPress: () -> Unit,
     )
-
+    
     @Composable
     fun QuizTabScreenDep(
         openAddDict: () -> Unit,
+        openChatQuiz: (quizType: String) -> Unit,
     )
-
+    
+    @Composable
+    fun ChatQuizScreenDep(
+        onBackPress: () -> Unit,
+    )
+    
     @Composable
     fun StatisticTabScreenDep()
-
+    
     @Composable
     fun SettingsTabScreenDep()
 }

@@ -15,6 +15,7 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun PrimaryFullButtonWidget(
+    modifier: Modifier = Modifier,
     @StringRes titleRes: Int,
     enabled: Boolean = true,
     onClick: () -> Unit,
@@ -22,7 +23,7 @@ fun PrimaryFullButtonWidget(
     LexemeButton(
         titleRes = titleRes,
         enabled = enabled,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth(),
         height = 56.dp,
         enabledColor = MaterialTheme.colorScheme.primary,

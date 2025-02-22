@@ -10,6 +10,7 @@ import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.polytrainer.MainActivity
 import me.apomazkin.polytrainer.api.AppProvider
 import me.apomazkin.polytrainer.di.module.LoggerModule
+import me.apomazkin.polytrainer.di.module.ResourceModule
 import me.apomazkin.polytrainer.di.module.createDictionary.CreateDictionaryModule
 import me.apomazkin.polytrainer.di.module.dictionarytab.DictionaryTabModule
 import me.apomazkin.polytrainer.di.module.flags.FlagProviderModule
@@ -20,6 +21,7 @@ import me.apomazkin.polytrainer.di.module.wordCard.WordCardModule
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.splash.SplashUseCase
 import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.ui.resource.ResourceManager
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import javax.inject.Singleton
 
@@ -45,6 +47,7 @@ interface AppComponent : AppProvider {
     fun getVocabularyUseCase(): DictionaryTabUseCase
     fun getWordCardUseCase(): WordCardUseCase
     fun getQuizTabUseCase(): QuizTabUseCase
+    fun getResourceManager(): ResourceManager
     fun getLogger(): LexemeLogger
 
     @Component(dependencies = [CoreDbProvider::class])
@@ -61,6 +64,7 @@ interface AppComponent : AppProvider {
         FlagProviderModule::class,
         PrefsProviderModule::class,
         LoggerModule::class,
+        ResourceModule::class,
     ]
 )
 interface AppModule

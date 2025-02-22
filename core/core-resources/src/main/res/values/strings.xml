@@ -97,4 +97,34 @@
     <string name="quiz_item_title_write">Correct spelling</string>
     <string name="quiz_item_subtitle_write">Write the word correctly based on the translation or definition.</string>
 
+    <!--ChatQuiz-->
+    <string name="chat_quiz_app_bar_title">Quiz chat</string>
+    <string name="chat_quiz_bg_image_content_description">Background image</string>
+    <string name="chat_quiz_start_button_title">Start</string>
+    <string name="chat_quiz_system_start">Hi! Ready to start your workout? \uD83D\uDCAA</string>
+    <string name="chat_quiz_placeholder_text">Enter the answer</string>
+
+    <string name="chat_quiz_user_start">Start</string>
+
+    <string name="chat_quiz_ask_translate_header">Translate the following word:</string>
+
+
+    <string-array name="chat_quiz_system_correct">
+        <item>Correct!</item>
+        <item>Right answer!</item>
+        <item>Absolutely right!</item>
+        <item>Yes, that’s correct!</item>
+        <item>Right answer, you’re awesome!</item>
+    </string-array>
+
+    <string-array name="chat_quiz_system_incorrect">
+        <item>Unfortunately, that\'s incorrect!</item>
+        <item>Unfortunately, that\’s not the right answer.</item>
+        <item>Unfortunately, that\'s wrong.</item>
+        <item>That’s not the answer we were looking for.</item>
+        <item>Unfortunately, that’s incorrect.</item>
+        <item>Wrong answer, but don\’t worry!</item>
+        <item>Incorrect, but you\'re learning!</item>
+    </string-array>
+
 </resources>
