@@ -5,11 +5,13 @@ import androidx.compose.runtime.Stable
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.ui.DictionaryTabScreen
 import me.apomazkin.main.MainUiDeps
+import me.apomazkin.quiz.chat.ChatScreen
 import me.apomazkin.quiztab.QuizTabScreen
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.settingstab.SettingsTabScreen
 import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.ui.resource.ResourceManager
 import me.apomazkin.wordcard.WordCardScreen
 import me.apomazkin.wordcard.deps.WordCardUseCase
 
@@ -18,6 +20,7 @@ class MainUiDepsProvider(
     private val dictionaryTabUseCase: DictionaryTabUseCase,
     private val wordCardUseCase: WordCardUseCase,
     private val quizTabUseCase: QuizTabUseCase,
+    private val resourceManager: ResourceManager,
     private val logger: LexemeLogger,
 ) : MainUiDeps {
     @Composable
@@ -48,11 +51,24 @@ class MainUiDepsProvider(
     @Composable
     override fun QuizTabScreenDep(
         openAddDict: () -> Unit,
+        openChatQuiz: (quizType: String) -> Unit,
     ) {
         QuizTabScreen(
             quizTabUseCase = quizTabUseCase,
             logger = logger,
             openAddDict = openAddDict,
+            openQuiz = openChatQuiz,
+        )
+    }
+    
+    @Composable
+    override fun ChatQuizScreenDep(
+        onBackPress: () -> Unit,
+    ) {
+        ChatScreen(
+            resourceManager = resourceManager,
+            logger = logger,
+            onBackPress = onBackPress,
         )
     }
 

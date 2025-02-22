@@ -35,6 +35,7 @@ fun QuizTabScreen(
         factory = QuizTabViewModel.Factory(quizTabUseCase, logger)
     ),
     openAddDict: () -> Unit,
+    openQuiz: (quizType: String) -> Unit,
 ) {
     
     LifecycleEventHandler(
@@ -44,6 +45,7 @@ fun QuizTabScreen(
     QuizTabScreen(
         state = state,
         openAddDict = openAddDict,
+        openQuiz = openQuiz,
     ) { viewModel.accept(it) }
     
 }
@@ -52,6 +54,7 @@ fun QuizTabScreen(
 internal fun QuizTabScreen(
     state: QuizTabState,
     openAddDict: () -> Unit,
+    openQuiz: (quizType: String) -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
     Scaffold(
@@ -75,7 +78,9 @@ internal fun QuizTabScreen(
                 imageRes = R.drawable.ic_quiz_write,
                 titleRes = R.string.quiz_item_title_write,
                 subTitleRes = R.string.quiz_item_subtitle_write
-            ) {}
+            ) {
+                openQuiz.invoke("chat")
+            }
             QuizItemWidget(
                 imageRes = R.drawable.ic_quiz_write,
                 titleRes = R.string.quiz_item_title_write,
@@ -94,6 +99,7 @@ private fun Preview() {
         QuizTabScreen(
             state = QuizTabState(),
             openAddDict = {},
+            openQuiz = {},
         ) {}
     }
 }

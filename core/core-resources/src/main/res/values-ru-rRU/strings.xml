@@ -87,4 +87,33 @@
     <string name="quiz_item_title_write">Правильное написание</string>
     <string name="quiz_item_subtitle_write">По переводу или определению написать слово правильно</string>
 
+    <!--ChatQuiz-->
+    <string name="chat_quiz_app_bar_title">Квиз чат</string>
+    <string name="chat_quiz_bg_image_content_description">Фоновое изображение</string>
+    <string name="chat_quiz_start_button_title">Начать</string>
+    <string name="chat_quiz_placeholder_text">Введите ответ</string>
+    <string name="chat_quiz_system_start">Привет! Готов начать тренировку? \uD83D\uDCAA</string>
+
+    <string name="chat_quiz_user_start">Начать</string>
+
+    <string name="chat_quiz_ask_translate_header">Переведи следующее слово:</string>
+
+    <string-array name="chat_quiz_system_correct">
+        <item>Правильно!</item>
+        <item>Правильный ответ!</item>
+        <item>Совершенно верно!</item>
+        <item>Да, это правильно!</item>
+        <item>Правильный ответ, ты просто молодец!</item>
+    </string-array>
+
+    <string-array name="chat_quiz_system_incorrect">
+        <item>Увы, это неверно!</item>
+        <item>К сожалению, это неправильный ответ</item>
+        <item>К сожалению, это неверно</item>
+        <item>Это не тот ответ, который нужен</item>
+        <item>К сожалению, это неправильно</item>
+        <item>Ошибка, не расстраивайся!</item>
+        <item>Неправильно, но ты учишься!</item>
+    </string-array>
+
 </resources>

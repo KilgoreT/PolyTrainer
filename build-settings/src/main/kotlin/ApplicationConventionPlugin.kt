@@ -39,10 +39,10 @@ class ApplicationConventionPlugin : Plugin<Project> {
                 lint {
                     checkDependencies = true
                     checkAllWarnings = true
-                    absolutePaths = false
+                    absolutePaths = true
                     noLines = false
                     showAll = true
-                    explainIssues = false
+                    explainIssues = true
 //                    lintConfig = file("../lint/lint-dependency-updates.xml")
                     quiet = false
                     abortOnError = true
@@ -50,10 +50,11 @@ class ApplicationConventionPlugin : Plugin<Project> {
                     ignoreWarnings = false
                     htmlReport = true
                     textReport = true
-                    xmlReport = false
+                    xmlReport = true
                     disable.add("ObsoleteLintCustomCheck")
                     disable.add("UnusedAttribute") // vector
                     disable.add("VectorPath") // veсtor
+                    disable.add("VectorRaster") // veсtor
                 }
             }
         }
