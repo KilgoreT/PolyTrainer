@@ -1,7 +1,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
-package me.apomazkin.ui
+package me.apomazkin.ui.input.base
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +12,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,23 +22,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.LexemeStyle
+import me.apomazkin.theme.grayTextColor
+import me.apomazkin.ui.R
 
+// TODO: Добавить хинт, подсказку
 @Composable
-fun TextFieldWidget(
+fun LexemeTextFieldWidget(
     modifier: Modifier = Modifier,
     imeAction: ImeAction = ImeAction.Default,
     erasable: Boolean = false,
+    @StringRes placeHolder: Int?,
     value: String,
     onValueChange: (String) -> Unit,
     onKeyboardActions: () -> Unit,
 ) {
     var textFieldValue by remember {
-        mutableStateOf(TextFieldValue(text = value, selection = TextRange(value.length)))
+        mutableStateOf(
+            TextFieldValue(
+                text = value,
+                selection = TextRange(value.length)
+            )
+        )
     }
     LaunchedEffect(value) {
         textFieldValue = textFieldValue.copy(
@@ -44,7 +56,7 @@ fun TextFieldWidget(
             selection = TextRange(value.length)
         )
     }
-
+    
     OutlinedTextField(
         modifier = modifier,
         value = textFieldValue,
@@ -59,6 +71,14 @@ fun TextFieldWidget(
                         .clickable { onValueChange.invoke("") },
                     painter = painterResource(id = R.drawable.ic_clear),
                     contentDescription = ""
+                )
+            }
+        },
+        placeholder = {
+            placeHolder?.let {
+                Text(
+                    text = stringResource(id = it),
+                    style = LexemeStyle.BodyM.copy(color = grayTextColor)
                 )
             }
         },

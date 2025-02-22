@@ -42,7 +42,7 @@ fun QuizItemWidget(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { },
+            .clickable { onClick() },
         shape = RoundedCornerShape(cornerRadius.dp),
         shadowElevation = shadow.dp
     ) {

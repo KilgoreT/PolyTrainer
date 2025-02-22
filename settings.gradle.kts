@@ -1,5 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
+
 rootProject.name = "PolyTrainer"
 
 includeBuild("build-settings")
@@ -12,7 +13,7 @@ include(":modules:core:theme")
 include(":modules:core:ui")
 include(":modules:core:tools")
 
-//Screen
+//Features
 include(":modules:screen:splash")
 include(":modules:screen:createdictionary")
 include(":modules:screen:main")
@@ -21,6 +22,7 @@ include(":modules:screen:wordcard")
 include(":modules:screen:quiztab")
 include(":modules:screen:stattab")
 include(":modules:screen:settingstab")
+include(":modules:screen:quiz:chat")
 
 //Widget
 include(":modules:widget:dictionarypicker")
