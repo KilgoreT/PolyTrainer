@@ -56,20 +56,53 @@ inline fun <reified T> List<T>.checkCount(
     return this
 }
 
+inline fun <reified MIGRATED, reified ORIGIN> List<MIGRATED>.checkData(
+    origin: List<ORIGIN>,
+    originMatcher: List<ORIGIN>.(MIGRATED) -> ORIGIN?,
+    checkMatcher: (migrated: MIGRATED, origin: ORIGIN) -> Boolean,
+    afterMigrationState: Boolean = true,
+): List<MIGRATED> {
+    
+    val logTitle =
+        if (afterMigrationState) "Migration Test" else "Creating Test"
+    
+    Assert.assertTrue(
+        "Given count must be ${origin.size}, but here is ${this.size} (${MIGRATED::class.simpleName})",
+        origin.size == this.size
+    )
+    
+    this.forEach { migratedItem ->
+        val originItem = origin.originMatcher(migratedItem)
+        Assert.assertNotNull(
+            "Cannot find origin [${ORIGIN::class.simpleName}] for $migratedItem",
+            originItem
+        )
+        originItem?.let {
+            Log.d("###", "$logTitle: => \nm:$migratedItem\no:$it")
+            Assert.assertTrue(
+                "Database item $migratedItem doesn't match to origin item $it",
+                checkMatcher.invoke(migratedItem, it)
+            )
+        }
+    }
+    
+    return this
+}
+
 inline fun <reified T> List<T>.checkItems(
     origin: List<T>,
     originMatcher: List<T>.(T) -> T?,
     checkMatcher: (migrated: T, origin: T) -> Boolean,
     afterMigrationState: Boolean = true,
 ): List<T> {
-
+    
     val logTitle = if (afterMigrationState) "Migration Test" else "Creating Test"
-
+    
     Assert.assertTrue(
         "Given count must be ${origin.size}, but here is ${this.size} (${T::class.simpleName})",
         origin.size == this.size
     )
-
+    
     this.forEach { migratedItem ->
         val originItem = origin.originMatcher(migratedItem)
         Assert.assertNotNull(
@@ -84,6 +117,6 @@ inline fun <reified T> List<T>.checkItems(
             )
         }
     }
-
+    
     return this
 }

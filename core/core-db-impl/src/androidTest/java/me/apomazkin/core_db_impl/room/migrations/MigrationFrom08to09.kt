@@ -1,19 +1,18 @@
 package me.apomazkin.core_db_impl.room.migrations
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.room.Schema
 import me.apomazkin.core_db_impl.room.base.BaseMigration
 import me.apomazkin.core_db_impl.room.dataSource.DataProvider
+import me.apomazkin.core_db_impl.room.schemable.LexemeV9
 import me.apomazkin.core_db_impl.room.utils.checkCount
+import me.apomazkin.core_db_impl.room.utils.checkData
 import me.apomazkin.core_db_impl.room.utils.checkItems
 import me.apomazkin.core_db_impl.room.utils.hasColumns
 import me.apomazkin.core_db_impl.room.utils.hasTable
 import me.apomazkin.core_db_impl.room.utils.toDatabase
 import org.junit.Test
-import org.junit.runner.RunWith
 
-@RunWith(AndroidJUnit4::class)
 class MigrationFrom08to09 : BaseMigration() {
 
     override fun getMigrationClass() = migration_8_9
@@ -64,27 +63,14 @@ class MigrationFrom08to09 : BaseMigration() {
                     )
             },
             afterMigrationCheck = { database ->
-                database.hasTable(tableName = Schema.Lexeme.tableName)
+                database.hasTable(tableName = LexemeV9.tableName)
                 database.hasColumns(
-                    tableName = Schema.Lexeme.tableName,
-                    columns = with(Schema.Lexeme) {
-                        arrayOf(
-                            columnId,
-                            COLUMN_WORD_ID,
-                            COLUMN_TRANSLATION,
-                            COLUMN_DEFINITION,
-                            COLUMN_WORD_CLASS,
-                            COLUMN_OPTIONS,
-                            COLUMN_ADD_DATE,
-                            COLUMN_CHANGE_DATE,
-                            COLUMN_REMOVE_DATE,
-                        )
-                    }
+                    tableName = LexemeV9.tableName,
+                    columns = LexemeV9.columnList
                 )
-                Schema.Lexeme
+                LexemeV9
                     .getFromDatabase(database)
-                    .checkCount(DataProvider.lexemeDbList)
-                    .checkItems(
+                    .checkData(
                         origin = DataProvider.lexemeDbList,
                         originMatcher = { migrated ->
                             DataProvider.lexemeDbList.firstOrNull { migrated.id == it.id }

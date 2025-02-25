@@ -46,7 +46,6 @@ fun LexemeButton(
 ) {
     Button(
         modifier = modifier
-            .fillMaxWidth()
             .height(height),
         colors = ButtonDefaults.buttonColors(
             containerColor = enabledColor,
@@ -59,7 +58,6 @@ fun LexemeButton(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(horizontal = horizontalPadding.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -79,8 +77,7 @@ private fun PreviewAlarm(
 ) {
     AppTheme {
         Box(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier,
             contentAlignment = Alignment.Center,
         ) {
             LexemeButton(
@@ -101,8 +98,7 @@ private fun PreviewCancel(
 ) {
     AppTheme {
         Box(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier,
             contentAlignment = Alignment.Center,
         ) {
             LexemeButton(
@@ -123,8 +119,7 @@ private fun PreviewWide(
 ) {
     AppTheme {
         Box(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier,
             contentAlignment = Alignment.Center,
         ) {
             LexemeButton(

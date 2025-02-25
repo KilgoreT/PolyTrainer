@@ -92,11 +92,35 @@
     <string name="chat_quiz_bg_image_content_description">Фоновое изображение</string>
     <string name="chat_quiz_start_button_title">Начать</string>
     <string name="chat_quiz_placeholder_text">Введите ответ</string>
-    <string name="chat_quiz_system_start">Привет! Готов начать тренировку? \uD83D\uDCAA</string>
+    <string name="chat_quiz_msg_system_welcome">Привет! Готов начать тренировку? \uD83D\uDCAA</string>
 
-    <string name="chat_quiz_user_start">Начать</string>
+    <string name="chat_quiz_msg_user_skip">Пропустить</string>
+    <string name="chat_quiz_msg_user_show_answer">Показать ответ</string>
+    <string name="chat_quiz_msg_system_answer">Правильный ответ:</string>
 
-    <string name="chat_quiz_ask_translate_header">Переведи следующее слово:</string>
+    <string name="chat_quiz_msg_user_start">Начать</string>
+    <string name="chat_quiz_msg_user_continue">Продолжить квиз</string>
+
+    <string name="chat_quiz_ask_translation_header">Переведи следующее слово:</string>
+    <string name="chat_quiz_ask_definition_header">Какое слово связано с этим определением:</string>
+
+    <string name="chat_quiz_system_btn_continue">Продолжить квиз</string>
+    <string name="chat_quiz_system_btn_result">Посмотреть отчет</string>
+    <string name="chat_quiz_system_btn_finish">Завершить</string>
+
+    <string name="chat_quiz_msg_system_session_end">Сессия завершена! Твой следующий шаг?</string>
+    <string name="chat_quiz_msg_system_session_end2">Твой следующий шаг?</string>
+
+    <string name="chat_quiz_msg_system_statistic">Посмотреть данные:</string>
+    <string name="chat_quiz_msg_system_statistic_session">За последнюю сессию</string>
+    <string name="chat_quiz_msg_system_statistic_full">За весь квиз</string>
+
+    <string name="chat_quiz_summary_total">📈 Всего слов: %s</string>
+    <string name="chat_quiz_summary_correct">✅ Правильных ответов: %s</string>
+    <string name="chat_quiz_summary_skipped">➖ Пропущено:: %s</string>
+    <string name="chat_quiz_summary_incorrect">❌ Ошибок: %s</string>
+
+    <string name="chat_quiz_summary_detail_title">Список ответов:</string>
 
     <string-array name="chat_quiz_system_correct">
         <item>Правильно!</item>

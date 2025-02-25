@@ -19,7 +19,7 @@ import me.apomazkin.core_db_impl.entity.SampleDb
 import me.apomazkin.core_db_impl.entity.TermDbEntity
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
-import me.apomazkin.core_db_impl.entity.WriteQuizDefinitionRel
+import me.apomazkin.core_db_impl.entity.WriteQuizDbEntity
 
 // TODO: 20.03.2021 переименгвать Dao
 @Dao
@@ -78,12 +78,12 @@ interface WordDao {
      */
 
     @Transaction
-    @Query("SELECT * FROM words WHERE langId = :langId ORDER BY id DESC")
+    @Query("SELECT * FROM words WHERE lang_id = :langId ORDER BY id DESC")
     suspend fun getTermList(langId: Int): List<TermDbEntity>
 
 
     @Transaction
-    @Query("SELECT * FROM words WHERE value LIKE :pattern AND langId = :langId ORDER BY id DESC")
+    @Query("SELECT * FROM words WHERE value LIKE :pattern AND lang_id = :langId ORDER BY id DESC")
     suspend fun searchTerms(pattern: String, langId: Long): List<TermDbEntity>
 
     @Transaction
@@ -96,7 +96,7 @@ interface WordDao {
     fun getTermListRx(): Observable<List<TermDbEntity>>
 
     @Transaction
-    @Query("SELECT * FROM words WHERE value LIKE :pattern AND langId = :langId ORDER BY id DESC")
+    @Query("SELECT * FROM words WHERE value LIKE :pattern AND lang_id = :langId ORDER BY id DESC")
     fun searchTermsRx(pattern: String, langId: Long): Observable<List<TermDbEntity>>
 
     /**
@@ -120,8 +120,8 @@ interface WordDao {
 
     @Query("UPDATE lexemes SET definition = :definition WHERE id = :id")
     suspend fun updateLexemeDefinition(id: Long, definition: String?): Int
-
-    @Query("UPDATE lexemes SET wordClass = :value WHERE id = :id")
+    
+    @Query("UPDATE lexemes SET word_class = :value WHERE id = :id")
     suspend fun updateLexemeCategory(id: Long, value: String): Int
 
     @Query("DELETE FROM lexemes WHERE id = :id")
@@ -136,8 +136,8 @@ interface WordDao {
 
     @Query("SELECT * FROM lexemes WHERE id = :id")
     fun getDefinitionById(id: Long): Single<LexemeDb>
-
-    @Query("SELECT * FROM lexemes WHERE wordId = :wordId")
+    
+    @Query("SELECT * FROM lexemes WHERE word_id = :wordId")
     fun getDefinitionListByWordId(wordId: Long): Single<List<LexemeDb>>
 
     @Update
@@ -210,50 +210,66 @@ interface WordDao {
      * QUIZ
      */
     @Insert
-    fun addWriteQuiz(writeQuizDb: WriteQuizDb): Completable
-
-    @Query("SELECT * from writeQuiz")
+    suspend fun addWriteQuiz(writeQuizDb: WriteQuizDb): Long
+    
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    fun updateWriteQuiz(writeQuizDb: List<WriteQuizDb>): Int
+    
+    @Query("SELECT * from write_quiz")
     fun getAllWriteQuiz(): Single<List<WriteQuizDb>>
-
-    @Query("SELECT * from writeQuiz WHERE langId = :langId")
-    fun getWriteQuizList(langId: Long): Single<List<WriteQuizDefinitionRel>>
-
-    @Query("SELECT * from writeQuiz  WHERE langId = :langId LIMIT :limit")
-    fun getWriteQuizList(limit: Int, langId: Long): Single<List<WriteQuizDefinitionRel>>
-
-    @Query("SELECT * from writeQuiz  WHERE grade = :grade AND langId = :langId ORDER BY lastSelectDate LIMIT :limit")
+    
+    @Query("SELECT * from write_quiz WHERE lang_id = :langId")
+    fun getWriteQuizList(langId: Long): Single<List<WriteQuizDbEntity>>
+    
+    @Query("SELECT * from write_quiz  WHERE lang_id = :langId LIMIT :limit")
+    fun getWriteQuizList(
+        limit: Int,
+        langId: Long
+    ): Single<List<WriteQuizDbEntity>>
+    
+    @Query("SELECT * from write_quiz  WHERE grade = :grade AND lang_id = :langId ORDER BY last_select_date LIMIT :limit")
     fun getWriteQuizListByAccessTime(
         grade: Int,
         limit: Int,
         langId: Long
-    ): Single<List<WriteQuizDefinitionRel>>
-
-    @Query("SELECT * from writeQuiz  WHERE grade = :grade AND langId = :langId ORDER BY RANDOM() LIMIT :limit")
-    fun getRandomWriteQuizList(
+    ): Single<List<WriteQuizDbEntity>>
+    
+    @Query("SELECT * from write_quiz  WHERE grade = :grade AND lang_id = :langId ORDER BY RANDOM() LIMIT :limit")
+    suspend fun getRandomWriteQuizList(
         grade: Int,
         limit: Int,
         langId: Long
-    ): Single<List<WriteQuizDefinitionRel>>
+    ): List<WriteQuizDbEntity>
+    
+    @Query("SELECT * from write_quiz  WHERE grade = :grade AND lang_id = :langId ORDER BY RANDOM() LIMIT :limit")
+    fun getRandomWriteQuizListRx(
+        grade: Int,
+        limit: Int,
+        langId: Long
+    ): Single<List<WriteQuizDbEntity>>
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
-    fun updateWriteQuiz(writeQuizDb: WriteQuizDb): Completable
-
-    @Query("DELETE FROM writeQuiz WHERE definitionId = :definitionId")
-    fun removeWriteQuiz(definitionId: Long): Completable
+    fun updateWriteQuizRx(writeQuizDb: WriteQuizDb): Completable
+    
+    @Query("DELETE FROM write_quiz WHERE lexeme_id = :lexemeId")
+    fun removeWriteQuiz(lexemeId: Long): Int
+    
+    @Query("DELETE FROM write_quiz WHERE lexeme_id = :lexemeId")
+    fun removeWriteQuizRx(lexemeId: Long): Completable
 
     /**
      * ANALYTICS
      */
-    @Query("SELECT COUNT(*) FROM words WHERE langId = :langId")
+    @Query("SELECT COUNT(*) FROM words WHERE lang_id = :langId")
     fun getWordCount(langId: Long): Single<Int>
 
     @Query("SELECT COUNT(*) FROM lexemes")
     fun getDefinitionCount(): Single<Int>
-
-    @Query("SELECT COUNT(*) FROM lexemes WHERE wordClass = :wordClass")
+    
+    @Query("SELECT COUNT(*) FROM lexemes WHERE word_class = :wordClass")
     fun getDefinitionTypeCount(wordClass: String): Single<Int>
-
-    @Query("SELECT COUNT(*) FROM writeQuiz WHERE grade = :tier AND langId = :langId")
+    
+    @Query("SELECT COUNT(*) FROM write_quiz WHERE grade = :tier AND lang_id = :langId")
     fun getWriteQuizCountByGrade(tier: Int, langId: Long): Single<Int>
 
 }

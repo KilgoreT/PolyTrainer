@@ -4,40 +4,10 @@ import me.apomazkin.core_db_impl.entity.HintDb
 import me.apomazkin.core_db_impl.entity.LanguageDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.SampleDb
-import me.apomazkin.core_db_impl.entity.WordDb
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import java.util.Date
 
 class DataProvider {
     companion object {
-        val wordList = listOf(
-            WordDb(
-                id = 0L,
-                langId = 0,
-                value = "w000",
-            ),
-            WordDb(
-                id = 1L,
-                langId = 0,
-                value = "w111",
-            ),
-            WordDb(
-                id = 2L,
-                langId = 0,
-                value = "w222",
-            ),
-            WordDb(
-                id = 3L,
-                langId = 0,
-                value = "w333",
-            ),
-            WordDb(
-                id = 4L,
-                langId = 0,
-                value = "w444",
-            ),
-        )
-
         val languageList = listOf(
             LanguageDb(
                 id = 0,
@@ -88,30 +58,6 @@ class DataProvider {
                 options = 0L,
                 addDate = Date(0)
             ),
-        )
-
-        val writeQuizList = listOf<WriteQuizDb>(
-            WriteQuizDb(
-                id = 0,
-                langId = 0,
-                definitionId = 0,
-                grade = 0,
-                score = 0,
-            ),
-            WriteQuizDb(
-                id = 1,
-                langId = 0,
-                definitionId = 1,
-                grade = 0,
-                score = 0,
-            ),
-            WriteQuizDb(
-                id = 2,
-                langId = 0,
-                definitionId = 2,
-                grade = 0,
-                score = 0,
-            )
         )
 
         val hintList = listOf<HintDb>(

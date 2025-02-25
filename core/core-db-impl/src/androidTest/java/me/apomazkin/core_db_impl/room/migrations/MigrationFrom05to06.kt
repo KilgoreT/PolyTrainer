@@ -1,15 +1,14 @@
 package me.apomazkin.core_db_impl.room.migrations
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import me.apomazkin.core_db_impl.room.Schema
 import me.apomazkin.core_db_impl.room.base.BaseMigration
 import me.apomazkin.core_db_impl.room.dataSource.DataProvider
+import me.apomazkin.core_db_impl.room.schemable.WordV5
+import me.apomazkin.core_db_impl.room.schemable.WriteQuizV5
 import me.apomazkin.core_db_impl.room.utils.checkCount
 import me.apomazkin.core_db_impl.room.utils.toDatabase
 import org.junit.Test
-import org.junit.runner.RunWith
 
-@RunWith(AndroidJUnit4::class)
 class MigrationFrom05to06 : BaseMigration() {
 
     override fun getMigrationClass() = migration_5_6
@@ -19,17 +18,17 @@ class MigrationFrom05to06 : BaseMigration() {
     fun from05to06() {
         runMigrateDbTest(
             onCreate = { database ->
-                Schema.WordV2
-                    .asContentValue(DataProvider.wordList)
+                WordV5
+                    .asContentValue(WordV5.data())
                     .toDatabase(
                         database = database,
-                        table = Schema.WordV2.tableName
+                        table = WordV5.tableName
                     )
-                Schema.WriteQuiz
-                    .asContentValue(DataProvider.writeQuizList)
+                WriteQuizV5
+                    .asContentValue(WriteQuizV5.data())
                     .toDatabase(
                         database = database,
-                        table = Schema.WriteQuizV1.tableName
+                        table = WriteQuizV5.tableName
                     )
                 Schema.LanguagesV1
                     .asContentValue(DataProvider.languageList)
@@ -39,12 +38,12 @@ class MigrationFrom05to06 : BaseMigration() {
                     )
             },
             afterCreateCheck = { database ->
-                Schema.WordV2
+                WordV5
                     .getFromDatabase(database)
-                    .checkCount(DataProvider.wordList)
-                Schema.WriteQuiz
+                    .checkCount(WordV5.data())
+                WriteQuizV5
                     .getFromDatabase(database)
-                    .checkCount(DataProvider.writeQuizList)
+                    .checkCount(WriteQuizV5.data())
                 Schema.LanguagesV1
                     .getFromDatabase(database)
                     .checkCount(DataProvider.languageList)

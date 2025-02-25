@@ -13,6 +13,10 @@ class ResourceManagerImpl @Inject constructor(
         return ctx.resources.getString(id)
     }
     
+    override fun stringByResId(@StringRes id: Int, value: String): String {
+        return ctx.resources.getString(id, value)
+    }
+    
     override fun stringByArrayId(@ArrayRes id: Int): String {
         return ctx.resources.getStringArray(id).random()
     }

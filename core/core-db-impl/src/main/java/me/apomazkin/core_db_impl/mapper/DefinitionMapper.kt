@@ -66,7 +66,7 @@ private val NOT_GRADABLE_INDEX = 1L shl (ADJ_ORDER_OFFSET + NOT_GRADABLE.ordinal
 class DefinitionMapper : Mapper<LexemeDb, DefinitionOld>() {
 
     override fun map(value: LexemeDb) = DefinitionOld(
-        value.id ?: 0,
+        value.id,
         value.wordId,
         value.definition,
         mapWordClass(value)
@@ -148,8 +148,10 @@ class DefinitionMapper : Mapper<LexemeDb, DefinitionOld>() {
     }
 
     override fun reverseMap(value: DefinitionOld) = LexemeDb(
-        id = value.id,
-        wordId = value.wordId,
+        id = value.id
+            ?: throw IllegalArgumentException("Definition id is null"),
+        wordId = value.wordId
+            ?: throw IllegalArgumentException("Definition wordId is null"),
         definition = value.value,
         wordClass = reverseMapWordClass(value),
         options = convertOptions(value.wordClass),

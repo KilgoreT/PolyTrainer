@@ -11,10 +11,7 @@ import me.apomazkin.quiztab.deps.QuizTabUseCase
 import javax.inject.Inject
 
 class QuizTabUseCaseImpl @Inject constructor(
-    private val dbApi: CoreDbApi,
     private val langApi: CoreDbApi.LangApi,
-    private val termApi: CoreDbApi.TermApi,
-    private val lexemeApi: CoreDbApi.LexemeApi,
     private val prefsProvider: PrefsProvider,
     private val flagProvider: FlagProvider,
 ) : QuizTabUseCase {
@@ -25,7 +22,7 @@ class QuizTabUseCaseImpl @Inject constructor(
         langApi.getLang(numericCode = numericCode)?.let {
             return DictUiEntity(
                 flagRes = flagProvider.getFlagRes(it.numericCode),
-                title = it.name ?: "",
+                title = it.name,
                 numericCode = it.numericCode,
             )
         }

@@ -17,8 +17,9 @@ fun List<LexemeDb>.toDumpEntity() = this.map { it.toDumpEntity() }
 
 
 fun DefinitionDump.toDbEntity() = LexemeDb(
-    id = id,
-    wordId = wordId,
+    id = id ?: throw IllegalArgumentException("Definition id is null"),
+    wordId = wordId
+        ?: throw IllegalArgumentException("Definition wordId is null"),
     definition = definition,
     wordClass = wordClass,
     options = options,

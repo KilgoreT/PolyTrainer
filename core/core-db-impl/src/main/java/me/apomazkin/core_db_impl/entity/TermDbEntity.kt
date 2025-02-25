@@ -3,14 +3,13 @@ package me.apomazkin.core_db_impl.entity
 import androidx.room.Embedded
 import androidx.room.Relation
 import me.apomazkin.core_db_api.entity.TermApiEntity
-import me.apomazkin.core_db_impl.mapper.toApiEntity
 
 data class TermDbEntity(
     @Embedded val wordDb: WordDb,
     @Relation(
         entity = LexemeDb::class,
         parentColumn = "id",
-        entityColumn = "wordId"
+        entityColumn = "word_id"
     )
     val lexemeListDb: List<LexemeDbEntity>
 )

@@ -6,6 +6,7 @@ import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.ui.DictionaryTabScreen
 import me.apomazkin.main.MainUiDeps
 import me.apomazkin.quiz.chat.ChatScreen
+import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiztab.QuizTabScreen
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.settingstab.SettingsTabScreen
@@ -20,6 +21,7 @@ class MainUiDepsProvider(
     private val dictionaryTabUseCase: DictionaryTabUseCase,
     private val wordCardUseCase: WordCardUseCase,
     private val quizTabUseCase: QuizTabUseCase,
+    private val quizChatUseCase: QuizChatUseCase,
     private val resourceManager: ResourceManager,
     private val logger: LexemeLogger,
 ) : MainUiDeps {
@@ -66,6 +68,7 @@ class MainUiDepsProvider(
         onBackPress: () -> Unit,
     ) {
         ChatScreen(
+            quizChatUseCase = quizChatUseCase,
             resourceManager = resourceManager,
             logger = logger,
             onBackPress = onBackPress,

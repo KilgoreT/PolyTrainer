@@ -16,6 +16,5 @@ data class LexemeUiItem(
     val definition: DefinitionUiEntity?,
     val addDate: Date,
     val changeDate: Date? = null,
-    val removeDate: Date? = null,
 //    val category: LexemeLabel,
 )
