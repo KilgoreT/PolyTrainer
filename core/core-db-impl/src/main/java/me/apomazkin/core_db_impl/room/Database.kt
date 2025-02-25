@@ -20,7 +20,7 @@ import me.apomazkin.core_db_impl.entity.WriteQuizDb
         WriteQuizDb::class,
         LanguageDb::class
     ],
-    version = 9
+    version = 10
 )
 @TypeConverters(DateTimeConverter::class)
 abstract class Database : RoomDatabase() {

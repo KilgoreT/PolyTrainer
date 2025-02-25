@@ -2,17 +2,21 @@ package me.apomazkin.core_interactor.useCase.writeQuiz
 
 import io.reactivex.Single
 import me.apomazkin.core_db_api.CoreDbApi
-import me.apomazkin.core_db_api.entity.WriteQuiz
+import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import javax.inject.Inject
 
 interface GetWriteQuizByAccessTimeUseCase {
-    fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>>
-    fun getWriteQuizByAccessTime(grade: Int, limit: Int, langId: Long): Single<List<WriteQuiz>>
+    fun getWriteQuizList(langId: Long): Single<List<WriteQuizComplexEntity>>
+    fun getWriteQuizByAccessTime(
+        grade: Int,
+        limit: Int,
+        langId: Long
+    ): Single<List<WriteQuizComplexEntity>>
 
     class Impl @Inject constructor(
         private val dbApi: CoreDbApi
     ) : GetWriteQuizByAccessTimeUseCase {
-        override fun getWriteQuizList(langId: Long): Single<List<WriteQuiz>> {
+        override fun getWriteQuizList(langId: Long): Single<List<WriteQuizComplexEntity>> {
             return dbApi.getWriteQuizList(langId)
         }
 
@@ -20,7 +24,7 @@ interface GetWriteQuizByAccessTimeUseCase {
             grade: Int,
             limit: Int,
             langId: Long
-        ): Single<List<WriteQuiz>> {
+        ): Single<List<WriteQuizComplexEntity>> {
             return dbApi.getWriteQuizListByAccessTime(grade, limit, langId)
         }
     }

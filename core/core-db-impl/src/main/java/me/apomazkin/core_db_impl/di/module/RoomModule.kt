@@ -14,6 +14,7 @@ import me.apomazkin.core_db_impl.room.migrations.migration_5_6
 import me.apomazkin.core_db_impl.room.migrations.migration_6_7
 import me.apomazkin.core_db_impl.room.migrations.migration_7_8
 import me.apomazkin.core_db_impl.room.migrations.migration_8_9
+import me.apomazkin.core_db_impl.room.migrations.migration_9_10
 
 /**
  * Migration plan:
@@ -40,6 +41,7 @@ class RoomModule {
                 migration_6_7,
                 migration_7_8,
                 migration_8_9,
+                migration_9_10,
             )
             .build()
     }

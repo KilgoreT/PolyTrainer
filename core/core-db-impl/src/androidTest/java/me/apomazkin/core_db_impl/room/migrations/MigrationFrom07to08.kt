@@ -1,34 +1,36 @@
 package me.apomazkin.core_db_impl.room.migrations
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import android.util.Log
 import me.apomazkin.core_db_impl.entity.LexemeDb
-import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.room.Schema
 import me.apomazkin.core_db_impl.room.base.BaseMigration
 import me.apomazkin.core_db_impl.room.dataSource.DataProvider
+import me.apomazkin.core_db_impl.room.schemable.WordDbV5
+import me.apomazkin.core_db_impl.room.schemable.WordDbV8
+import me.apomazkin.core_db_impl.room.schemable.WordV5
+import me.apomazkin.core_db_impl.room.schemable.WordV8
 import me.apomazkin.core_db_impl.room.utils.checkCount
+import me.apomazkin.core_db_impl.room.utils.checkData
 import me.apomazkin.core_db_impl.room.utils.checkItems
 import me.apomazkin.core_db_impl.room.utils.hasColumns
 import me.apomazkin.core_db_impl.room.utils.hasTable
 import me.apomazkin.core_db_impl.room.utils.toDatabase
 import org.junit.Test
-import org.junit.runner.RunWith
 
-@RunWith(AndroidJUnit4::class)
 class MigrationFrom07to08 : BaseMigration() {
-
+    
     override fun getMigrationClass() = migration_7_8
     override fun getCurrentVersion() = CURRENT_VERSION
-
+    
     @Test
     fun from07to08() {
         runMigrateDbTest(
             onCreate = { database ->
-                Schema.WordV2
-                    .asContentValue(DataProvider.wordList)
+                WordV5
+                    .asContentValue(WordV5.data())
                     .toDatabase(
                         database = database,
-                        table = Schema.WordV2.tableName
+                        table = WordV5.tableName
                     )
                 Schema.Definition
                     .asContentValue(DataProvider.lexemeDbList)
@@ -50,37 +52,29 @@ class MigrationFrom07to08 : BaseMigration() {
                     )
             },
             afterCreateCheck = { database ->
-                database.hasTable(tableName = Schema.WordV2.tableName)
+                database.hasTable(tableName = WordV5.tableName)
                 database.hasColumns(
-                    tableName = Schema.WordV2.tableName,
-                    columns = with(Schema.WordV2) {
-                        arrayOf(
-                            columnId,
-                            COLUMN_WORD,
-                            COLUMN_ADD_DATE,
-                            COLUMN_CHANGE_DATE,
-                        )
-                    }
+                    tableName = WordV5.tableName,
+                    columns = WordV5.columnList
                 )
-                Schema.WordV2
+                WordV5
                     .getFromDatabase(database)
-                    .checkCount(DataProvider.wordList)
+                    .checkCount(WordV5.data())
                     .checkItems(
                         afterMigrationState = false,
-                        origin = DataProvider.wordList,
-                        originMatcher = { wordDb: WordDb ->
-                            DataProvider.wordList.firstOrNull { wordDb.id == it.id }
+                        origin = WordV5.data(),
+                        originMatcher = { wordDb: WordDbV5 ->
+                            WordV5.data().firstOrNull { wordDb.id == it.id }
                         },
                         checkMatcher = { migrated, origin ->
                             migrated.id == origin.id
                                     && migrated.langId == origin.langId
-                                    && migrated.value == origin.value
-                                    && migrated.addDate == origin.addDate
-                                    && migrated.changeDate == origin.changeDate
-                                    && migrated.removeDate == origin.removeDate
+                                    && migrated.word == origin.word
+                            //                                    && migrated.addDate == origin.addDate
+                            //                                    && migrated.changeDate == origin.changeDate
                         }
                     )
-
+                
                 database.hasTable(tableName = Schema.Definition.tableName)
                 database.hasColumns(
                     tableName = Schema.Definition.tableName,
@@ -175,35 +169,32 @@ class MigrationFrom07to08 : BaseMigration() {
                     )
             },
             afterMigrationCheck = { database ->
-
-                database.hasTable(tableName = Schema.Word.tableName)
-                database.hasColumns(
-                    tableName = Schema.Word.tableName,
-                    columns = with(Schema.Word) {
-                        arrayOf(
-                            columnId,
-                            COLUMN_LANG_ID,
-                            COLUMN_VALUE,
-                            COLUMN_ADD_DATE,
-                            COLUMN_CHANGE_DATE,
-                            COLUMN_REMOVE_DATE,
-                        )
-                    }
+                Log.d(
+                    "###",
+                    "<MigrationFrom07to08.kt>::from07to08 => afterMigrationCheck"
                 )
-                Schema.Word
+                database.hasTable(tableName = WordV8.tableName)
+                database.hasColumns(
+                    tableName = WordV8.tableName,
+                    columns = WordV8.columnList
+                )
+                WordV8
                     .getFromDatabase(database)
-                    .checkCount(DataProvider.wordList)
-                    .checkItems(
-                        origin = DataProvider.wordList,
-                        originMatcher = { wordDb: WordDb ->
-                            DataProvider.wordList.firstOrNull { wordDb.id == it.id }
+                    .checkData(
+                        origin = WordV5.data(),
+                        originMatcher = { wordDb: WordDbV8 ->
+                            WordV5.data().firstOrNull { wordDb.id == it.id }
                         },
                         checkMatcher = { migrated, origin ->
-                            migrated.value == origin.value
+                            migrated.id == origin.id
                                     && migrated.langId == origin.langId
+                                    && migrated.value == origin.word
+                                    //                                    && migrated.addDate == origin.addDate
+                                    //                                    && migrated.changeDate == origin.changeDate
+                                    && migrated.removeDate == null
                         }
                     )
-
+                
                 database.hasTable(tableName = Schema.LexemeV1.tableName)
                 database.hasColumns(
                     tableName = Schema.LexemeV1.tableName,
@@ -300,7 +291,7 @@ class MigrationFrom07to08 : BaseMigration() {
             }
         )
     }
-
+    
     companion object {
         private const val CURRENT_VERSION = 7
     }

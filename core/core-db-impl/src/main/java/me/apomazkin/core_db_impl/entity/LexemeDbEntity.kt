@@ -16,15 +16,14 @@ data class LexemeDbEntity(
 )
 
 fun LexemeDbEntity.toApiEntity() = LexemeApiEntity(
-    id = lexemeDb.id ?: throw IllegalArgumentException("Lexeme id is null"),
-    wordId = lexemeDb.wordId ?: throw IllegalArgumentException("Word id is null"),
+    id = lexemeDb.id,
+    wordId = lexemeDb.wordId,
     translation = lexemeDb.translation?.let { TranslationApiEntity(it) },
     definition = lexemeDb.definition?.let { DefinitionApiEntity(it) },
     wordClass = lexemeDb.wordClass,
     options = lexemeDb.options,
     addDate = lexemeDb.addDate,
     changeDate = lexemeDb.changeDate,
-    removeDate = lexemeDb.removeDate,
 )
 
 fun List<LexemeDbEntity>.toApiEntity() = map { it.toApiEntity() }

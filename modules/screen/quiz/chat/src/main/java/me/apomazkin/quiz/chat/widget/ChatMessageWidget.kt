@@ -2,6 +2,8 @@ package me.apomazkin.quiz.chat.widget
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -9,8 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import me.apomazkin.quiz.chat.logic.ChatMessage
 import me.apomazkin.quiz.chat.logic.ChatMessageState
+import me.apomazkin.quiz.chat.logic.MessageContent
+import me.apomazkin.quiz.chat.logic.Msg
+import me.apomazkin.quiz.chat.logic.isPreviousHasSameType
 import me.apomazkin.quiz.chat.widget.message.SystemMessageWidget
 import me.apomazkin.quiz.chat.widget.message.UserMessageWidget
 import me.apomazkin.theme.AppTheme
@@ -20,30 +26,45 @@ import me.apomazkin.ui.preview.PreviewWidget
 fun ChatMessageWidget(
     modifier: Modifier = Modifier,
     state: ChatMessageState,
+    sendMessage: (Msg) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
     
     LaunchedEffect(state) {
-        lazyListState.animateScrollToItem(state.list.lastIndex)
+        launch {
+            lazyListState.animateScrollToItem(state.list.lastIndex)
+        }
     }
     
     LazyColumn(
         modifier = modifier,
         state = lazyListState,
         contentPadding = PaddingValues(all = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         reverseLayout = false
     ) {
         itemsIndexed(
             items = state.list,
             key = { _, item -> item.order.toString() }
         ) { index: Int, item: ChatMessage ->
-            val isNotLast = index < state.list.lastIndex
-                    && state.list[index + 1].isSystemMessage
+            
+            val needSpaceBeforePrevious = !state.isPreviousHasSameType(index)
+            if (needSpaceBeforePrevious) {
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            
             if (item.isSystemMessage) {
+                val notShowAvatar = index < state.list.lastIndex
+                        && state.list[index + 1].isSystemMessage
+                val isInChain = index > 0
+                        && state.list[index - 1].isSystemMessage
+                val isLastMessage = index == state.list.lastIndex
                 SystemMessageWidget(
-                    showAvatar = isNotLast.not(),
-                    message = item.message
+                    showAvatar = notShowAvatar.not(),
+                    isInChain = isInChain,
+                    showButtons = isLastMessage,
+                    message = item,
+                    sendMessage = sendMessage
                 )
             } else {
                 UserMessageWidget(message = item.message)
@@ -70,10 +91,10 @@ private fun Preview() {
                     ),
                     ChatMessage.addUserMessage(
                         order = 3,
-                        message = "Kill, World!"
+                        message = MessageContent.create(text = "Kill, World!")
                     ),
                 )
             )
-        )
+        ) {}
     }
 }

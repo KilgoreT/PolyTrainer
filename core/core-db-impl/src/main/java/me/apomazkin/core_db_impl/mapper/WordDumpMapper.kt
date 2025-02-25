@@ -14,10 +14,11 @@ fun WordDb.toDumpEntity() = WordDump(
 fun List<WordDb>.toDumpEntity() = this.map { it.toDumpEntity() }
 
 fun WordDump.toDbEntity() = WordDb(
-    id = this.id,
+    id = this.id ?: throw IllegalArgumentException("Word id is null"),
     langId = this.langId,
-    value = this.word,
-    addDate = this.addDate,
+    value = this.word ?: throw IllegalArgumentException("Word value is null"),
+    addDate = this.addDate
+        ?: throw IllegalArgumentException("Word add date is null"),
     changeDate = this.changeDate,
 )
 

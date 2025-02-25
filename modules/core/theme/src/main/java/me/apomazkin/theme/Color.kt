@@ -33,6 +33,8 @@ val enableIconColor = Color(0xff252628)
 val disableButtonTitleColor = Color(0xffB5AEE1)
 val grayTextColor = Color(0xFF7B7E85)
 val translationBgColor = Color(0xFF938CD5)
+val chatMessageBtnBorder = Color(0xFFD4CFED)
+val chatCorrectColor = Color(0xFF23785B)
 
 object LexemeColor {
     // brand

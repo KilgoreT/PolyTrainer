@@ -24,12 +24,12 @@ class DictionaryTabUseCaseImpl @Inject constructor(
 ) : DictionaryTabUseCase {
     
     override suspend fun getCurrentDict(): DictUiEntity {
-        val numericCode =
-            prefsProvider.getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+        val numericCode = prefsProvider
+            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
         langApi.getLang(numericCode = numericCode)?.let {
             return DictUiEntity(
                 flagRes = flagProvider.getFlagRes(it.numericCode),
-                title = it.name ?: "",
+                title = it.name,
                 numericCode = it.numericCode,
             )
         }
@@ -50,7 +50,7 @@ class DictionaryTabUseCaseImpl @Inject constructor(
             it.map { lang ->
                 DictUiEntity(
                     flagRes = flagProvider.getFlagRes(lang.numericCode),
-                    title = lang.name ?: "",
+                    title = lang.name,
                     numericCode = lang.numericCode,
                 )
             }
@@ -83,8 +83,7 @@ class DictionaryTabUseCaseImpl @Inject constructor(
                     termApi.getTermList(langId)
                         .map { term ->
                             TermUiItem(
-                                id = term.word.id
-                                    ?: throw IllegalStateException("Word id not found"),
+                                id = term.word.id,
                                 wordValue = term.word.value,
                                 langId = term.word.langId,
                                 addDate = term.word.addDate,
@@ -101,7 +100,6 @@ class DictionaryTabUseCaseImpl @Inject constructor(
                                         definition = defMate.definition?.let { DefinitionUiEntity(it.value) },
                                         addDate = defMate.addDate,
                                         changeDate = defMate.changeDate,
-                                        removeDate = defMate.removeDate,
                                     )
                                 }
                             )
