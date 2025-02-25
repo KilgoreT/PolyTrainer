@@ -9,13 +9,13 @@ import java.util.Date
 @Entity(tableName = "samples")
 data class SampleDb(
     @PrimaryKey(autoGenerate = true)
-    val id: Long? = null,
-    val lexemeId: Long? = null,
+    val id: Long? = null, // TODO: сделать ненулабельным
+    val lexemeId: Long? = null, // TODO: сделать ненулабельным
     val value: String,
     val source: String?,
     val addDate: Date,
     val changeDate: Date? = null,
-    val removeDate: Date? = null,
+    val removeDate: Date? = null, // TODO: Удалить?
 )
 
 fun SampleDb.toApiEntity() = SampleApiEntity(

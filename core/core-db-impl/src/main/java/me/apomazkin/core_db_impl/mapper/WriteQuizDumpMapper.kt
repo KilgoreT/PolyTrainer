@@ -2,11 +2,12 @@ package me.apomazkin.core_db_impl.mapper
 
 import me.apomazkin.core_db_api.entity.WriteQuizDump
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import java.util.Date
 
 fun WriteQuizDb.toDump() = WriteQuizDump(
     id = id,
     langId = langId,
-    definitionId = definitionId,
+    definitionId = lexemeId,
     grade = grade,
     score = score,
     addDate = addDate,
@@ -16,9 +17,9 @@ fun WriteQuizDb.toDump() = WriteQuizDump(
 fun WriteQuizDump.toDb() = WriteQuizDb(
     id = id,
     langId = langId,
-    definitionId = definitionId,
+    lexemeId = definitionId,
     grade = grade,
     score = score,
-    addDate = addDate,
+    addDate = addDate ?: Date(),
     lastSelectDate = lastSelectDate
 )

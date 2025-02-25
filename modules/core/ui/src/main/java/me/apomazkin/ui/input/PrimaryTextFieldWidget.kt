@@ -30,6 +30,7 @@ fun PrimaryTextFieldWidget(
     @StringRes placeHolder: Int? = null,
     isSendEnabled: Boolean,
     @DrawableRes sendIconRes: Int = DEFAULT_SEND_ICON,
+    isInputEnabled: Boolean = true,
     value: String,
     onValueChange: (String) -> Unit,
     onSendAction: () -> Unit,
@@ -55,6 +56,7 @@ fun PrimaryTextFieldWidget(
                 .weight(1f, true)
                 .focusRequester(focusRequester),
             placeHolder = placeHolder,
+            isInputEnabled = isInputEnabled,
             value = value,
             onValueChange = onValueChange,
             imeAction = ImeAction.Send,

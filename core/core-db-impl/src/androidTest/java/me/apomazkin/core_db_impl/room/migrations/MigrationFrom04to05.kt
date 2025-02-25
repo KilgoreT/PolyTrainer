@@ -1,16 +1,15 @@
 package me.apomazkin.core_db_impl.room.migrations
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import me.apomazkin.core_db_impl.room.Schema
 import me.apomazkin.core_db_impl.room.base.BaseMigration
 import me.apomazkin.core_db_impl.room.dataSource.DataProvider
+import me.apomazkin.core_db_impl.room.schemable.WordV3
+import me.apomazkin.core_db_impl.room.schemable.WordV5
+import me.apomazkin.core_db_impl.room.schemable.WriteQuizV1
 import me.apomazkin.core_db_impl.room.utils.checkCount
 import me.apomazkin.core_db_impl.room.utils.toDatabase
 import org.junit.Assert
 import org.junit.Test
-import org.junit.runner.RunWith
 
-@RunWith(AndroidJUnit4::class)
 class MigrationFrom04to05 : BaseMigration() {
 
     override fun getMigrationClass() = migration_4_5
@@ -20,29 +19,29 @@ class MigrationFrom04to05 : BaseMigration() {
     fun from04to05() {
         runMigrateDbTest(
             onCreate = { database ->
-                Schema.WordV1
-                    .asContentValue(DataProvider.wordList)
+                WordV3
+                    .asContentValue(WordV3.data())
                     .toDatabase(
                         database = database,
-                        table = Schema.WordV1.tableName
+                        table = WordV3.tableName
                     )
-                Schema.WriteQuizV1
-                    .asContentValue(DataProvider.writeQuizList)
+                WriteQuizV1
+                    .asContentValue(WriteQuizV1.data())
                     .toDatabase(
                         database = database,
-                        table = Schema.WriteQuizV1.tableName
+                        table = WriteQuizV1.tableName
                     )
             },
             afterCreateCheck = { database ->
-                Schema.WordV1
+                WordV3
                     .getFromDatabase(database)
-                    .checkCount(DataProvider.wordList)
-                Schema.WriteQuizV1
+                    .checkCount(WordV3.data())
+                WriteQuizV1
                     .getFromDatabase(database)
-                    .checkCount(DataProvider.writeQuizList)
+                    .checkCount(WriteQuizV1.data())
             },
             afterMigrationCheck = { database ->
-                Schema.WordV2
+                WordV5
                     .getFromDatabase(database)
                     .forEach { item ->
                         Assert.assertTrue(
@@ -50,7 +49,7 @@ class MigrationFrom04to05 : BaseMigration() {
                             DataProvider.languageList.first().id?.let { item.langId == it } ?: false
                         )
                     }
-                Schema.WriteQuizV1
+                WriteQuizV1
                     .getFromDatabase(database)
                     .forEach { item ->
                         Assert.assertTrue(

@@ -17,7 +17,6 @@ data class LexemeApiEntity(
     val options: Long = 0,
     val addDate: Date,
     val changeDate: Date? = null,
-    val removeDate: Date? = null,
 )
 
 fun LexemeApiEntity.canRemoveTranslation() = definition != null

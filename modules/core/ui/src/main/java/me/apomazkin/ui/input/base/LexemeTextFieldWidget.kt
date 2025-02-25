@@ -38,6 +38,7 @@ fun LexemeTextFieldWidget(
     imeAction: ImeAction = ImeAction.Default,
     erasable: Boolean = false,
     @StringRes placeHolder: Int?,
+    isInputEnabled: Boolean = true,
     value: String,
     onValueChange: (String) -> Unit,
     onKeyboardActions: () -> Unit,
@@ -59,6 +60,7 @@ fun LexemeTextFieldWidget(
     
     OutlinedTextField(
         modifier = modifier,
+        enabled = isInputEnabled,
         value = textFieldValue,
         onValueChange = {
             textFieldValue = it

@@ -101,13 +101,36 @@
     <string name="chat_quiz_app_bar_title">Quiz chat</string>
     <string name="chat_quiz_bg_image_content_description">Background image</string>
     <string name="chat_quiz_start_button_title">Start</string>
-    <string name="chat_quiz_system_start">Hi! Ready to start your workout? \uD83D\uDCAA</string>
     <string name="chat_quiz_placeholder_text">Enter the answer</string>
+    <string name="chat_quiz_msg_system_welcome">Hi! Ready to start your workout? \uD83D\uDCAA</string>
 
-    <string name="chat_quiz_user_start">Start</string>
+    <string name="chat_quiz_msg_user_skip">Skip</string>
+    <string name="chat_quiz_msg_user_show_answer">Show answer</string>
+    <string name="chat_quiz_msg_system_answer">Correct answer:</string>
 
-    <string name="chat_quiz_ask_translate_header">Translate the following word:</string>
+    <string name="chat_quiz_msg_user_start">Start</string>
+    <string name="chat_quiz_msg_user_continue">Continue quiz</string>
 
+    <string name="chat_quiz_ask_translation_header">Translate the following word:</string>
+    <string name="chat_quiz_ask_definition_header">Which word is related to this definition:</string>
+
+    <string name="chat_quiz_system_btn_continue">Continue quiz</string>
+    <string name="chat_quiz_system_btn_result">Show result</string>
+    <string name="chat_quiz_system_btn_finish">Finish</string>
+
+    <string name="chat_quiz_msg_system_session_end">Session completed! What\'s your next step?</string>
+    <string name="chat_quiz_msg_system_session_end2">What\'s your next step?</string>
+
+    <string name="chat_quiz_msg_system_statistic">View data:</string>
+    <string name="chat_quiz_msg_system_statistic_session">Last session</string>
+    <string name="chat_quiz_msg_system_statistic_full">Entire quiz</string>
+
+    <string name="chat_quiz_summary_total">📈 Total words: %s</string>
+    <string name="chat_quiz_summary_correct">✅ Correct answers: %s</string>
+    <string name="chat_quiz_summary_skipped">➖ Skipped: %s</string>
+    <string name="chat_quiz_summary_incorrect">❌ Incorrect answers: %s</string>
+
+    <string name="chat_quiz_summary_detail_title">List of answers:</string>
 
     <string-array name="chat_quiz_system_correct">
         <item>Correct!</item>

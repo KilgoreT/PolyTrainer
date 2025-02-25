@@ -22,8 +22,11 @@ val migration_7_8 = object : Migration(7, 8) {
         )
         db.execSQL(
             """
-            INSERT INTO words_new (id, langId, value, addDate, changeDate)
-            SELECT id, langId, word, addDate, changeDate
+            INSERT INTO words_new(
+                 id, langId, value, addDate, changeDate
+            )
+            SELECT
+                 id, langId, word, addDate, changeDate
             FROM words
             """.trimIndent()
         )

@@ -12,7 +12,7 @@ import java.util.Date
 )
 data class LanguageDb(
     @PrimaryKey(autoGenerate = true)
-    val id: Long? = null,
+    val id: Long? = null, // TODO: сделать ненулабельным
     val numericCode: Int,
     // TODO: Удалить?
     val code: String,

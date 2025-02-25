@@ -1,13 +1,12 @@
 package me.apomazkin.quiz.chat.logic
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.quiz.chat.logic.ChatMessage.MessageValue.Plain
-import me.apomazkin.theme.LexemeStyle
 
 private const val DEFAULT_LOAD_DELAY = 0L
 
@@ -17,17 +16,19 @@ private const val DEFAULT_LOAD_DELAY = 0L
 @Immutable
 data class ChatScreenState(
     val loading: Boolean = true,
+    val exit: Boolean = false,
     val loadDelay: Long = DEFAULT_LOAD_DELAY,
     val chat: ChatState = ChatState(),
-    val quizState: QuizState = QuizState(),
     val snackbarState: SnackbarState = SnackbarState(),
 )
 
 @Immutable
 data class ChatState(
     val readyToStart: Boolean = false,
+    val showUserActions: Boolean = false,
     val messagesState: ChatMessageState = ChatMessageState(),
     val inputState: String = EMPTY_STRING,
+    val isUserInputEnable: Boolean = false,
 )
 
 @Immutable
@@ -35,17 +36,21 @@ data class ChatMessageState(
     val list: List<ChatMessage> = listOf(),
 )
 
-
-data class QuizState(
-    val step: Int = -1,
-    val quizData: List<Pair<String, String>> = listOf(),
-)
+fun ChatMessageState.isPreviousHasSameType(
+    index: Int,
+): Boolean {
+    if (index == 0) return false
+    val previous = list[index - 1]
+    val current = list[index]
+    return previous.isSystemMessage == current.isSystemMessage
+}
 
 @Stable
 data class ChatMessage(
     val order: Int = -1,
     val isSystemMessage: Boolean,
     val message: MessageValue,
+    val buttons: List<ChatButton> = listOf(),
 ) {
     
     sealed class MessageValue {
@@ -63,28 +68,48 @@ data class ChatMessage(
         data class Rich(val value: AnnotatedString) : MessageValue()
     }
     
+    data class ChatButton(
+        @StringRes val title: Int,
+        val action: UserAction,
+    )
+    
     companion object {
         
-        fun plain(message: String) = Plain(message)
+        enum class UserAction {
+            CONTINUE,
+            EXIT,
+            SUMMARY,
+            LAST_SESSION_SUMMARY,
+            FULL_QUIZ_SUMMARY,
+        }
         
-        fun addSystemMessage(message: String, order: Int) =
-            ChatMessage(
-                order = order,
-                isSystemMessage = true,
-                message = MessageValue.Plain(message),
-            )
+        fun addSystemMessage(
+            message: String,
+            order: Int
+        ) = ChatMessage(
+            order = order,
+            isSystemMessage = true,
+            message = Plain(message),
+        )
         
-        fun addSystemMessage(message: AnnotatedString, order: Int) =
-            ChatMessage(
-                order = order,
-                isSystemMessage = true,
-                message = MessageValue.Rich(message),
-            )
+        fun addSystemMessage(
+            message: AnnotatedString,
+            order: Int,
+            buttons: List<ChatButton> = listOf()
+        ) = ChatMessage(
+            order = order,
+            isSystemMessage = true,
+            message = MessageValue.Rich(message),
+            buttons = buttons,
+        )
         
-        fun addUserMessage(message: String, order: Int) = ChatMessage(
+        fun addUserMessage(
+            message: MessageContent,
+            order: Int
+        ) = ChatMessage(
             order = order,
             isSystemMessage = false,
-            message = MessageValue.Plain(message),
+            message = Plain(message.text.text),
         )
     }
 }
@@ -97,40 +122,31 @@ data class SnackbarState(
 
 fun ChatScreenState.stopLoading() = copy(loading = false)
 
-fun ChatScreenState.prepareToStart(
-    message: String,
-) = copy(
-    chat = chat.addSystemMessage(message = message)
+fun ChatScreenState.startQuiz() = copy(
+    chat = chat.copy(readyToStart = true)
 )
 
-fun ChatScreenState.startQuiz(
-    message: String
-) = copy(
-    chat = chat
-        .copy(readyToStart = true)
-        .addUserMessage(message = message)
-)
-
-fun ChatScreenState.appendQuizData(data: List<Pair<String, String>>) = copy(
-    quizState = quizState.copy(
-        quizData = data,
+fun ChatScreenState.showUserActions() = copy(
+    chat = chat.copy(
+        showUserActions = true
     )
 )
 
-fun ChatScreenState.ask(
-    header: String,
-) = copy(
-    chat = chat.addSystemMessage(
-        buildAnnotatedString {
-            append(header)
-            append("\n")
-            withStyle(style = LexemeStyle.BodyMBold.toSpanStyle()) {
-                append(quizState.quizData[nextStep()].first)
-            }
-        }
-    ),
-    quizState = quizState.copy(
-        step = nextStep(),
+fun ChatScreenState.hideUserActions() = copy(
+    chat = chat.copy(
+        showUserActions = false
+    )
+)
+
+fun ChatScreenState.enableUserInput() = copy(
+    chat = chat.copy(
+        isUserInputEnable = true
+    )
+)
+
+fun ChatScreenState.disableUserInput() = copy(
+    chat = chat.copy(
+        isUserInputEnable = true //TODO
     )
 )
 
@@ -141,7 +157,11 @@ fun ChatScreenState.userTextChange(value: String) = copy(
 )
 
 fun ChatScreenState.userTextEnter() = copy(
-    chat = chat.addUserMessage(chat.inputState),
+    chat = chat.addUserMessage(
+        message = MessageContent.create(
+            text = chat.inputState,
+        )
+    ),
 )
 
 fun ChatScreenState.clearUserInput() = copy(
@@ -150,50 +170,51 @@ fun ChatScreenState.clearUserInput() = copy(
     )
 )
 
-fun ChatScreenState.checkAnswer(
-    correctHeader: String,
-    incorrectHeader: String,
+fun ChatScreenState.userMessage(
+    message: MessageContent,
 ) = copy(
-    chat = chat.addSystemMessage(
-        message = if (isAnswerCorrect()) correctHeader else incorrectHeader
+    chat = chat.addUserMessage(
+        message = message
     )
 )
 
+fun ChatScreenState.systemMessage(
+    message: MessageContent,
+) = copy(
+    chat = chat.addSystemMessage(
+        message = message
+    )
+)
 
-fun ChatScreenState.nextStep() = quizState.step + 1
-
-fun ChatScreenState.lastMessage() =
-    chat.messagesState.list.last().message.asString()
-
-fun ChatScreenState.correctAnswer() = quizState.quizData[quizState.step].second
-
-fun ChatScreenState.isAnswerCorrect() = lastMessage() == correctAnswer()
-
+fun ChatScreenState.systemMessage(
+    result: List<MessageContent>,
+) = result.fold(this) { accState, msg ->
+    accState.copy(chat = accState.chat.addSystemMessage(message = msg))
+}
 
 fun ChatState.nextOrder() = messagesState.list.size
-fun ChatState.addUserMessage(message: String) = copy(
+
+fun ChatState.addUserMessage(message: MessageContent) = copy(
     messagesState = messagesState.copy(
         list = messagesState.list + ChatMessage.addUserMessage(
             message = message,
-            order = nextOrder()
+            order = nextOrder(),
         )
     )
 )
 
-fun ChatState.addSystemMessage(message: AnnotatedString) = copy(
+fun ChatState.addSystemMessage(
+    message: MessageContent,
+) = copy(
     messagesState = messagesState.copy(
         list = messagesState.list + ChatMessage.addSystemMessage(
-            message = message,
-            order = nextOrder()
+            message = message.text,
+            order = nextOrder(),
+            buttons = message.buttons
         )
     )
 )
 
-fun ChatState.addSystemMessage(message: String) = copy(
-    messagesState = messagesState.copy(
-        list = messagesState.list + ChatMessage.addSystemMessage(
-            message = message,
-            order = nextOrder()
-        )
-    )
+fun ChatScreenState.exit() = copy(
+    exit = true
 )

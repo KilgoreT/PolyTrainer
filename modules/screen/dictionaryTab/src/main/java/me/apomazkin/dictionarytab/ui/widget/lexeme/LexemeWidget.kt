@@ -56,7 +56,6 @@ private fun Preview() {
                     definition = DefinitionUiEntity("definition definition definition definition definition"),
                     addDate = Date(),
                     changeDate = null,
-                    removeDate = null,
                 )
             )
         }

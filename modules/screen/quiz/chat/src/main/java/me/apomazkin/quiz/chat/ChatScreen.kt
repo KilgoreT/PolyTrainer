@@ -19,8 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.logic.ChatScreenState
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.widget.AppBarWidget
@@ -33,10 +32,15 @@ import me.apomazkin.ui.resource.ResourceManager
 
 @Composable
 fun ChatScreen(
+    quizChatUseCase: QuizChatUseCase,
     resourceManager: ResourceManager,
     logger: LexemeLogger,
     viewModel: ChatViewModel = viewModel(
-        factory = ChatViewModel.Factory(resourceManager, logger)
+        factory = ChatViewModel.Factory(
+            quizChatUseCase,
+            resourceManager,
+            logger
+        )
     ),
     onBackPress: () -> Unit,
 ) {
@@ -53,12 +57,10 @@ internal fun ChatScreen(
     onBackPress: () -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
-    LaunchedEffect(state.loading) {
-        if (state.loading) {
-            launch {
-                delay(state.loadDelay)
-                sendMessage(Msg.PrepareToStart)
-            }
+    
+    LaunchedEffect(state.exit) {
+        if (state.exit) {
+            onBackPress()
         }
     }
     

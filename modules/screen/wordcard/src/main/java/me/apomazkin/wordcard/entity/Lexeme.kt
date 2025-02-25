@@ -18,5 +18,4 @@ data class Lexeme(
     val category: String?,
     val addDate: Date,
     val changeDate: Date? = null,
-    val removeDate: Date? = null,
 )
