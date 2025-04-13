@@ -1,18 +1,11 @@
 package me.apomazkin.core_db_api
 
-import io.reactivex.Completable
-import io.reactivex.Observable
-import io.reactivex.Single
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.core_db_api.entity.DefinitionApiEntity
-import me.apomazkin.core_db_api.entity.Dump
-import me.apomazkin.core_db_api.entity.Hint
 import me.apomazkin.core_db_api.entity.LanguageApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
-import me.apomazkin.core_db_api.entity.SampleApiEntity
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.TranslationApiEntity
-import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
 
@@ -87,29 +80,7 @@ interface CoreDbApi {
         ): List<WriteQuizComplexEntity>
     }
     
-    fun updateWriteQuizList(writeQuizComplexEntity: WriteQuizComplexEntity): Completable
-    fun getWriteQuizList(langId: Long): Single<List<WriteQuizComplexEntity>>
-    fun getWriteQuizList(
-        limit: Int,
-        langId: Long
-    ): Single<List<WriteQuizComplexEntity>>
-    fun getWriteQuizListByAccessTime(
-        grade: Int,
-        limit: Int,
-        langId: Long
-    ): Single<List<WriteQuizComplexEntity>>
-    
-    fun getRandomWriteQuizList(
-        grade: Int,
-        limit: Int,
-        langId: Long
-    ): Single<List<WriteQuizComplexEntity>>
-    
-    fun removeWriteQuiz(definitionId: Long): Completable
-    fun getWriteQuizCountByGrade(tier: Int, langId: Long): Single<Int>
-    
     //New API
-    
     fun addWordSuspend(value: String, langId: Int): Long
     suspend fun deleteWordSuspend(id: Long): Int
     suspend fun updateWordSuspend(id: Long, value: String): Boolean
@@ -127,25 +98,4 @@ interface CoreDbApi {
         definition: String
     ): Int
     
-    fun getWord(id: Long): Single<WordApiEntity>
-    fun getAllWord(): Single<List<WordApiEntity>>
-    fun updateWord(wordApiEntity: WordApiEntity): Completable
-    fun removeWord(id: Long): Completable
-    
-    fun wordCount(langId: Long): Single<Int>
-    fun getDefinitionCount(): Single<Int>
-    fun getDefinitionTypeCount(wordClass: String): Single<Int>
-    
-    
-    fun addHint(lexemeId: Long, value: String): Completable
-    fun removeHint(id: Long): Completable
-    fun removeHint(hint: Hint): Completable
-    fun updateHint(hint: Hint): Completable
-    
-    fun addSample(lexemeId: Long, value: String, source: String?): Completable
-    fun getSampleList(definitionId: Long): Single<List<SampleApiEntity>>
-    fun getSampleList(): Observable<List<SampleApiEntity>>
-    
-    fun getDump(): Single<Dump>
-    fun restoreDump(dump: Dump)
 }

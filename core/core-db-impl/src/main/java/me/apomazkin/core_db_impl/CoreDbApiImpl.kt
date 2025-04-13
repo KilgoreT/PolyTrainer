@@ -1,39 +1,22 @@
 package me.apomazkin.core_db_impl
 
-import android.annotation.SuppressLint
 import android.util.Log
-import io.reactivex.Completable
-import io.reactivex.Observable
-import io.reactivex.Single
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DefinitionApiEntity
-import me.apomazkin.core_db_api.entity.Dump
-import me.apomazkin.core_db_api.entity.Hint
 import me.apomazkin.core_db_api.entity.LanguageApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
-import me.apomazkin.core_db_api.entity.SampleApiEntity
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.TranslationApiEntity
-import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
-import me.apomazkin.core_db_impl.entity.HintDb
 import me.apomazkin.core_db_impl.entity.LanguageDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
-import me.apomazkin.core_db_impl.entity.SampleDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import me.apomazkin.core_db_impl.entity.toApiEntity
 import me.apomazkin.core_db_impl.entity.toDb
-import me.apomazkin.core_db_impl.entity.toDbEntity
-import me.apomazkin.core_db_impl.mapper.HintMapper
-import me.apomazkin.core_db_impl.mapper.toDbEntity
-import me.apomazkin.core_db_impl.mapper.toDump
-import me.apomazkin.core_db_impl.mapper.toDumpEntity
 import me.apomazkin.core_db_impl.room.WordDao
 import java.util.Date
 import javax.inject.Inject
@@ -209,50 +192,6 @@ class CoreDbApiImpl @Inject constructor(
         )
     }
     
-    override fun getWord(id: Long): Single<WordApiEntity> {
-        return wordDao
-            .getWordById(id)
-            .map { value -> value.toApiEntity() }
-    }
-    
-    override fun getAllWord(): Single<List<WordApiEntity>> {
-        return wordDao
-            .getWord()
-            .map { it.toApiEntity() }
-    }
-    
-    override fun updateWord(wordApiEntity: WordApiEntity): Completable {
-        return wordDao
-            .updateWorld(wordApiEntity.toDbEntity())
-    }
-    
-    // TODO: 07.09.2021 всю эту логику нужно вынести в юзкейсы
-    override fun removeWord(id: Long): Completable {
-        return wordDao.getWord(id)
-            .flatMap { word ->
-                wordDao.removeWord(id).toSingle { word.lexemeListDb }
-            }
-            .flatMap { list ->
-                removeDefinition(
-                    *list
-                        .map { item -> item.lexemeDb }
-                        .toTypedArray()
-                )
-                    .toSingle { list }
-                    .flattenAsObservable { l -> l.asIterable() }
-                    .flatMapCompletable { item ->
-                        wordDao.removeSample(*item.sampleDbList.toTypedArray())
-                    }
-                    .toSingle { list }
-            }
-            .flattenAsObservable { list -> list.asIterable() }
-            .flatMapCompletable { item ->
-                wordDao.removeWriteQuizRx(
-                    item.lexemeDb.id
-                )
-            }
-    }
-    
     override suspend fun deleteWordSuspend(id: Long): Int {
         wordDao.getWordSuspend(id).also { word ->
             wordDao.removeSampleSuspend(
@@ -305,181 +244,5 @@ class CoreDbApiImpl @Inject constructor(
             addDate = Date(System.currentTimeMillis())
         )
         return wordDao.updateLexeme(lexemeDb)
-    }
-    
-    private fun removeDefinition(vararg definition: LexemeDb): Completable {
-        return wordDao.deleteDefinitions(*definition.toList().toTypedArray())
-    }
-    
-    override fun wordCount(langId: Long): Single<Int> {
-        return wordDao.getWordCount(langId)
-    }
-    
-    override fun getDefinitionCount(): Single<Int> {
-        return wordDao.getDefinitionCount()
-    }
-    
-    override fun getDefinitionTypeCount(wordClass: String): Single<Int> {
-        return wordDao.getDefinitionTypeCount(wordClass)
-    }
-    
-    override fun getWriteQuizCountByGrade(
-        tier: Int,
-        langId: Long
-    ): Single<Int> {
-        return wordDao.getWriteQuizCountByGrade(tier, langId)
-    }
-    
-    override fun getWriteQuizList(langId: Long): Single<List<WriteQuizComplexEntity>> {
-        //        return wordDao.getWriteQuizList(langId)
-        //            .map { list -> list.toApiData() }
-        TODO()
-    }
-    
-    override fun getWriteQuizList(
-        limit: Int,
-        langId: Long
-    ): Single<List<WriteQuizComplexEntity>> {
-        //        return wordDao.getWriteQuizList(limit, langId)
-        //            .map { list -> list.toApiData() }
-        TODO()
-    }
-    
-    override fun getWriteQuizListByAccessTime(
-        grade: Int,
-        limit: Int,
-        langId: Long
-    ): Single<List<WriteQuizComplexEntity>> {
-        //        return wordDao.getWriteQuizListByAccessTime(grade, limit, langId)
-        //            .map { list -> list.toApiData() }
-        TODO()
-    }
-    
-    override fun getRandomWriteQuizList(
-        grade: Int,
-        limit: Int,
-        langId: Long
-    ): Single<List<WriteQuizComplexEntity>> {
-        //        return wordDao.getRandomWriteQuizListRx(grade, limit, langId)
-        //            .map { list -> list.toApiData() }
-        TODO()
-    }
-    
-    override fun updateWriteQuizList(writeQuizComplexEntity: WriteQuizComplexEntity): Completable {
-        //        return wordDao.updateWriteQuiz(writeQuizApiEntity.toDb())
-        TODO()
-    }
-    
-    override fun removeWriteQuiz(definitionId: Long): Completable {
-        return wordDao.removeWriteQuizRx(definitionId)
-    }
-    
-    override fun addHint(lexemeId: Long, value: String): Completable {
-        return wordDao.addHint(
-            HintDb(
-                lexemeId = lexemeId,
-                value = value,
-                addDate = Date(System.currentTimeMillis())
-            )
-        )
-    }
-    
-    override fun removeHint(id: Long): Completable {
-        return wordDao.removeHint(id)
-    }
-    
-    override fun removeHint(hint: Hint): Completable {
-        val mapper = HintMapper()
-        return wordDao.removeHint(mapper.reverseMap(hint))
-    }
-    
-    override fun updateHint(hint: Hint): Completable {
-        val mapper = HintMapper()
-        return wordDao.updateHint(mapper.reverseMap(hint))
-    }
-    
-    override fun addSample(
-        lexemeId: Long,
-        value: String,
-        source: String?
-    ): Completable {
-        return wordDao.addSample(
-            SampleDb(
-                lexemeId = lexemeId,
-                value = value,
-                source = source,
-                addDate = Date(System.currentTimeMillis())
-            )
-        )
-    }
-    
-    override fun getSampleList(definitionId: Long): Single<List<SampleApiEntity>> {
-        //        return wordDao.getSampleListByDefinitionId(definitionId)
-        //            .map { list -> list.toApiEntity() }
-        TODO("Not yet implemented")
-    }
-    
-    override fun getSampleList(): Observable<List<SampleApiEntity>> {
-        //        return wordDao.getSampleList()
-        //            .map { list -> list.toApiEntity() }
-        TODO("Not yet implemented")
-    }
-    
-    override fun getDump(): Single<Dump> {
-        return Single.zip(
-            wordDao.getLanguagesRx(),
-            wordDao.getWord(),
-            wordDao.getAllDefinition(),
-            wordDao.getAllHint(),
-            wordDao.getAllSample(),
-            wordDao.getAllWriteQuiz(),
-        ) { languages, words, definitions, hints, sample, write ->
-            Dump(
-                languages = languages.toDumpEntity(),
-                words = words.toDumpEntity(),
-                definitions = definitions.map { it.toDumpEntity() },
-                hints = hints.map { it.toDumpEntity() },
-                samples = sample.map { it.toDumpEntity() },
-                writes = write.map { it.toDump() }
-            )
-        }
-    }
-    
-    @SuppressLint("CheckResult")
-    override fun restoreDump(dump: Dump) {
-        dump.languages.forEach { lang ->
-            wordDao.addLanguageRx(lang.toDbEntity())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {}
-        }
-        dump.words.forEach { word ->
-            wordDao.addWord(word.toDbEntity())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {}
-        }
-        dump.definitions.forEach { def ->
-            wordDao.addLexemeRx(def.toDbEntity())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { _ -> }
-        }
-        dump.hints.forEach { hint ->
-            wordDao.addHint(hint.toDbEntity())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {}
-        }
-        dump.samples.forEach { sample ->
-            wordDao.addSample(sample.toDbEntity())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {}
-        }
-        dump.writes.forEach { write ->
-            // TODO: adapt to suspend
-            //            wordDao.addWriteQuiz(write.toDb())
-        }
     }
 }

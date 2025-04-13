@@ -7,11 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import io.reactivex.Completable
-import io.reactivex.Observable
-import io.reactivex.Single
 import kotlinx.coroutines.flow.Flow
-import me.apomazkin.core_db_impl.entity.HintDb
 import me.apomazkin.core_db_impl.entity.LanguageDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.LexemeDbEntity
@@ -28,12 +24,6 @@ interface WordDao {
     /**
      * Languages
      */
-    @Insert
-    fun addLanguageRx(languageDb: LanguageDb): Completable
-
-    @Query("SELECT * FROM languages")
-    fun getLanguagesRx(): Single<List<LanguageDb>>
-
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun addLanguage(languageDb: LanguageDb): Long
     
@@ -50,25 +40,10 @@ interface WordDao {
      * WORD
      */
     @Insert
-    fun addWord(wordDb: WordDb): Completable
-
-    @Insert
     fun addWordSuspend(wordDb: WordDb): Long
-
-    @Query("SELECT * FROM words WHERE id = :id")
-    fun getWordById(id: Long): Single<WordDb>
-
-    @Query("SELECT * FROM words")
-    fun getWord(): Single<List<WordDb>>
-
-    @Update
-    fun updateWorld(wordDb: WordDb): Completable
 
     @Update
     fun updateWorldSuspend(wordDb: WordDb): Int
-
-    @Query("DELETE FROM words WHERE id = :id")
-    fun removeWord(id: Long): Completable
 
     @Query("DELETE FROM words WHERE id = :id")
     suspend fun removeWordSuspend(id: Long): Int
@@ -90,21 +65,9 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE id = :id ORDER BY id DESC")
     suspend fun getTermById(id: Long): TermDbEntity?
 
-
-    @Transaction
-    @Query("SELECT * FROM words ORDER BY id DESC")
-    fun getTermListRx(): Observable<List<TermDbEntity>>
-
-    @Transaction
-    @Query("SELECT * FROM words WHERE value LIKE :pattern AND lang_id = :langId ORDER BY id DESC")
-    fun searchTermsRx(pattern: String, langId: Long): Observable<List<TermDbEntity>>
-
     /**
      * LEXEME
      */
-    @Insert
-    fun addLexemeRx(lexemeDb: LexemeDb): Single<Long>
-
     @Insert
     suspend fun addLexeme(lexemeDb: LexemeDb): Long
 
@@ -131,77 +94,19 @@ interface WordDao {
     /**
      * Other
      */
-    @Query("SELECT * FROM lexemes")
-    fun getAllDefinition(): Single<List<LexemeDb>>
-
-    @Query("SELECT * FROM lexemes WHERE id = :id")
-    fun getDefinitionById(id: Long): Single<LexemeDb>
-    
-    @Query("SELECT * FROM lexemes WHERE word_id = :wordId")
-    fun getDefinitionListByWordId(wordId: Long): Single<List<LexemeDb>>
-
-    @Update
-    fun updateDefinition(lexemeDb: LexemeDb): Completable
-
-    @Query("DELETE FROM lexemes WHERE id = :id")
-    fun deleteDefinition(vararg id: Long): Completable
-
     @Query("DELETE FROM lexemes WHERE id = :id")
     suspend fun deleteDefinitionSuspend(vararg id: Long): Int
 
     @Delete
-    fun deleteDefinitions(vararg definition: LexemeDb): Completable
-
-    @Delete
     suspend fun deleteDefinitionsSuspend(vararg definition: LexemeDb)
-
-    // TODO: 18.02.2021 used to manual remove definition before removing word
-    @Transaction
-    @Query("SELECT * FROM words WHERE id = :id")
-    fun getWord(id: Long): Single<TermDbEntity>
 
     @Transaction
     @Query("SELECT * FROM words WHERE id = :id")
     suspend fun getWordSuspend(id: Long): TermDbEntity
 
     /**
-     * HINT
-     */
-    @Insert
-    fun addHint(hintDb: HintDb): Completable
-
-    @Query("SELECT * FROM hints")
-    fun getAllHint(): Single<List<HintDb>>
-
-    @Query("SELECT * FROM hints WHERE lexemeId = :lexemeId")
-    fun getHintListByDefinitionId(lexemeId: Long): Single<HintDb>
-
-    @Update
-    fun updateHint(hintDb: HintDb): Completable
-
-    @Query("DELETE FROM hints WHERE id = :id")
-    fun removeHint(id: Long): Completable
-
-    @Delete
-    fun removeHint(hintDb: HintDb): Completable
-
-    /**
      * SAMPLE
      */
-    @Insert
-    fun addSample(sampleDb: SampleDb): Completable
-
-    @Query("SELECT * FROM samples WHERE lexemeId = :lexemeId")
-    fun getSampleListByDefinitionId(lexemeId: Long): Single<List<SampleDb>>
-
-    @Query("SELECT * FROM samples")
-    fun getAllSample(): Single<List<SampleDb>>
-
-    @Query("SELECT * FROM samples")
-    fun getSampleList(): Observable<List<SampleDb>>
-
-    @Delete
-    fun removeSample(vararg sampleDb: SampleDb): Completable
 
     @Delete
     suspend fun removeSampleSuspend(vararg sampleDb: SampleDb)
@@ -215,25 +120,6 @@ interface WordDao {
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: List<WriteQuizDb>): Int
     
-    @Query("SELECT * from write_quiz")
-    fun getAllWriteQuiz(): Single<List<WriteQuizDb>>
-    
-    @Query("SELECT * from write_quiz WHERE lang_id = :langId")
-    fun getWriteQuizList(langId: Long): Single<List<WriteQuizDbEntity>>
-    
-    @Query("SELECT * from write_quiz  WHERE lang_id = :langId LIMIT :limit")
-    fun getWriteQuizList(
-        limit: Int,
-        langId: Long
-    ): Single<List<WriteQuizDbEntity>>
-    
-    @Query("SELECT * from write_quiz  WHERE grade = :grade AND lang_id = :langId ORDER BY last_select_date LIMIT :limit")
-    fun getWriteQuizListByAccessTime(
-        grade: Int,
-        limit: Int,
-        langId: Long
-    ): Single<List<WriteQuizDbEntity>>
-    
     @Query("SELECT * from write_quiz  WHERE grade = :grade AND lang_id = :langId ORDER BY RANDOM() LIMIT :limit")
     suspend fun getRandomWriteQuizList(
         grade: Int,
@@ -241,35 +127,7 @@ interface WordDao {
         langId: Long
     ): List<WriteQuizDbEntity>
     
-    @Query("SELECT * from write_quiz  WHERE grade = :grade AND lang_id = :langId ORDER BY RANDOM() LIMIT :limit")
-    fun getRandomWriteQuizListRx(
-        grade: Int,
-        limit: Int,
-        langId: Long
-    ): Single<List<WriteQuizDbEntity>>
-
-    @Update(onConflict = OnConflictStrategy.REPLACE)
-    fun updateWriteQuizRx(writeQuizDb: WriteQuizDb): Completable
-    
     @Query("DELETE FROM write_quiz WHERE lexeme_id = :lexemeId")
     fun removeWriteQuiz(lexemeId: Long): Int
-    
-    @Query("DELETE FROM write_quiz WHERE lexeme_id = :lexemeId")
-    fun removeWriteQuizRx(lexemeId: Long): Completable
-
-    /**
-     * ANALYTICS
-     */
-    @Query("SELECT COUNT(*) FROM words WHERE lang_id = :langId")
-    fun getWordCount(langId: Long): Single<Int>
-
-    @Query("SELECT COUNT(*) FROM lexemes")
-    fun getDefinitionCount(): Single<Int>
-    
-    @Query("SELECT COUNT(*) FROM lexemes WHERE word_class = :wordClass")
-    fun getDefinitionTypeCount(wordClass: String): Single<Int>
-    
-    @Query("SELECT COUNT(*) FROM write_quiz WHERE grade = :tier AND lang_id = :langId")
-    fun getWriteQuizCountByGrade(tier: Int, langId: Long): Single<Int>
 
 }

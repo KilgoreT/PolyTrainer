@@ -6,12 +6,11 @@ import dagger.Component
 import me.apomazkin.core_interactor.CoreInteractorApi
 import me.apomazkin.core_interactor.di.module.RepositoryModule
 import me.apomazkin.core_interactor.di.module.ScenarioModule
-import me.apomazkin.core_interactor.di.module.UseCaseModule
 import javax.inject.Singleton
 
 
 @Singleton
-@Component(modules = [RepositoryModule::class, UseCaseModule::class, ScenarioModule::class])
+@Component(modules = [RepositoryModule::class, ScenarioModule::class])
 interface CoreInteractorComponent : CoreInteractorApi {
 
     @Component.Factory
