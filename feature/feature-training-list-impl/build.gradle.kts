@@ -31,10 +31,6 @@ dependencies {
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
     kapt("com.google.dagger:dagger-compiler:2.42")
 
-    //Rx
-    implementation("io.reactivex.rxjava2:rxjava:2.2.21")
-    implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
-
     //Navigation
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
