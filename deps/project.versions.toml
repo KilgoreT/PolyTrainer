@@ -7,6 +7,7 @@ minSdk = "21"
 targetSdk = "34"
 compileSdk = "34"
 kotlinCompilerExtensionVersion = "1.5.3"
+firebaseCrashlyticsVersion = "3.0.3"
 
 [libraries]
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlinGPVersion" }
@@ -19,4 +20,5 @@ android-lib-gp = { id = "com.android.library", version.ref = "aGPVersion" }
 kotlin-gp = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinGPVersion" }
 kotlin-jvm-gp = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinJvmPluginVersion" }
 test-logger = { id = "com.adarshr.test-logger", version.ref = "testLoggerVersion" }
+firebase-crashlytics-gp = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsVersion" }
 
