@@ -96,6 +96,7 @@ dependencies {
     androidTestImplementation(testLibs.androidxTestExt)
     androidTestImplementation(testLibs.espressoCore)
     androidTestImplementation(composeLibs.uiTestJunit4)
+    implementation(composeLibs.uiToolingPreview)
     debugImplementation(composeLibs.uiTooling)
     debugImplementation(composeLibs.uiTestManifest)
 }

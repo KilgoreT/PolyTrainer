@@ -6,6 +6,8 @@
 
 ##### Секреты
 
+Где создаются токены?
+
 > Секреты хранятся репозиторий/settings/Security/secrets and variables
 
 KEYSTORE_GIT_REPO - название репозитория с keystore.
