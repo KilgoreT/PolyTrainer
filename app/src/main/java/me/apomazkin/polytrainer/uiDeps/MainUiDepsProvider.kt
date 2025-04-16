@@ -9,6 +9,7 @@ import me.apomazkin.quiz.chat.ChatScreen
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiztab.QuizTabScreen
 import me.apomazkin.quiztab.deps.QuizTabUseCase
+import me.apomazkin.settingstab.AboutAppScreen
 import me.apomazkin.settingstab.SettingsTabScreen
 import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.ui.logger.LexemeLogger
@@ -81,7 +82,22 @@ class MainUiDepsProvider(
     }
 
     @Composable
-    override fun SettingsTabScreenDep() {
-        SettingsTabScreen()
+    override fun SettingsTabScreenDep(
+        onLangManagementClick: () -> Unit,
+        onAboutAppClick: () -> Unit,
+    ) {
+        SettingsTabScreen(
+            onLangManagementClick = onLangManagementClick,
+            onAboutAppClick = onAboutAppClick,
+        )
+    }
+    
+    @Composable
+    override fun AboutAppScreenDep(
+        onBackPress: () -> Unit,
+    ) {
+        AboutAppScreen(
+            onBackPress = onBackPress,
+        )
     }
 }

@@ -1,5 +1,5 @@
 [versions]
-kotlinGPVersion = "2.0.0"
+kotlinGPVersion = "2.0.20"
 aGPVersion = "8.7.3" # AGP
 kotlinJvmPluginVersion = "1.9.10"
 testLoggerVersion = "4.0.0"

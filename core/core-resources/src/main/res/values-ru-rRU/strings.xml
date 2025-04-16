@@ -140,4 +140,13 @@
         <item>Неправильно, но ты учишься!</item>
     </string-array>
 
+    <!--Settings-->
+    <string name="settings_section_lang_management">Управление языками</string>
+    <string name="settings_section_about_app">О приложении</string>
+    <string name="settings_section_feedback">Обратная связь</string>
+    <string name="settings_section_rate">Оцените нас на Google Play</string>
+    <string name="settings_section_share">Поделитесь приложением</string>
+
+    <string name="settings_section_about_app_title">Lexeme — это приложение, которое позволяет создавать собственный словарь иностранных слов.\nМы — команда разработчиков, которая понимает на своём опыте, как важно держать иностранную лексику в порядке и постоянно её повторять.</string>
+
 </resources>

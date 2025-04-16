@@ -1,7 +1,7 @@
 plugins {
     id("lexeme.android.library")
     id("androidx.room")
-    id("com.google.devtools.ksp") version "2.0.20-1.0.24" apply false
+    id("com.google.devtools.ksp") version "2.0.20-1.0.24"
     id("kotlin-kapt")
 }
 
@@ -23,8 +23,8 @@ dependencies {
     //Room
     implementation(datastoreLibs.roomRuntime)
     implementation(datastoreLibs.roomKtx)
-    annotationProcessor(datastoreLibs.roomCompiler)
-    kapt(datastoreLibs.roomCompiler)
+    //    annotationProcessor(datastoreLibs.roomCompiler)
+    ksp(datastoreLibs.roomCompiler)
 
     //Dagger2
     implementation(diLibs.dagger)
@@ -32,3 +32,15 @@ dependencies {
 
     androidTestImplementation(datastoreLibs.roomTesting)
 }
+
+//ksp {
+////    arg("room.schemaLocation", "$projectDir/schemas")
+//    arg("room.incremental", "true")
+//    arg("room.expandProjection", "true")
+//}
+
+//ksp {
+//    arg("room.schemaLocation", "$projectDir/schemas")
+//    arg("room.incremental", "true")
+//    arg("room.expandProjection", "true")
+//}
