@@ -8,6 +8,7 @@ env:
   KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
   KEYSTORE_GIT_REPO: ${{ secrets.KEYSTORE_GIT_REPO }}
   KEYSTORE_ACCESS_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+  UPLOAD_ARTEFACTS_TOKEN: ${{ secrets.UPLOAD_ARTEFACTS_TOKEN }}
 
 jobs:
   lint_job:
@@ -111,14 +112,14 @@ jobs:
       - name: Upload Bundle to Release
         uses: skx/github-action-publish-binaries@master
         env:
-          GITHUB_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.UPLOAD_ARTEFACTS_TOKEN }}
         with:
           args: app/build/outputs/bundle/release/**.aab
 
       - name: Upload APK to Release
         uses: skx/github-action-publish-binaries@master
         env:
-          GITHUB_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.UPLOAD_ARTEFACTS_TOKEN }}
         with:
           args: app/build/outputs/apk/release/**.apk
 
