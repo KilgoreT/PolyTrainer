@@ -11,6 +11,7 @@ dependencies {
     implementation(project("path" to ":core:core-resources"))
 
     implementation(composeLibs.lifecycleRuntimeCompose)
+    api(composeLibs.uiToolingPreview)
     debugApi(composeLibs.bundles.composePreview)
     implementation(composeLibs.accompanistSystemUicontroller)
 }
