@@ -109,19 +109,15 @@ jobs:
       - name: Build APK Release
         run: ./gradlew assembleRelease
 
-      - name: Upload Bundle to Release
-        uses: skx/github-action-publish-binaries@master
+      - name: Upload Files to Release
+        uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.UPLOAD_ARTEFACTS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: app/build/outputs/bundle/release/**.aab
-
-      - name: Upload APK to Release
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.UPLOAD_ARTEFACTS_TOKEN }}
-        with:
-          args: app/build/outputs/apk/release/**.apk
+          make_latest: true
+          files: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/bundle/release/app-release.aab
 
       - name: Upload to Google Play Internal
         uses: r0adkll/upload-google-play@v1.0.15
