@@ -47,6 +47,7 @@ class WordCardUseCaseImpl @Inject constructor(
     override suspend fun addLexeme(wordId: Long): Lexeme? {
         val numericCode = prefsProvider
             .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+            ?: throw IllegalStateException("Language not found")
         val langId = langApi.getLang(numericCode = numericCode)?.id?.toLong()
             ?: throw IllegalStateException("Language not found")
         val lexemeId = lexemeApi.addLexeme(wordId)

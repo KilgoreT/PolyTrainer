@@ -23,14 +23,26 @@ class QuizChatUseCaseImpl @Inject constructor(
 ) : QuizChatUseCase {
     
     override suspend fun getCurrentLangId(): Long {
-        val numericCode = prefsProvider
-            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
-        return langApi.getLang(numericCode = numericCode)?.id?.toLong()
-            ?: throw IllegalStateException("Language not found")
+        prefsProvider.getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+            ?.let { num ->
+                langApi.getLang(numericCode = num)
+                    ?.let { return it.id.toLong() }
+            }
+            ?: langApi.getLangList()
+                .firstOrNull()
+                ?.let {
+                    prefsProvider.setInt(
+                        PrefKey.CURRENT_LANG_NUMERIC_CODE_INT,
+                        it.numericCode
+                    )
+                    return it.id.toLong()
+                }
+        
+        throw IllegalStateException("Language not found")
     }
     
-    override suspend fun updateWriteQuiz(list: List<WriteQuizUpsertEntity>): Int {
-        return quizApi.updateWriteQuiz(entity = list.toApiEntity())
+    override suspend fun updateWriteQuiz(entity: List<WriteQuizUpsertEntity>): Int {
+        return quizApi.updateWriteQuiz(entity = entity.toApiEntity())
     }
     
     override suspend fun getRandomWriteQuizList(

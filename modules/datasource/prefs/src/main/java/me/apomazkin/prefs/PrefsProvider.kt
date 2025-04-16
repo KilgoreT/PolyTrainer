@@ -22,10 +22,10 @@ class PrefsProvider(
                     ?: throw IllegalStateException("PrefKey $prefKey not found")
             }
     }
-
-    suspend fun getInt(prefKey: PrefKey): Int {
+    
+    suspend fun getInt(prefKey: PrefKey): Int? {
         return context.dataStore.data.firstOrNull()?.get(intPreferencesKey(prefKey.value))
-            ?: throw IllegalStateException("PrefKey $prefKey not found")
+        //            ?: throw IllegalStateException("PrefKey $prefKey not found")
     }
 
     suspend fun setInt(prefKey: PrefKey, value: Int) {

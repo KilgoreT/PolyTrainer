@@ -17,15 +17,28 @@ class QuizTabUseCaseImpl @Inject constructor(
 ) : QuizTabUseCase {
     
     override suspend fun getCurrentDict(): DictUiEntity {
-        val numericCode =
-            prefsProvider.getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
-        langApi.getLang(numericCode = numericCode)?.let {
-            return DictUiEntity(
-                flagRes = flagProvider.getFlagRes(it.numericCode),
-                title = it.name,
-                numericCode = it.numericCode,
-            )
-        }
+        prefsProvider
+            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)?.let { num ->
+                langApi.getLang(numericCode = num)?.let {
+                    return DictUiEntity(
+                        flagRes = flagProvider.getFlagRes(it.numericCode),
+                        title = it.name,
+                        numericCode = it.numericCode,
+                    )
+                }
+            } ?: langApi.getLangList()
+            .firstOrNull()
+            ?.let {
+                prefsProvider.setInt(
+                    PrefKey.CURRENT_LANG_NUMERIC_CODE_INT,
+                    it.numericCode
+                )
+                return DictUiEntity(
+                    flagRes = flagProvider.getFlagRes(it.numericCode),
+                    title = it.name,
+                    numericCode = it.numericCode,
+                )
+            }
         throw IllegalStateException("Language not found")
     }
     

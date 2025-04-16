@@ -24,15 +24,28 @@ class DictionaryTabUseCaseImpl @Inject constructor(
 ) : DictionaryTabUseCase {
     
     override suspend fun getCurrentDict(): DictUiEntity {
-        val numericCode = prefsProvider
-            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
-        langApi.getLang(numericCode = numericCode)?.let {
-            return DictUiEntity(
-                flagRes = flagProvider.getFlagRes(it.numericCode),
-                title = it.name,
-                numericCode = it.numericCode,
-            )
-        }
+        prefsProvider
+            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)?.let { num ->
+                langApi.getLang(numericCode = num)?.let {
+                    return DictUiEntity(
+                        flagRes = flagProvider.getFlagRes(it.numericCode),
+                        title = it.name,
+                        numericCode = it.numericCode,
+                    )
+                }
+            } ?: langApi.getLangList()
+            .firstOrNull()
+            ?.let {
+                prefsProvider.setInt(
+                    PrefKey.CURRENT_LANG_NUMERIC_CODE_INT,
+                    it.numericCode
+                )
+                return DictUiEntity(
+                    flagRes = flagProvider.getFlagRes(it.numericCode),
+                    title = it.name,
+                    numericCode = it.numericCode,
+                )
+            }
         throw IllegalStateException("Language not found")
     }
 
@@ -58,11 +71,13 @@ class DictionaryTabUseCaseImpl @Inject constructor(
     
     // TODO: Убрать нулеабельность в Language: id и name
     override suspend fun addWord(value: String): Long =
-        prefsProvider.getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT).let { numericCode ->
+        prefsProvider
+            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+            ?.let { numericCode ->
             langApi.getLang(numericCode)?.let {
                 return dbApi.addWordSuspend(value, it.id)
             } ?: throw IllegalStateException("Language not found")
-        }
+            } ?: throw IllegalStateException("Language not found")
 
     override suspend fun updateWord(id: Long, value: String): Boolean =
         dbApi.updateWordSuspend(id, value)
@@ -78,7 +93,9 @@ class DictionaryTabUseCaseImpl @Inject constructor(
     // TODO: Передавать langId сюда в параметр. нехер делать лишний запрос
     // langid хранить в стейте
     override suspend fun getWordList(): List<TermUiItem> {
-        return prefsProvider.getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT).let { numericCode ->
+        return prefsProvider
+            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+            ?.let { numericCode ->
             langApi.getLang(numericCode = numericCode)?.id?.let { langId: Int ->
                     termApi.getTermList(langId)
                         .map { term ->
@@ -105,7 +122,7 @@ class DictionaryTabUseCaseImpl @Inject constructor(
                             )
                         }
                 } ?: throw IllegalStateException("Language not found")
-        }
+            } ?: throw IllegalStateException("Language not found")
     }
 
     override suspend fun addLexeme(
