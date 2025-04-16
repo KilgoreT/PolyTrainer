@@ -15,14 +15,14 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun MessageButtonWidget(
+    modifier: Modifier = Modifier,
     @StringRes titleRes: Int,
-    modifier: Modifier = Modifier
-        .fillMaxWidth(),
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     LexemeButton(
-        modifier = modifier,
+        modifier = modifier
+            .fillMaxWidth(),
         titleRes = titleRes,
         enabled = enabled,
         height = 44.dp,

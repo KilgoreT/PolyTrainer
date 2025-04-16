@@ -150,4 +150,13 @@
         <item>Incorrect, but you\'re learning!</item>
     </string-array>
 
+    <!--Settings-->
+    <string name="settings_section_lang_management">Language Management</string>
+    <string name="settings_section_about_app">About the App</string>
+    <string name="settings_section_feedback">Feedback</string>
+    <string name="settings_section_rate">Rate us on Google Play</string>
+    <string name="settings_section_share">Share the App</string>
+
+    <string name="settings_section_about_app_title">Lexeme is an app that allows you to create your own dictionary of foreign words.\nWe are a team of developers who know from our own experience how important it is to keep foreign vocabulary organized and to review it regularly.</string>
+
 </resources>

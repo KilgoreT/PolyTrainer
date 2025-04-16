@@ -51,9 +51,12 @@ fun MainScreen(
             composable(TabPoint.STATS.route) {
                 mainUiDeps.StatisticTabScreenDep()
             }
-            composable(TabPoint.SETTINGS.route) {
-                mainUiDeps.SettingsTabScreenDep()
-            }
+            
+            settings(
+                navController = navController,
+                mainUiDeps = mainUiDeps,
+                openAddDict = openAddDict,
+            )
         }
         BottomBarWidget(navController = navController)
     }

@@ -32,5 +32,13 @@ interface MainUiDeps {
     fun StatisticTabScreenDep()
     
     @Composable
-    fun SettingsTabScreenDep()
+    fun SettingsTabScreenDep(
+        onLangManagementClick: () -> Unit,
+        onAboutAppClick: () -> Unit,
+    )
+    
+    @Composable
+    fun AboutAppScreenDep(
+        onBackPress: () -> Unit
+    )
 }

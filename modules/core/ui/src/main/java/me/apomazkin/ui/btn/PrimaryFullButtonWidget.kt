@@ -15,8 +15,7 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun PrimaryFullButtonWidget(
-    modifier: Modifier = Modifier
-        .fillMaxWidth(),
+    modifier: Modifier = Modifier,
     @StringRes titleRes: Int,
     enabled: Boolean = true,
     onClick: () -> Unit,
