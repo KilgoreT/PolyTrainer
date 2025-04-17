@@ -1,4 +1,4 @@
-package me.apomazkin.settingstab.widgets
+package me.apomazkin.settingstab.widgets.about
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes

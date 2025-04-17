@@ -1,4 +1,4 @@
-package me.apomazkin.settingstab
+package me.apomazkin.settingstab.contract
 
 import android.content.Context
 import android.content.Intent
