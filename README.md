@@ -2,6 +2,8 @@
 
 ![PreRelease](https://github.com/KilgoreT/PolyTrainer/workflows/On%20Prerelease/badge.svg)
 
+[![On Feature Push](https://github.com/KilgoreT/PolyTrainer/actions/workflows/on_feature_push.yml/badge.svg?branch=master&event=push)](https://github.com/KilgoreT/PolyTrainer/actions/workflows/on_feature_push.yml)
+
 ### Deployment
 
 ##### Секреты
