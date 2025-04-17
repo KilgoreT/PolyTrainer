@@ -1,25 +1,24 @@
 package me.apomazkin.settingstab
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import me.apomazkin.settingstab.widgets.AboutAppBar
-import me.apomazkin.settingstab.widgets.AppDescriptionWidget
-import me.apomazkin.settingstab.widgets.LogoVersionWidget
-import me.apomazkin.settingstab.widgets.SettingsItemWidget
-import me.apomazkin.theme.dividerColor
+import me.apomazkin.settingstab.widgets.about.AboutAppBar
+import me.apomazkin.settingstab.widgets.about.AppDescriptionWidget
+import me.apomazkin.settingstab.widgets.about.LogoVersionWidget
+import me.apomazkin.settingstab.widgets.settings.SettingsSectionWidget
+import me.apomazkin.settingstab.widgets.settings.items.base.SettingsItemWidget
 import me.apomazkin.ui.preview.PreviewScreen
+
+private const val DEFAULT_HORIZONTAL_PADDING = 16
+private const val DEFAULT_VERTICAL_ARRANGEMENT = 8
 
 @Composable
 fun AboutAppScreen(
@@ -34,9 +33,10 @@ fun AboutAppScreen(
             modifier = Modifier
                 .padding(paddings),
             contentPadding = PaddingValues(
-                horizontal = 16.dp
+                horizontal = DEFAULT_HORIZONTAL_PADDING.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement
+                .spacedBy(DEFAULT_VERTICAL_ARRANGEMENT.dp),
         ) {
             
             item {
@@ -62,29 +62,19 @@ fun AboutAppScreen(
             }
             
             item {
-                Surface(
-                    modifier = Modifier
-                        .padding(top = 20.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, color = dividerColor),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        SettingsItemWidget(
-                            iconRes = R.drawable.ic_feedback,
-                            titleRes = R.string.settings_section_feedback,
-                            showNextIcon = true,
-                            onClick = { }
-                        )
-                        SettingsItemWidget(
-                            iconRes = R.drawable.ic_rate,
-                            titleRes = R.string.settings_section_rate,
-                            showNextIcon = true,
-                            onClick = { }
-                        )
-                    }
+                SettingsSectionWidget {
+                    SettingsItemWidget(
+                        iconRes = R.drawable.ic_feedback,
+                        titleRes = R.string.settings_section_feedback,
+                        showNextIcon = true,
+                        onClick = { }
+                    )
+                    SettingsItemWidget(
+                        iconRes = R.drawable.ic_rate,
+                        titleRes = R.string.settings_section_rate,
+                        showNextIcon = true,
+                        onClick = { }
+                    )
                 }
             }
         }

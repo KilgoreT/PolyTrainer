@@ -1,4 +1,4 @@
-package me.apomazkin.settingstab.widgets
+package me.apomazkin.settingstab.widgets.about
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text

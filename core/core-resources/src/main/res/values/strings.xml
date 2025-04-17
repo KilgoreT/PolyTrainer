@@ -156,6 +156,8 @@
     <string name="settings_section_feedback">Feedback</string>
     <string name="settings_section_rate">Rate us on Google Play</string>
     <string name="settings_section_share">Share the App</string>
+    <string name="settings_section_export">Export data to file</string>
+    <string name="settings_section_import">Import data</string>
 
     <string name="settings_section_about_app_title">Lexeme is an app that allows you to create your own dictionary of foreign words.\nWe are a team of developers who know from our own experience how important it is to keep foreign vocabulary organized and to review it regularly.</string>
 

@@ -1,14 +1,15 @@
-package me.apomazkin.settingstab.widgets
+package me.apomazkin.settingstab.widgets.settings.items.base
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,51 +33,59 @@ private const val DEFAULT_PADDING_VERTICAL = 12
 private const val DEFAULT_SPACE_BETWEEN = 12
 
 @Composable
-fun SettingsItemWidget(
+internal fun SettingsItemWidget(
     @DrawableRes iconRes: Int,
     @StringRes titleRes: Int,
     showNextIcon: Boolean = false,
     onClick: (() -> Unit?)? = null,
 ) {
-    Row(
+    Surface(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = DEFAULT_PADDING_HORIZONTAL.dp,
-                vertical = DEFAULT_PADDING_VERTICAL.dp
-            )
-            .clickable(enabled = onClick != null) { onClick?.invoke() },
-        horizontalArrangement = Arrangement.spacedBy(
-            space = DEFAULT_SPACE_BETWEEN.dp,
-            alignment = Alignment.Start,
-        ),
-        verticalAlignment = Alignment.CenterVertically,
+            .fillMaxWidth(),
+        onClick = { onClick?.invoke() },
+        contentColor = MaterialTheme.colorScheme.primary,
+        enabled = onClick != null,
+        shape = RoundedCornerShape(12.dp),
     ) {
-        IconBoxed(
-            iconRes = iconRes,
-            size = DEFAULT_ICON_SIZE,
-            colorEnabled = enableIconColor,
-            enabled = true,
-            contentDescriptionRes = titleRes,
-        )
-        Text(
+        Row(
             modifier = Modifier
-                .weight(1f),
-            text = stringResource(id = titleRes),
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-            style = LexemeStyle.BodyL
-                .copy(color = MaterialTheme.colorScheme.secondary),
-        )
-        if (showNextIcon) {
+                .fillMaxWidth()
+                .padding(
+                    horizontal = DEFAULT_PADDING_HORIZONTAL.dp,
+                    vertical = DEFAULT_PADDING_VERTICAL.dp
+                ),
+            horizontalArrangement = Arrangement.spacedBy(
+                space = DEFAULT_SPACE_BETWEEN.dp,
+                alignment = Alignment.Start,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             IconBoxed(
-                iconRes = R.drawable.ic_next,
+                iconRes = iconRes,
                 size = DEFAULT_ICON_SIZE,
-                colorEnabled = unselectedGreyColor,
+                colorEnabled = enableIconColor,
                 enabled = true,
-                contentDescriptionRes = titleRes
+                contentDescriptionRes = titleRes,
             )
+            Text(
+                modifier = Modifier
+                    .weight(1f),
+                text = stringResource(id = titleRes),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                style = LexemeStyle.BodyL
+                    .copy(color = MaterialTheme.colorScheme.secondary),
+            )
+            if (showNextIcon) {
+                IconBoxed(
+                    iconRes = R.drawable.ic_next,
+                    size = DEFAULT_ICON_SIZE,
+                    colorEnabled = unselectedGreyColor,
+                    enabled = true,
+                    contentDescriptionRes = titleRes
+                )
+            }
         }
     }
 }
