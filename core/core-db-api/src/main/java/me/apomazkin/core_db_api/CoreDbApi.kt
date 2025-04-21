@@ -11,6 +11,22 @@ import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
 
 interface CoreDbApi {
     
+    interface DbInstance {
+        suspend fun instance(): String
+        suspend fun closeDatabase()
+        suspend fun openDatabase()
+        suspend fun isDatabaseOpen(): Boolean
+        fun getDbInfo(): DbInfo
+    }
+    
+    data class DbInfo(
+        val mem: String,
+        val name: String,
+        val version: Int,
+        val path: String,
+        val isOpen: Boolean,
+    )
+    
     /**
      *
      * Word = sequence of letters.

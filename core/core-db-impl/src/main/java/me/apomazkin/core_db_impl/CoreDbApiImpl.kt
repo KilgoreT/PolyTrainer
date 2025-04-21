@@ -1,8 +1,10 @@
 package me.apomazkin.core_db_impl
 
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DefinitionApiEntity
 import me.apomazkin.core_db_api.entity.LanguageApiEntity
@@ -17,6 +19,7 @@ import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import me.apomazkin.core_db_impl.entity.toApiEntity
 import me.apomazkin.core_db_impl.entity.toDb
+import me.apomazkin.core_db_impl.room.Database
 import me.apomazkin.core_db_impl.room.WordDao
 import java.util.Date
 import javax.inject.Inject
@@ -24,6 +27,45 @@ import javax.inject.Inject
 class CoreDbApiImpl @Inject constructor(
     private val wordDao: WordDao
 ) : CoreDbApi {
+    
+    class DbInstanceImpl @Inject constructor(
+        private val db: Database
+    ) : CoreDbApi.DbInstance {
+        
+        override suspend fun instance(): String {
+            return System.identityHashCode(db).toString()
+        }
+        
+        override suspend fun closeDatabase() {
+            withContext(Dispatchers.IO) {
+                db.close()
+            }
+        }
+        
+        override suspend fun openDatabase() {
+            withContext(Dispatchers.IO) {
+                db.openHelper.writableDatabase.isOpen
+            }
+        }
+        
+        override suspend fun isDatabaseOpen(): Boolean {
+            return db.isOpen
+        }
+        
+        override fun getDbInfo(): CoreDbApi.DbInfo {
+            val dbName: String? = db.openHelper.databaseName
+            val dbVersion: Int = db.openHelper.readableDatabase.version
+            val dbPath: String? = db.openHelper.readableDatabase.path
+            val isOpen: Boolean = db.isOpen
+            return CoreDbApi.DbInfo(
+                mem = System.identityHashCode(db).toString(),
+                name = dbName ?: "",
+                version = dbVersion,
+                path = dbPath ?: "",
+                isOpen = isOpen,
+            )
+        }
+    }
     
     class LangApiImpl @Inject constructor(
         private val wordDao: WordDao

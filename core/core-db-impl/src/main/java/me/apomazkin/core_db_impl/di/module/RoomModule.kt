@@ -15,6 +15,7 @@ import me.apomazkin.core_db_impl.room.migrations.migration_6_7
 import me.apomazkin.core_db_impl.room.migrations.migration_7_8
 import me.apomazkin.core_db_impl.room.migrations.migration_8_9
 import me.apomazkin.core_db_impl.room.migrations.migration_9_10
+import javax.inject.Singleton
 
 /**
  * Migration plan:
@@ -29,6 +30,7 @@ import me.apomazkin.core_db_impl.room.migrations.migration_9_10
 class RoomModule {
 
     // TODO: 12.03.2021 поправить имя базы, при изменении имени информация теряется.
+    @Singleton
     @Provides
     fun provideDatabase(context: Context): Database {
         return Room.databaseBuilder(context, Database::class.java, "name")

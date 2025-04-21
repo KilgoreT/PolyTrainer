@@ -11,6 +11,7 @@ import me.apomazkin.quiztab.QuizTabScreen
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.settingstab.AboutAppScreen
 import me.apomazkin.settingstab.SettingsTabScreen
+import me.apomazkin.settingstab.deps.SettingsTabUseCase
 import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
@@ -23,6 +24,7 @@ class MainUiDepsProvider(
     private val wordCardUseCase: WordCardUseCase,
     private val quizTabUseCase: QuizTabUseCase,
     private val quizChatUseCase: QuizChatUseCase,
+    private val settingsTabUseCase: SettingsTabUseCase,
     private val resourceManager: ResourceManager,
     private val logger: LexemeLogger,
 ) : MainUiDeps {
@@ -89,6 +91,8 @@ class MainUiDepsProvider(
         SettingsTabScreen(
             onLangManagementClick = onLangManagementClick,
             onAboutAppClick = onAboutAppClick,
+            settingsTabUseCase = settingsTabUseCase,
+            logger = logger,
         )
     }
     

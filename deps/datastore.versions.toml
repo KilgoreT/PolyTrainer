@@ -1,6 +1,8 @@
 [versions]
 datastore-version = "1.1.1"
 roomVersion = "2.6.1"
+documentfileVersion = "1.0.1"
+
 
 [libraries]
 preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore-version" }
@@ -8,3 +10,4 @@ roomRuntime = { group = "androidx.room", name = "room-runtime", version.ref = "r
 roomCompiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomVersion" }
 roomKtx = { group = "androidx.room", name = "room-ktx", version.ref = "roomVersion" }
 roomTesting = { group = "androidx.room", name = "room-testing", version.ref = "roomVersion" }
+documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfileVersion" }

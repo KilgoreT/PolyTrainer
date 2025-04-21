@@ -6,7 +6,9 @@ import dagger.Component
 import me.apomazkin.core_db_api.CoreDbProvider
 import me.apomazkin.core_db_impl.di.module.ApiModule
 import me.apomazkin.core_db_impl.di.module.RoomModule
+import javax.inject.Singleton
 
+@Singleton
 @Component(
     modules = [RoomModule::class, ApiModule::class]
 )

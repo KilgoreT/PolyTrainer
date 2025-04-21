@@ -17,10 +17,12 @@ import me.apomazkin.polytrainer.di.module.flags.FlagProviderModule
 import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
 import me.apomazkin.polytrainer.di.module.quizchat.QuizChatModule
 import me.apomazkin.polytrainer.di.module.quiztab.QuizTabModule
+import me.apomazkin.polytrainer.di.module.settingstab.SettingsModule
 import me.apomazkin.polytrainer.di.module.splash.SplashModule
 import me.apomazkin.polytrainer.di.module.wordCard.WordCardModule
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiztab.deps.QuizTabUseCase
+import me.apomazkin.settingstab.deps.SettingsTabUseCase
 import me.apomazkin.splash.SplashUseCase
 import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
@@ -50,6 +52,7 @@ interface AppComponent : AppProvider {
     fun getWordCardUseCase(): WordCardUseCase
     fun getQuizTabUseCase(): QuizTabUseCase
     fun getQuizChatUseCase(): QuizChatUseCase
+    fun getSettingsTabUseCase(): SettingsTabUseCase
     fun getResourceManager(): ResourceManager
     fun getLogger(): LexemeLogger
 
@@ -65,6 +68,7 @@ interface AppComponent : AppProvider {
         WordCardModule::class,
         QuizTabModule::class,
         QuizChatModule::class,
+        SettingsModule::class,
         FlagProviderModule::class,
         PrefsProviderModule::class,
         LoggerModule::class,
