@@ -36,6 +36,7 @@ import me.apomazkin.ui.R
 fun LexemeTextFieldWidget(
     modifier: Modifier = Modifier,
     imeAction: ImeAction = ImeAction.Default,
+    autoCorrect: Boolean = true,
     erasable: Boolean = false,
     @StringRes placeHolder: Int?,
     isInputEnabled: Boolean = true,
@@ -87,8 +88,9 @@ fun LexemeTextFieldWidget(
         singleLine = false,
         textStyle = LexemeStyle.BodyL,
         shape = RoundedCornerShape(0.dp),
-        keyboardOptions = KeyboardOptions.Default.copy(
-            imeAction = imeAction,
+        keyboardOptions = KeyboardOptions(
+            autoCorrectEnabled = autoCorrect,
+            imeAction = imeAction
         ),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color.Transparent,

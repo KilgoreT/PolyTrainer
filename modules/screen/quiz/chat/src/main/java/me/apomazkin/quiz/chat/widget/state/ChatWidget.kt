@@ -63,6 +63,7 @@ fun ChatWidget(
                 modifier = Modifier
                     .background(color = whiteColor),
                 placeHolder = R.string.chat_quiz_placeholder_text,
+                autoCorrect = false,
                 isInputEnabled = state.isUserInputEnable,
                 value = state.inputState,
                 isSendEnabled = state.inputState.isNotEmpty() && state.inputState.isNotBlank(),
