@@ -105,7 +105,8 @@ internal class DatasourceEffectHandler(
             
             is DatasourceEffect.CheckAnswer -> {
                 withContext(Dispatchers.IO) {
-                    val assessment = quizGame.makeAssessment(eff.answer)
+                    val userAttempt = eff.answer.trim()
+                    val assessment = quizGame.makeAssessment(userAttempt)
                     delay(Random.nextLong(100, 400))
                     Msg.Assessment(
                         value = MessageContent.create(
