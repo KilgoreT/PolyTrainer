@@ -28,6 +28,7 @@ fun NavGraphBuilder.mainRouter(
                     wordCardUseCase = context.appComponent.getWordCardUseCase(),
                     quizTabUseCase = context.appComponent.getQuizTabUseCase(),
                     quizChatUseCase = context.appComponent.getQuizChatUseCase(),
+                    settingsTabUseCase = context.appComponent.getSettingsTabUseCase(),
                     resourceManager = context.appComponent.getResourceManager(),
                     logger = context.appComponent.getLogger(),
                 ),

@@ -78,7 +78,8 @@ dependencies {
     implementation(androidLibs.activityKtx) // for insets support: enableEdgeToEdge()
     implementation(androidLibs.material)
     implementation(composeLibs.activityCompose)
-
+    implementation(datastoreLibs.documentfile) // works with files through Storage Access Framework
+    
     // Compose navigation
     implementation(composeLibs.navigationCompose)
 
