@@ -7,34 +7,45 @@ class ApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
 
-            plugins.apply(projectVersionCatalog.findPlugin("android-app-gp").get().get().pluginId)
-            plugins.apply(projectVersionCatalog.findPlugin("kotlin-gp").get().get().pluginId)
-            plugins.apply(projectVersionCatalog.findPlugin("kotlin-compose").get().get().pluginId)
+//            plugins.apply(projectVersionCatalog.findPlugin("android-app-gp").get().get().pluginId)
+            plugins.apply("com.android.application")
+            
+//            plugins.apply(projectVersionCatalog.findPlugin("kotlin-gp").get().get().pluginId)
+            plugins.apply("org.jetbrains.kotlin.android")
+            
+//            plugins.apply(projectVersionCatalog.findPlugin("kotlin-compose").get().get().pluginId)
+            plugins.apply("org.jetbrains.kotlin.plugin.compose")
             plugins.apply("kotlin-kapt")
 
             extensions.configure<ApplicationExtension> {
-                configureKotlinAndroid(this)
+//                configureKotlinAndroid(this)
                 defaultConfig.applicationId = "me.apomazkin.polytrainer"
-                defaultConfig.targetSdk = this@with.projectVersionCatalog
-                    .findVersion("targetSdk").get().toString().toInt()
-                val versionName = getVersionName().also {
-                    println("=================================")
-                    println("| Version Name: $it")
-                }
-                val versionCode = getVersionCode(versionName).also {
-                    println("| Version Code: $it")
-                    println("=================================")
-                }
-                defaultConfig.versionName = versionName
-                defaultConfig.versionCode = versionCode
+                
+                defaultConfig.targetSdk = 34
+                
+//                    this@with.projectVersionCatalog
+//                    .findVersion("targetSdk").get().toString().toInt()
+
+
+//                val versionName = getVersionName().also {
+//                    println("=================================")
+//                    println("| Version Name: $it")
+//                }
+//                val versionCode = getVersionCode(versionName).also {
+//                    println("| Version Code: $it")
+//                    println("=================================")
+//                }
+                defaultConfig.versionName = "0.0.0"
+                defaultConfig.versionCode = 777777
                 defaultConfig.multiDexEnabled = true
                 defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                 buildFeatures {
                     compose = true
                 }
                 composeOptions {
-                    kotlinCompilerExtensionVersion = projectVersionCatalog
-                        .findVersion("kotlinCompilerExtensionVersion").get().toString()
+                    kotlinCompilerExtensionVersion = "1.5.3"
+//                        projectVersionCatalog
+//                        .findVersion("kotlinCompilerExtensionVersion").get().toString()
                 }
                 lint {
                     checkDependencies = true
@@ -64,7 +75,8 @@ class ApplicationConventionPlugin : Plugin<Project> {
 fun getVersionName(): String {
     val value: String? = System.getenv("RELEASE_VERSION")
     val result = value ?: "undefined"
-    return result
+//    return result
+    return "zhopa"
 }
 
 fun getVersionCode(versionName: String): Int {

@@ -1,6 +1,7 @@
 plugins {
     id("polytrainer.android.library")
-    id("kotlin-kapt")
+//    id("kotlin-kapt")
+    id("com.google.devtools.ksp") version "2.0.20-1.0.24"
     id("androidx.navigation.safeargs.kotlin")
 //    id("com.google.gms.google-services")
 }
@@ -62,6 +63,4 @@ dependencies {
 
     //noinspection GradleDependency
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }

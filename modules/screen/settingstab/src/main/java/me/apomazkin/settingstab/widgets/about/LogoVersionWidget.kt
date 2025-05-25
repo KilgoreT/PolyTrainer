@@ -31,14 +31,13 @@ import me.apomazkin.ui.preview.PreviewWidget
 private val defaultTextStyle = LexemeStyle.BodyM
 private val defaultColor = grayTextColor
 private const val DEFAULT_SPACE = 8
-private const val DEFAULT_VERSION = "debug version"
 
 @Composable
 fun LogoVersionWidget(
     modifier: Modifier = Modifier,
     @DrawableRes imageRes: Int,
     @StringRes titleRes: Int,
-    versionTitle: String? = null,
+    versionTitle: String,
 ) {
     Column(
         modifier = modifier
@@ -62,9 +61,9 @@ fun LogoVersionWidget(
             )
         }
         Text(
-            text = versionTitle ?: DEFAULT_VERSION,
-            style = defaultTextStyle,
-            color = defaultColor,
+                text = versionTitle,
+                style = defaultTextStyle,
+                color = defaultColor,
         )
     }
 }
@@ -81,6 +80,7 @@ private fun Preview() {
             LogoVersionWidget(
                 imageRes = R.drawable.ic_logo,
                 titleRes = R.string.logo_title,
+                versionTitle = "v1.0.0",
             )
         }
     }

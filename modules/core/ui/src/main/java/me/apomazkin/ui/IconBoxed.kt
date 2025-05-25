@@ -34,6 +34,7 @@ fun IconBoxed(
     clipShape: Shape = CircleShape,
     onClick: (() -> Unit)? = null,
 ) {
+
     val clicker = if (onClick != null) {
         Modifier
             .clip(clipShape)
