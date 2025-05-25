@@ -30,6 +30,7 @@ fun NavGraphBuilder.mainRouter(
                     quizChatUseCase = context.appComponent.getQuizChatUseCase(),
                     settingsTabUseCase = context.appComponent.getSettingsTabUseCase(),
                     resourceManager = context.appComponent.getResourceManager(),
+                    envParams = context.appComponent.getEnvParams(),
                     logger = context.appComponent.getLogger(),
                 ),
                 openAddDict = openAddDict

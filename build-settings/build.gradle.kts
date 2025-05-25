@@ -22,8 +22,10 @@ repositories {
 }
 
 dependencies {
-    implementation(projectVersions.kotlin.gradlePlugin)
-    implementation(projectVersions.android.gradlePlugin)
+//    implementation(projectVersions.kotlin.gradlePlugin)
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.20")
+//    implementation(projectVersions.android.gradlePlugin)
+    implementation("com.android.tools.build:gradle:8.7.3")
 }
 
 gradlePlugin {

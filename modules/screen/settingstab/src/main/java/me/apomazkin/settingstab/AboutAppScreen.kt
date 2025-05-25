@@ -17,11 +17,13 @@ import me.apomazkin.settingstab.widgets.settings.SettingsSectionWidget
 import me.apomazkin.settingstab.widgets.settings.items.base.SettingsItemWidget
 import me.apomazkin.ui.preview.PreviewScreen
 
+
 private const val DEFAULT_HORIZONTAL_PADDING = 16
 private const val DEFAULT_VERTICAL_ARRANGEMENT = 8
 
 @Composable
 fun AboutAppScreen(
+    appVersion: String,
     onBackPress: () -> Unit
 ) {
     
@@ -48,7 +50,7 @@ fun AboutAppScreen(
                     LogoVersionWidget(
                         imageRes = R.drawable.ic_logo,
                         titleRes = R.string.logo_title,
-                        versionTitle = "debug"
+                        versionTitle = "v$appVersion",
                     )
                 }
             }
@@ -85,6 +87,7 @@ fun AboutAppScreen(
 @PreviewScreen
 private fun Preview() {
     AboutAppScreen(
+        appVersion = "1.0.0",
         onBackPress = {}
     )
 }

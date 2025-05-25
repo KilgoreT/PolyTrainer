@@ -9,6 +9,7 @@ import me.apomazkin.createdictionary.CreateDictionaryUseCase
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.polytrainer.MainActivity
 import me.apomazkin.polytrainer.api.AppProvider
+import me.apomazkin.polytrainer.di.module.EnvModule
 import me.apomazkin.polytrainer.di.module.LoggerModule
 import me.apomazkin.polytrainer.di.module.ResourceModule
 import me.apomazkin.polytrainer.di.module.createDictionary.CreateDictionaryModule
@@ -20,6 +21,7 @@ import me.apomazkin.polytrainer.di.module.quiztab.QuizTabModule
 import me.apomazkin.polytrainer.di.module.settingstab.SettingsModule
 import me.apomazkin.polytrainer.di.module.splash.SplashModule
 import me.apomazkin.polytrainer.di.module.wordCard.WordCardModule
+import me.apomazkin.polytrainer.env.EnvParams
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.settingstab.deps.SettingsTabUseCase
@@ -35,9 +37,9 @@ import javax.inject.Singleton
 )
 @Singleton
 interface AppComponent : AppProvider {
-
+    
     fun inject(mainActivity: MainActivity)
-
+    
     @Component.Factory
     interface AppComponentFactory {
         fun create(
@@ -45,7 +47,7 @@ interface AppComponent : AppProvider {
             coreDbProvider: CoreDbProvider,
         ): AppComponent
     }
-
+    
     fun getSplashUseCase(): SplashUseCase
     fun getCreateDictionaryUseCase(): CreateDictionaryUseCase
     fun getVocabularyUseCase(): DictionaryTabUseCase
@@ -54,8 +56,9 @@ interface AppComponent : AppProvider {
     fun getQuizChatUseCase(): QuizChatUseCase
     fun getSettingsTabUseCase(): SettingsTabUseCase
     fun getResourceManager(): ResourceManager
+    fun getEnvParams(): EnvParams
     fun getLogger(): LexemeLogger
-
+    
     @Component(dependencies = [CoreDbProvider::class])
     interface CoreDbDependenciesComponent : CoreDbProvider
 }
@@ -73,6 +76,7 @@ interface AppComponent : AppProvider {
         PrefsProviderModule::class,
         LoggerModule::class,
         ResourceModule::class,
+        EnvModule::class,
     ]
 )
 interface AppModule

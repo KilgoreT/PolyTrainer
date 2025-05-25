@@ -1,9 +1,31 @@
 @file:Suppress("UnstableApiUsage")
 
+pluginManagement {
+
+    includeBuild("build-logic")
+
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+
+    plugins {
+        id("com.android.application") version "8.7.3" apply false // AGP
+        id("com.android.library") version "8.7.3" apply false
+        id("org.jetbrains.kotlin.android") version "2.0.20" apply false // Kotlin Android Plugin
+        id("androidx.navigation.safeargs.kotlin") version "2.9.0"
+        id("com.google.gms.google-services") version "4.4.2"
+        id("com.google.firebase.crashlytics") version "3.0.3"
+        id("androidx.room") version "2.7.1" apply false
+        id("org.jetbrains.kotlin.jvm") version "1.9.10"
+    }
+}
+
 
 rootProject.name = "PolyTrainer"
 
-includeBuild("build-settings")
+//includeBuild("build-settings")
 
 include(":app")
 
@@ -29,10 +51,10 @@ include(":modules:widget:dictionarypicker")
 include(":modules:widget:iconDropDowned")
 include(":modules:widget:chipPicker")
 
+include(":modules:datasource:prefs")
+
 //Libraries
 include(":modules:library:flags")
-
-include(":modules:datasource:prefs")
 
 //Old
 include(":core:core-interactor")
@@ -40,25 +62,6 @@ include(":core:core-resources")
 include(":core:core-db-api")
 include(":core:core-db-impl")
 include(":core:core-db")
-
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        google()
-        mavenCentral()
-    }
-
-    plugins {
-        id("com.android.application") version "8.7.3" apply false // AGP
-        id("com.android.library") version "8.7.3" apply false
-        id("org.jetbrains.kotlin.android") version "2.0.20" apply false // Kotlin Android Plugin
-        id("androidx.navigation.safeargs.kotlin") version "2.5.3"
-        id("com.google.gms.google-services") version "4.4.1"
-        id("com.google.firebase.crashlytics") version "2.9.9"
-        id("androidx.room") version "2.6.1" apply false
-        id("org.jetbrains.kotlin.jvm") version "1.9.10"
-    }
-}
 
 
 dependencyResolutionManagement {
@@ -79,7 +82,7 @@ dependencyResolutionManagement {
          * @see [https://developer.android.com/jetpack/androidx/releases/compose-kotlin]
          */
 
-        create("projectVersions") {
+        create("libs") {
             from(files("deps/project.versions.toml"))
         }
         create("kotlinLibs") {
@@ -108,3 +111,4 @@ dependencyResolutionManagement {
         }
     }
 }
+//project(":prefs").projectDir = File(rootDir, "modules/datasource/prefs/")

@@ -1,9 +1,26 @@
 plugins {
-    id("lexeme.android.feature")
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "me.apomazkin.stattab"
+    compileSdk = 34
+    
+    defaultConfig {
+        minSdk = 21
+        compileSdk = 34
+    }
+    
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
+    }
 }
 
 dependencies {

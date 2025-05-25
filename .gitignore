@@ -36,3 +36,4 @@
 /.idea/migrations.xml
 /.kotlin
 /.idea/appInsightsSettings.xml
+/build-logic/build

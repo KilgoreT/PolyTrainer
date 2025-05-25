@@ -5,6 +5,7 @@ import androidx.compose.runtime.Stable
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.ui.DictionaryTabScreen
 import me.apomazkin.main.MainUiDeps
+import me.apomazkin.polytrainer.env.EnvParams
 import me.apomazkin.quiz.chat.ChatScreen
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiztab.QuizTabScreen
@@ -26,6 +27,7 @@ class MainUiDepsProvider(
     private val quizChatUseCase: QuizChatUseCase,
     private val settingsTabUseCase: SettingsTabUseCase,
     private val resourceManager: ResourceManager,
+    private val envParams: EnvParams,
     private val logger: LexemeLogger,
 ) : MainUiDeps {
     @Composable
@@ -101,6 +103,7 @@ class MainUiDepsProvider(
         onBackPress: () -> Unit,
     ) {
         AboutAppScreen(
+            appVersion = envParams.appVersion,
             onBackPress = onBackPress,
         )
     }

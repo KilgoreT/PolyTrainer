@@ -2,7 +2,6 @@ package me.apomazkin.polytrainer
 
 import android.app.Application
 import android.content.Context
-import com.google.firebase.BuildConfig
 import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import me.apomazkin.core_db.di.CoreDbComponent
