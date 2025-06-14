@@ -30,10 +30,12 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
+
+    compileSdk = 35
     
     defaultConfig {
         applicationId = "me.apomazkin.polytrainer"
-        compileSdk = 35
+        targetSdk = 35
         minSdk = 21
         multiDexEnabled = true
 
