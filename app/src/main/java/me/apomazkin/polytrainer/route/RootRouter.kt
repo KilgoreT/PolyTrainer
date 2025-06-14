@@ -1,5 +1,6 @@
 package me.apomazkin.polytrainer.route
 
+import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
@@ -80,8 +81,12 @@ fun RootRouter(
             }
         }
 
+        @SuppressLint("RestrictedApi")
         override fun openMainScreen() {
-            if (navController.backQueue.any { it.destination.route == MainPoint.MAIN.route }) {
+
+            val isMainInBackStack = navController.currentBackStack.value
+                    .any { it.destination.route == MainPoint.MAIN.route }
+            if (isMainInBackStack) {
                 navController.popBackStack(MainPoint.MAIN.route, false)
             } else {
                 navController.navigate(RootPoint.MAIN_ROUTER.route) {

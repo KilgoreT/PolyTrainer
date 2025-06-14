@@ -56,7 +56,10 @@ class DictionaryTabViewModel(
         coroutineScope = viewModelScope,
         reducer = VocabularyTabReducer(logger = logger),
         effectHandlerSet = setOf(
-            DatasourceEffectHandler(dictionaryTabUseCase = dictionaryTabUseCase),
+            DatasourceEffectHandler(
+                    dictionaryTabUseCase = dictionaryTabUseCase,
+                    scope = viewModelScope,
+            ),
             UiEffectHandler()
         )
     )

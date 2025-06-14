@@ -33,7 +33,7 @@ android {
     
     defaultConfig {
         applicationId = "me.apomazkin.polytrainer"
-        compileSdk = 34
+        compileSdk = 35
         minSdk = 21
         multiDexEnabled = true
 
@@ -130,6 +130,8 @@ dependencies {
     implementation(diLibs.dagger)
     implementation("com.github.blongho:worldCountryData:v1.5.4-alpha-1")
     ksp(diLibs.daggerCompiler)
+
+    implementation(datastoreLibs.paging)
 
     // Firebase
     implementation(platform(firebaseLibs.firebaseBOM))

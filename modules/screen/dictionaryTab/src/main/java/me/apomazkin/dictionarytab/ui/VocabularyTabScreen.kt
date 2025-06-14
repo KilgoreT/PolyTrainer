@@ -25,16 +25,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.compose.collectAsLazyPagingItems
 import me.apomazkin.dictionarytab.R
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.Msg
 import me.apomazkin.dictionarytab.logic.UiMsg
-import me.apomazkin.dictionarytab.logic.isEmpty
 import me.apomazkin.dictionarytab.logic.processor.toMateEvent
 import me.apomazkin.dictionarytab.tools.DataHelper
 import me.apomazkin.dictionarytab.ui.widget.ConfirmDeleteWordWidget
-import me.apomazkin.dictionarytab.ui.widget.EmptyWidget
 import me.apomazkin.dictionarytab.ui.widget.WordListWidget
 import me.apomazkin.dictionarytab.ui.widget.addWordBottom.AddWordBottomSheetWidget
 import me.apomazkin.dictionarytab.ui.widget.topBar.ActionTopBarWidget
@@ -44,147 +43,141 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.btn.PrimaryFabWidget
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
-import me.apomazkin.ui.lifecycle.LifecycleResume
 import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun DictionaryTabScreen(
-    dictionaryTabUseCase: DictionaryTabUseCase,
-    logger: LexemeLogger,
-    viewModel: DictionaryTabViewModel = viewModel(
-        factory = DictionaryTabViewModel.Factory(dictionaryTabUseCase, logger)
-    ),
-    openAddDict: () -> Unit,
-    openWordCard: (wordId: Long) -> Unit,
+        dictionaryTabUseCase: DictionaryTabUseCase,
+        logger: LexemeLogger,
+        viewModel: DictionaryTabViewModel = viewModel(
+                factory = DictionaryTabViewModel.Factory(dictionaryTabUseCase, logger)
+        ),
+        openAddDict: () -> Unit,
+        openWordCard: (wordId: Long) -> Unit,
 ) {
-    LifecycleEventHandler(action = { viewModel.accept(UiMsg.LifeCycleEvent(it.toMateEvent())) })
+    LifecycleEventHandler(action = {
+        viewModel.accept(UiMsg.LifeCycleEvent(it.toMateEvent()))
+    })
     val state: DictionaryTabState by viewModel.state.collectAsStateWithLifecycle()
     DictionaryTabScreen(
-        state = state,
-        openAddDict = openAddDict,
-        openWordCard = openWordCard,
+            state = state,
+            openAddDict = openAddDict,
+            openWordCard = openWordCard,
     ) { viewModel.accept(it) }
 }
 
 
 @Composable
 internal fun DictionaryTabScreen(
-    state: DictionaryTabState,
-    openAddDict: () -> Unit,
-    openWordCard: (wordId: Long) -> Unit,
-    sendMessage: (Msg) -> Unit,
+        state: DictionaryTabState,
+        openAddDict: () -> Unit,
+        openWordCard: (wordId: Long) -> Unit,
+        sendMessage: (Msg) -> Unit,
 ) {
-    
+
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(state.snackbarState.show) {
         if (state.snackbarState.show) {
             snackbarHostState.showSnackbar(state.snackbarState.title).also {
                 sendMessage(
-                    UiMsg.Snackbar(
-                        message = EMPTY_STRING, show = false
-                    )
+                        UiMsg.Snackbar(
+                                message = EMPTY_STRING, show = false
+                        )
                 )
             }
         }
     }
-    
-    LifecycleResume {
-        sendMessage.invoke(Msg.TermDataLoad)
-    }
-    
+
     SystemBarsWidget(
-        statusBarColor = if (state.topBarState.isActionMode) {
-            MaterialTheme.colorScheme.secondary
-        } else {
-            Color.Transparent
-        },
-        statusBarDarkIcon = !state.topBarState.isActionMode
+            statusBarColor = if (state.topBarState.isActionMode) {
+                MaterialTheme.colorScheme.secondary
+            } else {
+                Color.Transparent
+            },
+            statusBarDarkIcon = !state.topBarState.isActionMode
     )
-    
+
     BackHandler(enabled = state.topBarState.isActionMode) {
-        sendMessage(Msg.ChangeActionMode(false, null))
+        sendMessage(Msg.HideActionMode)
     }
-    
+
     Scaffold(modifier = Modifier.fillMaxSize(),
-        topBar = {
-            if (state.topBarState.isActionMode) ActionTopBarWidget(
-                state = state.topBarState.actionState,
-                sendMessage = sendMessage,
-            )
-            else TopBarWidget(
-                state = state.topBarState.langPickerState,
-                sendMessage = sendMessage,
-                openAddDict = openAddDict,
-            )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
-        containerColor = Color.Transparent,
+             topBar = {
+                 if (state.topBarState.isActionMode) ActionTopBarWidget(
+                         state = state.topBarState.actionState,
+                         sendMessage = sendMessage,
+                 )
+                 else TopBarWidget(
+                         state = state.topBarState.langPickerState,
+                         sendMessage = sendMessage,
+                         openAddDict = openAddDict,
+                 )
+             },
+             snackbarHost = {
+                 SnackbarHost(hostState = snackbarHostState)
+             },
+             containerColor = Color.Transparent,
              contentWindowInsets = WindowInsets(
-                 left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp
+                     left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp
              ),
-        floatingActionButton = {
-            AnimatedVisibility(
-                visible = !state.addWordDialogState.isOpen,
-                modifier = Modifier,
-                enter = scaleIn(),
-                exit = scaleOut(),
-            ) {
-                PrimaryFabWidget(
-                    iconRes = R.drawable.ic_add,
-                    enabled = !state.addWordDialogState.isOpen
-                ) { sendMessage(Msg.StartAddWord(show = true)) }
-            }
-        }) { paddingValue: PaddingValues ->
+             floatingActionButton = {
+                 AnimatedVisibility(
+                         visible = !state.addWordDialogState.isOpen,
+                         modifier = Modifier,
+                         enter = scaleIn(),
+                         exit = scaleOut(),
+                 ) {
+                     PrimaryFabWidget(
+                             iconRes = R.drawable.ic_add,
+                             enabled = !state.addWordDialogState.isOpen
+                     ) { sendMessage(Msg.ShowAddWordDialog()) }
+                 }
+             }) { paddingValue: PaddingValues ->
         Box(
-            modifier = Modifier
-                .padding(paddingValue)
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
+                modifier = Modifier
+                        .padding(paddingValue)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background),
         ) {
             when {
                 state.isLoading -> {
                     CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.primary,
                     )
                 }
-                
-                state.isEmpty() -> {
-                    EmptyWidget()
-                }
-                
-                !state.isEmpty() -> {
+
+//                state.isEmpty() -> {
+//                    EmptyWidget()
+//                }
+
+//                !state.isEmpty() -> {
+                else -> {
                     WordListWidget(
-                        modifier = Modifier.padding(top = 20.dp),
-                        termList = state.termList,
-                        openWordCard = { word ->
-                            if (state.topBarState.isActionMode) {
-                                sendMessage(
-                                    Msg.ChangeActionMode(
-                                        isActionMode = true, targetWord = word
-                                    )
-                                )
-                            } else {
-                                openWordCard.invoke(word.id)
-                            }
-                        },
-                        sendMessage = sendMessage,
+                            modifier = Modifier.padding(top = 20.dp),
+                            termList = state.termList.termListFlow.collectAsLazyPagingItems(),
+                            openWordCard = { word ->
+                                if (state.topBarState.isActionMode) {
+                                    sendMessage(Msg.ModifySelectedInActionMode(targetWord = word))
+                                } else {
+                                    openWordCard.invoke(word.id)
+                                }
+                            },
+                            sendMessage = sendMessage,
                     )
                 }
             }
             if (state.addWordDialogState.isOpen) {
                 AddWordBottomSheetWidget(
-                    state = state.addWordDialogState,
-                    sendMessage = sendMessage,
+                        state = state.addWordDialogState,
+                        sendMessage = sendMessage,
                 )
             }
             if (state.confirmWordDeleteDialogState.isOpen) {
                 ConfirmDeleteWordWidget(
-                    state = state.confirmWordDeleteDialogState,
-                    sendMessage = sendMessage,
+                        state = state.confirmWordDeleteDialogState,
+                        sendMessage = sendMessage,
                 )
             }
         }
@@ -196,9 +189,9 @@ internal fun DictionaryTabScreen(
 private fun PreviewLoading() {
     AppTheme {
         DictionaryTabScreen(
-            state = DataHelper.State.loading,
-            openAddDict = {},
-            openWordCard = {},
+                state = DataHelper.State.loading,
+                openAddDict = {},
+                openWordCard = {},
         ) {}
     }
 }
@@ -208,9 +201,9 @@ private fun PreviewLoading() {
 private fun PreviewEmpty() {
     AppTheme {
         DictionaryTabScreen(
-            state = DataHelper.State.empty,
-            openAddDict = {},
-            openWordCard = {},
+                state = DataHelper.State.empty,
+                openAddDict = {},
+                openWordCard = {},
         ) {}
     }
 }
@@ -220,9 +213,9 @@ private fun PreviewEmpty() {
 private fun PreviewLoaded() {
     AppTheme {
         DictionaryTabScreen(
-            state = DataHelper.State.loaded,
-            openAddDict = {},
-            openWordCard = {},
+                state = DataHelper.State.loaded,
+                openAddDict = {},
+                openWordCard = {},
         ) {}
     }
 }

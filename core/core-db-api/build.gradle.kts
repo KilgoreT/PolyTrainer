@@ -5,11 +5,11 @@ plugins {
 
 android {
     namespace = "me.apomazkin.core_db_api"
-    compileSdk = 34
+    compileSdk = 35
     
     defaultConfig {
         minSdk = 21
-        compileSdk = 34
+        compileSdk = 35
     }
     
     compileOptions {
@@ -26,7 +26,8 @@ dependencies {
 
     // Coroutines
     implementation(kotlinLibs.coroutinesCore)
-    
+    implementation(datastoreLibs.paging)
+
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")

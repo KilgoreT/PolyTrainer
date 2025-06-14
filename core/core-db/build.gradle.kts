@@ -5,13 +5,13 @@ plugins {
 }
 android {
     namespace = "me.apomazkin.core_db"
-    compileSdk = 34
+    compileSdk = 35
     
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         minSdk = 21
-        compileSdk = 34
+        compileSdk = 35
     }
     
     compileOptions {

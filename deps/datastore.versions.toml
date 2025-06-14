@@ -1,7 +1,8 @@
 [versions]
-datastore-version = "1.1.1"
-roomVersion = "2.6.1"
-documentfileVersion = "1.0.1"
+datastore-version = "1.1.7"
+roomVersion = "2.7.1"
+documentfileVersion = "1.1.0"
+pagingVersion = "3.3.6"
 
 
 [libraries]
@@ -9,5 +10,7 @@ preferences = { group = "androidx.datastore", name = "datastore-preferences", ve
 roomRuntime = { group = "androidx.room", name = "room-runtime", version.ref = "roomVersion" }
 roomCompiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomVersion" }
 roomKtx = { group = "androidx.room", name = "room-ktx", version.ref = "roomVersion" }
+roomPaging = { group = "androidx.room", name = "room-paging", version.ref = "roomVersion" }
 roomTesting = { group = "androidx.room", name = "room-testing", version.ref = "roomVersion" }
 documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfileVersion" }
+paging = { group = "androidx.paging", name = "paging-runtime-ktx", version.ref = "pagingVersion" }

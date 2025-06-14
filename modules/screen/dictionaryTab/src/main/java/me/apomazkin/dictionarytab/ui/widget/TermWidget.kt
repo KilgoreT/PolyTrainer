@@ -33,56 +33,58 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 internal fun TermWidget(
-    termItem: TermUiItem,
-    openWordCard: (word: WordInfo) -> Unit,
-    sendMsg: (Msg) -> Unit,
+        termItem: TermUiItem,
+        openWordCard: (word: WordInfo) -> Unit,
+        sendMsg: (Msg) -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .combinedClickable(
-                onLongClick = {
-                    sendMsg(
-                        Msg.ChangeActionMode(
-                            isActionMode = true,
-                            targetWord = WordInfo(termItem.id, termItem.wordValue),
-                        )
-                    )
-                },
-                onClick = { openWordCard(WordInfo(termItem.id, termItem.wordValue)) }
+            modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .combinedClickable(
+                            onLongClick = {
+                                sendMsg(
+                                        Msg.ShowActionMode(
+                                                targetWord = WordInfo(
+                                                        id = termItem.id,
+                                                        wordValue = termItem.wordValue,
+                                                ),
+                                        )
+                                )
+                            },
+                            onClick = { openWordCard(WordInfo(termItem.id, termItem.wordValue)) }
+                    ),
+            shape = RoundedCornerShape(12.dp),
+            shadowElevation = 4.dp,
+            border = BorderStroke(
+                    width = 1.dp,
+                    color = if (termItem.isSelected) blackColor else dividerColor
             ),
-        shape = RoundedCornerShape(12.dp),
-        shadowElevation = 4.dp,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (termItem.isSelected) blackColor else dividerColor
-        ),
     ) {
         Column(
-            modifier = Modifier
-                .padding(vertical = 12.dp)
+                modifier = Modifier
+                        .padding(vertical = 12.dp)
         ) {
             Text(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp),
-                text = termItem.wordValue,
-                style = LexemeStyle.BodyXLBold,
-                color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier
+                            .padding(horizontal = 16.dp),
+                    text = termItem.wordValue,
+                    style = LexemeStyle.BodyXLBold,
+                    color = MaterialTheme.colorScheme.secondary,
             )
             if (termItem.lexemeList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
             }
             termItem.lexemeList.forEachIndexed { index, lexeme ->
                 LexemeWidget(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp),
-                    lexeme = lexeme
+                        modifier = Modifier
+                                .padding(horizontal = 16.dp),
+                        lexeme = lexeme
                 )
                 if (index < termItem.lexemeList.size - 1) {
                     HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        color = dividerColor,
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            color = dividerColor,
                     )
                 }
             }
@@ -95,17 +97,17 @@ internal fun TermWidget(
 private fun Preview1() {
     AppTheme {
         Box(
-            modifier = Modifier
-                .padding(16.dp)
+                modifier = Modifier
+                        .padding(16.dp)
         ) {
             TermWidget(
-                termItem = DataHelper.Data.termList.first().copy(
-                    lexemeList = DataHelper.Data.termList
-                        .first()
-                        .lexemeList
-                        .take(2)
-                ),
-                openWordCard = {},
+                    termItem = DataHelper.Data.termList.first().copy(
+                            lexemeList = DataHelper.Data.termList
+                                    .first()
+                                    .lexemeList
+                                    .take(2)
+                    ),
+                    openWordCard = {},
             ) {}
         }
     }
@@ -116,16 +118,16 @@ private fun Preview1() {
 private fun Preview2() {
     AppTheme {
         Box(
-            modifier = Modifier
-                .padding(16.dp)
+                modifier = Modifier
+                        .padding(16.dp)
         ) {
             TermWidget(
-                termItem = DataHelper.Data.termList[1].copy(
-                    lexemeList = DataHelper.Data.termList[1]
-                        .lexemeList
-                        .take(2)
-                ),
-                openWordCard = {},
+                    termItem = DataHelper.Data.termList[1].copy(
+                            lexemeList = DataHelper.Data.termList[1]
+                                    .lexemeList
+                                    .take(2)
+                    ),
+                    openWordCard = {},
             ) {}
         }
     }

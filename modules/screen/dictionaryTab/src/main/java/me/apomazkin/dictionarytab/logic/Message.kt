@@ -1,6 +1,8 @@
 package me.apomazkin.dictionarytab.logic
 
 import androidx.compose.material3.DropdownMenu
+import androidx.paging.PagingData
+import kotlinx.coroutines.flow.Flow
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarytab.entity.TermUiItem
 import me.apomazkin.dictionarytab.entity.WordInfo
@@ -9,22 +11,21 @@ import me.apomazkin.dictionarytab.entity.WordInfo
 sealed interface Msg {
 
     /**
-     * Message to Load or Reload Data.
-     */
-    data object TermDataLoad : Msg
-
-    /**
      * Message to show Term Data.
      */
-    data class TermDataLoaded(val termList: List<TermUiItem>) : Msg
+    data class TermDataLoaded(
+            val pattern: String,
+            val termList: Flow<PagingData<TermUiItem>>
+    ) : Msg
 
     /**
      * Message to control AddWord dialog visibility.
      */
-    data class StartAddWord(
-        val show: Boolean,
+    data class ShowAddWordDialog(
         val wordValue: String? = null,
     ) : Msg
+
+    data object HideAddWordDialog : Msg
 
     /**
      * Message to Start AddWord dialog to modify word.
@@ -55,7 +56,8 @@ sealed interface Msg {
     /**
      * Message to control ConfirmDeleteWord dialog visibility.
      */
-    data class ConfirmDeleteWordDialog(val isOpen: Boolean, val wordIds: Set<WordInfo>) : Msg
+    data class ShowConfirmDeleteWordDialog(val wordIds: Set<WordInfo>) : Msg
+    data object HideConfirmDeleteWordDialog : Msg
 
     /**
      * Message to delete word.
@@ -66,7 +68,10 @@ sealed interface Msg {
      * Message to show or hide ActionBar with action buttons.
      * Also can add new word to action mode.
      */
-    data class ChangeActionMode(val isActionMode: Boolean, val targetWord: WordInfo? = null) : Msg
+
+    data class ShowActionMode(val targetWord: WordInfo) : Msg
+    data object HideActionMode : Msg
+    data class ModifySelectedInActionMode(val targetWord: WordInfo) : Msg
 
     /**
      * When no need action after Effect.
@@ -94,7 +99,8 @@ sealed interface TopBarActionMsg : Msg {
     /**
      * Message to expand or collapse Language [DropdownMenu].
      */
-    data class ExpandDictMenu(val expand: Boolean) : TopBarActionMsg
+    data object ShowDictMenu : TopBarActionMsg
+    data object HideDictMenu : TopBarActionMsg
 }
 
 sealed interface UiMsg : Msg {
