@@ -71,7 +71,7 @@ object DataHelper {
         val loading = DictionaryTabState(isLoading = true)
         val loaded = DictionaryTabState(
             isLoading = false,
-            termList = Data.termList,
+//            termList = Data.termList,
             topBarState = TopBarState(
                 isActionMode = true,
                 langPickerState = LangPickerState(

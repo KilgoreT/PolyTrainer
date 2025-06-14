@@ -15,7 +15,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
 
             extensions.configure<LibraryExtension> {
                 configureKotlinAndroid(this)
-                compileSdk = 34
+                compileSdk = 35
 //                    projectVersionCatalog.findVersion("compileSdk").get().toString().toInt()
                 defaultConfig {
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

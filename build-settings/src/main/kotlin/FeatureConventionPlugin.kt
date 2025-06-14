@@ -19,7 +19,7 @@ class FeatureConventionPlugin : Plugin<Project> {
 
             extensions.configure<LibraryExtension> {
                 configureKotlinAndroid(this)
-                compileSdk = 34
+                compileSdk = 35
 //                    projectVersionCatalog.findVersion("compileSdk").get().toString().toInt()
                 defaultConfig {
                     minSdk = 21

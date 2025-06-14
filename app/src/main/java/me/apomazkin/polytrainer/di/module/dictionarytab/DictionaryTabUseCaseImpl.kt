@@ -1,5 +1,7 @@
 package me.apomazkin.polytrainer.di.module.dictionarytab
 
+import androidx.paging.PagingData
+import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
@@ -22,6 +24,10 @@ class DictionaryTabUseCaseImpl @Inject constructor(
     private val prefsProvider: PrefsProvider,
     private val flagProvider: FlagProvider,
 ) : DictionaryTabUseCase {
+
+    override suspend fun getLangId(numericCode: Int): Int {
+        return langApi.getLang(numericCode)?.id ?: 0
+    }
     
     override suspend fun getCurrentDict(): DictUiEntity {
         prefsProvider
@@ -123,6 +129,38 @@ class DictionaryTabUseCaseImpl @Inject constructor(
                         }
                 } ?: throw IllegalStateException("Language not found")
             } ?: throw IllegalStateException("Language not found")
+    }
+
+    override fun searchTerms(pattern: String, langId: Int): Flow<PagingData<TermUiItem>> {
+        return termApi.searchTermsPaging(
+                pattern = pattern,
+                langId = langId
+        ).map { pagingData ->
+            pagingData.map { term ->
+                TermUiItem(
+                    id = term.word.id,
+                    wordValue = term.word.value,
+                    langId = term.word.langId,
+                    addDate = term.word.addDate,
+                    changeDate = term.word.changeDate,
+                    lexemeList = term.lexemes.map { defMate ->
+                        LexemeUiItem(
+                            id = defMate.id,
+                            wordId = defMate.wordId,
+                            translation = defMate.translation?.let {
+                                TranslationUiEntity(
+                                    it.value
+                                )
+                            },
+                            definition = defMate.definition?.let { DefinitionUiEntity(it.value) },
+                            addDate = defMate.addDate,
+                            changeDate = defMate.changeDate,
+                        )
+                    }
+                )
+            }
+
+        }
     }
 
     override suspend fun addLexeme(

@@ -3,23 +3,20 @@ package me.apomazkin.dictionarytab.ui.widget
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.paging.compose.LazyPagingItems
 import me.apomazkin.dictionarytab.entity.TermUiItem
 import me.apomazkin.dictionarytab.entity.WordInfo
 import me.apomazkin.dictionarytab.logic.Msg
-import me.apomazkin.dictionarytab.tools.DataHelper
-import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 internal fun WordListWidget(
-    termList: List<TermUiItem>,
-    modifier: Modifier = Modifier,
-    openWordCard: (word: WordInfo) -> Unit,
-    sendMessage: (Msg) -> Unit,
+        termList: LazyPagingItems<TermUiItem>,
+        modifier: Modifier = Modifier,
+        openWordCard: (word: WordInfo) -> Unit,
+        sendMessage: (Msg) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -31,22 +28,24 @@ internal fun WordListWidget(
         ),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(termList) { item: TermUiItem ->
-            TermWidget(
-                termItem = item,
-                openWordCard = openWordCard,
-            ) { sendMessage(it) }
+        items(termList.itemCount) { index ->
+            termList[index]?.let { term ->
+                TermWidget(
+                        termItem = term,
+                        openWordCard = openWordCard,
+                ) { sendMessage(it) }
+            }
         }
     }
 }
 
-@PreviewWidget
-@Composable
-private fun Preview() {
-    AppTheme {
-        WordListWidget(
-            termList = DataHelper.Data.termList,
-            openWordCard = {}
-        ) {}
-    }
-}
+//@PreviewWidget
+//@Composable
+//private fun Preview() {
+//    AppTheme {
+//        WordListWidget(
+//            termList = DataHelper.Data.termList,
+//            openWordCard = {}
+//        ) {}
+//    }
+//}

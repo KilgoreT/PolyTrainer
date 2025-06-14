@@ -1,5 +1,6 @@
 package me.apomazkin.core_db_api
 
+import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.core_db_api.entity.DefinitionApiEntity
 import me.apomazkin.core_db_api.entity.LanguageApiEntity
@@ -55,6 +56,11 @@ interface CoreDbApi {
             pattern: String,
             langId: Long
         ): List<TermApiEntity>
+
+        fun searchTermsPaging(
+                pattern: String,
+                langId: Int
+        ): Flow<PagingData<TermApiEntity>>
         
         suspend fun getTermById(id: Long): TermApiEntity?
     }

@@ -1,5 +1,6 @@
 package me.apomazkin.core_db_impl.room
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -60,6 +61,31 @@ interface WordDao {
     @Transaction
     @Query("SELECT * FROM words WHERE value LIKE :pattern AND lang_id = :langId ORDER BY id DESC")
     suspend fun searchTerms(pattern: String, langId: Long): List<TermDbEntity>
+
+    @Transaction
+    @Query("""
+        SELECT * FROM words
+             WHERE (:pattern = '' OR value LIKE :pattern || '%') 
+             AND lang_id = :langId 
+             ORDER BY id DESC
+    """)
+    fun searchTermsPaging(pattern: String, langId: Int): PagingSource<Int, TermDbEntity>
+
+    @Query("""
+        SELECT * FROM words
+            WHERE (:pattern = '' OR value LIKE :pattern || '%')
+            AND lang_id = :langId
+            ORDER BY id    
+            DESC
+            LIMIT :limit 
+            OFFSET :offset
+    """)
+    suspend fun searchTermsManual(
+            pattern: String,
+            langId: Int,
+            limit: Int,
+            offset: Int
+    ): List<TermDbEntity>
 
     @Transaction
     @Query("SELECT * FROM words WHERE id = :id ORDER BY id DESC")

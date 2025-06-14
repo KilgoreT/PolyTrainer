@@ -33,7 +33,7 @@ fun ActionTopBarWidget(
                 iconRes = R.drawable.ic_close,
                 size = TOP_BAR_ICON_SIZE,
                 enabled = true
-            ) { sendMessage(Msg.ChangeActionMode(false, null)) }
+            ) { sendMessage(Msg.HideActionMode) }
         },
         title = {
             Text(
@@ -68,8 +68,7 @@ fun ActionTopBarWidget(
                 enabled = true,
             ) {
                 sendMessage(
-                    Msg.ConfirmDeleteWordDialog(
-                        isOpen = true,
+                    Msg.ShowConfirmDeleteWordDialog(
                         wordIds = state.selectedTermIds
                     )
                 )

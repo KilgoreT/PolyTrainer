@@ -6,11 +6,11 @@ plugins {
 
 android {
     namespace = "me.apomazkin.theme"
-    compileSdk = 34
+    compileSdk = 35
     
     defaultConfig {
         minSdk = 21
-        compileSdk = 34
+        compileSdk = 35
     }
 
     buildFeatures {

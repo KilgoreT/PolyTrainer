@@ -37,16 +37,12 @@ fun TopBarWidget(
                     openAddDict = openAddDict,
                     onOpenDropDown = {
                         sendMessage(
-                            TopBarActionMsg.ExpandDictMenu(
-                                expand = true
-                            )
+                            TopBarActionMsg.ShowDictMenu
                         )
                     },
                     onDismiss = {
                         sendMessage(
-                            TopBarActionMsg.ExpandDictMenu(
-                                expand = false
-                            )
+                            TopBarActionMsg.HideDictMenu
                         )
                     },
                     onItemClick = { sendMessage(TopBarActionMsg.ChangeDict(lang = it)) },

@@ -1,12 +1,16 @@
 package me.apomazkin.dictionarytab.logic
 
 import android.util.Log
+import androidx.paging.cachedIn
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
+import me.apomazkin.dictionarytab.BuildConfig
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.entity.WordInfo
+import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
 
@@ -33,7 +37,9 @@ internal sealed interface DatasourceEffect : Effect {
     /**
      * Effect to load data.
      */
-    data object LoadTermData : DatasourceEffect
+    data class LoadTermFlow(
+            val pattern: String = EMPTY_STRING,
+    ) : DatasourceEffect
 
     /**
      * Effect to add new word.
@@ -50,8 +56,8 @@ internal sealed interface DatasourceEffect : Effect {
      * Effect to save(add or update) lexeme.
      */
     data class SaveLexeme(
-        val wordId: Long,
-        val lexemeList: List<LexemeState>,
+            val wordId: Long,
+            val lexemeList: List<LexemeState>,
     ) : DatasourceEffect
 
     data class DeleteLexeme(val lexemeId: Long) : DatasourceEffect
@@ -61,15 +67,21 @@ internal sealed interface DatasourceEffect : Effect {
  * EffectHandler for datastore calls.
  */
 internal class DatasourceEffectHandler(
-    private val dictionaryTabUseCase: DictionaryTabUseCase,
+        private val dictionaryTabUseCase: DictionaryTabUseCase,
+        private val scope: CoroutineScope,
 ) : MateEffectHandler<Msg, Effect> {
 
     override suspend fun runEffect(
-        effect: Effect,
-        consumer: (Msg) -> Unit
+            effect: Effect,
+            consumer: (Msg) -> Unit,
     ) {
-        Log.d("##MATE##", "RunEffect: $effect")
+        //TODO kilg 14.06.2025 00:48
+        // https://github.com/KilgoreT/PolyTrainer/issues/372
+        if (BuildConfig.DEBUG) {
+            Log.d("##MATE##", "RunEffect: $effect")
+        }
         return when (val eff = effect as? DatasourceEffect) {
+
             is DatasourceEffect.LoadDictList -> {
                 withContext(Dispatchers.IO) {
                     dictionaryTabUseCase.getAvailableDict().let {
@@ -81,30 +93,45 @@ internal class DatasourceEffectHandler(
             is DatasourceEffect.LoadCurrentDict -> {
                 withContext(Dispatchers.IO) {
                     dictionaryTabUseCase.getCurrentDict()
-                        .let { TopBarActionMsg.CurrentDict(lang = it) }
+                            .let { TopBarActionMsg.CurrentDict(lang = it) }
                 }
             }
 
             is DatasourceEffect.ChangeDict -> {
                 withContext(Dispatchers.IO) {
                     dictionaryTabUseCase
-                        .changeDict(numericCode = eff.lang.numericCode)
-                        .let { TopBarActionMsg.CurrentDict(lang = eff.lang) }
+                            .changeDict(numericCode = eff.lang.numericCode)
+                            .let { TopBarActionMsg.CurrentDict(lang = eff.lang) }
                 }
             }
 
-            is DatasourceEffect.LoadTermData -> {
+            //TODO kilg 25.05.2025 03:16 В префах хранить именно id текущего языка,
+            // а не numericCode. И вообще, кешировать бы его, а не запрашивать каждый раз.
+            // https://github.com/KilgoreT/PolyTrainer/issues/369
+            is DatasourceEffect.LoadTermFlow -> {
                 withContext(Dispatchers.IO) {
-                    dictionaryTabUseCase.getWordList()
-                        .let { Msg.TermDataLoaded(termList = it) }
+                    val langId = dictionaryTabUseCase.getLangId(
+                            numericCode = dictionaryTabUseCase.getCurrentDict().numericCode
+                    )
+                    val pagingFlow = dictionaryTabUseCase.searchTerms(
+                            pattern = eff.pattern,
+                            langId = langId
+                    ).let { flow ->
+                        if (eff.pattern.isEmpty()) flow.cachedIn(scope) else flow
+                    }
+                    Msg.TermDataLoaded(
+                            pattern = eff.pattern,
+                            termList = pagingFlow,
+                    )
+
                 }
             }
 
             is DatasourceEffect.AddWord -> {
                 withContext(Dispatchers.IO) {
                     dictionaryTabUseCase
-                        .addWord(eff.value)
-                        .let { Msg.TermDataLoad }
+                            .addWord(eff.value)
+                            .let { Msg.Empty }
                 }
             }
 
@@ -112,12 +139,12 @@ internal class DatasourceEffectHandler(
                 withContext(Dispatchers.IO) {
                     async {
                         dictionaryTabUseCase.updateWord(
-                            eff.wordId,
-                            eff.value
+                                eff.wordId,
+                                eff.value
                         )
                     }
-                        .await()
-                        .let { if (it) Msg.TermDataLoad else Msg.TermDataLoad }
+                            .await()
+                            .let { Msg.Empty }
                 }
             }
 
@@ -126,37 +153,37 @@ internal class DatasourceEffectHandler(
                     eff.wordSet.map { id ->
                         async { dictionaryTabUseCase.deleteWord(id.id) }.await()
                     }
-                }.let {
-                    Msg.TermDataLoad
-                }
+                }.let { Msg.Empty }
             }
 
             is DatasourceEffect.SaveLexeme -> {
                 withContext(Dispatchers.IO) {
-                    // TODO: Проследить, чтобы обновлялись только те лексемы, которые реально были изменены
+                    // TODO: Проследить, чтобы обновлялись только те лексемы,
+                    //  которые реально были изменены
+                    //  https://github.com/KilgoreT/PolyTrainer/issues/374
                     eff.lexemeList.forEach { lexeme ->
                         lexeme.lexemeId?.let { lexemeId ->
                             dictionaryTabUseCase.editLexeme(
-                                eff.wordId,
-                                lexemeId,
-                                lexeme.category.stringValue,
-                                lexeme.definition.editedText,
+                                    eff.wordId,
+                                    lexemeId,
+                                    lexeme.category.stringValue,
+                                    lexeme.definition.editedText,
                             )
                         } ?: run {
                             dictionaryTabUseCase.addLexeme(
-                                eff.wordId,
-                                lexeme.category.stringValue,
-                                lexeme.definition.editedText,
+                                    eff.wordId,
+                                    lexeme.category.stringValue,
+                                    lexeme.definition.editedText,
                             )
                         }
-                    }.let { Msg.TermDataLoad }
+                    }.let { Msg.Empty }
                 }
             }
 
             is DatasourceEffect.DeleteLexeme -> {
                 withContext(Dispatchers.IO) {
                     dictionaryTabUseCase.deleteLexeme(eff.lexemeId)
-                        .let { Msg.TermDataLoad }
+                            .let { Msg.Empty }
                 }
             }
 

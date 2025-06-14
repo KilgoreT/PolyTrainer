@@ -13,16 +13,20 @@ android {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
     namespace = "me.apomazkin.core_db_impl"
-    compileSdk = 34
+    compileSdk = 35
     
     defaultConfig {
         minSdk = 21
-        compileSdk = 34
+        compileSdk = 35
     }
     
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
     
     kotlinOptions {
@@ -39,6 +43,7 @@ dependencies {
     implementation(datastoreLibs.roomRuntime)
     implementation(datastoreLibs.roomKtx)
     ksp(datastoreLibs.roomCompiler)
+    implementation(datastoreLibs.roomPaging)
 
     //Dagger2
     implementation(diLibs.dagger)

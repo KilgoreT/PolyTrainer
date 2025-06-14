@@ -5,11 +5,11 @@ plugins {
 
 android {
     namespace = "me.apomazkin.mate"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 21
-        compileSdk = 34
+        compileSdk = 35
     }
 
     compileOptions {
