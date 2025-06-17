@@ -15,24 +15,24 @@ plugins {
 }
 
 android {
-    
+
     namespace = "me.apomazkin.polytrainer"
 
     buildFeatures {
         buildConfig = true
     }
-    
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    
+
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     compileSdk = 35
-    
+
     defaultConfig {
         applicationId = "me.apomazkin.polytrainer"
         targetSdk = 35
@@ -44,11 +44,11 @@ android {
         versionCode = getVersionCode(appVersion)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    
+
     buildFeatures {
         compose = true
     }
-    
+
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.3"
         //                        projectVersionCatalog
@@ -58,16 +58,22 @@ android {
     signingConfigs {
         register("signForRelease") {
             val keystoreProperties = Properties()
-            val keystorePropsFile = file("keystore/keystore_local_config")
-            when (getBuildSource(keystorePropsFile)) {
+            when (getBuildSource()) {
                 BuildSource.LOCAL -> {
+                    val keystorePropsFile = file("keystore/keystore_local_config")
                     keystoreProperties.load(keystorePropsFile.inputStream())
                     storeFile = file(keystoreProperties["storeFile"] as String)
                     storePassword = keystoreProperties["storePassword"] as String
                     keyAlias = keystoreProperties["keyAlias"] as String
                     keyPassword = keystoreProperties["keyPassword"] as String
                 }
-                BuildSource.CI -> {
+                BuildSource.CI_DEV -> {
+                    storeFile = file("keystore/keystore_ci_dev.jks")
+                    storePassword = System.getenv("KEYSTORE_DEV_PASSWORD")
+                    keyAlias = System.getenv("KEYSTORE_DEV_ALIAS")
+                    keyPassword = System.getenv("KEYSTORE_DEV_PASSWORD")
+                }
+                BuildSource.CI_PROD -> {
                     storeFile = file("keystore/keystore_upload")
                     storePassword = System.getenv("KEYSTORE_PASSWORD")
                     keyAlias = System.getenv("KEYSTORE_KEY_ALIAS")
@@ -76,7 +82,7 @@ android {
             }
         }
     }
-    
+
     buildTypes {
         getByName("debug") {
             signingConfig = signingConfigs.getByName("signForRelease")
@@ -86,8 +92,8 @@ android {
             signingConfig = signingConfigs.getByName("signForRelease")
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
             )
         }
     }
@@ -109,7 +115,7 @@ dependencies {
     implementation(project("path" to ":modules:screen:quiz:chat"))
     implementation(project("path" to ":modules:screen:stattab"))
     implementation(project("path" to ":modules:screen:settingstab"))
-    
+
     implementation(project("path" to ":modules:widget:dictionarypicker"))
 
     implementation(project("path" to ":modules:library:flags"))
@@ -124,7 +130,7 @@ dependencies {
     implementation(androidLibs.material)
     implementation(composeLibs.activityCompose)
     implementation(datastoreLibs.documentfile) // works with files through Storage Access Framework
-    
+
     // Compose navigation
     implementation(composeLibs.navigationCompose)
 
@@ -149,17 +155,22 @@ dependencies {
     debugImplementation(composeLibs.uiTestManifest)
 }
 
-fun getBuildSource(file: File): BuildSource {
-    return if (file.exists()) {
-        BuildSource.LOCAL
-    } else {
-        BuildSource.CI
+fun getBuildSource(): BuildSource {
+    val localFile = file("keystore/keystore_local_config")
+    if (localFile.exists()) {
+        return BuildSource.LOCAL
     }
+    val ciDevFile = file("keystore/keystore_ci_dev.jks")
+    if (ciDevFile.exists()) {
+        return BuildSource.CI_DEV
+    }
+    return BuildSource.CI_PROD
 }
 
 enum class BuildSource {
     LOCAL,
-    CI
+    CI_DEV,
+    CI_PROD
 }
 
 fun getVersionName(): String {

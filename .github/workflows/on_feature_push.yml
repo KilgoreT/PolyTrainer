@@ -66,8 +66,19 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Prepare keystore directory
+        run: mkdir -p app/keystore
+
+      - name: Decode keystore
+        run: |
+            echo "${{ secrets.KEYSTORE_DEV_B64 }}" | base64 -d > app/keystore/keystore_ci_dev.jks
+
       - name: Build APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug -PIS_CI_DEV_BUILD=true
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_DEV_PASSWORD }}
+          KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_DEV_ALIAS }}
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_DEV_PASSWORD }}
 
       - name: Upload Build Artifact
         if: ${{ always() }}
