@@ -8,14 +8,20 @@ sealed interface Msg {
     /**
      * Message to prepare the quiz
      */
-    data object PrepareToStart : Msg
-    
+    data object PrepareToStart: Msg
+
+    data object ShowMenu : Msg
+    data object HideMenu : Msg
+    data object DebugOn: Msg
+    data object DebugOff: Msg
+    data class UpdateDebug(val isOn: Boolean): Msg
+
     /**
      * Message to load quiz data
      */
     data object Start : Msg
-    data class QuizLoaded(val content: AnnotatedString) : Msg
-    data class QuizReLoaded(val content: AnnotatedString) : Msg
+    data class QuizLoaded(val content: AnnotatedString?) : Msg
+    data class QuizReLoaded(val content: AnnotatedString?) : Msg
     
     /**
      * Message to show next question

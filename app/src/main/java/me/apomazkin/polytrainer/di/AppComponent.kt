@@ -22,6 +22,7 @@ import me.apomazkin.polytrainer.di.module.settingstab.SettingsModule
 import me.apomazkin.polytrainer.di.module.splash.SplashModule
 import me.apomazkin.polytrainer.di.module.wordCard.WordCardModule
 import me.apomazkin.polytrainer.env.EnvParams
+import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.settingstab.deps.SettingsTabUseCase
@@ -56,6 +57,7 @@ interface AppComponent : AppProvider {
     fun getQuizChatUseCase(): QuizChatUseCase
     fun getSettingsTabUseCase(): SettingsTabUseCase
     fun getResourceManager(): ResourceManager
+    fun getPrefsProvider(): PrefsProvider
     fun getEnvParams(): EnvParams
     fun getLogger(): LexemeLogger
     
