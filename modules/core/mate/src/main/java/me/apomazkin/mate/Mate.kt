@@ -23,6 +23,7 @@ class Mate<State, Message, Effect>(
 
     init {
         executeEffect(initEffects)
+        subscribeToLongRunningFlows()
     }
 
     override fun accept(message: Message) {
@@ -43,5 +44,15 @@ class Mate<State, Message, Effect>(
         effectHandlerSet.forEach {
             it.runEffect(effect, consumer)
         }
+    }
+
+    private fun subscribeToLongRunningFlows() {
+        effectHandlerSet.filterIsInstance<MateFlowHandler<Message, Effect>>()
+                .forEach { it.subscribe(coroutineScope, ::accept) }
+    }
+
+    fun dispose() {
+        effectHandlerSet.filterIsInstance<MateFlowHandler<Message, Effect>>()
+                .forEach { it.unsubscribe() }
     }
 }

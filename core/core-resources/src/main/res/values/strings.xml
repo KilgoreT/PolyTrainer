@@ -99,6 +99,7 @@
 
     <!--ChatQuiz-->
     <string name="chat_quiz_app_bar_title">Quiz chat</string>
+    <string name="chat_menu_item_show_debug">Show debug</string>
     <string name="chat_quiz_bg_image_content_description">Background image</string>
     <string name="chat_quiz_start_button_title">Start</string>
     <string name="chat_quiz_placeholder_text">Enter the answer</string>

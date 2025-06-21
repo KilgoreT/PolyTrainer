@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.mate.Mate
 import me.apomazkin.mate.MateStateHolder
+import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
+import me.apomazkin.quiz.chat.logic.AppBarFlowHandler
 import me.apomazkin.quiz.chat.logic.ChatReducer
 import me.apomazkin.quiz.chat.logic.ChatScreenState
 import me.apomazkin.quiz.chat.logic.DatasourceEffect
@@ -17,9 +19,10 @@ import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
 
 class ChatViewModel(
-    quizChatUseCase: QuizChatUseCase,
-    resourceManager: ResourceManager,
-    logger: LexemeLogger,
+        quizChatUseCase: QuizChatUseCase,
+        resourceManager: ResourceManager,
+        prefsProvider: PrefsProvider,
+        logger: LexemeLogger,
 ) : ViewModel(), MateStateHolder<ChatScreenState, Msg> {
     
     private val stateHolder = Mate(
@@ -35,8 +38,13 @@ class ChatViewModel(
                 quizGame = QuizGameImpl(
                     quizChatUseCase = quizChatUseCase,
                     resourceManager = resourceManager,
+                    prefsProvider = prefsProvider,
                 ),
                 resourceManager = resourceManager,
+                prefsProvider = prefsProvider,
+            ),
+            AppBarFlowHandler(
+                prefsProvider = prefsProvider,
             ),
         )
     )
@@ -45,10 +53,16 @@ class ChatViewModel(
         get() = stateHolder.state
     
     override fun accept(message: Msg) = stateHolder.accept(message)
+
+    override fun onCleared() {
+        super.onCleared()
+        stateHolder.dispose()
+    }
     
     class Factory(
         private val quizChatUseCase: QuizChatUseCase,
         private val resourceManager: ResourceManager,
+        private val prefsProvider: PrefsProvider,
         private val logger: LexemeLogger,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
@@ -56,6 +70,7 @@ class ChatViewModel(
             return ChatViewModel(
                 quizChatUseCase,
                 resourceManager,
+                prefsProvider,
                 logger,
             ) as T
         }

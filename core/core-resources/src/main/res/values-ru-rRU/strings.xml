@@ -89,6 +89,7 @@
 
     <!--ChatQuiz-->
     <string name="chat_quiz_app_bar_title">Квиз чат</string>
+    <string name="chat_menu_item_show_debug">Show debug</string>
     <string name="chat_quiz_bg_image_content_description">Фоновое изображение</string>
     <string name="chat_quiz_start_button_title">Начать</string>
     <string name="chat_quiz_placeholder_text">Введите ответ</string>

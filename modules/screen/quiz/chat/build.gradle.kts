@@ -25,16 +25,19 @@ android {
 
 dependencies {
     
+    implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":modules:core:mate"))
     implementation(project("path" to ":modules:core:theme"))
     implementation(project("path" to ":modules:core:ui"))
-    implementation(project("path" to ":core:core-resources"))
+    implementation(project("path" to ":modules:datasource:prefs"))
     implementation(project("path" to ":modules:widget:dictionarypicker"))
-    
+    implementation(project("path" to ":modules:widget:iconDropDowned"))
+
+
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)
     implementation(composeLibs.activityCompose)
-    
+
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")

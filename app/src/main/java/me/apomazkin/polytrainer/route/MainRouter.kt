@@ -29,6 +29,7 @@ fun NavGraphBuilder.mainRouter(
                     quizTabUseCase = context.appComponent.getQuizTabUseCase(),
                     quizChatUseCase = context.appComponent.getQuizChatUseCase(),
                     settingsTabUseCase = context.appComponent.getSettingsTabUseCase(),
+                    prefsProvider = context.appComponent.getPrefsProvider(),
                     resourceManager = context.appComponent.getResourceManager(),
                     envParams = context.appComponent.getEnvParams(),
                     logger = context.appComponent.getLogger(),

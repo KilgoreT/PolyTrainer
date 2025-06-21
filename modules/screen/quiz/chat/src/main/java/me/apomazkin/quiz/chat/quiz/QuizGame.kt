@@ -13,5 +13,5 @@ interface QuizGame {
     fun makeAssessment(userAttempt: String): AnnotatedString
     fun summary(all: Boolean = false): List<AnnotatedString>
     suspend fun saveSession()
-    fun getStat(): AnnotatedString
+    fun getStat(): AnnotatedString?
 }
