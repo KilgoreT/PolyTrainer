@@ -90,6 +90,8 @@
     <!--ChatQuiz-->
     <string name="chat_quiz_app_bar_title">Квиз чат</string>
     <string name="chat_menu_item_show_debug">Show debug</string>
+    <string name="chat_menu_item_mistakes">Частые ошибки</string>
+    <string name="chat_menu_item_earliest_reviewed">Самые давние</string>
     <string name="chat_quiz_bg_image_content_description">Фоновое изображение</string>
     <string name="chat_quiz_start_button_title">Начать</string>
     <string name="chat_quiz_placeholder_text">Введите ответ</string>
@@ -113,8 +115,6 @@
     <string name="chat_quiz_msg_system_session_end2">Твой следующий шаг?</string>
 
     <string name="chat_quiz_msg_system_statistic">Посмотреть данные:</string>
-    <string name="chat_quiz_msg_system_statistic_session">За последнюю сессию</string>
-    <string name="chat_quiz_msg_system_statistic_full">За весь квиз</string>
 
     <string name="chat_quiz_summary_total">📈 Всего слов: %s</string>
     <string name="chat_quiz_summary_correct">✅ Правильных ответов: %s</string>

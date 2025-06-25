@@ -1,13 +1,12 @@
 package me.apomazkin.dictionarypicker.items
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import me.apomazkin.dictionarypicker.R
+import me.apomazkin.icondropdowned.IconSource
+import me.apomazkin.icondropdowned.MenuItem
+import me.apomazkin.icondropdowned.StringSource
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.ui.preview.PreviewWidget
@@ -16,21 +15,19 @@ import me.apomazkin.ui.preview.PreviewWidget
 fun AddDictMenuWidget(
     onClick: () -> Unit,
 ) {
-    DropdownMenuItem(
-        leadingIcon = {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_add_circled),
-                contentDescription = stringResource(id = R.string.menu_item_title_add_dict)
+    MenuItem
+            .withIcon(
+                    icon = IconSource.fromResId(
+                            resId = R.drawable.ic_add_circled,
+                            tint = MaterialTheme.colorScheme.onTertiary,
+                    ),
+                    title = StringSource.fromRes(
+                            resId = R.string.menu_item_title_add_dict,
+                            style = LexemeStyle.BodyL,
+                    ),
+                    onClick = onClick,
             )
-        },
-        text = {
-            Text(
-                text = stringResource(id = R.string.menu_item_title_add_dict),
-                style = LexemeStyle.BodyL,
-            )
-        },
-        onClick = onClick
-    )
+            .Widget()
 }
 
 @Composable

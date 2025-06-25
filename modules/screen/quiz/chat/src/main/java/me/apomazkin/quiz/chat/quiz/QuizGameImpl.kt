@@ -1,5 +1,7 @@
 package me.apomazkin.quiz.chat.quiz
 
+import android.util.Log
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -14,11 +16,12 @@ import me.apomazkin.quiz.chat.R
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.entity.WriteQuiz
 import me.apomazkin.quiz.chat.entity.WriteQuizUpsertEntity
-import me.apomazkin.quiz.chat.quiz.QuizGameImpl.Step
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.chatCorrectColor
 import me.apomazkin.ui.resource.ResourceManager
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import kotlin.math.max
 
 class QuizGameImpl(
@@ -33,7 +36,6 @@ class QuizGameImpl(
     private var currentStep: Step = Step.Pending
     private val userAnswers = mutableMapOf<Step, Answer>()
     private val quizList: MutableList<QuizItem> = mutableListOf()
-    private var sessionCount = 0
 
     private var allStat: AnnotatedString? = null
 
@@ -43,15 +45,6 @@ class QuizGameImpl(
         clearData()
         val quizData = fetchData()
         addQuizData(quizData)
-    }
-
-    override suspend fun loadNextData() {
-        val quizData = fetchData()
-        addQuizData(quizData)
-    }
-
-    override fun hasSingleSession(): Boolean {
-        return sessionCount == 1
     }
 
     override fun hasNextQuestion(): Boolean {
@@ -92,19 +85,30 @@ class QuizGameImpl(
         }
         return buildAnnotatedString {
             append(getAssessment(isCorrect))
+            if (!isCorrect) {
+                append("\n")
+                append(resourceManager.stringByResId(R.string.chat_quiz_msg_system_answer))
+                append("\n")
+                withStyle(
+                        style = LexemeStyle.BodyMBold.copy(
+                                color = chatCorrectColor
+                        ).toSpanStyle()
+                ) {
+                    append(getQuiz(currentStep).answer)
+                }
+            }
         }
     }
 
-    override fun summary(all: Boolean): List<AnnotatedString> {
-        return listOf(
-                getGeneralSummary(all = all),
-                getDetailSummary(all = all),
-        )
-    }
+    override fun summaryGeneral(): AnnotatedString =
+            getGeneralSummary()
+
+    override fun summaryDetail(): AnnotatedString =
+            getDetailSummary()
 
     override suspend fun saveSession() {
         withContext(Dispatchers.IO) {
-            val evaluatedList = getLastSessionStep().map { step ->
+            val evaluatedList = getStepList().map { step ->
                 val evaluation = evaluateAnswer(step = step)
                 getEvaluatedQuizItem(
                         step = step,
@@ -168,19 +172,26 @@ class QuizGameImpl(
                 maxGrade = maxGrade
         ).also {
             val stat = buildAnnotatedString {
-                append("### Quiz count by grade")
-                (0..maxGrade)
-                        .forEach { grade ->
-                            append("\n")
-                            append("Grade: $grade | Count: ${
-                                it.count { quiz ->
-                                    quiz.grade == grade
-                                }
-                            }")
-                        }
-                append("\n")
-                append("#######################")
-
+                withStyle(
+                        style = LexemeStyle.BodySBold.copy(
+                                color = Color.Gray
+                        ).toSpanStyle()
+                ) {
+                    append("### Quiz count by grade")
+                    (0..maxGrade)
+                            .forEach { grade ->
+                                append("\n")
+                                append("Grade: $grade | Count: ${
+                                    it.count { quiz ->
+                                        quiz.grade == grade
+                                    }
+                                }")
+                            }
+                    append("\n")
+                    append("### Total: ${it.size}")
+                    append("\n")
+                    append("#######################")
+                }
             }
             allStat = if (prefsProvider.getBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN) == true) stat
             else null
@@ -207,27 +218,24 @@ class QuizGameImpl(
         saveUserAnswer(getCurrentStep(), answer)
     }
 
-    private fun getGeneralSummary(all: Boolean) = buildAnnotatedString {
+    private fun getGeneralSummary() = buildAnnotatedString {
         withStyle(style = ParagraphStyle(lineHeight = 24.sp)) {
-            append(totalSummaryMessage(count = getTotalQuizCount(all = all)))
+            append(resourceManager.stringByResId(R.string.chat_quiz_msg_system_session_end))
             append("\n")
-            append(correctSummaryMessage(count = getCorrectAnswers(all = all)))
+            append(totalSummaryMessage(count = getTotalQuizCount()))
             append("\n")
-            append(skippedSummaryMessage(count = getSkippedAnswers(all = all)))
+            append(correctSummaryMessage(count = getCorrectAnswers()))
             append("\n")
-            append(incorrectSummaryMessage(count = getIncorrectAnswers(all = all)))
+            append(skippedSummaryMessage(count = getSkippedAnswers()))
+            append("\n")
+            append(incorrectSummaryMessage(count = getIncorrectAnswers()))
         }
     }
 
-    private fun getDetailSummary(all: Boolean) = buildAnnotatedString {
+    private fun getDetailSummary() = buildAnnotatedString {
         withStyle(style = ParagraphStyle(lineHeight = 24.sp)) {
             append(summaryDetailMessage())
-            val answers = if (all) {
-                userAnswers
-            } else {
-                userAnswers.lastSession(sessionCount = sessionCount)
-            }
-            answers
+            userAnswers
                     .forEach { entry ->
                         append("\n")
                         val icon = if (entry.value is Answer.Correct) "✅" else "❌"
@@ -240,22 +248,21 @@ class QuizGameImpl(
         }
     }
 
-    private fun getTotalQuizCount(all: Boolean) =
-            getTotalQuizCountInSession(all = all)
+    private fun getTotalQuizCount() =
+            getTotalQuizCountInSession()
 
-    private fun getCorrectAnswers(all: Boolean) =
-            getCorrectAnswersCount(all = all)
+    private fun getCorrectAnswers() =
+            getCorrectAnswersCount()
 
-    private fun getIncorrectAnswers(all: Boolean) =
-            getIncorrectAnswersCount(all = all)
+    private fun getIncorrectAnswers() =
+            getIncorrectAnswersCount()
 
-    private fun getSkippedAnswers(all: Boolean) =
-            getSkippedAnswersCount(all = all)
+    private fun getSkippedAnswers() =
+            getSkippedAnswersCount()
 
     private fun clearData() {
         clearQuizData()
         clearUserAnswers()
-        sessionCount = 0
     }
 
     /**
@@ -265,6 +272,7 @@ class QuizGameImpl(
      */
     private fun addQuizData(quizData: List<QuizItem>) {
         quizList.addAll(quizData)
+        Log.d("###", "<QuizGameImpl.kt>::addQuizData => quiz size = ${quizList.size}")
     }
 
     private fun getQuiz(step: Step): QuizItem {
@@ -274,10 +282,7 @@ class QuizGameImpl(
         }
     }
 
-    private fun getTotalQuizCountInSession(all: Boolean): Int {
-        return if (all) quizList.size
-        else 10
-    }
+    private fun getTotalQuizCountInSession(): Int = quizList.size
 
     private fun clearQuizData() {
         quizList.clear()
@@ -296,42 +301,20 @@ class QuizGameImpl(
         return userAnswers[step]
     }
 
-    private fun getLastSessionStep(): List<Step> {
+    private fun getStepList(): List<Step> {
         return userAnswers
-                .lastSession(sessionCount = sessionCount)
                 .keys
                 .toList()
     }
 
-    private fun getCorrectAnswersCount(all: Boolean): Int {
-        val answers = if (all) {
-            userAnswers
-        } else {
-            userAnswers.lastSession(sessionCount = sessionCount)
-        }
-        return answers
+    private fun getCorrectAnswersCount(): Int = userAnswers
                 .count { it.value is Answer.Correct }
-    }
 
-    private fun getIncorrectAnswersCount(all: Boolean): Int {
-        val answers = if (all) {
-            userAnswers
-        } else {
-            userAnswers.lastSession(sessionCount = sessionCount)
-        }
-        return answers
+    private fun getIncorrectAnswersCount(): Int = userAnswers
                 .count { it.value is Answer.Incorrect }
-    }
 
-    private fun getSkippedAnswersCount(all: Boolean): Int {
-        val answers = if (all) {
-            userAnswers
-        } else {
-            userAnswers.lastSession(sessionCount = sessionCount)
-        }
-        return answers
+    private fun getSkippedAnswersCount(): Int = userAnswers
                 .count { it.value is Answer.Skipped }
-    }
 
     private fun clearUserAnswers() {
         userAnswers.clear()
@@ -354,15 +337,12 @@ class QuizGameImpl(
 
     private fun nextStep() {
         currentStep = when (val step = currentStep) {
-            is Step.Pending -> Step.Started(maxStep() + 0).also {
-                sessionCount++
-            }
-
+            is Step.Pending -> Step.Started(0)
             is Step.Started -> if (step.value < maxStep() - 1) Step.Started(step.value + 1) else Step.Pending
         }
     }
 
-    private fun maxStep() = maxStepInSession * sessionCount
+    private fun maxStep() = quizList.size
 
     /**
      * ########################################
@@ -433,15 +413,29 @@ fun WriteQuiz.toQuizItem(
         resourceManager: ResourceManager,
         isDebugOn: Boolean,
 ): QuizItem {
+    val last = if (lastSelectDate != null) {
+        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        formatter.format(lastSelectDate)
+    } else {
+        "none"
+    }
     return QuizItem(
             answer = word.value,
             fullQuestion = when {
                 lexeme.translation != null -> buildAnnotatedString {
                     if (isDebugOn) {
-                        append("### grade: $grade | score: $score | errorCount: $errorCount")
-                        append("\n")
-                        append("#############################")
-                        append("\n")
+                        withStyle(
+                                style = LexemeStyle.BodySBold.copy(
+                                        color = Color.Gray
+                                ).toSpanStyle()
+                        ) {
+                            append("### grade: $grade | score: $score | errorCount: $errorCount")
+                            append("\n")
+                            append("### last: $last")
+                            append("\n")
+                            append("#############################")
+                            append("\n")
+                        }
                     }
                     append(
                             resourceManager.stringByResId(R.string.chat_quiz_ask_translation_header),
@@ -456,10 +450,19 @@ fun WriteQuiz.toQuizItem(
 
                 lexeme.definition != null -> buildAnnotatedString {
                     if (isDebugOn) {
-                        append("### grade: $grade | score: $score | errorCount: $errorCount")
-                        append("\n")
-                        append("#############################")
-                        append("\n")
+                        withStyle(
+                                style = LexemeStyle.BodySBold
+                                        .copy(
+                                                color = Color.Gray
+                                        ).toSpanStyle()
+                        ) {
+                            append("### grade: $grade | score: $score | errorCount: $errorCount")
+                            append("\n")
+                            append("### last: $last")
+                            append("\n")
+                            append("#############################")
+                            append("\n")
+                        }
                     }
                     append(
                             resourceManager.stringByResId(R.string.chat_quiz_ask_definition_header),
@@ -576,16 +579,6 @@ sealed interface Answer {
     ) : Answer
 
     data class Skipped(val correct: String) : Answer
-}
-
-fun Map<QuizGameImpl.Step, Answer>.lastSession(
-        sessionCount: Int,
-        maxStepInSession: Int = 10,
-): Map<Step, Answer> {
-    return this.filter {
-        val key = it.key
-        key is Step.Started && key.value > (sessionCount - 1) * maxStepInSession - 1
-    }
 }
 
 class QuizNotLoadedException : IllegalStateException("Quiz is not loaded")

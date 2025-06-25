@@ -15,7 +15,7 @@ private const val DEFAULT_PADDING_VERTICAL = 12
 private const val DEFAULT_HEIGHT = 1
 
 @Composable
-fun MenuDivider(
+fun DividerMenuItem(
     height: Int = DEFAULT_HEIGHT,
     paddingHorizontal: Int = DEFAULT_PADDING_HORIZONTAL,
     paddingVertical: Int = DEFAULT_PADDING_VERTICAL,

@@ -6,8 +6,8 @@ import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarypicker.items.AddDictMenuWidget
 import me.apomazkin.dictionarypicker.items.ItemDictMenuWidget
 import me.apomazkin.dictionarypicker.state.LangPickerState
-import me.apomazkin.icondropdowned.IconDropdownMenuWidget
-import me.apomazkin.icondropdowned.MenuDivider
+import me.apomazkin.icondropdowned.IconDropdownWidget
+import me.apomazkin.icondropdowned.DividerMenuItem
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
@@ -21,7 +21,7 @@ fun DictDropDownWidget(
     onDismiss: () -> Unit,
     onItemClick: (dict: DictUiEntity) -> Unit,
 ) {
-    IconDropdownMenuWidget(
+    IconDropdownWidget(
         isDropDownOpen = isExpand,
         onClickDropDown = onOpenDropDown,
         onDismissRequest = onDismiss,
@@ -38,7 +38,7 @@ fun DictDropDownWidget(
                 }
             }
         }
-        MenuDivider()
+        DividerMenuItem()
         AddDictMenuWidget {
             onDismiss.invoke()
             openAddDict.invoke()

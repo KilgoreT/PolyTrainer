@@ -100,6 +100,8 @@
     <!--ChatQuiz-->
     <string name="chat_quiz_app_bar_title">Quiz chat</string>
     <string name="chat_menu_item_show_debug">Show debug</string>
+    <string name="chat_menu_item_mistakes">Frequent Mistakes</string>
+    <string name="chat_menu_item_earliest_reviewed">Earliest Reviewed</string>
     <string name="chat_quiz_bg_image_content_description">Background image</string>
     <string name="chat_quiz_start_button_title">Start</string>
     <string name="chat_quiz_placeholder_text">Enter the answer</string>
@@ -119,12 +121,10 @@
     <string name="chat_quiz_system_btn_result">Show result</string>
     <string name="chat_quiz_system_btn_finish">Finish</string>
 
-    <string name="chat_quiz_msg_system_session_end">Session completed! What\'s your next step?</string>
+    <string name="chat_quiz_msg_system_session_end">Session completed!</string>
     <string name="chat_quiz_msg_system_session_end2">What\'s your next step?</string>
 
     <string name="chat_quiz_msg_system_statistic">View data:</string>
-    <string name="chat_quiz_msg_system_statistic_session">Last session</string>
-    <string name="chat_quiz_msg_system_statistic_full">Entire quiz</string>
 
     <string name="chat_quiz_summary_total">📈 Total words: %s</string>
     <string name="chat_quiz_summary_correct">✅ Correct answers: %s</string>

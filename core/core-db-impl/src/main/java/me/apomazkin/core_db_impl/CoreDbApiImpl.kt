@@ -246,6 +246,16 @@ class CoreDbApiImpl @Inject constructor(
                     limit = limit,
             ).map { it.toApiEntity() }
         }
+
+        override suspend fun getEarliestWriteQuizList(
+                limit: Int,
+                langId: Long,
+        ): List<WriteQuizComplexEntity> {
+            return wordDao.getEarliest(
+                    langId = langId,
+                    limit = limit,
+            ).map { it.toApiEntity() }
+        }
     }
 
 

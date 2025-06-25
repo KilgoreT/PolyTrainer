@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package me.apomazkin.quiz.chat.widget
+package me.apomazkin.quiz.chat.widget.appbar
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -8,10 +8,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.core_resources.R
-import me.apomazkin.icondropdowned.IconDropdownMenuWidget
 import me.apomazkin.quiz.chat.logic.AppBarState
 import me.apomazkin.quiz.chat.logic.Msg
-import me.apomazkin.quiz.chat.widget.menu.DebugMenuItem
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.enableIconColor
 import me.apomazkin.ui.IconBoxed
@@ -19,7 +17,7 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 internal fun AppBarWidget(
-        appBarState: AppBarState,
+        state: AppBarState,
         onBackPress: () -> Unit,
         sendMessage: (Msg) -> Unit,
 ) {
@@ -40,27 +38,11 @@ internal fun AppBarWidget(
                 )
             },
             actions = {
-                IconDropdownMenuWidget(
-                        isDropDownOpen = appBarState.isActionMenuOpen,
-                        onClickDropDown = { sendMessage(Msg.ShowMenu) },
-                        onDismissRequest = { sendMessage(Msg.HideMenu) },
-                        icon = {
-                            IconBoxed(
-                                    iconRes = R.drawable.ic_more,
-                                    enabled = true,
-                                    colorEnabled = enableIconColor,
-                                    size = 44,
-                            )
-                        }
-                ) {
-                    DebugMenuItem(
-                            isChecked = appBarState.itemsState.isDebugOn,
-                            onClick = { isChecked ->
-                                val message = if (isChecked) Msg.DebugOn else Msg.DebugOff
-                                sendMessage(message)
-                            }
-                    )
-                }
+                ActionsWidget(
+                        isActionsOpen = state.isActionMenuOpen,
+                        state = state.itemsState,
+                        sendMessage = sendMessage,
+                )
             }
     )
 }
@@ -69,7 +51,7 @@ internal fun AppBarWidget(
 @Composable
 fun AppBarWidgetPreview() {
     AppBarWidget(
-            appBarState = AppBarState(),
+            state = AppBarState(),
             onBackPress = {},
             sendMessage = {},
     )

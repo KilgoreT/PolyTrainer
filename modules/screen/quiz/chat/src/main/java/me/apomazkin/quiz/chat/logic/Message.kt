@@ -12,9 +12,17 @@ sealed interface Msg {
 
     data object ShowMenu : Msg
     data object HideMenu : Msg
+    data object EarliestOn: Msg
+    data object EarliestOff: Msg
+    data object FrequentMistakesOn: Msg
+    data object FrequentMistakesOff: Msg
     data object DebugOn: Msg
     data object DebugOff: Msg
-    data class UpdateDebug(val isOn: Boolean): Msg
+    data class UpdateMenu(
+            val isEarliestOn: Boolean,
+            val isFrequentMistakesOn: Boolean,
+            val isDebugOn: Boolean,
+    ): Msg
 
     /**
      * Message to load quiz data
@@ -49,7 +57,7 @@ sealed interface Msg {
      */
     data class Assessment(val value: MessageContent) : Msg
     
-    data object SessionOver : Msg
+    data class SessionOver(val value: MessageContent) : Msg
     
     /**
      * Message to send user action

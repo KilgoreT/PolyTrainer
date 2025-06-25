@@ -6,7 +6,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import me.apomazkin.core_resources.R
-import me.apomazkin.icondropdowned.IconDropdownMenuWidget
+import me.apomazkin.icondropdowned.IconDropdownWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.enableIconColor
 import me.apomazkin.ui.IconBoxed
@@ -32,18 +32,10 @@ internal fun TopBarWidget(
         },
         title = {},
         actions = {
-            IconDropdownMenuWidget(
+            IconDropdownWidget(
                 isDropDownOpen = topBarState.isMenuOpen,
                 onClickDropDown = { sendMessage(Msg.ShowDropdownMenu) },
                 onDismissRequest = { sendMessage(Msg.HideDropdownMenu) },
-                icon = {
-                    IconBoxed(
-                        iconRes = R.drawable.ic_more,
-                        enabled = true,
-                        colorEnabled = enableIconColor,
-                        size = 44,
-                    )
-                }
             ) {
                 DeleteWordMenuItem {
                     sendMessage(Msg.HideDropdownMenu)

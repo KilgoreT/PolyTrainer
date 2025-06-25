@@ -23,7 +23,7 @@ import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.logic.ChatScreenState
 import me.apomazkin.quiz.chat.logic.Msg
-import me.apomazkin.quiz.chat.widget.AppBarWidget
+import me.apomazkin.quiz.chat.widget.appbar.AppBarWidget
 import me.apomazkin.quiz.chat.widget.state.ChatWidget
 import me.apomazkin.quiz.chat.widget.state.InitQuizWidget
 import me.apomazkin.theme.AppTheme
@@ -70,7 +70,7 @@ internal fun ChatScreen(
     Scaffold(
             topBar = {
                 AppBarWidget(
-                        appBarState = state.appBarState,
+                        state = state.appBarState,
                         onBackPress = onBackPress,
                         sendMessage = sendMessage,
                 )

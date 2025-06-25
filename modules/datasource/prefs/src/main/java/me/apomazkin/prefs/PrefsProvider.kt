@@ -14,9 +14,7 @@ import kotlinx.coroutines.flow.map
 class PrefsProvider(
     private val context: Context
 ) {
-
-    // TODO: RENAME to lexemePrefStore
-    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "PolyStore")
+    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "lexemePrefStore")
 
     fun getIntFlow(prefKey: PrefKey): Flow<Int> {
         return context.dataStore.data
@@ -55,6 +53,8 @@ class PrefsProvider(
 }
 
 enum class PrefKey(val value: String) {
-    CURRENT_LANG_NUMERIC_CODE_INT("currentLangNumericCode"),
-    CHAT_DEBUG_STATUS_BOOLEAN("chatDebugStatus")
+    CURRENT_LANG_NUMERIC_CODE_INT("INT_currentLangNumericCode"),
+    CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN("Boolean_chatEarliestReviewedStatus"),
+    CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN("Boolean_chatFrequentMistakesStatus"),
+    CHAT_DEBUG_STATUS_BOOLEAN("Boolean_chatDebugStatus")
 }

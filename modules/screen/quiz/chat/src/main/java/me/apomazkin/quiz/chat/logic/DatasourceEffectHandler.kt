@@ -10,10 +10,7 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
-import me.apomazkin.quiz.chat.R
-import me.apomazkin.quiz.chat.logic.ChatMessage.Companion.UserAction
 import me.apomazkin.quiz.chat.quiz.QuizGame
-import me.apomazkin.ui.resource.ResourceManager
 import kotlin.random.Random
 
 /**
@@ -22,17 +19,18 @@ import kotlin.random.Random
 internal sealed interface DatasourceEffect : Effect {
 
     data object PrepareToStart : DatasourceEffect
+    data object EarliestOn : DatasourceEffect
+    data object EarliestOff : DatasourceEffect
+    data object FrequentMistakesOn : DatasourceEffect
+    data object FrequentMistakesOff : DatasourceEffect
     data object DebugOn : DatasourceEffect
     data object DebugOff : DatasourceEffect
     data object LoadQuiz : DatasourceEffect
-    data object ReLoadQuiz : DatasourceEffect
     data object NextQuestion : DatasourceEffect
     data object Skip : DatasourceEffect
     data object GetAnswer : DatasourceEffect
     data class CheckAnswer(val answer: String) : DatasourceEffect
     data object Summary : DatasourceEffect
-
-    data class SessionSummary(val all: Boolean) : DatasourceEffect
 }
 
 /**
@@ -40,7 +38,6 @@ internal sealed interface DatasourceEffect : Effect {
  */
 internal class DatasourceEffectHandler(
         private val quizGame: QuizGame,
-        private val resourceManager: ResourceManager,
         private val prefsProvider: PrefsProvider,
 ) : MateEffectHandler<Msg, Effect> {
 
@@ -54,6 +51,34 @@ internal class DatasourceEffectHandler(
             is DatasourceEffect.PrepareToStart -> {
                 withContext(Dispatchers.IO) {
                     Msg.PrepareToStart
+                }
+            }
+
+            is DatasourceEffect.EarliestOn -> {
+                withContext(Dispatchers.IO) {
+                    prefsProvider.setBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN, true)
+                    Msg.Empty
+                }
+            }
+
+            is DatasourceEffect.EarliestOff -> {
+                withContext(Dispatchers.IO) {
+                    prefsProvider.setBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN, false)
+                    Msg.Empty
+                }
+            }
+
+            is DatasourceEffect.FrequentMistakesOn -> {
+                withContext(Dispatchers.IO) {
+                    prefsProvider.setBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN, true)
+                    Msg.Empty
+                }
+            }
+
+            is DatasourceEffect.FrequentMistakesOff -> {
+                withContext(Dispatchers.IO) {
+                    prefsProvider.setBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN, false)
+                    Msg.Empty
                 }
             }
 
@@ -78,15 +103,6 @@ internal class DatasourceEffectHandler(
                 }
             }
 
-            is DatasourceEffect.ReLoadQuiz -> {
-                withContext(Dispatchers.IO) {
-                    async { quizGame.loadNextData() }.await()
-                    Msg.QuizReLoaded(
-                            content = quizGame.getStat()
-                    )
-                }
-            }
-
             is DatasourceEffect.NextQuestion -> {
                 withContext(Dispatchers.IO) {
                     if (quizGame.hasNextQuestion()) {
@@ -98,11 +114,14 @@ internal class DatasourceEffectHandler(
                                 )
                         )
                     } else {
-
                         async {
                             quizGame.saveSession()
                         }.await()
-                        Msg.SessionOver
+                        Msg.SessionOver(
+                                MessageContent.create(
+                                        text = quizGame.summaryGeneral()
+                                )
+                        )
                     }
                 }
             }
@@ -135,40 +154,14 @@ internal class DatasourceEffectHandler(
             }
 
             is DatasourceEffect.Summary -> {
-                if (quizGame.hasSingleSession()) {
-                    sendSummary(true)
-                } else {
-                    Msg.SummaryOptions(
-                            value = MessageContent.create(
-                                    text = resourceManager.stringByResId(R.string.chat_quiz_msg_system_statistic),
-                                    buttons = listOf(
-                                            ChatMessage.ChatButton(
-                                                    R.string.chat_quiz_msg_system_statistic_session,
-                                                    UserAction.LAST_SESSION_SUMMARY
-                                            ),
-                                            ChatMessage.ChatButton(
-                                                    R.string.chat_quiz_msg_system_statistic_full,
-                                                    UserAction.FULL_QUIZ_SUMMARY
-                                            )
-                                    )
-                            )
-                    )
-                }
-            }
-
-            is DatasourceEffect.SessionSummary -> {
-                if (eff.all) {
-                    sendSummary(true)
-                } else {
-                    sendSummary(false)
-                }
+                sendSummary()
             }
         }.let(consumer)
     }
 
-    private suspend fun sendSummary(full: Boolean): Msg.Summary {
-        val summary: List<AnnotatedString> = quizGame.summary(full)
-        delay(Random.nextLong(100, 400))
+    private fun sendSummary(): Msg.Summary {
+        val summary: List<AnnotatedString> = listOf(quizGame.summaryDetail())
+//        delay(Random.nextLong(100, 400))
         return Msg.Summary(
                 value = buildList {
                     addAll(

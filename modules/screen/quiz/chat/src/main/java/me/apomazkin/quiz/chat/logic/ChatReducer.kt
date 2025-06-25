@@ -36,10 +36,18 @@ internal class ChatReducer(
             is Msg.HideMenu -> state
                     .hideActionMenu() to setOf()
 
+            is Msg.EarliestOn -> state to setOf(DatasourceEffect.EarliestOn)
+            is Msg.EarliestOff -> state to setOf(DatasourceEffect.EarliestOff)
+            is Msg.FrequentMistakesOn -> state to setOf(DatasourceEffect.FrequentMistakesOn)
+            is Msg.FrequentMistakesOff -> state to setOf(DatasourceEffect.FrequentMistakesOff)
             is Msg.DebugOn -> state to setOf(DatasourceEffect.DebugOn)
             is Msg.DebugOff -> state to setOf(DatasourceEffect.DebugOff)
-            is Msg.UpdateDebug -> state
-                    .debug(isOn = message.isOn) to setOf()
+            is Msg.UpdateMenu -> state
+                    .updateMenu(
+                            isEarliestOn = message.isEarliestOn,
+                            isFrequentMistakesOn = message.isFrequentMistakesOn,
+                            isDebugOn = message.isDebugOn
+                    ) to setOf()
 
             is Msg.Start -> state to setOf(DatasourceEffect.LoadQuiz)
 
@@ -122,8 +130,9 @@ internal class ChatReducer(
 
 
             is Msg.SessionOver -> state
+                    .systemMessage(message = message.value)
                     .systemMessage(
-                            message = completionMessage().toMessageContent(
+                            message = completionMessage2().toMessageContent(
                                     buttons = listOf(
                                             ChatMessage.ChatButton(
                                                     R.string.chat_quiz_system_btn_continue,
@@ -143,16 +152,9 @@ internal class ChatReducer(
 
             is Msg.UserAction -> {
                 val effects = when (message.action) {
-                    UserAction.CONTINUE -> setOf(DatasourceEffect.ReLoadQuiz)
+                    UserAction.CONTINUE -> setOf(DatasourceEffect.LoadQuiz)
                     UserAction.SUMMARY -> setOf(DatasourceEffect.Summary)
                     UserAction.EXIT -> emptySet()
-                    UserAction.LAST_SESSION_SUMMARY -> setOf(
-                            DatasourceEffect.SessionSummary(all = false)
-                    )
-
-                    UserAction.FULL_QUIZ_SUMMARY -> setOf(
-                            DatasourceEffect.SessionSummary(all = true)
-                    )
                 }
 
                 val newState = when (message.action) {
@@ -163,21 +165,7 @@ internal class ChatReducer(
                                             showAssessmentUserMessage()
                                     )
                             )
-
                     UserAction.EXIT -> state.exit()
-                    UserAction.LAST_SESSION_SUMMARY -> state
-                            .userMessage(
-                                    message = MessageContent.create(
-                                            lastSessionUserMessage()
-                                    )
-                            )
-
-                    UserAction.FULL_QUIZ_SUMMARY -> state
-                            .userMessage(
-                                    message = MessageContent.create(
-                                            fullQuizUserMessage()
-                                    )
-                            )
                 }
 
                 newState to effects
@@ -241,20 +229,8 @@ internal class ChatReducer(
         return resourceManager.stringByResId(R.string.chat_quiz_system_btn_result)
     }
 
-    private fun completionMessage(): String {
-        return resourceManager.stringByResId(R.string.chat_quiz_msg_system_session_end)
-    }
-
     private fun completionMessage2(): String {
         return resourceManager.stringByResId(R.string.chat_quiz_msg_system_session_end2)
-    }
-
-    private fun lastSessionUserMessage(): String {
-        return resourceManager.stringByResId(R.string.chat_quiz_msg_system_statistic_session)
-    }
-
-    private fun fullQuizUserMessage(): String {
-        return resourceManager.stringByResId(R.string.chat_quiz_msg_system_statistic_full)
     }
 
     private fun String.annotated(): AnnotatedString {
