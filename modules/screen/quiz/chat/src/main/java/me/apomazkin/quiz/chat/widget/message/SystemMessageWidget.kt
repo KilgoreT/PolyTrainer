@@ -102,15 +102,15 @@ private fun Preview(
                     buttons = listOf(
                         ChatMessage.ChatButton(
                             R.string.button_cancel,
-                            ChatMessage.Companion.UserAction.CONTINUE
+                            ChatMessage.Companion.UserAction.EXIT
                         ),
                         ChatMessage.ChatButton(
                             R.string.button_cancel,
-                            ChatMessage.Companion.UserAction.CONTINUE
+                            ChatMessage.Companion.UserAction.EXIT
                         ),
                         ChatMessage.ChatButton(
                             R.string.button_cancel,
-                            ChatMessage.Companion.UserAction.CONTINUE
+                            ChatMessage.Companion.UserAction.EXIT
                         ),
                     )
                 ),

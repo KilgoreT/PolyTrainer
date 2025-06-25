@@ -153,6 +153,18 @@ interface WordDao {
         limit: Int,
         langId: Long
     ): List<WriteQuizDbEntity>
+
+    @Transaction
+    @Query("""
+        SELECT * FROM write_quiz 
+        WHERE lang_id = :langId 
+        ORDER BY last_select_date ASC
+        LIMIT :limit
+    """)
+    suspend fun getEarliest(
+            limit: Int,
+            langId: Long
+    ): List<WriteQuizDbEntity>
     
     @Query("DELETE FROM write_quiz WHERE lexeme_id = :lexemeId")
     fun removeWriteQuiz(lexemeId: Long): Int

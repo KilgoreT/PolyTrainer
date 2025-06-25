@@ -26,7 +26,7 @@ data class ChatScreenState(
 @Immutable
 data class AppBarState(
         val isActionMenuOpen: Boolean = false,
-        val itemsState: ItemsState = ItemsState()
+        val itemsState: ItemsState = ItemsState(),
 )
 
 fun ChatScreenState.showActionMenu() = this.copy(
@@ -43,16 +43,43 @@ fun ChatScreenState.hideActionMenu() = this.copy(
 
 @Immutable
 data class ItemsState(
-        val isDebugOn: Boolean = false,
-)
+        val earliest: Earliest = Earliest(),
+        val frequentMistakes: FrequentMistakes = FrequentMistakes(),
+        val debug: Debug = Debug(),
+) {
+    data class Earliest(
+            val isOn: Boolean = false,
+    )
+    data class FrequentMistakes(
+            val isOn: Boolean = false,
+    )
 
-fun ChatScreenState.debug(isOn: Boolean) = this.copy(
-        appBarState = this.appBarState.copy(
-                itemsState = this.appBarState.itemsState.copy(
-                        isDebugOn = isOn
-                )
-        )
-)
+    data class Debug(
+            val isOn: Boolean = false,
+    )
+}
+
+fun ChatScreenState.updateMenu(
+        isEarliestOn: Boolean,
+        isFrequentMistakesOn: Boolean,
+        isDebugOn: Boolean,
+): ChatScreenState {
+    return this.copy(
+            appBarState = this.appBarState.copy(
+                    itemsState = this.appBarState.itemsState.copy(
+                            earliest = if (isEarliestOn != this.appBarState.itemsState.earliest.isOn) {
+                                ItemsState.Earliest(isOn = isEarliestOn)
+                            } else this.appBarState.itemsState.earliest,
+                            frequentMistakes = if (isFrequentMistakesOn != this.appBarState.itemsState.frequentMistakes.isOn) {
+                                ItemsState.FrequentMistakes(isOn = isFrequentMistakesOn)
+                            } else this.appBarState.itemsState.frequentMistakes,
+                            debug = if (isDebugOn != this.appBarState.itemsState.debug.isOn) {
+                                ItemsState.Debug(isOn = isDebugOn)
+                            } else this.appBarState.itemsState.debug,
+                    )
+            )
+    )
+}
 
 @Immutable
 data class ChatState(
@@ -111,8 +138,6 @@ data class ChatMessage(
             CONTINUE,
             EXIT,
             SUMMARY,
-            LAST_SESSION_SUMMARY,
-            FULL_QUIZ_SUMMARY,
         }
 
         fun addSystemMessage(

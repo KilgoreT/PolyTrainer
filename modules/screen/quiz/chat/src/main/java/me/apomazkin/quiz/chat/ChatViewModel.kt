@@ -40,7 +40,6 @@ class ChatViewModel(
                     resourceManager = resourceManager,
                     prefsProvider = prefsProvider,
                 ),
-                resourceManager = resourceManager,
                 prefsProvider = prefsProvider,
             ),
             AppBarFlowHandler(

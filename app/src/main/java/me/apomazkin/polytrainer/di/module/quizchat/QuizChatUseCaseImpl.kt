@@ -84,8 +84,20 @@ class QuizChatUseCaseImpl @Inject constructor(
                 .shuffled()
             result += leftovers.take(limit - result.size)
         }
+
+
+        val isEarliestOn = prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN)
+                ?: false
+        if (isEarliestOn) {
+            val earliest = quizApi
+                    .getEarliestWriteQuizList(limit, langId)
+                    .shuffled()
+                    .toDomainEntity()
+                    .take(2)
+            result += earliest
+        }
+
         return result
-            .take(limit)
             .shuffled()
     }
 }

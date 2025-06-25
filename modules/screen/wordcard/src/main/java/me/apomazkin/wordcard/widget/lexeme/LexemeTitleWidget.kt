@@ -13,7 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import me.apomazkin.icondropdowned.IconDropdownMenuWidget
+import me.apomazkin.icondropdowned.IconDropdownWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.whiteColor
@@ -41,7 +41,7 @@ fun LexemeTitleWidget(
             color = MaterialTheme.colorScheme.primary,
             style = LexemeStyle.BodyS
         )
-        IconDropdownMenuWidget(
+        IconDropdownWidget(
             isDropDownOpen = state.isMenuOpen,
             onClickDropDown = {
                 sendMessage(

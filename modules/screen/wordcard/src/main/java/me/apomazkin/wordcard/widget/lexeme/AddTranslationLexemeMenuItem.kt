@@ -1,25 +1,34 @@
 package me.apomazkin.wordcard.widget.lexeme
 
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import me.apomazkin.core_resources.R
+import me.apomazkin.icondropdowned.MenuItem
+import me.apomazkin.icondropdowned.StringSource
+import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
-import me.apomazkin.theme.blackColor
+import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 internal fun AddTranslationLexemeMenuItem(
-    onChangeClick: () -> Unit,
+        onChangeClick: () -> Unit,
 ) {
-    DropdownMenuItem(
-        text = {
-            Text(
-                text = stringResource(id = R.string.word_card_lexeme_add_translation),
-                style = LexemeStyle.BodyL,
-                color = blackColor
+    MenuItem
+            .text(
+                    title = StringSource.fromRes(
+                            resId = R.string.word_card_lexeme_add_translation,
+                            style = LexemeStyle.BodyL,
+                    ),
+                    onClick = onChangeClick,
             )
-        },
-        onClick = onChangeClick,
-    )
+            .Widget()
+}
+
+@Composable
+@PreviewWidget
+private fun AddTranslationLexemeMenuItemPreview() {
+    AppTheme {
+        AddTranslationLexemeMenuItem(
+                onChangeClick = {}
+        )
+    }
 }

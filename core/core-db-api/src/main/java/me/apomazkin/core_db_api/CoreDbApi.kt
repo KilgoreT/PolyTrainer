@@ -100,6 +100,11 @@ interface CoreDbApi {
             limit: Int,
             langId: Long
         ): List<WriteQuizComplexEntity>
+
+        suspend fun getEarliestWriteQuizList(
+            limit: Int,
+            langId: Long
+        ): List<WriteQuizComplexEntity>
     }
     
     //New API
