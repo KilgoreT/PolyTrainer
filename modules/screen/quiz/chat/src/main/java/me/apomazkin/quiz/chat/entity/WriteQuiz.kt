@@ -12,7 +12,16 @@ data class WriteQuiz(
     val lastSelectDate: Date? = null,
     val lexeme: Lexeme,
     val word: Word,
+    val type: QuizType? = null
 )
+
+enum class QuizType(
+    val value: String
+) {
+    GRADES("grades"),
+    EARLIEST("earliest"),
+    ERRORS("errors");
+}
 
 data class WriteQuizUpsertEntity(
     val id: Long,

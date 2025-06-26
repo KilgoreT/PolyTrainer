@@ -256,6 +256,13 @@ class CoreDbApiImpl @Inject constructor(
                     limit = limit,
             ).map { it.toApiEntity() }
         }
+
+        override suspend fun getFrequentMistakesWriteQuizList(limit: Int, langId: Long): List<WriteQuizComplexEntity> {
+            return wordDao.getFrequentMistakes(
+                    langId = langId,
+                    limit = limit,
+            ).map { it.toApiEntity() }
+        }
     }
 
 

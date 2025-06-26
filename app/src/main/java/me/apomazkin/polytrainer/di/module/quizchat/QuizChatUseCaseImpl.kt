@@ -10,6 +10,7 @@ import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.entity.Definition
 import me.apomazkin.quiz.chat.entity.Lexeme
+import me.apomazkin.quiz.chat.entity.QuizType
 import me.apomazkin.quiz.chat.entity.Translation
 import me.apomazkin.quiz.chat.entity.Word
 import me.apomazkin.quiz.chat.entity.WriteQuiz
@@ -57,7 +58,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                     grade = grade,
                     limit = limit,
                     langId = langId,
-                ).shuffled().toDomainEntity()
+                ).shuffled().toDomainEntity(type = QuizType.GRADES)
             }
         val sortedGrades = allByGrades.toSortedMap()
         
@@ -92,9 +93,19 @@ class QuizChatUseCaseImpl @Inject constructor(
             val earliest = quizApi
                     .getEarliestWriteQuizList(limit, langId)
                     .shuffled()
-                    .toDomainEntity()
+                    .toDomainEntity(type = QuizType.EARLIEST)
                     .take(2)
             result += earliest
+        }
+        val isFrequentMistakesOn = prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN)
+                ?: false
+        if (isFrequentMistakesOn) {
+            val frequentMistakes = quizApi
+                .getFrequentMistakesWriteQuizList(limit, langId)
+                .shuffled()
+                .toDomainEntity(type = QuizType.ERRORS)
+                .take(2)
+            result += frequentMistakes
         }
 
         return result
@@ -115,7 +126,7 @@ fun WordApiEntity.toDomainEntity() = Word(
     value = value,
 )
 
-fun WriteQuizComplexEntity.toDomainEntity() = WriteQuiz(
+fun WriteQuizComplexEntity.toDomainEntity(type: QuizType?) = WriteQuiz(
     id = quizData.id,
     langId = quizData.langId,
     grade = quizData.grade,
@@ -125,9 +136,12 @@ fun WriteQuizComplexEntity.toDomainEntity() = WriteQuiz(
     lastSelectDate = quizData.lastSelectDate,
     lexeme = lexemeData.toDomainEntity(),
     word = wordData.toDomainEntity(),
+    type = type
 )
 
-fun List<WriteQuizComplexEntity>.toDomainEntity() = map { it.toDomainEntity() }
+fun List<WriteQuizComplexEntity>.toDomainEntity(
+        type: QuizType?
+) = map { it.toDomainEntity(type) }
 
 fun WriteQuizUpsertEntity.toApiEntity() = WriteQuizUpsertApiEntity(
     id = id,

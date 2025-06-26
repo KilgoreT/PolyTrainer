@@ -460,6 +460,8 @@ fun WriteQuiz.toQuizItem(
                             append("\n")
                             append("### last: $last")
                             append("\n")
+                            append("### type: $type")
+                            append("\n")
                             append("#############################")
                             append("\n")
                         }
