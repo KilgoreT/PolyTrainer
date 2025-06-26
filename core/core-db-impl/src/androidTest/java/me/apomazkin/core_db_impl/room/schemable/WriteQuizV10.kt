@@ -41,7 +41,7 @@ object WriteQuizV10 : Schemable<WriteQuizDb> {
                 put(COLUMN_SCORE, writeQuizDb.score)
                 put(COLUMN_ERROR_COUNT, writeQuizDb.errorCount)
                 put(COLUMN_ADD_DATE, writeQuizDb.addDate.time)
-                put(COLUMN_LAST_SELECT_DATE, writeQuizDb.lastSelectDate?.time)
+                put(COLUMN_LAST_SELECT_DATE, writeQuizDb.lastCorrectAnswerDate?.time)
             }
         }
     
@@ -76,15 +76,15 @@ object WriteQuizV10 : Schemable<WriteQuizDb> {
                 )
                 result.add(
                     WriteQuizDb(
-                        id = id,
-                        langId = langId,
-                        lexemeId = lexemeId,
-                        grade = grade,
-                        score = score,
-                        errorCount = errorCount,
-                        addDate = addDate?.let { return@let Date(it) }
+                            id = id,
+                            langId = langId,
+                            lexemeId = lexemeId,
+                            grade = grade,
+                            score = score,
+                            errorCount = errorCount,
+                            addDate = addDate?.let { return@let Date(it) }
                             ?: Date(),
-                        lastSelectDate = lastSelectDate?.let {
+                            lastCorrectAnswerDate = lastSelectDate?.let {
                             return@let Date(
                                 it
                             )
@@ -100,54 +100,54 @@ object WriteQuizV10 : Schemable<WriteQuizDb> {
         val date = Date(System.currentTimeMillis())
         return listOf(
             WriteQuizDb(
-                id = 0,
-                langId = 0,
-                lexemeId = 0,
-                grade = 0,
-                score = 2,
-                errorCount = 9,
-                addDate = date,
-                lastSelectDate = null
+                    id = 0,
+                    langId = 0,
+                    lexemeId = 0,
+                    grade = 0,
+                    score = 2,
+                    errorCount = 9,
+                    addDate = date,
+                    lastCorrectAnswerDate = null
             ),
             WriteQuizDb(
-                id = 1,
-                langId = 0,
-                lexemeId = 1,
-                grade = 0,
-                score = 0,
-                errorCount = 0,
-                addDate = date,
-                lastSelectDate = date
+                    id = 1,
+                    langId = 0,
+                    lexemeId = 1,
+                    grade = 0,
+                    score = 0,
+                    errorCount = 0,
+                    addDate = date,
+                    lastCorrectAnswerDate = date
             ),
             WriteQuizDb(
-                id = 2,
-                langId = 1,
-                lexemeId = 0,
-                grade = 0,
-                score = 0,
-                errorCount = 0,
-                addDate = date,
-                lastSelectDate = null
+                    id = 2,
+                    langId = 1,
+                    lexemeId = 0,
+                    grade = 0,
+                    score = 0,
+                    errorCount = 0,
+                    addDate = date,
+                    lastCorrectAnswerDate = null
             ),
             WriteQuizDb(
-                id = 3,
-                langId = 0,
-                lexemeId = 2,
-                grade = 0,
-                score = 11,
-                errorCount = 2,
-                addDate = date,
-                lastSelectDate = null
+                    id = 3,
+                    langId = 0,
+                    lexemeId = 2,
+                    grade = 0,
+                    score = 11,
+                    errorCount = 2,
+                    addDate = date,
+                    lastCorrectAnswerDate = null
             ),
             WriteQuizDb(
-                id = 4,
-                langId = 1,
-                lexemeId = 1,
-                grade = 0,
-                score = 3,
-                errorCount = 27,
-                addDate = date,
-                lastSelectDate = date
+                    id = 4,
+                    langId = 1,
+                    lexemeId = 1,
+                    grade = 0,
+                    score = 3,
+                    errorCount = 27,
+                    addDate = date,
+                    lastCorrectAnswerDate = date
             )
         )
     }
