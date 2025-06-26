@@ -11,15 +11,15 @@ fun WriteQuizDb.toDump() = WriteQuizDump(
     grade = grade,
     score = score,
     addDate = addDate,
-    lastSelectDate = lastSelectDate
+    lastSelectDate = lastCorrectAnswerDate
 )
 
 fun WriteQuizDump.toDb() = WriteQuizDb(
-    id = id,
-    langId = langId,
-    lexemeId = definitionId,
-    grade = grade,
-    score = score,
-    addDate = addDate ?: Date(),
-    lastSelectDate = lastSelectDate
+        id = id,
+        langId = langId,
+        lexemeId = definitionId,
+        grade = grade,
+        score = score,
+        addDate = addDate ?: Date(),
+        lastCorrectAnswerDate = lastSelectDate
 )

@@ -160,6 +160,7 @@ class QuizGameImpl(
             quizInfo: QuizItem.QuizInfo,
     ): WriteQuizUpsertEntity {
         return quizInfo.incorrect(
+                maxGrade = maxGrade,
                 maxScoreInGrade = maxScoreInGrade
         )
     }
@@ -308,13 +309,13 @@ class QuizGameImpl(
     }
 
     private fun getCorrectAnswersCount(): Int = userAnswers
-                .count { it.value is Answer.Correct }
+            .count { it.value is Answer.Correct }
 
     private fun getIncorrectAnswersCount(): Int = userAnswers
-                .count { it.value is Answer.Incorrect }
+            .count { it.value is Answer.Incorrect }
 
     private fun getSkippedAnswersCount(): Int = userAnswers
-                .count { it.value is Answer.Skipped }
+            .count { it.value is Answer.Skipped }
 
     private fun clearUserAnswers() {
         userAnswers.clear()
@@ -413,9 +414,9 @@ fun WriteQuiz.toQuizItem(
         resourceManager: ResourceManager,
         isDebugOn: Boolean,
 ): QuizItem {
-    val last = if (lastSelectDate != null) {
+    val last = if (lastCorrectAnswerDate != null) {
         val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        formatter.format(lastSelectDate)
+        formatter.format(lastCorrectAnswerDate)
     } else {
         "none"
     }
@@ -496,7 +497,7 @@ fun WriteQuiz.toQuizItem(
                     score = score,
                     errorCount = errorCount,
                     addDate = addDate,
-                    lastSelectDate = lastSelectDate,
+                    lastSelectDate = lastCorrectAnswerDate,
             )
     )
 }
@@ -507,13 +508,12 @@ fun QuizItem.QuizInfo.correct(
         maxScoreInGrade: Int,
 ): WriteQuizUpsertEntity {
 
-    var errorCount = this.errorCount
+    val errorCount = max(0, this.errorCount - 1)
 
     val (scoreNew, gradeNew) = when {
 
         score == maxScoreInGrade && grade == maxGrade -> {
-            errorCount = max(0, this.errorCount - 1)
-            score to grade
+            0 to grade + 1
         }
 
         score == maxScoreInGrade -> {
@@ -532,14 +532,20 @@ fun QuizItem.QuizInfo.correct(
             score = scoreNew,
             errorCount = errorCount,
             addDate = addDate,
-            lastSelectDate = Date(System.currentTimeMillis()),
+            lastCorrectAnswerDate = Date(System.currentTimeMillis()),
     )
 }
 
 fun QuizItem.QuizInfo.incorrect(
+        maxGrade: Int,
         maxScoreInGrade: Int,
 ): WriteQuizUpsertEntity {
     val (scoreNew, gradeNew) = when {
+
+        score == 0 && grade == maxGrade + 1 -> {
+            score to grade
+        }
+
         score == 0 && grade == 0 -> {
             0 to 0
         }
@@ -560,7 +566,7 @@ fun QuizItem.QuizInfo.incorrect(
             score = scoreNew,
             errorCount = errorCount + 1,
             addDate = addDate,
-            lastSelectDate = Date(System.currentTimeMillis()),
+            lastCorrectAnswerDate = lastSelectDate,
     )
 }
 

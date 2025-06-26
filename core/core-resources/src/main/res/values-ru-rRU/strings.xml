@@ -111,7 +111,7 @@
     <string name="chat_quiz_system_btn_result">Посмотреть отчет</string>
     <string name="chat_quiz_system_btn_finish">Завершить</string>
 
-    <string name="chat_quiz_msg_system_session_end">Сессия завершена! Твой следующий шаг?</string>
+    <string name="chat_quiz_msg_system_session_end">Сессия завершена!</string>
     <string name="chat_quiz_msg_system_session_end2">Твой следующий шаг?</string>
 
     <string name="chat_quiz_msg_system_statistic">Посмотреть данные:</string>

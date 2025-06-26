@@ -127,16 +127,16 @@ fun WordApiEntity.toDomainEntity() = Word(
 )
 
 fun WriteQuizComplexEntity.toDomainEntity(type: QuizType?) = WriteQuiz(
-    id = quizData.id,
-    langId = quizData.langId,
-    grade = quizData.grade,
-    score = quizData.score,
-    errorCount = quizData.errorCount,
-    addDate = quizData.addDate,
-    lastSelectDate = quizData.lastSelectDate,
-    lexeme = lexemeData.toDomainEntity(),
-    word = wordData.toDomainEntity(),
-    type = type
+        id = quizData.id,
+        langId = quizData.langId,
+        grade = quizData.grade,
+        score = quizData.score,
+        errorCount = quizData.errorCount,
+        addDate = quizData.addDate,
+        lastCorrectAnswerDate = quizData.lastCorrectAnswerDate,
+        lexeme = lexemeData.toDomainEntity(),
+        word = wordData.toDomainEntity(),
+        type = type
 )
 
 fun List<WriteQuizComplexEntity>.toDomainEntity(
@@ -144,14 +144,14 @@ fun List<WriteQuizComplexEntity>.toDomainEntity(
 ) = map { it.toDomainEntity(type) }
 
 fun WriteQuizUpsertEntity.toApiEntity() = WriteQuizUpsertApiEntity(
-    id = id,
-    langId = langId,
-    lexemeId = lexemeId,
-    grade = grade,
-    score = score,
-    errorCount = errorCount,
-    addDate = addDate,
-    lastSelectDate = lastSelectDate
+        id = id,
+        langId = langId,
+        lexemeId = lexemeId,
+        grade = grade,
+        score = score,
+        errorCount = errorCount,
+        addDate = addDate,
+        lastCorrectAnswerDate = lastCorrectAnswerDate
 )
 
 fun List<WriteQuizUpsertEntity>.toApiEntity() = map { it.toApiEntity() }
