@@ -25,3 +25,5 @@ interface DictionaryTabUseCase {
     suspend fun editLexeme(wordId: Long, lexemeId: Long, category: String, definition: String)
     suspend fun deleteLexeme(lexemeId: Long): Boolean
 }
+
+class LangNotFoundException: IllegalStateException("No Languages found")

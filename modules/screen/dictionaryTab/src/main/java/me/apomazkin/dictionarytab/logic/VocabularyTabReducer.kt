@@ -54,6 +54,12 @@ internal class VocabularyTabReducer(
             is TopBarActionMsg.ChangeDict -> state
                     .hideDictMenu() to setOf(ChangeDict(lang = message.lang))
 
+            is TopBarActionMsg.GoToDictScreen -> state
+                    .goToDictScreen() to setOf()
+
+            is TopBarActionMsg.ResetGoToDictScreen -> state
+                    .resetGoToDictScreen() to setOf()
+
             is Msg.TermDataLoaded -> state
                     .hideLoading()
                     .appendTermsFlow(
