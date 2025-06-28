@@ -51,16 +51,6 @@ internal sealed interface DatasourceEffect : Effect {
      * Effect to delete word.
      */
     data class DeleteWord(val wordSet: Set<WordInfo>) : DatasourceEffect
-
-    /**
-     * Effect to save(add or update) lexeme.
-     */
-    data class SaveLexeme(
-            val wordId: Long,
-            val lexemeList: List<LexemeState>,
-    ) : DatasourceEffect
-
-    data class DeleteLexeme(val lexemeId: Long) : DatasourceEffect
 }
 
 /**
@@ -155,38 +145,6 @@ internal class DatasourceEffectHandler(
                     }
                 }.let { Msg.Empty }
             }
-
-            is DatasourceEffect.SaveLexeme -> {
-                withContext(Dispatchers.IO) {
-                    // TODO: Проследить, чтобы обновлялись только те лексемы,
-                    //  которые реально были изменены
-                    //  https://github.com/KilgoreT/PolyTrainer/issues/374
-                    eff.lexemeList.forEach { lexeme ->
-                        lexeme.lexemeId?.let { lexemeId ->
-                            dictionaryTabUseCase.editLexeme(
-                                    eff.wordId,
-                                    lexemeId,
-                                    lexeme.category.stringValue,
-                                    lexeme.definition.editedText,
-                            )
-                        } ?: run {
-                            dictionaryTabUseCase.addLexeme(
-                                    eff.wordId,
-                                    lexeme.category.stringValue,
-                                    lexeme.definition.editedText,
-                            )
-                        }
-                    }.let { Msg.Empty }
-                }
-            }
-
-            is DatasourceEffect.DeleteLexeme -> {
-                withContext(Dispatchers.IO) {
-                    dictionaryTabUseCase.deleteLexeme(eff.lexemeId)
-                            .let { Msg.Empty }
-                }
-            }
-
             null -> Msg.Empty
         }.let(consumer)
     }
