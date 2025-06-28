@@ -101,6 +101,8 @@ sealed interface TopBarActionMsg : Msg {
      */
     data object ShowDictMenu : TopBarActionMsg
     data object HideDictMenu : TopBarActionMsg
+    data object GoToDictScreen: TopBarActionMsg
+    data object ResetGoToDictScreen: TopBarActionMsg
 }
 
 sealed interface UiMsg : Msg {

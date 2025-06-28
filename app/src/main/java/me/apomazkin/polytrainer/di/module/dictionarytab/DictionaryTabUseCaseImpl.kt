@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
+import me.apomazkin.dictionarytab.deps.LangNotFoundException
 import me.apomazkin.dictionarytab.entity.DefinitionUiEntity
 import me.apomazkin.dictionarytab.entity.LexemeUiItem
 import me.apomazkin.dictionarytab.entity.TermUiItem
@@ -52,7 +53,7 @@ class DictionaryTabUseCaseImpl @Inject constructor(
                     numericCode = it.numericCode,
                 )
             }
-        throw IllegalStateException("Language not found")
+        throw LangNotFoundException()
     }
 
     override suspend fun getAvailableDict(): List<DictUiEntity> =

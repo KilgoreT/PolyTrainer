@@ -30,6 +30,7 @@ import me.apomazkin.dictionarytab.R
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.Msg
+import me.apomazkin.dictionarytab.logic.TopBarActionMsg
 import me.apomazkin.dictionarytab.logic.UiMsg
 import me.apomazkin.dictionarytab.logic.processor.toMateEvent
 import me.apomazkin.dictionarytab.tools.DataHelper
@@ -89,6 +90,13 @@ internal fun DictionaryTabScreen(
         }
     }
 
+    LaunchedEffect(state.goToDictScreen) {
+        if (state.goToDictScreen) {
+            sendMessage(TopBarActionMsg.ResetGoToDictScreen)
+            openAddDict.invoke()
+        }
+    }
+
     SystemBarsWidget(
             statusBarColor = if (state.topBarState.isActionMode) {
                 MaterialTheme.colorScheme.secondary
@@ -111,7 +119,6 @@ internal fun DictionaryTabScreen(
                  else TopBarWidget(
                          state = state.topBarState.langPickerState,
                          sendMessage = sendMessage,
-                         openAddDict = openAddDict,
                  )
              },
              snackbarHost = {

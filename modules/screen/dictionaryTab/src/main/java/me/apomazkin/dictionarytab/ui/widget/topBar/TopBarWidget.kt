@@ -7,6 +7,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.core_resources.R
+import me.apomazkin.dictionarypicker.DictDropDownWidget
 import me.apomazkin.dictionarypicker.state.LangPickerState
 import me.apomazkin.dictionarytab.logic.Msg
 import me.apomazkin.dictionarytab.logic.TopBarActionMsg
@@ -18,7 +19,6 @@ import me.apomazkin.ui.preview.PreviewWidget
 @Composable
 fun TopBarWidget(
     state: LangPickerState?,
-    openAddDict: () -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
     TopAppBar(
@@ -31,20 +31,12 @@ fun TopBarWidget(
         },
         actions = {
             state?.let { langState ->
-                me.apomazkin.dictionarypicker.DictDropDownWidget(
+                DictDropDownWidget(
                     state = langState,
                     isExpand = langState.isDropDownMenuOpen,
-                    openAddDict = openAddDict,
-                    onOpenDropDown = {
-                        sendMessage(
-                            TopBarActionMsg.ShowDictMenu
-                        )
-                    },
-                    onDismiss = {
-                        sendMessage(
-                            TopBarActionMsg.HideDictMenu
-                        )
-                    },
+                    openAddDict = { sendMessage(TopBarActionMsg.GoToDictScreen) },
+                    onOpenDropDown = { sendMessage(TopBarActionMsg.ShowDictMenu) },
+                    onDismiss = { sendMessage(TopBarActionMsg.HideDictMenu) },
                     onItemClick = { sendMessage(TopBarActionMsg.ChangeDict(lang = it)) },
                 )
             }
@@ -58,7 +50,6 @@ private fun Preview() {
     AppTheme {
         TopBarWidget(
             state = DataHelper.State.loaded.topBarState.langPickerState,
-            openAddDict = {},
         ) {}
     }
 }

@@ -19,6 +19,7 @@ import me.apomazkin.mate.EMPTY_STRING
 @Immutable
 data class DictionaryTabState(
         val isLoading: Boolean = true,
+        val goToDictScreen: Boolean = false,
         val topBarState: TopBarState = TopBarState(),
         val termList: TermsSource = TermsSource(pattern = ""),
         val termListMap: Map<String, Flow<PagingData<TermUiItem>>> = emptyMap(),
@@ -80,6 +81,11 @@ data class ConfirmWordDeleteDialogState(
         val wordIds: Set<WordInfo> = emptySet(),
 )
 
+fun DictionaryTabState.goToDictScreen(): DictionaryTabState =
+        this.copy(goToDictScreen = true)
+
+fun DictionaryTabState.resetGoToDictScreen(): DictionaryTabState =
+        this.copy(goToDictScreen = false)
 
 fun DictionaryTabState.showLoading(): DictionaryTabState =
         this.copy(isLoading = true)

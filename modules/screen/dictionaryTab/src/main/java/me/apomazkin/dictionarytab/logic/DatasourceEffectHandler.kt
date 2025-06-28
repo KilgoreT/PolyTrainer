@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarytab.BuildConfig
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
+import me.apomazkin.dictionarytab.deps.LangNotFoundException
 import me.apomazkin.dictionarytab.entity.WordInfo
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.mate.Effect
@@ -82,8 +83,13 @@ internal class DatasourceEffectHandler(
 
             is DatasourceEffect.LoadCurrentDict -> {
                 withContext(Dispatchers.IO) {
-                    dictionaryTabUseCase.getCurrentDict()
-                            .let { TopBarActionMsg.CurrentDict(lang = it) }
+                    try {
+                        dictionaryTabUseCase
+                                .getCurrentDict()
+                                .let { TopBarActionMsg.CurrentDict(lang = it) }
+                    } catch (e: LangNotFoundException) {
+                        TopBarActionMsg.GoToDictScreen
+                    }
                 }
             }
 
@@ -100,6 +106,7 @@ internal class DatasourceEffectHandler(
             // https://github.com/KilgoreT/PolyTrainer/issues/369
             is DatasourceEffect.LoadTermFlow -> {
                 withContext(Dispatchers.IO) {
+                    // TODO: зачем запрашивать id, если оно есть в стейте.
                     val langId = dictionaryTabUseCase.getLangId(
                             numericCode = dictionaryTabUseCase.getCurrentDict().numericCode
                     )
