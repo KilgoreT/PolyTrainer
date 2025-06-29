@@ -62,7 +62,7 @@ class QuizChatUseCaseImpl @Inject constructor(
             }
         val sortedGrades = allByGrades.toSortedMap()
         
-        val result = mutableListOf<WriteQuiz>()
+        val result = mutableSetOf<WriteQuiz>()
         var remaining = limit
         
         for ((grade, list) in sortedGrades) {
