@@ -124,6 +124,8 @@ dependencies {
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":core:core-db"))
 
+    implementation(androidLibs.splashscreen)
+
     // Common
     implementation(androidLibs.coreKtx)
     implementation(androidLibs.activityKtx) // for insets support: enableEdgeToEdge()

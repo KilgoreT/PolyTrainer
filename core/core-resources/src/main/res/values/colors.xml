@@ -22,6 +22,7 @@
     <!--  Custom colors  -->
     <color name="colorWhite">#FFFFFFFF</color>
     <color name="colorWhite75">#80FFFFFF</color>
+    <color name="colorBlack">#FF000000</color>
 
     <color name="transparent">#00000000</color>
     <color name="white">#FFFFFFFF</color>

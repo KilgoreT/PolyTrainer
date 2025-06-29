@@ -14,4 +14,6 @@ android {
     }
 }
 
-dependencies {}
+dependencies {
+    implementation(androidLibs.splashscreen)
+}

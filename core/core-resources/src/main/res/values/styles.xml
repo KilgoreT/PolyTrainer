@@ -1,6 +1,12 @@
 <resources>
 
-    <style name="Theme.PolyTrainer" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.Lexeme.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/colorBlack</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.Lexeme</item>
+    </style>
+
+    <style name="Theme.Lexeme" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowDisablePreview">true</item>
     </style>
 
