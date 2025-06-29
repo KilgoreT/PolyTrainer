@@ -5,7 +5,7 @@
         android:name=".App"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/Theme.PolyTrainer">
+        android:theme="@style/Theme.Lexeme.Starting">
 
         <!--Disable default start Crashlytics-->
         <!--It will be enabled in App (initCrashlytics()), if there is not DEBUG build-->
@@ -16,7 +16,9 @@
         <activity
             android:name=".MainActivity"
             android:windowSoftInputMode="adjustResize"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.Lexeme.Starting"
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
