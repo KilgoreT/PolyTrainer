@@ -6,8 +6,6 @@ import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import me.apomazkin.dictionarypicker.entity.DictUiEntity
-import me.apomazkin.dictionarypicker.state.LangPickerState
 import me.apomazkin.dictionarytab.entity.LexemeLabel
 import me.apomazkin.dictionarytab.entity.TermUiItem
 import me.apomazkin.dictionarytab.entity.WordInfo
@@ -19,7 +17,6 @@ import me.apomazkin.mate.EMPTY_STRING
 @Immutable
 data class DictionaryTabState(
         val isLoading: Boolean = true,
-        val goToDictScreen: Boolean = false,
         val topBarState: TopBarState = TopBarState(),
         val termList: TermsSource = TermsSource(pattern = ""),
         val termListMap: Map<String, Flow<PagingData<TermUiItem>>> = emptyMap(),
@@ -37,7 +34,6 @@ data class TermsSource(
 @Immutable
 data class TopBarState(
         val isActionMode: Boolean = false,
-        val langPickerState: LangPickerState? = null,
         val actionState: Action = Action(),
 ) {
     @Immutable
@@ -81,61 +77,11 @@ data class ConfirmWordDeleteDialogState(
         val wordIds: Set<WordInfo> = emptySet(),
 )
 
-fun DictionaryTabState.goToDictScreen(): DictionaryTabState =
-        this.copy(goToDictScreen = true)
-
-fun DictionaryTabState.resetGoToDictScreen(): DictionaryTabState =
-        this.copy(goToDictScreen = false)
-
 fun DictionaryTabState.showLoading(): DictionaryTabState =
         this.copy(isLoading = true)
 
 fun DictionaryTabState.hideLoading(): DictionaryTabState =
         this.copy(isLoading = false)
-
-
-fun DictionaryTabState.applyCurrentDictionary(
-        dict: DictUiEntity,
-): DictionaryTabState =
-        this.copy(
-                topBarState = topBarState.copy(
-                        langPickerState = LangPickerState(
-                                isLoading = false,
-                                currentDict = dict,
-                        )
-                )
-        )
-
-fun DictionaryTabState.applyAvailableDictionaries(
-        dictList: List<DictUiEntity>,
-): DictionaryTabState =
-        this.copy(
-                topBarState = topBarState.copy(
-                        langPickerState = topBarState.langPickerState?.copy(
-                                isLoading = false,
-                                availableDictList = dictList
-                        )
-                )
-        )
-
-fun DictionaryTabState.showDictMenu(): DictionaryTabState =
-        this.copy(
-                topBarState = topBarState.copy(
-                        langPickerState = topBarState.langPickerState?.copy(
-                                isDropDownMenuOpen = true
-                        )
-                )
-        )
-
-fun DictionaryTabState.hideDictMenu(): DictionaryTabState =
-        this.copy(
-                topBarState = topBarState.copy(
-                        langPickerState = topBarState.langPickerState?.copy(
-                                isDropDownMenuOpen = false
-                        )
-                )
-        )
-
 
 /**
  * ###### UPDATE TERMS FLOW ######

@@ -33,8 +33,10 @@ dependencies {
     implementation(project("path" to ":modules:core:ui"))
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":modules:widget:iconDropDowned"))
-    implementation(project("path" to ":modules:widget:dictionarypicker"))
     implementation(project("path" to ":modules:widget:chipPicker"))
+    //TODO kilg 29.06.2025 10:39 избавиться от зависимости
+    //TODO kilg 29.06.2025 21:33 завести слой доменных сущностей, и избавиться от сущностей ui
+    implementation(project("path" to ":modules:widget:dictionarypicker"))
 
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)

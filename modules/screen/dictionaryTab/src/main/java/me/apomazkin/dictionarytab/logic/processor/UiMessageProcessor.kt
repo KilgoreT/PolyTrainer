@@ -1,7 +1,6 @@
 package me.apomazkin.dictionarytab.logic.processor
 
 import androidx.lifecycle.Lifecycle
-import me.apomazkin.dictionarytab.logic.DatasourceEffect
 import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.UiMsg
 import me.apomazkin.mate.Effect
@@ -19,11 +18,7 @@ internal fun processUiMessage(
             ) to setOf()
 
         is UiMsg.LifeCycleEvent -> {
-            if (message.lifeCycle == UiMsg.LifeCycleEvent.LifeCycle.ON_START) {
-                state to setOf(DatasourceEffect.LoadCurrentDict)
-            } else {
-                state to emptySet()
-            }
+            state to setOf()
         }
     }
 }

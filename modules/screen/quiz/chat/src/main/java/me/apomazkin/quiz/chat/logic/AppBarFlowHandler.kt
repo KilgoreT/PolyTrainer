@@ -14,10 +14,10 @@ class AppBarFlowHandler(
         private val prefsProvider: PrefsProvider,
 ) : MateFlowHandler<Msg, Effect> {
 
-    private var job: Job? = null
 
     override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {}
 
+    override var job: Job? = null
     override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
         job = scope.launch {
             combine(
@@ -34,10 +34,5 @@ class AppBarFlowHandler(
                 send(msg)
             }
         }
-    }
-
-    override fun unsubscribe() {
-        job?.cancel()
-        job = null
     }
 }

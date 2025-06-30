@@ -1,35 +1,9 @@
 package me.apomazkin.quiztab.logic
 
-import androidx.compose.material3.DropdownMenu
-import me.apomazkin.dictionarypicker.entity.DictUiEntity
-
 
 sealed interface Msg {
     
     data object Empty : Msg
-}
-
-sealed interface TopBarActionMsg : Msg {
-    
-    /**
-     * Message to show languages.
-     */
-    data class AvailableDict(val list: List<DictUiEntity>) : TopBarActionMsg
-    
-    /**
-     * Message to show current language.
-     */
-    data class CurrentDict(val lang: DictUiEntity) : TopBarActionMsg
-    
-    /**
-     * Message to change current language.
-     */
-    data class ChangeDict(val lang: DictUiEntity) : TopBarActionMsg
-    
-    /**
-     * Message to expand or collapse Language [DropdownMenu].
-     */
-    data class ExpandDictMenu(val expand: Boolean) : TopBarActionMsg
 }
 
 sealed interface UiMsg : Msg {

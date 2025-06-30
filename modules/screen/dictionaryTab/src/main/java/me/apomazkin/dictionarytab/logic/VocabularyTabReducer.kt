@@ -1,10 +1,8 @@
 package me.apomazkin.dictionarytab.logic
 
 import me.apomazkin.dictionarytab.logic.DatasourceEffect.AddWord
-import me.apomazkin.dictionarytab.logic.DatasourceEffect.ChangeDict
 import me.apomazkin.dictionarytab.logic.DatasourceEffect.ChangeWord
 import me.apomazkin.dictionarytab.logic.DatasourceEffect.DeleteWord
-import me.apomazkin.dictionarytab.logic.DatasourceEffect.LoadDictList
 import me.apomazkin.dictionarytab.logic.DatasourceEffect.LoadTermFlow
 import me.apomazkin.dictionarytab.logic.processor.processUiMessage
 import me.apomazkin.mate.Effect
@@ -23,42 +21,7 @@ internal class VocabularyTabReducer(
         logger.log(message = "Reduce ---message---: $message ")
         return when (message) {
 
-            is TopBarActionMsg.CurrentDict -> state
-                    .choose(
-                            check = {
-                                message.lang.numericCode != state
-                                        .topBarState
-                                        .langPickerState
-                                        ?.currentDict
-                                        ?.numericCode
-                            },
-                            yes = {
-                                it.applyCurrentDictionary(
-                                        dict = message.lang
-                                ) to setOf(LoadDictList)
-                            },
-                            no = { it to setOf() }
-                    )
-
-            is TopBarActionMsg.AvailableDict -> state
-                    .applyAvailableDictionaries(
-                            dictList = message.list,
-                    ) to setOf(LoadTermFlow())
-
-            is TopBarActionMsg.ShowDictMenu -> state
-                    .showDictMenu() to setOf()
-
-            is TopBarActionMsg.HideDictMenu -> state
-                    .hideDictMenu() to setOf()
-
-            is TopBarActionMsg.ChangeDict -> state
-                    .hideDictMenu() to setOf(ChangeDict(lang = message.lang))
-
-            is TopBarActionMsg.GoToDictScreen -> state
-                    .goToDictScreen() to setOf()
-
-            is TopBarActionMsg.ResetGoToDictScreen -> state
-                    .resetGoToDictScreen() to setOf()
+            is Msg.ChangeDict -> state to setOf(LoadTermFlow())
 
             is Msg.TermDataLoaded -> state
                     .hideLoading()

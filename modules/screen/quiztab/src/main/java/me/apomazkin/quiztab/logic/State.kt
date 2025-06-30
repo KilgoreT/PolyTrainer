@@ -1,7 +1,6 @@
 package me.apomazkin.quiztab.logic
 
 import androidx.compose.runtime.Immutable
-import me.apomazkin.dictionarypicker.state.LangPickerState
 import me.apomazkin.mate.EMPTY_STRING
 
 /**
@@ -9,13 +8,7 @@ import me.apomazkin.mate.EMPTY_STRING
  */
 @Immutable
 data class QuizTabState(
-    val topBarState: TopBarState = TopBarState(),
     val snackbarState: SnackbarState = SnackbarState(),
-)
-
-@Immutable
-data class TopBarState(
-    val langPickerState: LangPickerState? = null,
 )
 
 @Immutable

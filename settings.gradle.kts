@@ -47,6 +47,7 @@ include(":modules:screen:settingstab")
 include(":modules:screen:quiz:chat")
 
 //Widget
+include(":modules:widget:dictionaryappbar")
 include(":modules:widget:dictionarypicker")
 include(":modules:widget:iconDropDowned")
 include(":modules:widget:chipPicker")

@@ -18,76 +18,72 @@ import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
 
 class DictionaryTabUseCaseImpl @Inject constructor(
-    private val dbApi: CoreDbApi,
-    private val langApi: CoreDbApi.LangApi,
-    private val termApi: CoreDbApi.TermApi,
-    private val lexemeApi: CoreDbApi.LexemeApi,
-    private val prefsProvider: PrefsProvider,
-    private val flagProvider: FlagProvider,
+        private val dbApi: CoreDbApi,
+        private val langApi: CoreDbApi.LangApi,
+        private val termApi: CoreDbApi.TermApi,
+        private val lexemeApi: CoreDbApi.LexemeApi,
+        private val prefsProvider: PrefsProvider,
+        private val flagProvider: FlagProvider,
 ) : DictionaryTabUseCase {
 
     override suspend fun getLangId(numericCode: Int): Int {
         return langApi.getLang(numericCode)?.id ?: 0
     }
-    
+
     override suspend fun getCurrentDict(): DictUiEntity {
         prefsProvider
-            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)?.let { num ->
-                langApi.getLang(numericCode = num)?.let {
+                .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)?.let { num ->
+                    langApi.getLang(numericCode = num)?.let {
+                        return DictUiEntity(
+                                flagRes = flagProvider.getFlagRes(it.numericCode),
+                                title = it.name,
+                                numericCode = it.numericCode,
+                        )
+                    }
+                } ?: langApi.getLangList()
+                .firstOrNull()
+                ?.let {
+                    prefsProvider.setInt(
+                            PrefKey.CURRENT_LANG_NUMERIC_CODE_INT,
+                            it.numericCode
+                    )
                     return DictUiEntity(
-                        flagRes = flagProvider.getFlagRes(it.numericCode),
-                        title = it.name,
-                        numericCode = it.numericCode,
+                            flagRes = flagProvider.getFlagRes(it.numericCode),
+                            title = it.name,
+                            numericCode = it.numericCode,
                     )
                 }
-            } ?: langApi.getLangList()
-            .firstOrNull()
-            ?.let {
-                prefsProvider.setInt(
-                    PrefKey.CURRENT_LANG_NUMERIC_CODE_INT,
-                    it.numericCode
-                )
-                return DictUiEntity(
-                    flagRes = flagProvider.getFlagRes(it.numericCode),
-                    title = it.name,
-                    numericCode = it.numericCode,
-                )
-            }
         throw LangNotFoundException()
     }
 
-    override suspend fun getAvailableDict(): List<DictUiEntity> =
-        langApi.getLangList().map {
-            DictUiEntity(
-                flagRes = flagProvider.getFlagRes(it.numericCode),
-                title = it.name,
-                numericCode = it.numericCode,
-            )
-        }
-
-    override fun flowAvailableDict(): Flow<List<DictUiEntity>> =
-        langApi.flowLangList().map {
-            it.map { lang ->
-                DictUiEntity(
-                    flagRes = flagProvider.getFlagRes(lang.numericCode),
-                    title = lang.name,
-                    numericCode = lang.numericCode,
-                )
+    override fun flowCurrentDict(): Flow<DictUiEntity> = prefsProvider
+            .getIntFlow(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+            .map { numeric: Int ->
+                val lang = (langApi
+                        .getLang(numeric)
+                        ?: langApi.getLangList().firstOrNull())
+                        ?.let { lang ->
+                            DictUiEntity(
+                                    flagRes = flagProvider.getFlagRes(lang.numericCode),
+                                    title = lang.name,
+                                    numericCode = lang.numericCode,
+                            )
+                        }
+                lang ?: throw LangNotFoundException()
             }
-        }
-    
+
     // TODO: Убрать нулеабельность в Language: id и name
     override suspend fun addWord(value: String): Long =
-        prefsProvider
-            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
-            ?.let { numericCode ->
-            langApi.getLang(numericCode)?.let {
-                return dbApi.addWordSuspend(value, it.id)
-            } ?: throw IllegalStateException("Language not found")
-            } ?: throw IllegalStateException("Language not found")
+            prefsProvider
+                    .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+                    ?.let { numericCode ->
+                        langApi.getLang(numericCode)?.let {
+                            return dbApi.addWordSuspend(value, it.id)
+                        } ?: throw IllegalStateException("Language not found")
+                    } ?: throw IllegalStateException("Language not found")
 
     override suspend fun updateWord(id: Long, value: String): Boolean =
-        dbApi.updateWordSuspend(id, value)
+            dbApi.updateWordSuspend(id, value)
 
     override suspend fun deleteWord(wordId: Long) {
         dbApi.deleteWordSuspend(wordId)
@@ -101,35 +97,35 @@ class DictionaryTabUseCaseImpl @Inject constructor(
     // langid хранить в стейте
     override suspend fun getWordList(): List<TermUiItem> {
         return prefsProvider
-            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
-            ?.let { numericCode ->
-            langApi.getLang(numericCode = numericCode)?.id?.let { langId: Int ->
-                    termApi.getTermList(langId)
-                        .map { term ->
-                            TermUiItem(
-                                id = term.word.id,
-                                wordValue = term.word.value,
-                                langId = term.word.langId,
-                                addDate = term.word.addDate,
-                                changeDate = term.word.changeDate,
-                                lexemeList = term.lexemes.map { defMate ->
-                                    LexemeUiItem(
-                                        id = defMate.id,
-                                        wordId = defMate.wordId,
-                                        translation = defMate.translation?.let {
-                                            TranslationUiEntity(
-                                                it.value
-                                            )
-                                        },
-                                        definition = defMate.definition?.let { DefinitionUiEntity(it.value) },
-                                        addDate = defMate.addDate,
-                                        changeDate = defMate.changeDate,
+                .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+                ?.let { numericCode ->
+                    langApi.getLang(numericCode = numericCode)?.id?.let { langId: Int ->
+                        termApi.getTermList(langId)
+                                .map { term ->
+                                    TermUiItem(
+                                            id = term.word.id,
+                                            wordValue = term.word.value,
+                                            langId = term.word.langId,
+                                            addDate = term.word.addDate,
+                                            changeDate = term.word.changeDate,
+                                            lexemeList = term.lexemes.map { defMate ->
+                                                LexemeUiItem(
+                                                        id = defMate.id,
+                                                        wordId = defMate.wordId,
+                                                        translation = defMate.translation?.let {
+                                                            TranslationUiEntity(
+                                                                    it.value
+                                                            )
+                                                        },
+                                                        definition = defMate.definition?.let { DefinitionUiEntity(it.value) },
+                                                        addDate = defMate.addDate,
+                                                        changeDate = defMate.changeDate,
+                                                )
+                                            }
                                     )
                                 }
-                            )
-                        }
+                    } ?: throw IllegalStateException("Language not found")
                 } ?: throw IllegalStateException("Language not found")
-            } ?: throw IllegalStateException("Language not found")
     }
 
     override fun searchTerms(pattern: String, langId: Int): Flow<PagingData<TermUiItem>> {
@@ -139,25 +135,25 @@ class DictionaryTabUseCaseImpl @Inject constructor(
         ).map { pagingData ->
             pagingData.map { term ->
                 TermUiItem(
-                    id = term.word.id,
-                    wordValue = term.word.value,
-                    langId = term.word.langId,
-                    addDate = term.word.addDate,
-                    changeDate = term.word.changeDate,
-                    lexemeList = term.lexemes.map { defMate ->
-                        LexemeUiItem(
-                            id = defMate.id,
-                            wordId = defMate.wordId,
-                            translation = defMate.translation?.let {
-                                TranslationUiEntity(
-                                    it.value
-                                )
-                            },
-                            definition = defMate.definition?.let { DefinitionUiEntity(it.value) },
-                            addDate = defMate.addDate,
-                            changeDate = defMate.changeDate,
-                        )
-                    }
+                        id = term.word.id,
+                        wordValue = term.word.value,
+                        langId = term.word.langId,
+                        addDate = term.word.addDate,
+                        changeDate = term.word.changeDate,
+                        lexemeList = term.lexemes.map { defMate ->
+                            LexemeUiItem(
+                                    id = defMate.id,
+                                    wordId = defMate.wordId,
+                                    translation = defMate.translation?.let {
+                                        TranslationUiEntity(
+                                                it.value
+                                        )
+                                    },
+                                    definition = defMate.definition?.let { DefinitionUiEntity(it.value) },
+                                    addDate = defMate.addDate,
+                                    changeDate = defMate.changeDate,
+                            )
+                        }
                 )
             }
 
@@ -165,18 +161,18 @@ class DictionaryTabUseCaseImpl @Inject constructor(
     }
 
     override suspend fun addLexeme(
-        wordId: Long,
-        category: String,
-        definition: String,
+            wordId: Long,
+            category: String,
+            definition: String,
     ) {
         dbApi.addLexemeSuspend(wordId, category, definition)
     }
 
     override suspend fun editLexeme(
-        wordId: Long,
-        lexemeId: Long,
-        category: String,
-        definition: String
+            wordId: Long,
+            lexemeId: Long,
+            category: String,
+            definition: String,
     ) {
         dbApi.editLexemeSuspend(wordId, lexemeId, category, definition)
     }

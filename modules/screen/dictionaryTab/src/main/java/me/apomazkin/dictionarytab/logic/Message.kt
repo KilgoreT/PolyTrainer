@@ -1,6 +1,5 @@
 package me.apomazkin.dictionarytab.logic
 
-import androidx.compose.material3.DropdownMenu
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
@@ -10,19 +9,21 @@ import me.apomazkin.dictionarytab.entity.WordInfo
 
 sealed interface Msg {
 
+    data class ChangeDict(val current: DictUiEntity) : Msg
+
     /**
      * Message to show Term Data.
      */
     data class TermDataLoaded(
             val pattern: String,
-            val termList: Flow<PagingData<TermUiItem>>
+            val termList: Flow<PagingData<TermUiItem>>,
     ) : Msg
 
     /**
      * Message to control AddWord dialog visibility.
      */
     data class ShowAddWordDialog(
-        val wordValue: String? = null,
+            val wordValue: String? = null,
     ) : Msg
 
     data object HideAddWordDialog : Msg
@@ -32,8 +33,8 @@ sealed interface Msg {
      * @param wordId id of word to modify.
      */
     data class StartChangeWord(
-        val wordId: Long,
-        val wordValue: String
+            val wordId: Long,
+            val wordValue: String,
     ) : Msg
 
     /**
@@ -77,32 +78,6 @@ sealed interface Msg {
      * When no need action after Effect.
      */
     data object Empty : Msg
-}
-
-sealed interface TopBarActionMsg : Msg {
-
-    /**
-     * Message to show languages.
-     */
-    data class AvailableDict(val list: List<DictUiEntity>) : TopBarActionMsg
-
-    /**
-     * Message to show current language.
-     */
-    data class CurrentDict(val lang: DictUiEntity) : TopBarActionMsg
-
-    /**
-     * Message to change current language.
-     */
-    data class ChangeDict(val lang: DictUiEntity) : TopBarActionMsg
-
-    /**
-     * Message to expand or collapse Language [DropdownMenu].
-     */
-    data object ShowDictMenu : TopBarActionMsg
-    data object HideDictMenu : TopBarActionMsg
-    data object GoToDictScreen: TopBarActionMsg
-    data object ResetGoToDictScreen: TopBarActionMsg
 }
 
 sealed interface UiMsg : Msg {
