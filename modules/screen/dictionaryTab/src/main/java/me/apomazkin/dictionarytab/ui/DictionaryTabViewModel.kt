@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
+import me.apomazkin.dictionarytab.logic.DatasourceEffect
 import me.apomazkin.dictionarytab.logic.DatasourceEffectHandler
 import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.Msg
@@ -21,7 +22,7 @@ class DictionaryTabViewModel(
 
     private val stateHolder = Mate(
         initState = DictionaryTabState(),
-        initEffects = setOf(),
+        initEffects = setOf(DatasourceEffect.LoadTermFlow()),
         coroutineScope = viewModelScope,
         reducer = VocabularyTabReducer(logger = logger),
         effectHandlerSet = setOf(

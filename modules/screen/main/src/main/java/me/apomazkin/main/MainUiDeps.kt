@@ -7,38 +7,40 @@ import androidx.compose.runtime.Stable
 interface MainUiDeps {
     @Composable
     fun VocabularyTabDep(
-        openAddDict: () -> Unit,
-        openWordCard: (wordId: Long) -> Unit,
+            openAddDict: () -> Unit,
+            openWordCard: (wordId: Long) -> Unit,
     )
-    
+
     @Composable
     fun WordCardScreenDep(
-        wordId: Long,
-        onBackPress: () -> Unit,
+            wordId: Long,
+            onBackPress: () -> Unit,
     )
-    
+
     @Composable
     fun QuizTabScreenDep(
-        openAddDict: () -> Unit,
-        openChatQuiz: (quizType: String) -> Unit,
+            openAddDict: () -> Unit,
+            openChatQuiz: (quizType: String) -> Unit,
     )
-    
+
     @Composable
     fun ChatQuizScreenDep(
-        onBackPress: () -> Unit,
+            onBackPress: () -> Unit,
     )
-    
+
     @Composable
-    fun StatisticTabScreenDep()
-    
+    fun StatisticTabScreenDep(
+            openAddDict: () -> Unit,
+    )
+
     @Composable
     fun SettingsTabScreenDep(
-        onLangManagementClick: () -> Unit,
-        onAboutAppClick: () -> Unit,
+            onLangManagementClick: () -> Unit,
+            onAboutAppClick: () -> Unit,
     )
-    
+
     @Composable
     fun AboutAppScreenDep(
-        onBackPress: () -> Unit
+            onBackPress: () -> Unit,
     )
 }

@@ -1,8 +1,5 @@
 package me.apomazkin.dictionarytab.tools
 
-import me.apomazkin.dictionarypicker.entity.DictUiEntity
-import me.apomazkin.dictionarypicker.state.LangPickerState
-import me.apomazkin.dictionarytab.R
 import me.apomazkin.dictionarytab.entity.DefinitionUiEntity
 import me.apomazkin.dictionarytab.entity.LexemeUiItem
 import me.apomazkin.dictionarytab.entity.TermUiItem
@@ -74,14 +71,6 @@ object DataHelper {
 //            termList = Data.termList,
             topBarState = TopBarState(
                 isActionMode = true,
-                langPickerState = LangPickerState(
-                    isLoading = false,
-                    currentDict = DictUiEntity(
-                        flagRes = R.drawable.example_ic_flag_gb,
-                        title = "Британи",
-                        numericCode = 0,
-                    )
-                ),
                 actionState = TopBarState.Action(
                     selectedTermIds = setOf(
                         WordInfo(id = 0, wordValue = "uno")

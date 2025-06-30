@@ -1,6 +1,7 @@
 package me.apomazkin.dictionarytab.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
@@ -27,10 +28,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import me.apomazkin.dictionarytab.R
+import me.apomazkin.dictionarytab.deps.DictionaryTabUiDeps
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.Msg
-import me.apomazkin.dictionarytab.logic.TopBarActionMsg
 import me.apomazkin.dictionarytab.logic.UiMsg
 import me.apomazkin.dictionarytab.logic.processor.toMateEvent
 import me.apomazkin.dictionarytab.tools.DataHelper
@@ -38,7 +39,6 @@ import me.apomazkin.dictionarytab.ui.widget.ConfirmDeleteWordWidget
 import me.apomazkin.dictionarytab.ui.widget.WordListWidget
 import me.apomazkin.dictionarytab.ui.widget.addWordBottom.AddWordBottomSheetWidget
 import me.apomazkin.dictionarytab.ui.widget.topBar.ActionTopBarWidget
-import me.apomazkin.dictionarytab.ui.widget.topBar.TopBarWidget
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.SystemBarsWidget
@@ -50,11 +50,11 @@ import me.apomazkin.ui.preview.PreviewWidget
 @Composable
 fun DictionaryTabScreen(
         dictionaryTabUseCase: DictionaryTabUseCase,
+        dictionaryTabUiDeps: DictionaryTabUiDeps,
         logger: LexemeLogger,
         viewModel: DictionaryTabViewModel = viewModel(
                 factory = DictionaryTabViewModel.Factory(dictionaryTabUseCase, logger)
         ),
-        openAddDict: () -> Unit,
         openWordCard: (wordId: Long) -> Unit,
 ) {
     LifecycleEventHandler(action = {
@@ -63,7 +63,7 @@ fun DictionaryTabScreen(
     val state: DictionaryTabState by viewModel.state.collectAsStateWithLifecycle()
     DictionaryTabScreen(
             state = state,
-            openAddDict = openAddDict,
+            dictionaryTabUiDeps = dictionaryTabUiDeps,
             openWordCard = openWordCard,
     ) { viewModel.accept(it) }
 }
@@ -72,7 +72,7 @@ fun DictionaryTabScreen(
 @Composable
 internal fun DictionaryTabScreen(
         state: DictionaryTabState,
-        openAddDict: () -> Unit,
+        dictionaryTabUiDeps: DictionaryTabUiDeps,
         openWordCard: (wordId: Long) -> Unit,
         sendMessage: (Msg) -> Unit,
 ) {
@@ -90,13 +90,6 @@ internal fun DictionaryTabScreen(
         }
     }
 
-    LaunchedEffect(state.goToDictScreen) {
-        if (state.goToDictScreen) {
-            sendMessage(TopBarActionMsg.ResetGoToDictScreen)
-            openAddDict.invoke()
-        }
-    }
-
     SystemBarsWidget(
             statusBarColor = if (state.topBarState.isActionMode) {
                 MaterialTheme.colorScheme.secondary
@@ -110,15 +103,15 @@ internal fun DictionaryTabScreen(
         sendMessage(Msg.HideActionMode)
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize(),
+    Scaffold(
+            modifier = Modifier.fillMaxSize(),
              topBar = {
                  if (state.topBarState.isActionMode) ActionTopBarWidget(
                          state = state.topBarState.actionState,
                          sendMessage = sendMessage,
                  )
-                 else TopBarWidget(
-                         state = state.topBarState.langPickerState,
-                         sendMessage = sendMessage,
+                 else dictionaryTabUiDeps.AppBar(
+                         titleResId = R.string.item_title_vocabulary
                  )
              },
              snackbarHost = {
@@ -197,7 +190,10 @@ private fun PreviewLoading() {
     AppTheme {
         DictionaryTabScreen(
                 state = DataHelper.State.loading,
-                openAddDict = {},
+                dictionaryTabUiDeps = object : DictionaryTabUiDeps {
+                    @Composable
+                    override fun AppBar(@StringRes titleResId: Int) {}
+                },
                 openWordCard = {},
         ) {}
     }
@@ -209,7 +205,10 @@ private fun PreviewEmpty() {
     AppTheme {
         DictionaryTabScreen(
                 state = DataHelper.State.empty,
-                openAddDict = {},
+                dictionaryTabUiDeps = object : DictionaryTabUiDeps {
+                    @Composable
+                    override fun AppBar(@StringRes titleResId: Int) {}
+                },
                 openWordCard = {},
         ) {}
     }
@@ -221,7 +220,10 @@ private fun PreviewLoaded() {
     AppTheme {
         DictionaryTabScreen(
                 state = DataHelper.State.loaded,
-                openAddDict = {},
+                dictionaryTabUiDeps = object : DictionaryTabUiDeps {
+                    @Composable
+                    override fun AppBar(@StringRes titleResId: Int) {}
+                },
                 openWordCard = {},
         ) {}
     }

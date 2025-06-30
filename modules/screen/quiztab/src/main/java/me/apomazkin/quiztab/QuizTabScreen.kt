@@ -1,13 +1,11 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package me.apomazkin.quiztab
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,12 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import me.apomazkin.quiztab.deps.QuizTabUiDeps
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.quiztab.logic.Msg
 import me.apomazkin.quiztab.logic.QuizTabState
 import me.apomazkin.quiztab.logic.UiMsg
 import me.apomazkin.quiztab.logic.processor.toMateEvent
-import me.apomazkin.quiztab.widget.AppBarWidget
 import me.apomazkin.quiztab.widget.QuizItemWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
@@ -30,11 +28,11 @@ import me.apomazkin.ui.preview.PreviewScreen
 @Composable
 fun QuizTabScreen(
     quizTabUseCase: QuizTabUseCase,
+    quizTabUiDeps: QuizTabUiDeps,
     logger: LexemeLogger,
     viewModel: QuizTabViewModel = viewModel(
         factory = QuizTabViewModel.Factory(quizTabUseCase, logger)
     ),
-    openAddDict: () -> Unit,
     openQuiz: (quizType: String) -> Unit,
 ) {
     
@@ -44,7 +42,7 @@ fun QuizTabScreen(
     val state: QuizTabState by viewModel.state.collectAsStateWithLifecycle()
     QuizTabScreen(
         state = state,
-        openAddDict = openAddDict,
+        quizTabUiDeps = quizTabUiDeps,
         openQuiz = openQuiz,
     ) { viewModel.accept(it) }
     
@@ -53,16 +51,14 @@ fun QuizTabScreen(
 @Composable
 internal fun QuizTabScreen(
     state: QuizTabState,
-    openAddDict: () -> Unit,
+    quizTabUiDeps: QuizTabUiDeps,
     openQuiz: (quizType: String) -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
     Scaffold(
         topBar = {
-            AppBarWidget(
-                state = state.topBarState.langPickerState,
-                openAddDict = openAddDict,
-                sendMessage = sendMessage,
+            quizTabUiDeps.AppBar(
+                    titleResId = R.string.quiz_tab_title,
             )
         },
     ) { paddings: PaddingValues ->
@@ -97,9 +93,12 @@ internal fun QuizTabScreen(
 private fun Preview() {
     AppTheme {
         QuizTabScreen(
-            state = QuizTabState(),
-            openAddDict = {},
-            openQuiz = {},
+                state = QuizTabState(),
+                quizTabUiDeps = object : QuizTabUiDeps {
+                    @Composable
+                    override fun AppBar(@StringRes titleResId: Int) {}
+                },
+                openQuiz = {},
         ) {}
     }
 }

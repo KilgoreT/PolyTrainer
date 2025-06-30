@@ -49,7 +49,7 @@ fun MainScreen(
                 openAddDict = openAddDict,
             )
             composable(TabPoint.STATS.route) {
-                mainUiDeps.StatisticTabScreenDep()
+                mainUiDeps.StatisticTabScreenDep(openAddDict = openAddDict)
             }
             
             settings(

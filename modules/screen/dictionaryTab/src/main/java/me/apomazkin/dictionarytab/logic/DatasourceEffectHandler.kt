@@ -4,36 +4,22 @@ import android.util.Log
 import androidx.paging.cachedIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarytab.BuildConfig
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
-import me.apomazkin.dictionarytab.deps.LangNotFoundException
 import me.apomazkin.dictionarytab.entity.WordInfo
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateEffectHandler
+import me.apomazkin.mate.MateFlowHandler
 
 /**
  * Effect
  */
 internal sealed interface DatasourceEffect : Effect {
-
-    /**
-     * Effect to get available languages.
-     */
-    data object LoadDictList : DatasourceEffect
-
-    /**
-     * Effect to get current language.
-     */
-    data object LoadCurrentDict : DatasourceEffect
-
-    /**
-     * Effect to change current language.
-     */
-    data class ChangeDict(val lang: DictUiEntity) : DatasourceEffect
 
     /**
      * Effect to load data.
@@ -60,7 +46,17 @@ internal sealed interface DatasourceEffect : Effect {
 internal class DatasourceEffectHandler(
         private val dictionaryTabUseCase: DictionaryTabUseCase,
         private val scope: CoroutineScope,
-) : MateEffectHandler<Msg, Effect> {
+) : MateFlowHandler<Msg, Effect> {
+
+    override var job: Job? = null
+
+    override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
+        scope.launch {
+            dictionaryTabUseCase.flowCurrentDict().collectLatest {
+                send(Msg.ChangeDict(current = it))
+            }
+        }
+    }
 
     override suspend fun runEffect(
             effect: Effect,
@@ -72,34 +68,6 @@ internal class DatasourceEffectHandler(
             Log.d("##MATE##", "RunEffect: $effect")
         }
         return when (val eff = effect as? DatasourceEffect) {
-
-            is DatasourceEffect.LoadDictList -> {
-                withContext(Dispatchers.IO) {
-                    dictionaryTabUseCase.getAvailableDict().let {
-                        TopBarActionMsg.AvailableDict(list = it)
-                    }
-                }
-            }
-
-            is DatasourceEffect.LoadCurrentDict -> {
-                withContext(Dispatchers.IO) {
-                    try {
-                        dictionaryTabUseCase
-                                .getCurrentDict()
-                                .let { TopBarActionMsg.CurrentDict(lang = it) }
-                    } catch (e: LangNotFoundException) {
-                        TopBarActionMsg.GoToDictScreen
-                    }
-                }
-            }
-
-            is DatasourceEffect.ChangeDict -> {
-                withContext(Dispatchers.IO) {
-                    dictionaryTabUseCase
-                            .changeDict(numericCode = eff.lang.numericCode)
-                            .let { TopBarActionMsg.CurrentDict(lang = eff.lang) }
-                }
-            }
 
             //TODO kilg 25.05.2025 03:16 В префах хранить именно id текущего языка,
             // а не numericCode. И вообще, кешировать бы его, а не запрашивать каждый раз.

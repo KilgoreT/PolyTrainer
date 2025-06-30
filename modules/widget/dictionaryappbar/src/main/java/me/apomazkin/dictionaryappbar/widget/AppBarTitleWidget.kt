@@ -1,18 +1,21 @@
-package me.apomazkin.quiztab.widget
+package me.apomazkin.dictionaryappbar.widget
 
+import androidx.annotation.StringRes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import me.apomazkin.quiztab.R
+import me.apomazkin.dictionaryappbar.R
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
-internal fun AppBarTitleWidget() {
+internal fun AppBarTitleWidget(
+        @StringRes titleResId: Int,
+) {
     Text(
-        text = stringResource(R.string.quiz_tab_title),
-        style = LexemeStyle.H5.copy(
+            text = stringResource(id = titleResId),
+            style = LexemeStyle.H5.copy(
             color = MaterialTheme.colorScheme.secondary
         )
     )
@@ -21,5 +24,7 @@ internal fun AppBarTitleWidget() {
 @PreviewWidget
 @Composable
 fun AppBarTitleWidgetPreview() {
-    AppBarTitleWidget()
+    AppBarTitleWidget(
+            titleResId = R.string.quiz_tab_title
+    )
 }

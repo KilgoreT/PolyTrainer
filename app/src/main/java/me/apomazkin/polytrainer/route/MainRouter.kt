@@ -24,15 +24,17 @@ fun NavGraphBuilder.mainRouter(
             val context = LocalContext.current
             MainScreen(
                 mainUiDeps = MainUiDepsProvider(
-                    dictionaryTabUseCase = context.appComponent.getVocabularyUseCase(),
-                    wordCardUseCase = context.appComponent.getWordCardUseCase(),
-                    quizTabUseCase = context.appComponent.getQuizTabUseCase(),
-                    quizChatUseCase = context.appComponent.getQuizChatUseCase(),
-                    settingsTabUseCase = context.appComponent.getSettingsTabUseCase(),
-                    prefsProvider = context.appComponent.getPrefsProvider(),
-                    resourceManager = context.appComponent.getResourceManager(),
-                    envParams = context.appComponent.getEnvParams(),
-                    logger = context.appComponent.getLogger(),
+                        dictionaryTabUseCase = context.appComponent.getVocabularyUseCase(),
+                        wordCardUseCase = context.appComponent.getWordCardUseCase(),
+                        quizTabUseCase = context.appComponent.getQuizTabUseCase(),
+                        quizChatUseCase = context.appComponent.getQuizChatUseCase(),
+                        statisticUseCase = context.appComponent.getStatisticUseCase(),
+                        settingsTabUseCase = context.appComponent.getSettingsTabUseCase(),
+                        dictionaryAppBarUseCase = context.appComponent.getDictionaryAppBarUseCase(),
+                        prefsProvider = context.appComponent.getPrefsProvider(),
+                        resourceManager = context.appComponent.getResourceManager(),
+                        envParams = context.appComponent.getEnvParams(),
+                        logger = context.appComponent.getLogger(),
                 ),
                 openAddDict = openAddDict
             )

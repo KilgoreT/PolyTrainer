@@ -7,9 +7,10 @@ import me.apomazkin.dictionarytab.entity.TermUiItem
 
 interface DictionaryTabUseCase {
     suspend fun getLangId(numericCode: Int): Int
+
+    //TODO kilg 29.06.2025 21:33 завести слой доменных сущностей.
     suspend fun getCurrentDict(): DictUiEntity
-    suspend fun getAvailableDict(): List<DictUiEntity>
-    fun flowAvailableDict(): Flow<List<DictUiEntity>>
+    fun flowCurrentDict(): Flow<DictUiEntity>
     suspend fun changeDict(numericCode: Int)
 
     suspend fun getWordList(): List<TermUiItem>

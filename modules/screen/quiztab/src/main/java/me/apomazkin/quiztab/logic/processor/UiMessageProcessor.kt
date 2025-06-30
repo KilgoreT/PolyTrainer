@@ -3,7 +3,6 @@ package me.apomazkin.quiztab.logic.processor
 import androidx.lifecycle.Lifecycle
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.ReducerResult
-import me.apomazkin.quiztab.logic.DatasourceEffect
 import me.apomazkin.quiztab.logic.QuizTabState
 import me.apomazkin.quiztab.logic.UiMsg
 
@@ -20,7 +19,7 @@ internal fun processUiMessage(
         
         is UiMsg.LifeCycleEvent -> {
             if (message.lifeCycle == UiMsg.LifeCycleEvent.LifeCycle.ON_START) {
-                state to setOf(DatasourceEffect.LoadCurrentDict)
+                state to setOf()
             } else {
                 state to emptySet()
             }
