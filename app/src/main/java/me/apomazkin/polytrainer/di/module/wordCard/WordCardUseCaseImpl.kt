@@ -20,7 +20,7 @@ import me.apomazkin.wordcard.entity.WordId
 import javax.inject.Inject
 
 class WordCardUseCaseImpl @Inject constructor(
-    private val dbApi: CoreDbApi,
+    private val wordApi: CoreDbApi.WordApi,
     private val langApi: CoreDbApi.LangApi,
     private val termApi: CoreDbApi.TermApi,
     private val lexemeApi: CoreDbApi.LexemeApi,
@@ -33,11 +33,11 @@ class WordCardUseCaseImpl @Inject constructor(
     }
 
     override suspend fun deleteWord(wordId: Long): Int {
-        return dbApi.deleteWordSuspend(wordId)
+        return wordApi.deleteWordSuspend(wordId)
     }
 
     override suspend fun updateWord(wordId: Long, value: String): Boolean {
-        return dbApi.updateWordSuspend(wordId, value)
+        return wordApi.updateWordSuspend(wordId, value)
     }
 
     override suspend fun deleteLexeme(lexemeId: Long): Boolean {

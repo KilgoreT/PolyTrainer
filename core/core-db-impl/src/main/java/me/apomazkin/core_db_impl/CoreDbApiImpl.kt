@@ -30,11 +30,11 @@ import javax.inject.Inject
 
 
 class CoreDbApiImpl @Inject constructor(
-        private val wordDao: WordDao,
+    private val wordDao: WordDao,
 ) : CoreDbApi {
 
     class DbInstanceImpl @Inject constructor(
-            private val db: Database,
+        private val db: Database,
     ) : CoreDbApi.DbInstance {
 
         override suspend fun instance(): String {
@@ -63,34 +63,34 @@ class CoreDbApiImpl @Inject constructor(
             val dbPath: String? = db.openHelper.readableDatabase.path
             val isOpen: Boolean = db.isOpen
             return CoreDbApi.DbInfo(
-                    mem = System.identityHashCode(db).toString(),
-                    name = dbName ?: "",
-                    version = dbVersion,
-                    path = dbPath ?: "",
-                    isOpen = isOpen,
+                mem = System.identityHashCode(db).toString(),
+                name = dbName ?: "",
+                version = dbVersion,
+                path = dbPath ?: "",
+                isOpen = isOpen,
             )
         }
     }
 
     class LangApiImpl @Inject constructor(
-            private val wordDao: WordDao,
+        private val wordDao: WordDao,
     ) : CoreDbApi.LangApi {
 
         override suspend fun addLang(numericCode: Int, name: String): Long {
             val currentDate = Date(System.currentTimeMillis())
             return wordDao.addLanguage(
-                    LanguageDb(
-                            numericCode = numericCode,
-                            code = "",
-                            name = name,
-                            addDate = currentDate,
-                    )
+                LanguageDb(
+                    numericCode = numericCode,
+                    code = "",
+                    name = name,
+                    addDate = currentDate,
+                )
             )
         }
 
         override suspend fun getLang(numericCode: Int): LanguageApiEntity? {
             return wordDao.getLanguageByNumeric(numericCode)
-                    ?.let { return it.toApiEntity() }
+                ?.let { return it.toApiEntity() }
         }
 
         override suspend fun getLangList(): List<LanguageApiEntity> {
@@ -104,7 +104,7 @@ class CoreDbApiImpl @Inject constructor(
     }
 
     class TermApiImpl @Inject constructor(
-            private val wordDao: WordDao,
+        private val wordDao: WordDao,
     ) : CoreDbApi.TermApi {
 
         override suspend fun getTermList(langId: Int): List<TermApiEntity> {
@@ -112,28 +112,28 @@ class CoreDbApiImpl @Inject constructor(
         }
 
         override suspend fun searchTerms(
-                pattern: String,
-                langId: Long,
+            pattern: String,
+            langId: Long,
         ): List<TermApiEntity> {
             return wordDao.searchTerms(pattern, langId).map { it.toApiEntity() }
         }
 
         override fun searchTermsPaging(
-                pattern: String,
-                langId: Int,
+            pattern: String,
+            langId: Int,
         ): Flow<PagingData<TermApiEntity>> {
             return Pager(
-                    config = PagingConfig(
-                            pageSize = 50,
-                            prefetchDistance = 10,
-                            enablePlaceholders = false
-                    ),
-                    pagingSourceFactory = {
-                        if (BuildConfig.DEBUG) {
-                            Log.d("###", ">>>> TermsPaging => NEW PAGING SOURCE: $pattern")
-                        }
-                        wordDao.searchTermsPaging(pattern, langId)
+                config = PagingConfig(
+                    pageSize = 50,
+                    prefetchDistance = 10,
+                    enablePlaceholders = false
+                ),
+                pagingSourceFactory = {
+                    if (BuildConfig.DEBUG) {
+                        Log.d("###", ">>>> TermsPaging => NEW PAGING SOURCE: $pattern")
                     }
+                    wordDao.searchTermsPaging(pattern, langId)
+                }
             ).flow.map { pagingData ->
                 pagingData.map {
                     it.toApiEntity()
@@ -146,8 +146,47 @@ class CoreDbApiImpl @Inject constructor(
         }
     }
 
+    class WordApiImpl @Inject constructor(
+        private val wordDao: WordDao,
+    ) : CoreDbApi.WordApi {
+        override fun addWordSuspend(value: String, langId: Int): Long {
+            val currentDate = Date(System.currentTimeMillis())
+            return wordDao.addWordSuspend(
+                WordDb(
+                    value = value,
+                    langId = langId.toLong(),
+                    addDate = currentDate,
+                )
+            )
+        }
+
+        //TODO kilg 30.06.2025 03:42 проверить рекурсив.
+        // может можно упроситить
+        override suspend fun deleteWordSuspend(id: Long): Int {
+            wordDao.getWordSuspend(id).also { word ->
+                wordDao.removeSampleSuspend(
+                    *word.lexemeListDb
+                        .map { it.sampleDbList }
+                        .flatten()
+                        .toTypedArray()
+                )
+                wordDao.deleteDefinitionsSuspend(
+                    *word.lexemeListDb.map { it.lexemeDb }.toTypedArray()
+                )
+                return wordDao.removeWordSuspend(id)
+            }
+        }
+
+        override suspend fun updateWordSuspend(id: Long, value: String): Boolean {
+            val wordRel = wordDao.getWordSuspend(id)
+            val wordDb = wordRel.wordDb.copy(value = value)
+            return wordDao.updateWorldSuspend(wordDb) == 1
+        }
+
+    }
+
     class LexemeApiImpl @Inject constructor(
-            private val wordDao: WordDao,
+        private val wordDao: WordDao,
     ) : CoreDbApi.LexemeApi {
 
         override suspend fun getLexemeById(id: Long): LexemeApiEntity? {
@@ -157,56 +196,56 @@ class CoreDbApiImpl @Inject constructor(
         override suspend fun addLexeme(wordId: Long): Long {
             val date = Date(System.currentTimeMillis())
             return wordDao.addLexeme(
-                    LexemeDb(
-                            wordId = wordId,
-                            addDate = date,
-                    )
+                LexemeDb(
+                    wordId = wordId,
+                    addDate = date,
+                )
             )
         }
 
         override suspend fun addLexeme(
-                wordId: Long,
-                translation: TranslationApiEntity,
+            wordId: Long,
+            translation: TranslationApiEntity,
         ): Long {
             val date = Date(System.currentTimeMillis())
             return wordDao.addLexeme(
-                    LexemeDb(
-                            wordId = wordId,
-                            translation = translation.value,
-                            addDate = date,
-                    )
+                LexemeDb(
+                    wordId = wordId,
+                    translation = translation.value,
+                    addDate = date,
+                )
             )
         }
 
         override suspend fun addLexeme(
-                wordId: Long,
-                definition: DefinitionApiEntity,
+            wordId: Long,
+            definition: DefinitionApiEntity,
         ): Long {
             val date = Date(System.currentTimeMillis())
             return wordDao.addLexeme(
-                    LexemeDb(
-                            wordId = wordId,
-                            definition = definition.value,
-                            addDate = date,
-                    )
+                LexemeDb(
+                    wordId = wordId,
+                    definition = definition.value,
+                    addDate = date,
+                )
             )
         }
 
         override suspend fun updateLexemeTranslation(
-                id: Long,
-                translation: TranslationApiEntity?,
+            id: Long,
+            translation: TranslationApiEntity?,
         ): Long? {
             val updatedRows =
-                    wordDao.updateLexemeTranslation(id, translation?.value)
+                wordDao.updateLexemeTranslation(id, translation?.value)
             return if (updatedRows > 0) id else null
         }
 
         override suspend fun updateLexemeDefinition(
-                id: Long,
-                definition: DefinitionApiEntity?,
+            id: Long,
+            definition: DefinitionApiEntity?,
         ): Long? {
             val updatedRows =
-                    wordDao.updateLexemeDefinition(id, definition?.value)
+                wordDao.updateLexemeDefinition(id, definition?.value)
             return if (updatedRows > 0) id else null
         }
 
@@ -216,18 +255,18 @@ class CoreDbApiImpl @Inject constructor(
     }
 
     class QuizApiImpl @Inject constructor(
-            private val wordDao: WordDao,
+        private val wordDao: WordDao,
     ) : CoreDbApi.QuizApi {
 
         override suspend fun addWriteQuiz(
-                langId: Long,
-                lexemeId: Long,
+            langId: Long,
+            lexemeId: Long,
         ): Long {
             return wordDao.addWriteQuiz(
-                    WriteQuizDb.create(
-                            langId = langId,
-                            lexemeId = lexemeId
-                    )
+                WriteQuizDb.create(
+                    langId = langId,
+                    lexemeId = lexemeId
+                )
             )
         }
 
@@ -236,98 +275,47 @@ class CoreDbApiImpl @Inject constructor(
         }
 
         override suspend fun getRandomWriteQuizList(
-                grade: Int,
-                limit: Int,
-                langId: Long,
+            grade: Int,
+            limit: Int,
+            langId: Long,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getRandomWriteQuizList(
-                    langId = langId,
-                    grade = grade,
-                    limit = limit,
+                langId = langId,
+                grade = grade,
+                limit = limit,
             ).map { it.toApiEntity() }
         }
 
         override suspend fun getEarliestWriteQuizList(
-                limit: Int,
-                langId: Long,
+            limit: Int,
+            langId: Long,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getEarliest(
-                    langId = langId,
-                    limit = limit,
+                langId = langId,
+                limit = limit,
             ).map { it.toApiEntity() }
         }
 
-        override suspend fun getFrequentMistakesWriteQuizList(limit: Int, langId: Long): List<WriteQuizComplexEntity> {
+        override suspend fun getFrequentMistakesWriteQuizList(
+            limit: Int,
+            langId: Long
+        ): List<WriteQuizComplexEntity> {
             return wordDao.getFrequentMistakes(
-                    langId = langId,
-                    limit = limit,
+                langId = langId,
+                limit = limit,
             ).map { it.toApiEntity() }
         }
     }
 
+    class StatisticApiImpl @Inject constructor(
+        private val wordDao: WordDao
+    ): CoreDbApi.StatisticApi {
 
-    override fun addWordSuspend(value: String, langId: Int): Long {
-        val currentDate = Date(System.currentTimeMillis())
-        return wordDao.addWordSuspend(
-                WordDb(
-                        value = value,
-                        langId = langId.toLong(),
-                        addDate = currentDate,
-                )
-        )
-    }
+        override fun flowWordCount(langId: Int): Flow<Int> =
+            wordDao.flowWordCount(langId = langId)
 
-    override suspend fun deleteWordSuspend(id: Long): Int {
-        wordDao.getWordSuspend(id).also { word ->
-            wordDao.removeSampleSuspend(
-                    *word.lexemeListDb
-                            .map { it.sampleDbList }
-                            .flatten()
-                            .toTypedArray()
-            )
-            wordDao.deleteDefinitionsSuspend(
-                    *word.lexemeListDb.map { it.lexemeDb }.toTypedArray()
-            )
-            return wordDao.removeWordSuspend(id)
-        }
-    }
+        override fun flowLexemeCount(langId: Int): Flow<Int> =
+            wordDao.flowLexemeCount(langId = langId)
 
-    override suspend fun updateWordSuspend(id: Long, value: String): Boolean {
-        val wordRel = wordDao.getWordSuspend(id)
-        val wordDb = wordRel.wordDb.copy(value = value)
-        return wordDao.updateWorldSuspend(wordDb) == 1
-    }
-
-    override suspend fun addLexemeSuspend(
-            wordId: Long,
-            category: String,
-            definition: String,
-    ): Long {
-        // TODO: Не забыть добавить WriteQuizDb
-        val lexemeDb = LexemeDb(
-                wordId = wordId,
-                definition = definition,
-                wordClass = category,
-                options = 0L,
-                addDate = Date(System.currentTimeMillis())
-        )
-        return wordDao.addLexeme(lexemeDb)
-    }
-
-    override suspend fun editLexemeSuspend(
-            wordId: Long,
-            lexemeId: Long,
-            category: String,
-            definition: String,
-    ): Int {
-        val lexemeDb = LexemeDb(
-                id = lexemeId,
-                wordId = wordId,
-                definition = definition,
-                wordClass = category,
-                options = 0L,
-                addDate = Date(System.currentTimeMillis())
-        )
-        return wordDao.updateLexeme(lexemeDb)
     }
 }

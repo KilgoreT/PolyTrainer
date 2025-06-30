@@ -141,6 +141,12 @@
         <item>Неправильно, но ты учишься!</item>
     </string-array>
 
+    <!--Statistics-->
+    <string name="stat_app_bar_title">Статистика</string>
+    <string name="stat_title_words_count">Слов добавлено</string>
+    <string name="stat_title_lexeme_count">Значений</string>
+
+
     <!--Settings-->
     <string name="settings_section_lang_management">Управление языками</string>
     <string name="settings_section_about_app">О приложении</string>

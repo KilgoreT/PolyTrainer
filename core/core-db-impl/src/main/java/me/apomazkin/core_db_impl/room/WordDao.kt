@@ -27,7 +27,7 @@ interface WordDao {
      */
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun addLanguage(languageDb: LanguageDb): Long
-    
+
     @Query("SELECT * FROM languages WHERE numericCode = :numericCode")
     suspend fun getLanguageByNumeric(numericCode: Int): LanguageDb?
 
@@ -63,15 +63,18 @@ interface WordDao {
     suspend fun searchTerms(pattern: String, langId: Long): List<TermDbEntity>
 
     @Transaction
-    @Query("""
+    @Query(
+        """
         SELECT * FROM words
              WHERE (:pattern = '' OR value LIKE :pattern || '%') 
              AND lang_id = :langId 
              ORDER BY id DESC
-    """)
+    """
+    )
     fun searchTermsPaging(pattern: String, langId: Int): PagingSource<Int, TermDbEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM words
             WHERE (:pattern = '' OR value LIKE :pattern || '%')
             AND lang_id = :langId
@@ -79,12 +82,13 @@ interface WordDao {
             DESC
             LIMIT :limit 
             OFFSET :offset
-    """)
+    """
+    )
     suspend fun searchTermsManual(
-            pattern: String,
-            langId: Int,
-            limit: Int,
-            offset: Int
+        pattern: String,
+        langId: Int,
+        limit: Int,
+        offset: Int
     ): List<TermDbEntity>
 
     @Transaction
@@ -109,7 +113,7 @@ interface WordDao {
 
     @Query("UPDATE lexemes SET definition = :definition WHERE id = :id")
     suspend fun updateLexemeDefinition(id: Long, definition: String?): Int
-    
+
     @Query("UPDATE lexemes SET word_class = :value WHERE id = :id")
     suspend fun updateLexemeCategory(id: Long, value: String): Int
 
@@ -142,7 +146,7 @@ interface WordDao {
      */
     @Insert
     suspend fun addWriteQuiz(writeQuizDb: WriteQuizDb): Long
-    
+
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: List<WriteQuizDb>): Int
 
@@ -155,30 +159,53 @@ interface WordDao {
     ): List<WriteQuizDbEntity>
 
     @Transaction
-    @Query("""
+    @Query(
+        """
         SELECT * FROM write_quiz 
         WHERE lang_id = :langId 
         ORDER BY last_select_date ASC
         LIMIT :limit
-    """)
+    """
+    )
     suspend fun getEarliest(
-            limit: Int,
-            langId: Long
+        limit: Int,
+        langId: Long
     ): List<WriteQuizDbEntity>
 
     @Transaction
-    @Query("""
+    @Query(
+        """
         SELECT * FROM write_quiz 
         WHERE lang_id = :langId 
         ORDER BY error_count DESC
         LIMIT :limit
-    """)
+    """
+    )
     suspend fun getFrequentMistakes(
-            limit: Int,
-            langId: Long
+        limit: Int,
+        langId: Long
     ): List<WriteQuizDbEntity>
-    
+
     @Query("DELETE FROM write_quiz WHERE lexeme_id = :lexemeId")
     fun removeWriteQuiz(lexemeId: Long): Int
+
+    /**
+     * STATISTIC
+     */
+
+    @Transaction
+    @Query("SELECT COUNT(*) FROM words WHERE lang_id = :langId")
+    fun flowWordCount(langId: Int): Flow<Int>
+
+    @Transaction
+    @Query(
+        """
+            SELECT COUNT(*) 
+            FROM lexemes 
+            INNER JOIN words ON lexemes.word_id = words.id 
+            WHERE words.lang_id = :langId
+        """
+    )
+    fun flowLexemeCount(langId: Int): Flow<Int>
 
 }

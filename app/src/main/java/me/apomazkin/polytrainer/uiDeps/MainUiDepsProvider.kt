@@ -29,124 +29,124 @@ import me.apomazkin.wordcard.deps.WordCardUseCase
 
 @Stable
 class MainUiDepsProvider(
-        private val dictionaryTabUseCase: DictionaryTabUseCase,
-        private val wordCardUseCase: WordCardUseCase,
-        private val quizTabUseCase: QuizTabUseCase,
-        private val quizChatUseCase: QuizChatUseCase,
-        private val statisticUseCase: StatisticUseCase,
-        private val dictionaryAppBarUseCase: DictionaryAppBarUseCase,
-        private val settingsTabUseCase: SettingsTabUseCase,
-        private val resourceManager: ResourceManager,
-        private val prefsProvider: PrefsProvider,
-        private val envParams: EnvParams,
-        private val logger: LexemeLogger,
+    private val dictionaryTabUseCase: DictionaryTabUseCase,
+    private val wordCardUseCase: WordCardUseCase,
+    private val quizTabUseCase: QuizTabUseCase,
+    private val quizChatUseCase: QuizChatUseCase,
+    private val statisticUseCase: StatisticUseCase,
+    private val dictionaryAppBarUseCase: DictionaryAppBarUseCase,
+    private val settingsTabUseCase: SettingsTabUseCase,
+    private val resourceManager: ResourceManager,
+    private val prefsProvider: PrefsProvider,
+    private val envParams: EnvParams,
+    private val logger: LexemeLogger,
 ) : MainUiDeps {
     @Composable
     override fun VocabularyTabDep(
-            openAddDict: () -> Unit,
-            openWordCard: (wordId: Long) -> Unit,
+        openAddDict: () -> Unit,
+        openWordCard: (wordId: Long) -> Unit,
     ) {
         DictionaryTabScreen(
-                dictionaryTabUseCase = dictionaryTabUseCase,
-                logger = logger,
-                openWordCard = openWordCard,
-                dictionaryTabUiDeps = object : DictionaryTabUiDeps {
-                    @Composable
-                    override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
-                            titleResId = titleResId,
-                            logger = logger,
-                            dictionaryAppBarUseCase = dictionaryAppBarUseCase,
-                            openAddDict = openAddDict,
-                    )
-                },
+            dictionaryTabUseCase = dictionaryTabUseCase,
+            logger = logger,
+            openWordCard = openWordCard,
+            dictionaryTabUiDeps = object : DictionaryTabUiDeps {
+                @Composable
+                override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
+                    titleResId = titleResId,
+                    logger = logger,
+                    dictionaryAppBarUseCase = dictionaryAppBarUseCase,
+                    openAddDict = openAddDict,
+                )
+            },
         )
     }
 
     @Composable
     override fun WordCardScreenDep(
-            wordId: Long,
-            onBackPress: () -> Unit,
+        wordId: Long,
+        onBackPress: () -> Unit,
     ) {
         WordCardScreen(
-                wordId = wordId,
-                wordCardUseCase = wordCardUseCase,
-                onBackPress = onBackPress,
+            wordId = wordId,
+            wordCardUseCase = wordCardUseCase,
+            onBackPress = onBackPress,
         )
     }
 
     @Composable
     override fun QuizTabScreenDep(
-            openAddDict: () -> Unit,
-            openChatQuiz: (quizType: String) -> Unit,
+        openAddDict: () -> Unit,
+        openChatQuiz: (quizType: String) -> Unit,
     ) {
         QuizTabScreen(
-                quizTabUseCase = quizTabUseCase,
-                logger = logger,
-                openQuiz = openChatQuiz,
-                quizTabUiDeps = object : QuizTabUiDeps {
-                    @Composable
-                    override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
-                            titleResId = titleResId,
-                            logger = logger,
-                            dictionaryAppBarUseCase = dictionaryAppBarUseCase,
-                            openAddDict = openAddDict,
-                    )
-                },
+            quizTabUseCase = quizTabUseCase,
+            logger = logger,
+            openQuiz = openChatQuiz,
+            quizTabUiDeps = object : QuizTabUiDeps {
+                @Composable
+                override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
+                    titleResId = titleResId,
+                    logger = logger,
+                    dictionaryAppBarUseCase = dictionaryAppBarUseCase,
+                    openAddDict = openAddDict,
+                )
+            },
         )
     }
 
     @Composable
     override fun ChatQuizScreenDep(
-            onBackPress: () -> Unit,
+        onBackPress: () -> Unit,
     ) {
         ChatScreen(
-                quizChatUseCase = quizChatUseCase,
-                resourceManager = resourceManager,
-                prefsProvider = prefsProvider,
-                logger = logger,
-                onBackPress = onBackPress,
+            quizChatUseCase = quizChatUseCase,
+            resourceManager = resourceManager,
+            prefsProvider = prefsProvider,
+            logger = logger,
+            onBackPress = onBackPress,
         )
     }
 
     @Composable
     override fun StatisticTabScreenDep(
-            openAddDict: () -> Unit,
+        openAddDict: () -> Unit,
     ) {
         StatisticTabScreen(
-                statisticUseCase = statisticUseCase,
-                statisticUiDeps = object : StatisticUiDeps {
-                    @Composable
-                    override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
-                            titleResId = titleResId,
-                            logger = logger,
-                            dictionaryAppBarUseCase = dictionaryAppBarUseCase,
-                            openAddDict = openAddDict,
-                    )
-                },
-                logger = logger,
+            statisticUseCase = statisticUseCase,
+            statisticUiDeps = object : StatisticUiDeps {
+                @Composable
+                override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
+                    titleResId = titleResId,
+                    logger = logger,
+                    dictionaryAppBarUseCase = dictionaryAppBarUseCase,
+                    openAddDict = openAddDict,
+                )
+            },
+            logger = logger,
         )
     }
 
     @Composable
     override fun SettingsTabScreenDep(
-            onLangManagementClick: () -> Unit,
-            onAboutAppClick: () -> Unit,
+        onLangManagementClick: () -> Unit,
+        onAboutAppClick: () -> Unit,
     ) {
         SettingsTabScreen(
-                onLangManagementClick = onLangManagementClick,
-                onAboutAppClick = onAboutAppClick,
-                settingsTabUseCase = settingsTabUseCase,
-                logger = logger,
+            onLangManagementClick = onLangManagementClick,
+            onAboutAppClick = onAboutAppClick,
+            settingsTabUseCase = settingsTabUseCase,
+            logger = logger,
         )
     }
 
     @Composable
     override fun AboutAppScreenDep(
-            onBackPress: () -> Unit,
+        onBackPress: () -> Unit,
     ) {
         AboutAppScreen(
-                appVersion = envParams.appVersion,
-                onBackPress = onBackPress,
+            appVersion = envParams.appVersion,
+            onBackPress = onBackPress,
         )
     }
 }
