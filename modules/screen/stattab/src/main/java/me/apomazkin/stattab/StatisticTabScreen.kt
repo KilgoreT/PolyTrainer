@@ -3,8 +3,10 @@ package me.apomazkin.stattab
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -18,8 +20,11 @@ import me.apomazkin.stattab.deps.StatisticUiDeps
 import me.apomazkin.stattab.deps.StatisticUseCase
 import me.apomazkin.stattab.mate.Msg
 import me.apomazkin.stattab.mate.StatisticState
-import me.apomazkin.stattab.ui.TitleWithValue
+import me.apomazkin.stattab.widget.GradeWidget
+import me.apomazkin.stattab.widget.TitleWithValue
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.theme.statInProcessBg
+import me.apomazkin.theme.statInProcessFg
 import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewScreen
 
@@ -75,6 +80,37 @@ internal fun StatisticScreen(
                     titleResId = R.string.stat_title_lexeme_count,
                     state.lexemeCount.toString()
                 )
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    state.quizState.quizStat.forEach { stat ->
+                        GradeWidget(
+                            value = stat.value.toString(),
+                            grade = stat.processState.toString(),
+                            fgColor = stat.processState.toFg(),
+                            bgColor = stat.processState.toBg()
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    state.quizState.quizGrades
+                        .forEach { quizGrade ->
+                            GradeWidget(
+                                value = quizGrade.value.toString(),
+                                grade = quizGrade.grade.toString(),
+                                fgColor = statInProcessFg,
+                                bgColor = statInProcessBg,
+                            )
+                        }
+                }
             }
         }
     }
@@ -85,7 +121,9 @@ internal fun StatisticScreen(
 private fun Preview() {
     AppTheme {
         StatisticScreen(
-            state = StatisticState(),
+            state = StatisticState(
+                isLoading = false,
+            ),
             statisticUiDeps = object : StatisticUiDeps {
                 @Composable
                 override fun AppBar(titleResId: Int) {

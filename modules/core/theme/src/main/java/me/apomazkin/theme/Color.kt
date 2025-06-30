@@ -36,6 +36,15 @@ val translationBgColor = Color(0xFF938CD5)
 val chatMessageBtnBorder = Color(0xFFD4CFED)
 val chatCorrectColor = Color(0xFF23785B)
 
+val statLearnedFg = Color(0xFF3AA981)
+val statLearnedBg = Color(0xFFDAF1E4)
+
+val statInProcessFg = Color(0xFF4190F0)
+val statInProcessBg = Color(0xFFE5F2FF)
+
+val statNotSTartedFg = Color(0xFFD19100)
+val statNotStartedBg = Color(0xFFFFFCC1)
+
 object LexemeColor {
     // brand
     val primary = Color(0xFF4A49BC)

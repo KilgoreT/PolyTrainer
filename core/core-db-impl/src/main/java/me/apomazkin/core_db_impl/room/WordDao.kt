@@ -208,4 +208,8 @@ interface WordDao {
     )
     fun flowLexemeCount(langId: Int): Flow<Int>
 
+
+    @Query("SELECT COUNT(*) FROM write_quiz WHERE lang_id = :langId AND grade = :grade")
+    fun flowQuizCount(langId: Int, grade: Int): Flow<Int>
+
 }

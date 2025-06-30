@@ -121,5 +121,6 @@ interface CoreDbApi {
     interface StatisticApi {
         fun flowWordCount(langId: Int): Flow<Int>
         fun flowLexemeCount(langId: Int): Flow<Int>
+        fun flowQuizCount(langId: Int, maxGrade: Int): Flow<Map<Int, Int>>
     }
 }
