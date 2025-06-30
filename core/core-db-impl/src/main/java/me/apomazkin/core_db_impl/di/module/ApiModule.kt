@@ -18,6 +18,9 @@ interface ApiModule {
     fun provideLangApi(impl: CoreDbApiImpl.LangApiImpl): CoreDbApi.LangApi
 
     @Binds
+    fun provideWordApi(impl: CoreDbApiImpl.WordApiImpl): CoreDbApi.WordApi
+
+    @Binds
     fun provideTermApi(impl: CoreDbApiImpl.TermApiImpl): CoreDbApi.TermApi
 
     @Binds
@@ -25,4 +28,7 @@ interface ApiModule {
     
     @Binds
     fun provideQuizApi(impl: CoreDbApiImpl.QuizApiImpl): CoreDbApi.QuizApi
+
+    @Binds
+    fun provideStatisticApi(impl: CoreDbApiImpl.StatisticApiImpl): CoreDbApi.StatisticApi
 }

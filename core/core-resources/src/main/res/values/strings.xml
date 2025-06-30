@@ -151,6 +151,11 @@
         <item>Incorrect, but you\'re learning!</item>
     </string-array>
 
+    <!--Statistics-->
+    <string name="stat_app_bar_title">Statistics</string>
+    <string name="stat_title_words_count">Words Added</string>
+    <string name="stat_title_lexeme_count">Lexemes</string>
+
     <!--Settings-->
     <string name="settings_section_lang_management">Language Management</string>
     <string name="settings_section_about_app">About the App</string>
