@@ -29,9 +29,14 @@ internal class DatasourceEffectHandler(
         job = scope.launch {
             combine(
                 useCase.flowWordCount(),
-                useCase.flowLexemeCount()
-            ) { wordCount, lexemeCount ->
-                Msg.UpdateStates(wordCount = wordCount, lexemeCount = lexemeCount)
+                useCase.flowLexemeCount(),
+                useCase.flowQuizStat()
+            ) { wordCount, lexemeCount, quizStat ->
+                Msg.UpdateStates(
+                    wordCount = wordCount,
+                    lexemeCount = lexemeCount,
+                    quizStat = quizStat,
+                )
             }.collectLatest { msg ->
                 send(msg)
             }

@@ -1,4 +1,4 @@
-package me.apomazkin.stattab.ui
+package me.apomazkin.stattab.widget
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement

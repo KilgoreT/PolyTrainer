@@ -16,9 +16,10 @@ internal class StatisticReducer(
         logger.log(message = "Reduce ---message---: $message ")
         return when (message) {
             is Msg.UpdateStates -> state
-                    .hideLoading()
-                    .updateWordCount(message.wordCount)
-                    .updateLexemeCount(message.lexemeCount) to setOf<Effect>()
+                .hideLoading()
+                .updateWordCount(message.wordCount)
+                .updateLexemeCount(message.lexemeCount)
+                .updateQuizStat(message.quizStat) to setOf<Effect>()
 
             Msg.Empty -> state to emptySet()
         }.also {

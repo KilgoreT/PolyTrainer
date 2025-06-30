@@ -7,6 +7,7 @@ import androidx.paging.PagingData
 import androidx.paging.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import me.apomazkin.core_db_api.CoreDbApi
@@ -316,6 +317,17 @@ class CoreDbApiImpl @Inject constructor(
 
         override fun flowLexemeCount(langId: Int): Flow<Int> =
             wordDao.flowLexemeCount(langId = langId)
+
+        override fun flowQuizCount(langId: Int, maxGrade: Int): Flow<Map<Int, Int>> {
+            val gradeRange = 0..maxGrade
+            val flows: List<Flow<Pair<Int, Int>>> = gradeRange.map { grade ->
+                wordDao.flowQuizCount(langId, grade).map { count -> grade to count }
+            }
+
+            return combine(flows) { pairs: Array<Pair<Int, Int>> ->
+                pairs.toMap()
+            }
+        }
 
     }
 }

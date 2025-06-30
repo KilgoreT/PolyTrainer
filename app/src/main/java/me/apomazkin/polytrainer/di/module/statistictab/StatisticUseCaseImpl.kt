@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalCoroutinesApi::class)
+@file:OptIn(ExperimentalCoroutinesApi::class, ExperimentalCoroutinesApi::class)
 
 package me.apomazkin.polytrainer.di.module.statistictab
 
@@ -50,5 +50,22 @@ class StatisticUseCaseImpl @Inject constructor(
                 .flatMapLatest { langId ->
                     statisticDbApi.flowLexemeCount(langId)
                 }
+    }
+
+    override suspend fun flowQuizStat(): Flow<Map<Int, Int>> {
+        val langIdFlow: Flow<Int?> = prefsProvider
+            .getIntFlow(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+            .filterNotNull()
+            .mapLatest { numericCode ->
+                val langId = langApi
+                    .getLang(numericCode = numericCode)?.id
+                    ?: langApi.getLangList().firstOrNull()?.id
+                langId
+            }
+        return langIdFlow
+            .filterNotNull()
+            .flatMapLatest { langId ->
+                statisticDbApi.flowQuizCount(langId = langId, maxGrade = 4)
+            }
     }
 }

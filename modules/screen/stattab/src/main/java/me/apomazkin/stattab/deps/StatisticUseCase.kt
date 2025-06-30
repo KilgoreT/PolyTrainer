@@ -5,4 +5,6 @@ import kotlinx.coroutines.flow.Flow
 interface StatisticUseCase {
     suspend fun flowWordCount(): Flow<Int>
     suspend fun flowLexemeCount(): Flow<Int>
+
+    suspend fun flowQuizStat(): Flow<Map<Int, Int>>
 }
