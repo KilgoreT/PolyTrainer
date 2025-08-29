@@ -128,7 +128,7 @@ class UtilityExtTest {
             )
         )
         
-        val expectedEffects = setOf<Effect>(UiEffect.ShowSnackbar("Operation completed"))
+        val expectedEffects = setOf<Effect>(UiEffect.ShowNotification(message = "Operation completed"))
         
         // When
         val (resultState, resultEffects) = initialState.choose<DictionaryTabState, Effect>(

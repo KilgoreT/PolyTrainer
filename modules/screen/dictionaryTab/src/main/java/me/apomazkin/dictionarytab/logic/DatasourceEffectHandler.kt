@@ -29,15 +29,15 @@ internal sealed interface DatasourceEffect : Effect {
     ) : DatasourceEffect
 
     /**
-     * Effect to add new word.
+     * Effect to create new word.
      */
-    data class AddWord(val value: String) : DatasourceEffect
-    data class ChangeWord(val wordId: Long, val value: String) : DatasourceEffect
+    data class CreateWord(val value: String) : DatasourceEffect
+    data class UpdateWord(val wordId: Long, val value: String) : DatasourceEffect
 
     /**
-     * Effect to delete word.
+     * Effect to remove words.
      */
-    data class DeleteWord(val wordSet: Set<WordInfo>) : DatasourceEffect
+    data class RemoveWords(val wordSet: Set<WordInfo>) : DatasourceEffect
 }
 
 /**
@@ -53,7 +53,7 @@ internal class DatasourceEffectHandler(
     override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
         scope.launch {
             dictionaryTabUseCase.flowCurrentDict().collectLatest {
-                send(Msg.ChangeDict(current = it))
+                send(Msg.SelectDictionary(current = it))
             }
         }
     }
@@ -84,7 +84,7 @@ internal class DatasourceEffectHandler(
                     ).let { flow ->
                         if (eff.pattern.isEmpty()) flow.cachedIn(scope) else flow
                     }
-                    Msg.TermDataLoaded(
+                    Msg.TermsLoaded(
                             pattern = eff.pattern,
                             termList = pagingFlow,
                     )
@@ -92,15 +92,15 @@ internal class DatasourceEffectHandler(
                 }
             }
 
-            is DatasourceEffect.AddWord -> {
+            is DatasourceEffect.CreateWord -> {
                 withContext(Dispatchers.IO) {
                     dictionaryTabUseCase
                             .addWord(eff.value)
-                            .let { Msg.Empty }
+                            .let { Msg.NoOperation }
                 }
             }
 
-            is DatasourceEffect.ChangeWord -> {
+            is DatasourceEffect.UpdateWord -> {
                 withContext(Dispatchers.IO) {
                     async {
                         dictionaryTabUseCase.updateWord(
@@ -109,18 +109,18 @@ internal class DatasourceEffectHandler(
                         )
                     }
                             .await()
-                            .let { Msg.Empty }
+                            .let { Msg.NoOperation }
                 }
             }
 
-            is DatasourceEffect.DeleteWord -> {
+            is DatasourceEffect.RemoveWords -> {
                 withContext(Dispatchers.IO) {
                     eff.wordSet.map { id ->
                         async { dictionaryTabUseCase.deleteWord(id.id) }.await()
                     }
-                }.let { Msg.Empty }
+                }.let { Msg.NoOperation }
             }
-            null -> Msg.Empty
+            null -> Msg.NoOperation
         }.let(consumer)
     }
 }

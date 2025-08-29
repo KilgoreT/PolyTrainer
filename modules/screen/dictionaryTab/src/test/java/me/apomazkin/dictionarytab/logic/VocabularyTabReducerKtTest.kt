@@ -114,7 +114,7 @@ class VocabularyTabReducerKtTest {
         val initialState = createTestState(isLoading = true)
         
         // When
-        val result = reducer.testReduce(initialState, Msg.TermDataLoaded(pattern = "", termList = testTermFlow))
+        val result = reducer.testReduce(initialState, Msg.TermsLoaded(pattern = "", termList = testTermFlow))
         
         // Then
         // Main functionality check
@@ -156,7 +156,7 @@ class VocabularyTabReducerKtTest {
         val initialState = createTestState()
         
         // When
-        val result = reducer.testReduce(initialState, Msg.ChangeDict(current = testDictEntity))
+        val result = reducer.testReduce(initialState, Msg.SelectDictionary(current = testDictEntity))
         
         // Then
         // Main functionality check
@@ -183,7 +183,7 @@ class VocabularyTabReducerKtTest {
         val initialState = createTestState()
 
         // When
-        val result = reducer.testReduce(initialState, Msg.ShowAddWordDialog())
+        val result = reducer.testReduce(initialState, Msg.OpenAddWordDialog())
         
         // Then
         // Main functionality check
@@ -238,7 +238,7 @@ class VocabularyTabReducerKtTest {
         val newValue = "new word"
         
         // When
-        val result = reducer.testReduce(initialState, Msg.WordValueChange(newValue))
+        val result = reducer.testReduce(initialState, Msg.UpdateWordInput(newValue))
         
         // Then
         // Main functionality check
@@ -285,7 +285,7 @@ class VocabularyTabReducerKtTest {
         val newValue = "new word"
         
         // When
-        val result = reducer.testReduce(initialState, Msg.WordValueChange(newValue))
+        val result = reducer.testReduce(initialState, Msg.UpdateWordInput(newValue))
         
         // Then
         // Main functionality check
@@ -303,7 +303,7 @@ class VocabularyTabReducerKtTest {
      * Сценарий 6: удаление слова (есть пересоздание)
      */
     @Test
-    fun `should add word when AddWord is received`() {
+    fun `should create word when CreateWord is received`() {
         // Test case 6: Standard case - удаление слова
         // Given
         val initialState = createTestState().copy(
@@ -315,7 +315,7 @@ class VocabularyTabReducerKtTest {
         val wordValue = "test word"
         
         // When
-        val result = reducer.testReduce(initialState, Msg.AddWord(wordValue))
+        val result = reducer.testReduce(initialState, Msg.CreateWord(wordValue))
         
         // Then
         // Main functionality check
@@ -344,7 +344,7 @@ class VocabularyTabReducerKtTest {
             initialState.confirmWordDeleteDialogState,
             result.state().confirmWordDeleteDialogState
         )
-        result.assertSingleEffect<DatasourceEffect.AddWord>("Should have AddWord effect")
+        result.assertSingleEffect<DatasourceEffect.CreateWord>("Should have CreateWord effect")
     }
 
     // ==================== СЦЕНАРИЙ 7: УДАЛЕНИЕ НЕСКОЛЬКИХ СЛОВ ====================
@@ -353,7 +353,7 @@ class VocabularyTabReducerKtTest {
      * Сценарий 7: удаление нескольких слов (есть пересоздание)
      */
     @Test
-    fun `should delete multiple words when DeleteWord is received`() {
+    fun `should remove multiple words when RemoveWords is received`() {
         // Test case 7: Standard case - удаление нескольких слов
         // Given
         val initialState = createTestState().copy(
@@ -367,7 +367,7 @@ class VocabularyTabReducerKtTest {
         val wordIdsToDelete = setOf(WordInfo(1, "1"), WordInfo(2, "2"))
         
         // When
-        val result = reducer.testReduce(initialState, Msg.DeleteWord(wordIdsToDelete))
+        val result = reducer.testReduce(initialState, Msg.RemoveWords(wordIdsToDelete))
         
         // Then
         // Main functionality check
@@ -394,8 +394,8 @@ class VocabularyTabReducerKtTest {
         
         // Effects check
         result.assertEffectsCount(2, "Should have exactly 2 effects")
-        result.assertHasEffect<DatasourceEffect.DeleteWord>("Should have DeleteWord effect")
-        result.assertHasEffect<UiEffect.ShowSnackbar>("Should have ShowSnackbar effect")
+        result.assertHasEffect<DatasourceEffect.RemoveWords>("Should have RemoveWords effect")
+        result.assertHasEffect<UiEffect.ShowNotification>("Should have ShowNotification effect")
     }
 
     // ==================== СЦЕНАРИЙ 8: ИЗМЕНЕНИЕ СЛОВА ====================
@@ -413,7 +413,7 @@ class VocabularyTabReducerKtTest {
         )
         
         // When
-        val result = reducer.testReduce(initialState, Msg.StartChangeWord(wordId = targetTerm.id, wordValue = targetTerm.wordValue))
+        val result = reducer.testReduce(initialState, Msg.OpenEditWordDialog(wordId = targetTerm.id, wordValue = targetTerm.wordValue))
         
         // Then
         // Main functionality check
@@ -445,7 +445,7 @@ class VocabularyTabReducerKtTest {
      * Сценарий 8: изменение слова - завершение изменения
      */
     @Test
-    fun `should change word when ChangeWord is received`() {
+    fun `should update word when UpdateWord is received`() {
         // Test case 8: Standard case - завершение изменения слова
         // Given
         val targetTerm = testTermList.first()
@@ -459,7 +459,7 @@ class VocabularyTabReducerKtTest {
         )
         
         // When
-        val result = reducer.testReduce(initialState, Msg.ChangeWord(targetTerm.id, "updated word"))
+        val result = reducer.testReduce(initialState, Msg.UpdateWord(targetTerm.id, "updated word"))
         
         // Then
         // Main functionality check
@@ -483,7 +483,7 @@ class VocabularyTabReducerKtTest {
             initialState.confirmWordDeleteDialogState,
             result.state().confirmWordDeleteDialogState
         )
-        result.assertSingleEffect<DatasourceEffect.ChangeWord>("Should have ChangeWord effect")
+        result.assertSingleEffect<DatasourceEffect.UpdateWord>("Should have UpdateWord effect")
     }
 
     // ==================== СЦЕНАРИЙ 9: ВХОД В ACTION MODE ====================
@@ -492,14 +492,14 @@ class VocabularyTabReducerKtTest {
      * Сценарий 9: вход в action mode
      */
     @Test
-    fun `should show action mode when ShowActionMode is received`() {
+    fun `should enter selection mode when EnterSelectionMode is received`() {
         // Test case 9: Standard case - вход в action mode
         // Given
         val initialState = createTestState()
         val targetWord = WordInfo(1, "test")
         
         // When
-        val result = reducer.testReduce(initialState, Msg.ShowActionMode(targetWord))
+        val result = reducer.testReduce(initialState, Msg.EnterSelectionMode(targetWord))
         
         // Then
         // Main functionality check
@@ -536,7 +536,7 @@ class VocabularyTabReducerKtTest {
      * Сценарий 10: модификация выбора в action mode
      */
     @Test
-    fun `should modify selected set when ModifySelectedInActionMode is received`() {
+    fun `should toggle selection when ToggleSelection is received`() {
         // Test case 10: Standard case - модификация выбора в action mode
         // Given
         val initialState = createTestState().copy(
@@ -549,7 +549,7 @@ class VocabularyTabReducerKtTest {
         val targetWord = WordInfo(2, "word2")
         
         // When
-        val result = reducer.testReduce(initialState, Msg.ModifySelectedInActionMode(targetWord))
+        val result = reducer.testReduce(initialState, Msg.ToggleSelection(targetWord))
         
         // Then
         // Main functionality check
@@ -586,7 +586,7 @@ class VocabularyTabReducerKtTest {
      * Сценарий 11: выход из action mode
      */
     @Test
-    fun `should hide action mode when HideActionMode is received`() {
+    fun `should exit selection mode when ExitSelectionMode is received`() {
         // Test case 11: Standard case - выход из action mode
         // Given
         val initialState = createTestState().copy(
@@ -597,7 +597,7 @@ class VocabularyTabReducerKtTest {
         )
         
         // When
-        val result = reducer.testReduce(initialState, Msg.HideActionMode)
+        val result = reducer.testReduce(initialState, Msg.ExitSelectionMode)
         
         // Then
         // Main functionality check
@@ -646,7 +646,7 @@ class VocabularyTabReducerKtTest {
         )
         
         // When
-        val result = reducer.testReduce(initialState, Msg.HideAddWordDialog)
+        val result = reducer.testReduce(initialState, Msg.CloseAddWordDialog)
         
         // Then
         // Main functionality check
@@ -684,14 +684,14 @@ class VocabularyTabReducerKtTest {
      * Сценарий 13: управление диалогом подтверждения удаления
      */
     @Test
-    fun `should show confirm delete dialog when ShowConfirmDeleteWordDialog is received`() {
+    fun `should open delete confirmation dialog when OpenDeleteConfirmation is received`() {
         // Test case 13: Standard case - управление диалогом подтверждения удаления
         // Given
         val initialState = createTestState()
         val wordIds = setOf(WordInfo(1, "word1"), WordInfo(2, "word2"))
         
         // When
-        val result = reducer.testReduce(initialState, Msg.ShowConfirmDeleteWordDialog(wordIds))
+        val result = reducer.testReduce(initialState, Msg.OpenDeleteConfirmation(wordIds))
         
         // Then
         // Main functionality check
@@ -731,7 +731,7 @@ class VocabularyTabReducerKtTest {
      * Сценарий 14: скрытие диалога подтверждения удаления
      */
     @Test
-    fun `should hide confirm delete dialog when HideConfirmDeleteWordDialog is received`() {
+    fun `should close delete confirmation dialog when CloseDeleteConfirmation is received`() {
         // Test case 14: Standard case - скрытие диалога подтверждения удаления
         // Given
         val initialState = createTestState().copy(
@@ -742,7 +742,7 @@ class VocabularyTabReducerKtTest {
         )
         
         // When
-        val result = reducer.testReduce(initialState, Msg.HideConfirmDeleteWordDialog)
+        val result = reducer.testReduce(initialState, Msg.CloseDeleteConfirmation)
         
         // Then
         // Main functionality check
@@ -788,7 +788,7 @@ class VocabularyTabReducerKtTest {
         // Test case 15: Standard case - UI сообщения (LifeCycle)
         // Given
         val initialState = createTestState()
-        val lifecycleEvent = UiMsg.LifeCycleEvent(UiMsg.LifeCycleEvent.LifeCycle.ON_CREATE)
+        val lifecycleEvent = UiMsg.LifecycleEvent(UiMsg.LifecycleEvent.Lifecycle.ON_CREATE)
         
         // When
         val result = reducer.testReduce(initialState, lifecycleEvent)
@@ -813,9 +813,9 @@ class VocabularyTabReducerKtTest {
         // When
         val results = reducer.testScenario(
             initialState,
-            Msg.ShowAddWordDialog(),
-            Msg.WordValueChange("new word"),
-            Msg.AddWord("new word")
+            Msg.OpenAddWordDialog(),
+            Msg.UpdateWordInput("new word"),
+            Msg.CreateWord("new word")
         )
         
         // Then
@@ -831,11 +831,11 @@ class VocabularyTabReducerKtTest {
         assertEquals("Step 2: Word value should be updated", "new word", step2.state().addWordDialogState.wordValue)
         step2.assertSingleEffect<DatasourceEffect.LoadTermFlow>("Step 2: Should have LoadTermFlow effect")
         
-        // Step 3: AddWord
+        // Step 3: CreateWord
         val step3 = results[2]
         assertFalse("Step 3: Dialog should be closed", step3.state().addWordDialogState.isOpen)
         assertEquals("Step 3: Word value should be reset", "", step3.state().addWordDialogState.wordValue)
-        step3.assertSingleEffect<DatasourceEffect.AddWord>("Step 3: Should have AddWord effect")
+        step3.assertSingleEffect<DatasourceEffect.CreateWord>("Step 3: Should have CreateWord effect")
     }
 
     // ==================== СЦЕНАРИЙ 18: ПОЛНЫЙ СЦЕНАРИЙ ИЗМЕНЕНИЯ СЛОВА ====================
@@ -855,9 +855,9 @@ class VocabularyTabReducerKtTest {
         // When
         val results = reducer.testScenario(
             initialState,
-            Msg.StartChangeWord(wordId = targetTerm.id, wordValue = targetTerm.wordValue),
-            Msg.WordValueChange("updated word"),
-            Msg.ChangeWord(targetTerm.id, "updated word")
+            Msg.OpenEditWordDialog(wordId = targetTerm.id, wordValue = targetTerm.wordValue),
+            Msg.UpdateWordInput("updated word"),
+            Msg.UpdateWord(targetTerm.id, "updated word")
         )
         
         // Then
@@ -874,10 +874,10 @@ class VocabularyTabReducerKtTest {
         assertEquals("Step 2: Word value should be updated", "updated word", step2.state().addWordDialogState.wordValue)
         step2.assertSingleEffect<DatasourceEffect.LoadTermFlow>("Step 2: Should have LoadTermFlow effect")
         
-        // Step 3: ChangeWord
+        // Step 3: UpdateWord
         val step3 = results[2]
         assertFalse("Step 3: Action mode should remain disabled", step3.state().topBarState.isActionMode)
         assertFalse("Step 3: Dialog should be closed", step3.state().addWordDialogState.isOpen)
-        step3.assertSingleEffect<DatasourceEffect.ChangeWord>("Step 3: Should have ChangeWord effect")
+        step3.assertSingleEffect<DatasourceEffect.UpdateWord>("Step 3: Should have UpdateWord effect")
     }
 }

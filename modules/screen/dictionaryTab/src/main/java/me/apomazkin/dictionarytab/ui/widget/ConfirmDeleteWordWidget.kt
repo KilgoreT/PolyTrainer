@@ -19,9 +19,9 @@ fun ConfirmDeleteWordWidget(
 ) {
     AlarmDialogWidget(
         alarmButtonText = R.string.button_delete,
-        onAlarmClick = { sendMessage(Msg.DeleteWord(wordIds = state.wordIds)) },
+        onAlarmClick = { sendMessage(Msg.RemoveWords(wordIds = state.wordIds)) },
         onDismissRequest = {
-            sendMessage(Msg.HideConfirmDeleteWordDialog)
+            sendMessage(Msg.CloseDeleteConfirmation)
         }
     ) {
         Text(

@@ -21,7 +21,7 @@ internal fun AddWordBottomSheetWidget(
 ) {
 
     ModalBottomSheet(
-            onDismissRequest = { sendMessage(Msg.HideAddWordDialog) },
+            onDismissRequest = { sendMessage(Msg.CloseAddWordDialog) },
             modifier = Modifier,
             containerColor = MaterialTheme.colorScheme.onPrimary,
             dragHandle = {},
@@ -30,16 +30,16 @@ internal fun AddWordBottomSheetWidget(
         AddWordWidget(
                 wordValue = state.wordValue,
                 isActionEnable = state.wordValue.isNotBlank(),
-                onWordValueChange = { sendMessage(Msg.WordValueChange(it)) },
+                onWordValueChange = { sendMessage(Msg.UpdateWordInput(it)) },
                 onAddWord = {
                     if (it.trim().isBlank()) {
-                        sendMessage(Msg.HideAddWordDialog)
+                        sendMessage(Msg.CloseAddWordDialog)
                         return@AddWordWidget
                     }
                     if (state.wordId != null) {
-                        sendMessage(Msg.ChangeWord(state.wordId, state.wordValue.trim()))
+                        sendMessage(Msg.UpdateWord(state.wordId, state.wordValue.trim()))
                     } else {
-                        sendMessage(Msg.AddWord(state.wordValue.trim()))
+                        sendMessage(Msg.CreateWord(state.wordValue.trim()))
                     }
                 },
         )
