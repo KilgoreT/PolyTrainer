@@ -9,86 +9,117 @@ import me.apomazkin.dictionarytab.entity.WordInfo
 
 sealed interface Msg {
 
-    data class ChangeDict(val current: DictUiEntity) : Msg
+    /**
+     * Message to select and activate a dictionary for word operations.
+     * @param current The dictionary entity to be selected as active.
+     */
+    data class SelectDictionary(val current: DictUiEntity) : Msg
 
     /**
-     * Message to show Term Data.
+     * Message indicating that terms data has been loaded from the repository.
+     * @param pattern The search pattern used to filter terms.
+     * @param termList Flow of paginated term items to be displayed.
      */
-    data class TermDataLoaded(
+    data class TermsLoaded(
             val pattern: String,
             val termList: Flow<PagingData<TermUiItem>>,
     ) : Msg
 
     /**
-     * Message to control AddWord dialog visibility.
+     * Message to open dialog for creating a new word.
+     * @param wordValue Optional pre-filled text value for the new word.
      */
-    data class ShowAddWordDialog(
+    data class OpenAddWordDialog(
             val wordValue: String? = null,
     ) : Msg
 
-    data object HideAddWordDialog : Msg
+    /**
+     * Message to close the add word dialog.
+     */
+    data object CloseAddWordDialog : Msg
 
     /**
-     * Message to Start AddWord dialog to modify word.
-     * @param wordId id of word to modify.
+     * Message to open dialog for editing an existing word.
+     * @param wordId The unique identifier of the word to be edited.
+     * @param wordValue The current text value of the word to be edited.
      */
-    data class StartChangeWord(
+    data class OpenEditWordDialog(
             val wordId: Long,
             val wordValue: String,
     ) : Msg
 
     /**
-     * Message to handle AddWord's TextField.onValueChange.
+     * Message to update the input field value when user types in word creation/editing dialog.
+     * @param value The current text value entered by the user.
      */
-    data class WordValueChange(val value: String) : Msg
+    data class UpdateWordInput(val value: String) : Msg
 
     /**
-     * Message to add new word.
+     * Message to create new word in the dictionary.
+     * @param value The text value of the word to be created.
      */
-    data class AddWord(val value: String) : Msg
+    data class CreateWord(val value: String) : Msg
 
     /**
-     * Message to change word.
-     * @param wordId id of word to change.
-     * @param value new value of word.
+     * Message to update existing word in the dictionary.
+     * @param wordId The unique identifier of the word to be updated.
+     * @param value The new text value for the word.
      */
-    data class ChangeWord(val wordId: Long, val value: String) : Msg
+    data class UpdateWord(val wordId: Long, val value: String) : Msg
 
     /**
-     * Message to control ConfirmDeleteWord dialog visibility.
+     * Message to open confirmation dialog for word deletion.
+     * @param wordIds Set of words selected for deletion.
      */
-    data class ShowConfirmDeleteWordDialog(val wordIds: Set<WordInfo>) : Msg
-    data object HideConfirmDeleteWordDialog : Msg
+    data class OpenDeleteConfirmation(val wordIds: Set<WordInfo>) : Msg
 
     /**
-     * Message to delete word.
+     * Message to close the word deletion confirmation dialog.
      */
-    data class DeleteWord(val wordIds: Set<WordInfo>) : Msg
+    data object CloseDeleteConfirmation : Msg
 
     /**
-     * Message to show or hide ActionBar with action buttons.
-     * Also can add new word to action mode.
+     * Message to remove words from the dictionary.
+     * @param wordIds Set of words to be removed.
      */
-
-    data class ShowActionMode(val targetWord: WordInfo) : Msg
-    data object HideActionMode : Msg
-    data class ModifySelectedInActionMode(val targetWord: WordInfo) : Msg
+    data class RemoveWords(val wordIds: Set<WordInfo>) : Msg
 
     /**
-     * When no need action after Effect.
+     * Message to enter selection mode for multiple word operations.
+     * @param targetWord The word that triggered the selection mode.
      */
-    data object Empty : Msg
+    data class EnterSelectionMode(val targetWord: WordInfo) : Msg
+
+    /**
+     * Message to exit selection mode.
+     */
+    data object ExitSelectionMode : Msg
+
+    /**
+     * Message to toggle word selection in selection mode.
+     * @param targetWord The word to toggle selection for.
+     */
+    data class ToggleSelection(val targetWord: WordInfo) : Msg
+
+    /**
+     * Message indicating no operation is needed after an effect.
+     */
+    data object NoOperation : Msg
 }
 
 sealed interface UiMsg : Msg {
     /**
-     * Message for Snackbar
-     * @param message text of Snackbar.
-     * @param show variable to reset show status for state.
+     * Message to show or hide notification snackbar.
+     * @param message The text content of the notification.
+     * @param show Flag to control notification visibility.
      */
-    data class Snackbar(val message: String, val show: Boolean) : UiMsg
-    data class LifeCycleEvent(val lifeCycle: LifeCycle) : UiMsg {
-        enum class LifeCycle {
+    data class ShowNotification(val message: String, val show: Boolean) : UiMsg
+    /**
+     * Message to handle application lifecycle events.
+     * @param lifecycle The current lifecycle state of the application.
+     */
+    data class LifecycleEvent(val lifecycle: Lifecycle) : UiMsg {
+        enum class Lifecycle {
             ON_CREATE,
             ON_START,
             ON_RESUME,

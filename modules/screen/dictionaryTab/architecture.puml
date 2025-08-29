@@ -1,0 +1,214 @@
+@startuml Dictionary Tab TEA Logic Flow
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceParticipant underline
+
+title Dictionary Tab - Pure TEA Logic
+
+actor User
+participant "UI" as UI
+participant Reducer
+participant "UI Handler" as UIH
+participant "Data Handler" as DH
+
+== Структура состояния ==
+note over Reducer
+**DictionaryTabState (главное состояние вкладки словаря):**
+├── isLoading: Boolean = true
+│   └── Управляет отображением индикатора загрузки при инициализации
+├── topBarState: TopBarState (состояние верхней панели инструментов)
+│   ├── isActionMode: Boolean = false
+│   │   └── Определяет, активен ли режим множественного выбора слов
+│   └── actionState: Action (состояние режима множественных операций)
+│       └── selectedTermIds: Set<WordInfo> = emptySet()
+│           └── Множество выбранных для операций слов
+├── termList: TermsSource (активный источник данных списка терминов)
+│   ├── pattern: String (текущий паттерн поиска/фильтрации)
+│   │   └── "" = без фильтра, иначе поиск по подстроке
+│   └── termListFlow: Flow<PagingData<TermUiItem>>
+│       └── Поток пагинированных данных терминов для RecyclerView
+├── termListMap: Map<String, Flow<PagingData<TermUiItem>>> = emptyMap()
+│   └── Кеш потоков терминов по паттернам поиска для быстрого переключения
+├── addWordDialogState: AddWordDialogState (диалог добавления/редактирования слова)
+│   ├── isOpen: Boolean = false
+│   │   └── Контролирует видимость диалогового окна
+│   ├── wordValue: String = ""
+│   │   └── Текущий текст в поле ввода слова
+│   └── wordId: Long? = null
+│       └── ID редактируемого слова (null = режим добавления)
+├── snackbarState: SnackbarState (состояние всплывающих уведомлений)
+│   ├── title: String = ""
+│   │   └── Текст уведомления для пользователя
+│   └── show: Boolean = false
+│       └── Флаг отображения уведомления
+└── confirmWordDeleteDialogState: ConfirmWordDeleteDialogState (диалог подтверждения удаления)
+    ├── isOpen: Boolean = false
+    │   └── Контролирует видимость диалога подтверждения
+    └── wordIds: Set<WordInfo> = emptySet()
+        └── Список слов, выбранных для удаления
+
+**Вспомогательные структуры:**
+- TermsSource: Обертка для текущего потока терминов с паттерном
+- TopBarState.Action: Внутренняя структура для выбранных элементов
+- AddWordDialogState: Управление состоянием формы ввода слова
+- SnackbarState: Управление уведомлениями пользователя
+- ConfirmWordDeleteDialogState: Управление подтверждением массового удаления
+
+**Ключевые инварианты:**
+- termList всегда соответствует одному из значений termListMap
+- isActionMode = true только при наличии выбранных элементов
+- addWordDialogState.wordId != null только в режиме редактирования
+- confirmWordDeleteDialogState.isOpen = true только при actionMode = true
+end note
+
+== Инициализация ==
+note over UI : Initial State:\n- isLoading = true\n- empty term list\n- no dialogs
+note over UI : Init Effects:\n- LoadTermFlow("")
+
+Reducer -> DH : LoadTermFlow("")
+DH -> Reducer : Msg.TermDataLoaded
+
+== Добавление слова ==
+User -> UI : Click "Add Word"
+UI -> Reducer : Msg.OpenAddWordDialog("")
+
+Reducer -> UI : newState (dialog open)
+note right : State change:\naddWordDialog.isOpen = true\nwordValue = ""
+
+User -> UI : Type "hello"
+UI -> Reducer : Msg.UpdateWordInput("hello")
+
+Reducer -> UI : newState (wordValue updated)
+note right : State change:\nwordValue = "hello"
+Reducer -> DH : LoadTermFlow("hello")
+
+DH -> Reducer : Msg.TermDataLoaded
+
+User -> UI : Click "Save"
+UI -> Reducer : Msg.CreateWord("hello")
+
+Reducer -> UI : newState (dialog closed)
+note right : State change:\naddWordDialog.isOpen = false\nwordValue = ""
+Reducer -> DH : CreateWord("hello")
+
+DH -> Reducer : Msg.NoOperation
+
+== Удаление слова ==
+User -> UI : Long press on word (enter action mode)
+UI -> Reducer : Msg.EnterSelectionMode(targetWord)
+
+Reducer -> UI : newState (action mode on, word selected)
+note right : State change:\nactionMode = true\nselectedWords = [wordInfo]
+
+User -> UI : Select more words (optional)
+UI -> Reducer : Msg.ToggleSelection(targetWord)
+
+Reducer -> UI : newState (word added to selection)
+note right : State change:\nselectedWords += anotherWord
+
+User -> UI : Click "Delete" button
+UI -> Reducer : Msg.OpenDeleteConfirmation(selectedWords)
+
+Reducer -> UI : newState (confirm dialog open)
+note right : State change:\nconfirmDialog.isOpen = true
+
+User -> UI : Click "Cancel" (optional - close without deleting)
+UI -> Reducer : Msg.CloseDeleteConfirmation
+
+Reducer -> UI : newState (dialog closed, stay in action mode)
+note right : State change:\nconfirmDialog.isOpen = false\n// actionMode and selectedWords remain unchanged
+
+User -> UI : Click "Confirm Delete"
+UI -> Reducer : Msg.RemoveWords(selectedWords)
+
+Reducer -> UI : newState (dialog closed, action mode off, selection cleared)
+note right : State change:\nconfirmDialog.isOpen = false\nactionMode = false\nselectedWords = empty
+Reducer -> DH : RemoveWords(selectedWords)
+Reducer -> UIH : ShowNotification("Words deleted")
+
+UIH -> Reducer : Msg.ShowNotification("Words deleted", true)
+
+Reducer -> UI : newState (snackbar shown)
+note right : State change:\nsnackbar.show = true\nsnackbar.title = "Words deleted"
+
+== Изменение слова ==
+User -> UI : Long press on word (enter action mode)
+UI -> Reducer : Msg.EnterSelectionMode(targetWord)
+
+Reducer -> UI : newState (action mode on, word selected)
+note right : State change:\nactionMode = true\nselectedWords = [wordInfo]
+
+User -> UI : Click "Edit" button in action bar
+UI -> Reducer : Msg.OpenEditWordDialog(wordInfo.id, wordInfo.value)
+
+Reducer -> UI : newState (edit mode, dialog open)
+note right : State change:\nactionMode = false\nselectedWords = empty\naddWordDialog.isOpen = true\nwordId = wordInfo.id\nwordValue = wordInfo.value
+
+User -> UI : Type new value "hello world"
+UI -> Reducer : Msg.UpdateWordInput("hello world")
+
+Reducer -> UI : newState (wordValue updated)
+Reducer -> DH : LoadTermFlow("hello world")
+
+DH -> Reducer : Msg.TermDataLoaded
+
+User -> UI : Click "Save"
+UI -> Reducer : Msg.UpdateWord(wordId, "hello world")
+
+Reducer -> UI : newState (dialog closed)
+Reducer -> DH : UpdateWord(wordId, "hello world")
+
+DH -> Reducer : Msg.NoOperation
+
+== Смена словаря ==
+note over UI : External event
+UI -> Reducer : Msg.SelectDictionary(newDict)
+
+Reducer -> UI : newState (dict changed)
+note right : State change:\ncurrentDict = newDict
+Reducer -> DH : LoadTermFlow("")
+
+DH -> Reducer : Msg.TermDataLoaded
+
+== Закрытие диалога ==
+User -> UI : Click "Cancel"
+UI -> Reducer : Msg.CloseAddWordDialog
+
+Reducer -> UI : newState (dialog closed, state reset)
+note right : State change:\naddWordDialog.isOpen = false\nwordValue = ""\nwordId = null
+Reducer -> DH : LoadTermFlow("")
+
+DH -> Reducer : Msg.TermDataLoaded
+
+== Обработка сообщений ==
+note over Reducer
+**Reducer Logic:**
+- OpenAddWordDialog: открывает диалог
+- UpdateWordInput: обновляет текст + ищет
+- CreateWord: сохраняет + закрывает диалог
+- RemoveWords: удаляет + показывает уведомление
+- UpdateWord: обновляет + закрывает диалог
+- SelectDictionary: меняет словарь + перезагружает
+- CloseAddWordDialog: закрывает диалог + сбрасывает
+- TermDataLoaded: обновляет список терминов
+- EnterSelectionMode: входит в режим выбора
+- ExitSelectionMode: выходит из режима выбора
+- ToggleSelection: переключает выбор слова
+- OpenDeleteConfirmation: открывает диалог подтверждения удаления
+- CloseDeleteConfirmation: закрывает диалог подтверждения
+- NoOperation: ничего не делает
+- ShowNotification: обновляет состояние уведомления
+end note
+
+== Effect Handlers ==
+note over UIH, DH
+**UI Handler Effects:**
+- ShowNotification: показывает уведомление с возможностью скрытия
+
+**Data Handler Effects:**
+- LoadTermFlow: загружает термины по фильтру
+- CreateWord: создает новое слово
+- UpdateWord: обновляет существующее слово
+- RemoveWords: удаляет слова
+end note
+@enduml

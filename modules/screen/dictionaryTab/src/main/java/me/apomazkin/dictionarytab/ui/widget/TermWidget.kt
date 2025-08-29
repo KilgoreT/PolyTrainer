@@ -44,7 +44,7 @@ internal fun TermWidget(
                     .combinedClickable(
                             onLongClick = {
                                 sendMsg(
-                                        Msg.ShowActionMode(
+                                        Msg.EnterSelectionMode(
                                                 targetWord = WordInfo(
                                                         id = termItem.id,
                                                         wordValue = termItem.wordValue,

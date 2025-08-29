@@ -7,7 +7,7 @@ import me.apomazkin.mate.MateEffectHandler
  * Effect
  */
 internal sealed interface UiEffect : Effect {
-    data class ShowSnackbar(val title: String) : UiEffect
+    data class ShowNotification(val message: String) : UiEffect
 }
 
 /**
@@ -21,8 +21,12 @@ internal class UiEffectHandler :
         consumer: (Msg) -> Unit
     ) {
         return when (val eff = effect as? UiEffect) {
-            is UiEffect.ShowSnackbar -> UiMsg.Snackbar(message = eff.title, show = true)
-            null -> Msg.Empty
+            is UiEffect.ShowNotification -> UiMsg.ShowNotification(
+                message = eff.message,
+                show = true,
+            )
+
+            null -> Msg.NoOperation
         }.let(consumer)
     }
 }

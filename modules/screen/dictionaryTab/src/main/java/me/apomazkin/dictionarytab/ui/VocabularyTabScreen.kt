@@ -58,7 +58,7 @@ fun DictionaryTabScreen(
         openWordCard: (wordId: Long) -> Unit,
 ) {
     LifecycleEventHandler(action = {
-        viewModel.accept(UiMsg.LifeCycleEvent(it.toMateEvent()))
+        viewModel.accept(UiMsg.LifecycleEvent(it.toMateEvent()))
     })
     val state: DictionaryTabState by viewModel.state.collectAsStateWithLifecycle()
     DictionaryTabScreen(
@@ -82,7 +82,7 @@ internal fun DictionaryTabScreen(
         if (state.snackbarState.show) {
             snackbarHostState.showSnackbar(state.snackbarState.title).also {
                 sendMessage(
-                        UiMsg.Snackbar(
+                        UiMsg.ShowNotification(
                                 message = EMPTY_STRING, show = false
                         )
                 )
@@ -100,7 +100,7 @@ internal fun DictionaryTabScreen(
     )
 
     BackHandler(enabled = state.topBarState.isActionMode) {
-        sendMessage(Msg.HideActionMode)
+        sendMessage(Msg.ExitSelectionMode)
     }
 
     Scaffold(
@@ -131,7 +131,7 @@ internal fun DictionaryTabScreen(
                      PrimaryFabWidget(
                              iconRes = R.drawable.ic_add,
                              enabled = !state.addWordDialogState.isOpen
-                     ) { sendMessage(Msg.ShowAddWordDialog()) }
+                     ) { sendMessage(Msg.OpenAddWordDialog()) }
                  }
              }) { paddingValue: PaddingValues ->
         Box(
@@ -159,7 +159,7 @@ internal fun DictionaryTabScreen(
                             termList = state.termList.termListFlow.collectAsLazyPagingItems(),
                             openWordCard = { word ->
                                 if (state.topBarState.isActionMode) {
-                                    sendMessage(Msg.ModifySelectedInActionMode(targetWord = word))
+                                    sendMessage(Msg.ToggleSelection(targetWord = word))
                                 } else {
                                     openWordCard.invoke(word.id)
                                 }
