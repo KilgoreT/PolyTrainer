@@ -45,7 +45,7 @@ fun LexemeTitleWidget(
             isDropDownOpen = state.isMenuOpen,
             onClickDropDown = {
                 sendMessage(
-                    Msg.ShowLexemeDropDown(
+                    Msg.OpenLexemeMenu(
                         lexemeId = state.id,
                         isShow = true
                     )
@@ -53,7 +53,7 @@ fun LexemeTitleWidget(
             },
             onDismissRequest = {
                 sendMessage(
-                    Msg.ShowLexemeDropDown(
+                    Msg.OpenLexemeMenu(
                         lexemeId = state.id,
                         isShow = false,
                     )
@@ -69,15 +69,15 @@ fun LexemeTitleWidget(
             }
         ) {
             state.translation ?: AddTranslationLexemeMenuItem {
-                sendMessage(Msg.AppendTranslation(lexemeId = state.id))
-                sendMessage(Msg.ShowLexemeDropDown(lexemeId = state.id, isShow = false))
+                sendMessage(Msg.CreateTranslation(lexemeId = state.id))
+                sendMessage(Msg.OpenLexemeMenu(lexemeId = state.id, isShow = false))
             }
             state.definition ?: AddDefinitionLexemeMenuItem {
-                sendMessage(Msg.AppendDefinition(lexemeId = state.id))
-                sendMessage(Msg.ShowLexemeDropDown(lexemeId = state.id, isShow = false))
+                sendMessage(Msg.CreateDefinition(lexemeId = state.id))
+                sendMessage(Msg.OpenLexemeMenu(lexemeId = state.id, isShow = false))
             }
             DeleteLexemeMenuItem {
-                sendMessage(Msg.DeleteLexeme(lexemeId = state.id))
+                sendMessage(Msg.RemoveLexeme(lexemeId = state.id))
             }
         }
     }

@@ -61,15 +61,15 @@ internal fun AddLexemeBottomWidget(
             LexemeMeaningWidget(
                 titleRes = R.string.word_card_bottom_translation,
                 isChecked = state.isTranslationCheck,
-            ) { sendMessage(Msg.AddLexemeBottomTranslation(isAdded = it)) }
+            ) { sendMessage(Msg.EnableTranslationCreation(isAdded = it)) }
             LexemeMeaningWidget(
                 titleRes = R.string.word_card_bottom_definition,
                 isChecked = state.isDefinitionCheck,
-            ) { sendMessage(Msg.AddLexemeBottomDefinition(isAdded = it)) }
+            ) { sendMessage(Msg.EnableDefinitionCreation(isAdded = it)) }
             ActionsWidget(
                 actionButtonEnabled = state.isTranslationCheck || state.isDefinitionCheck,
                 onDismiss = onDismiss,
-                onConfirm = { sendMessage(Msg.AddLexeme) },
+                onConfirm = { sendMessage(Msg.CreateLexeme) },
             )
         }
     }

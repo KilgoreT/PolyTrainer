@@ -53,16 +53,16 @@ fun LexemeItemWidget(
                         state = textValueState,
                         titleRes = R.string.word_card_bottom_translation,
                         onOpenEditMode = {
-                            sendMessage(Msg.TranslationOpenEdit(lexemeId = state.id))
+                            sendMessage(Msg.EnterTranslationEditMode(lexemeId = state.id))
                         },
                         onTextChange = {
-                            sendMessage(Msg.TranslationTextChange(lexemeId = state.id, value = it))
+                            sendMessage(Msg.UpdateTranslationInput(lexemeId = state.id, value = it))
                         },
                         onCloseEditMode = {
-                            sendMessage(Msg.TranslationEndEdit(lexemeId = state.id))
+                            sendMessage(Msg.ExitTranslationEditMode(lexemeId = state.id))
                         },
                         onActionIconClick = {
-                            sendMessage(Msg.DeleteTranslation(lexemeId = state.id))
+                            sendMessage(Msg.RemoveTranslation(lexemeId = state.id))
                         }
                     )
                 }
@@ -80,16 +80,16 @@ fun LexemeItemWidget(
                         state = it,
                         titleRes = R.string.word_card_bottom_definition,
                         onOpenEditMode = {
-                            sendMessage(Msg.DefinitionOpenEdit(lexemeId = state.id))
+                            sendMessage(Msg.EnterDefinitionEditMode(lexemeId = state.id))
                         },
                         onTextChange = {
-                            sendMessage(Msg.DefinitionTextChange(lexemeId = state.id, value = it))
+                            sendMessage(Msg.UpdateDefinitionInput(lexemeId = state.id, value = it))
                         },
                         onCloseEditMode = {
-                            sendMessage(Msg.DefinitionEndEdit(lexemeId = state.id))
+                            sendMessage(Msg.ExitDefinitionEditMode(lexemeId = state.id))
                         },
                         onActionIconClick = {
-                            sendMessage(Msg.DeleteDefinition(lexemeId = state.id))
+                            sendMessage(Msg.RemoveDefinition(lexemeId = state.id))
                         }
                     )
                 }

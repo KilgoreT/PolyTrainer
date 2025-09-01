@@ -13,40 +13,40 @@ internal sealed interface DatasourceEffect : Effect {
         val wordId: Long
     ) : DatasourceEffect
 
-    data class DeleteWord(
+    data class RemoveWord(
         val wordId: Long
     ) : DatasourceEffect
 
-    data class SaveWord(
+    data class UpdateWord(
         val wordId: Long,
         val value: String
     ) : DatasourceEffect
 
-    data class AddLexeme(
+    data class CreateLexeme(
         val wordId: Long,
     ) : DatasourceEffect
 
-    data class SaveLexemeTranslation(
+    data class UpdateLexemeTranslation(
         val wordId: Long,
         val lexemeId: Long,
         val translation: String
     ) : DatasourceEffect
 
-    data class SaveLexemeDefinition(
+    data class UpdateLexemeDefinition(
         val wordId: Long,
         val lexemeId: Long,
         val definition: String
     ) : DatasourceEffect
 
-    data class DeleteTranslation(
+    data class RemoveTranslation(
         val lexemeId: Long
     ) : DatasourceEffect
 
-    data class DeleteDefinition(
+    data class RemoveDefinition(
         val lexemeId: Long
     ) : DatasourceEffect
 
-    data class DeleteLexeme(
+    data class RemoveLexeme(
         val lexemeId: Long
     ) : DatasourceEffect
 }
@@ -60,36 +60,36 @@ internal class DatasourceEffectHandler(
                 withContext(Dispatchers.IO) {
                     wordCardUseCase.getTermById(eff.wordId).let { term ->
                         term?.let {
-                            Msg.TermLoaded(it)
-                        } ?: Msg.TermNotLoaded
+                            Msg.WordLoaded(it)
+                        } ?: Msg.WordNotFound
                     }
                 }
             }
-            is DatasourceEffect.DeleteWord -> {
+            is DatasourceEffect.RemoveWord -> {
                 withContext(Dispatchers.IO) {
                     wordCardUseCase.deleteWord(eff.wordId).let {
-                        Msg.CloseScreen
+                        Msg.NavigateBack
                     }
                 }
             }
-            is DatasourceEffect.SaveWord -> {
+            is DatasourceEffect.UpdateWord -> {
                 withContext(Dispatchers.IO) {
                     wordCardUseCase.updateWord(eff.wordId, eff.value).let {
-                        Msg.TermLoading
+                        Msg.LoadingWord
                     }
                 }
             }
-            is DatasourceEffect.AddLexeme -> {
+            is DatasourceEffect.CreateLexeme -> {
                 withContext(Dispatchers.IO) {
                     wordCardUseCase.addLexeme(eff.wordId).let { lexeme: Lexeme? ->
                         lexeme
-                            ?.let { Msg.LexemeUpdate(it) }
+                            ?.let { Msg.RefreshLexeme(it) }
                             ?: throw IllegalStateException("Lexeme not found")
                     }
                 }
             }
 
-            is DatasourceEffect.SaveLexemeTranslation -> {
+            is DatasourceEffect.UpdateLexemeTranslation -> {
                 withContext(Dispatchers.IO) {
                     val lexemeId = if (eff.lexemeId > -1) eff.lexemeId else null
                     wordCardUseCase.addLexemeTranslation(
@@ -98,13 +98,13 @@ internal class DatasourceEffectHandler(
                         translation = eff.translation
                     ).let { lexeme: Lexeme? ->
                         lexeme
-                            ?.let { Msg.TranslationUpdate(it) }
+                            ?.let { Msg.RefreshTranslation(it) }
                             ?: throw IllegalStateException("Lexeme not found")
                     }
                 }
             }
 
-            is DatasourceEffect.SaveLexemeDefinition -> {
+            is DatasourceEffect.UpdateLexemeDefinition -> {
                 withContext(Dispatchers.IO) {
                     val lexemeId = if (eff.lexemeId > -1) eff.lexemeId else null
                     wordCardUseCase.addLexemeDefinition(
@@ -113,36 +113,36 @@ internal class DatasourceEffectHandler(
                         definition = eff.definition
                     ).let { lexeme: Lexeme? ->
                         lexeme
-                            ?.let { Msg.DefinitionUpdate(it) }
+                            ?.let { Msg.RefreshDefinition(it) }
                             ?: throw IllegalStateException("Lexeme not found")
                     }
                 }
             }
 
-            is DatasourceEffect.DeleteTranslation -> {
+            is DatasourceEffect.RemoveTranslation -> {
                 withContext(Dispatchers.IO) {
                     wordCardUseCase.deleteLexemeTranslation(eff.lexemeId).let {
-                        Msg.TermLoading
+                        Msg.LoadingWord
                     }
                 }
             }
 
-            is DatasourceEffect.DeleteDefinition -> {
+            is DatasourceEffect.RemoveDefinition -> {
                 withContext(Dispatchers.IO) {
                     wordCardUseCase.deleteLexemeDefinition(eff.lexemeId).let {
-                        Msg.TermLoading
+                        Msg.LoadingWord
                     }
                 }
             }
 
-            is DatasourceEffect.DeleteLexeme -> {
+            is DatasourceEffect.RemoveLexeme -> {
                 withContext(Dispatchers.IO) {
                     wordCardUseCase.deleteLexeme(eff.lexemeId).let {
-                        Msg.TermLoading
+                        Msg.LoadingWord
                     }
                 }
             }
-            null -> Msg.Empty
+            null -> Msg.NoOperation
         }.let(consumer)
     }
 }

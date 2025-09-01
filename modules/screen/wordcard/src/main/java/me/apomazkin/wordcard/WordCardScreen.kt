@@ -80,7 +80,7 @@ internal fun WordCardScreen(
     SnackbarLaunchEffect(
         snackState = state.snackbarState,
         host = snackbarHostState,
-        onResetState = { sendMessage(UiMsg.Snackbar(text = EMPTY_STRING, show = false)) }
+        onResetState = { sendMessage(UiMsg.ShowNotification(text = EMPTY_STRING, show = false)) }
     )
 
     LaunchedEffect(state.closeScreen) {
@@ -102,7 +102,7 @@ internal fun WordCardScreen(
         floatingActionButton = {
             AddLexemeWidget(
                 enabled = true,
-                onAddLexeme = { sendMessage(Msg.ShowAddLexemeBottom) },
+                onAddLexeme = { sendMessage(Msg.OpenAddLexemeDialog) },
                 modifier = Modifier
                     .navigationBarsPadding(),
             )
@@ -156,7 +156,7 @@ internal fun WordCardScreen(
         if (state.addLexemeBottomState.show) {
             AddLexemeBottomWidget(
                 state = state.addLexemeBottomState,
-                onDismiss = { sendMessage(Msg.HideAddLexemeBottom) },
+                onDismiss = { sendMessage(Msg.CloseAddLexemeDialog) },
                 sendMessage = sendMessage,
             )
         }

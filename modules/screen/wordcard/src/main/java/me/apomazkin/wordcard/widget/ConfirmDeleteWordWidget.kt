@@ -25,10 +25,10 @@ internal fun ConfirmDeleteWordWidget(
     AlarmDialogWidget(
         alarmButtonText = R.string.button_delete,
         onAlarmClick = {
-            sendMessage.invoke(Msg.DeleteWord(state.id))
+            sendMessage.invoke(Msg.RemoveWord(state.id))
         },
         onDismissRequest = {
-            sendMessage.invoke(Msg.HideDeleteWordDialog)
+            sendMessage.invoke(Msg.CloseDeleteWordDialog)
         }
     ) {
         Text(

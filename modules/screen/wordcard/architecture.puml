@@ -1,0 +1,333 @@
+@startuml WordCard TEA Logic Flow
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceParticipant underline
+
+title WordCard - Pure TEA Logic
+
+actor User
+participant "UI" as UI
+participant Reducer
+participant "UI Handler" as UIH
+participant "Data Handler" as DH
+
+== Структура состояния ==
+note over Reducer
+**WordCardState (главное состояние экрана карточки слова):**
+├── topBarState: TopBarState (состояние верхней панели)
+│   └── isMenuOpen: Boolean = false
+│       └── Контролирует видимость выпадающего меню
+├── addLexemeBottomState: AddLexemeBottomState (состояние нижней панели добавления лексемы)
+│   ├── show: Boolean = false
+│   │   └── Контролирует видимость панели
+│   ├── isTranslationCheck: Boolean = false
+│   │   └── Флаг включения создания перевода
+│   └── isDefinitionCheck: Boolean = false
+│       └── Флаг включения создания определения
+├── closeScreen: Boolean = false
+│   └── Флаг для закрытия экрана и возврата назад
+├── isLoading: Boolean = true
+│   └── Управляет отображением индикатора загрузки
+├── wordState: WordState (состояние слова)
+│   ├── id: Long = NOT_IN_DB
+│   │   └── Уникальный идентификатор слова
+│   ├── added: Date? = null
+│   │   └── Дата добавления слова
+│   ├── value: String = ""
+│   │   └── Текущее значение слова
+│   ├── isEditMode: Boolean = false
+│   │   └── Режим редактирования слова
+│   ├── edited: String = ""
+│   │   └── Редактируемое значение слова
+│   └── showWarningDialog: Boolean = false
+│       └── Контролирует диалог подтверждения удаления
+├── lexemeList: List<LexemeState> = listOf()
+│   └── Список лексем слова с их переводами и определениями
+└── snackbarState: SnackbarState (состояние уведомлений)
+    ├── title: String = ""
+    │   └── Текст уведомления
+    └── show: Boolean = false
+        └── Флаг отображения уведомления
+
+**Вложенные структуры:**
+- LexemeState: Состояние лексемы
+  ├── id: Long = NOT_IN_DB
+  ├── translation: TextValueState? = null
+  ├── definition: TextValueState? = null
+  └── isMenuOpen: Boolean = false
+- TextValueState: Состояние текстового поля
+  ├── isEdit: Boolean = true
+  ├── origin: String = ""
+  └── edited: String = origin
+
+**Ключевые инварианты:**
+- isEditMode = true только при редактировании слова
+- showWarningDialog = true только при подтверждении удаления
+- addLexemeBottomState.show = true только при создании лексемы
+- closeScreen = true только при необходимости закрытия экрана
+end note
+
+== Инициализация ==
+note over UI : Initial State:\n- isLoading = true\n- empty word state\n- empty lexeme list
+note over UI : Init Effects:\n- LoadWord(wordId)
+
+Reducer -> DH : LoadWord(wordId)
+DH -> Reducer : Msg.WordLoaded(term)
+
+Reducer -> UI : newState (word loaded)
+note right : State change:\nisLoading = false\nwordState = term.word\nlexemeList = term.lexemes
+
+== Редактирование слова ==
+User -> UI : Click on word field
+UI -> Reducer : Msg.EnterWordEditMode
+
+Reducer -> UI : newState (edit mode on)
+note right : State change:\nwordState.isEditMode = true\nwordState.edited = wordState.value
+
+User -> UI : Type "new word"
+UI -> Reducer : Msg.UpdateWordInput("new word")
+
+Reducer -> UI : newState (edited value updated)
+note right : State change:\nwordState.edited = "new word"
+
+User -> UI : Click save/confirm
+UI -> Reducer : Msg.CommitWordChanges
+
+Reducer -> UI : newState (edit mode off)
+note right : State change:\nwordState.isEditMode = false\nwordState.value = wordState.edited
+Reducer -> DH : UpdateWord(wordId, "new word")
+
+DH -> Reducer : Msg.LoadingWord
+
+Reducer -> UI : newState (loading)
+note right : State change:\nisLoading = true
+Reducer -> DH : LoadWord(wordId)
+
+DH -> Reducer : Msg.WordLoaded(updatedTerm)
+
+Reducer -> UI : newState (word refreshed)
+note right : State change:\nisLoading = false\nwordState = updatedTerm.word\nlexemeList = updatedTerm.lexemes
+
+== Удаление слова ==
+User -> UI : Click menu button
+UI -> Reducer : Msg.OpenTopBarMenu
+
+Reducer -> UI : newState (menu open)
+note right : State change:\ntopBarState.isMenuOpen = true
+
+User -> UI : Click "Delete" in menu
+UI -> Reducer : Msg.OpenDeleteWordDialog
+
+Reducer -> UI : newState (delete dialog open)
+note right : State change:\nwordState.showWarningDialog = true
+
+User -> UI : Click "Cancel" (optional)
+UI -> Reducer : Msg.CloseDeleteWordDialog
+
+Reducer -> UI : newState (dialog closed)
+note right : State change:\nwordState.showWarningDialog = false
+
+User -> UI : Click "Confirm Delete"
+UI -> Reducer : Msg.RemoveWord(wordId)
+
+Reducer -> UI : newState (screen close flag)
+note right : State change:\ncloseScreen = true
+Reducer -> DH : RemoveWord(wordId)
+
+DH -> Reducer : Msg.NavigateBack
+
+== Создание лексемы ==
+User -> UI : Click "Add Lexeme" button
+UI -> Reducer : Msg.OpenAddLexemeDialog
+
+Reducer -> UI : newState (bottom panel open)
+note right : State change:\naddLexemeBottomState.show = true\naddLexemeBottomState.isTranslationCheck = false\naddLexemeBottomState.isDefinitionCheck = false
+
+User -> UI : Check "Translation" option
+UI -> Reducer : Msg.EnableTranslationCreation(true)
+
+Reducer -> UI : newState (translation enabled)
+note right : State change:\naddLexemeBottomState.isTranslationCheck = true
+
+User -> UI : Check "Definition" option
+UI -> Reducer : Msg.EnableDefinitionCreation(true)
+
+Reducer -> UI : newState (definition enabled)
+note right : State change:\naddLexemeBottomState.isDefinitionCheck = true
+
+User -> UI : Click "Create" button
+UI -> Reducer : Msg.CreateLexeme
+
+Reducer -> UI : newState (panel closed)
+note right : State change:\naddLexemeBottomState.show = false\naddLexemeBottomState.isTranslationCheck = false\naddLexemeBottomState.isDefinitionCheck = false
+Reducer -> DH : CreateLexeme(wordId)
+
+DH -> Reducer : Msg.RefreshLexeme(newLexeme)
+
+Reducer -> UI : newState (lexeme added)
+note right : State change:\nlexemeList += newLexeme
+
+== Редактирование перевода ==
+User -> UI : Click on translation field
+UI -> Reducer : Msg.EnterTranslationEditMode(lexemeId)
+
+Reducer -> UI : newState (translation edit mode)
+note right : State change:\nlexemeList[lexemeId].translation.isEdit = true
+
+User -> UI : Type "new translation"
+UI -> Reducer : Msg.UpdateTranslationInput(lexemeId, "new translation")
+
+Reducer -> UI : newState (translation text updated)
+note right : State change:\nlexemeList[lexemeId].translation.edited = "new translation"
+
+User -> UI : Click save/confirm
+UI -> Reducer : Msg.ExitTranslationEditMode(lexemeId)
+
+Reducer -> UI : newState (edit mode off)
+note right : State change:\nlexemeList[lexemeId].translation.isEdit = false
+Reducer -> DH : UpdateLexemeTranslation(wordId, lexemeId, "new translation")
+
+DH -> Reducer : Msg.RefreshTranslation(updatedLexeme)
+
+Reducer -> UI : newState (translation refreshed)
+note right : State change:\nlexemeList[lexemeId] = updatedLexeme
+
+== Удаление перевода ==
+User -> UI : Click delete icon on translation
+UI -> Reducer : Msg.RemoveTranslation(lexemeId)
+
+Reducer -> UI : newState (translation removed)
+note right : State change:\nlexemeList[lexemeId].translation = null
+Reducer -> DH : RemoveTranslation(lexemeId)
+
+DH -> Reducer : Msg.LoadingWord
+
+Reducer -> UI : newState (loading)
+note right : State change:\nisLoading = true
+Reducer -> DH : LoadWord(wordId)
+
+DH -> Reducer : Msg.WordLoaded(updatedTerm)
+
+Reducer -> UI : newState (word refreshed)
+note right : State change:\nisLoading = false\nwordState = updatedTerm.word\nlexemeList = updatedTerm.lexemes
+
+== Создание перевода ==
+User -> UI : Click menu on lexeme
+UI -> Reducer : Msg.OpenLexemeMenu(lexemeId, true)
+
+Reducer -> UI : newState (lexeme menu open)
+note right : State change:\nlexemeList[lexemeId].isMenuOpen = true
+
+User -> UI : Click "Add Translation"
+UI -> Reducer : Msg.CreateTranslation(lexemeId)
+
+Reducer -> UI : newState (translation field created)
+note right : State change:\nlexemeList[lexemeId].translation = TextValueState(isEdit = true, origin = "")
+Reducer -> UI : newState (menu closed)
+note right : State change:\nlexemeList[lexemeId].isMenuOpen = false
+
+== Редактирование определения ==
+User -> UI : Click on definition field
+UI -> Reducer : Msg.EnterDefinitionEditMode(lexemeId)
+
+Reducer -> UI : newState (definition edit mode)
+note right : State change:\nlexemeList[lexemeId].definition.isEdit = true
+
+User -> UI : Type "new definition"
+UI -> Reducer : Msg.UpdateDefinitionInput(lexemeId, "new definition")
+
+Reducer -> UI : newState (definition text updated)
+note right : State change:\nlexemeList[lexemeId].definition.edited = "new definition"
+
+User -> UI : Click save/confirm
+UI -> Reducer : Msg.ExitDefinitionEditMode(lexemeId)
+
+Reducer -> UI : newState (edit mode off)
+note right : State change:\nlexemeList[lexemeId].definition.isEdit = false
+Reducer -> DH : UpdateLexemeDefinition(wordId, lexemeId, "new definition")
+
+DH -> Reducer : Msg.RefreshDefinition(updatedLexeme)
+
+Reducer -> UI : newState (definition refreshed)
+note right : State change:\nlexemeList[lexemeId] = updatedLexeme
+
+== Удаление определения ==
+User -> UI : Click delete icon on definition
+UI -> Reducer : Msg.RemoveDefinition(lexemeId)
+
+Reducer -> UI : newState (definition removed)
+note right : State change:\nlexemeList[lexemeId].definition = null
+Reducer -> DH : RemoveDefinition(lexemeId)
+
+DH -> Reducer : Msg.LoadingWord
+
+Reducer -> UI : newState (loading)
+note right : State change:\nisLoading = true
+Reducer -> DH : LoadWord(wordId)
+
+DH -> Reducer : Msg.WordLoaded(updatedTerm)
+
+Reducer -> UI : newState (word refreshed)
+note right : State change:\nisLoading = false\nwordState = updatedTerm.word\nlexemeList = updatedTerm.lexemes
+
+== Создание определения ==
+User -> UI : Click menu on lexeme
+UI -> Reducer : Msg.OpenLexemeMenu(lexemeId, true)
+
+Reducer -> UI : newState (lexeme menu open)
+note right : State change:\nlexemeList[lexemeId].isMenuOpen = true
+
+User -> UI : Click "Add Definition"
+UI -> Reducer : Msg.CreateDefinition(lexemeId)
+
+Reducer -> UI : newState (definition field created)
+note right : State change:\nlexemeList[lexemeId].definition = TextValueState(isEdit = true, origin = "")
+Reducer -> UI : newState (menu closed)
+note right : State change:\nlexemeList[lexemeId].isMenuOpen = false
+
+== Обработка сообщений ==
+note over Reducer
+**Reducer Logic:**
+- LoadingWord: включает индикатор загрузки + запрашивает данные
+- WordLoaded: обновляет состояние слова и лексем
+- WordNotFound: обработка ошибки загрузки слова
+- OpenTopBarMenu/CloseTopBarMenu: управление меню верхней панели
+- OpenDeleteWordDialog/CloseDeleteWordDialog: управление диалогом удаления
+- RemoveWord: устанавливает флаг закрытия экрана
+- EnterWordEditMode/ExitWordEditMode: управление режимом редактирования слова
+- UpdateWordInput: обновление редактируемого значения слова
+- CommitWordChanges: сохранение изменений слова
+- OpenAddLexemeDialog/CloseAddLexemeDialog: управление панелью создания лексемы
+- EnableTranslationCreation/EnableDefinitionCreation: настройка создания лексемы
+- CreateLexeme: создание новой лексемы
+- RefreshLexeme: обновление состояния лексемы
+- RemoveLexeme: удаление лексемы
+- OpenLexemeMenu: управление меню лексемы
+- CreateTranslation/CreateDefinition: создание перевода/определения
+- UpdateTranslationInput/UpdateDefinitionInput: обновление текста перевода/определения
+- EnterTranslationEditMode/ExitTranslationEditMode: управление редактированием перевода
+- EnterDefinitionEditMode/ExitDefinitionEditMode: управление редактированием определения
+- RefreshTranslation/RefreshDefinition: обновление перевода/определения
+- RemoveTranslation/RemoveDefinition: удаление перевода/определения
+- NavigateBack: закрытие экрана
+- NoOperation: пустая операция
+- ShowNotification: управление уведомлениями
+end note
+
+== Effect Handlers ==
+note over UIH, DH
+**UI Handler Effects:**
+- ShowNotification: показывает уведомление пользователю
+
+**Data Handler Effects:**
+- LoadWord: загружает слово по ID из базы данных
+- RemoveWord: удаляет слово из базы данных
+- UpdateWord: обновляет значение слова в базе данных
+- CreateLexeme: создает новую лексему для слова
+- UpdateLexemeTranslation: сохраняет перевод лексемы
+- UpdateLexemeDefinition: сохраняет определение лексемы
+- RemoveTranslation: удаляет перевод лексемы
+- RemoveDefinition: удаляет определение лексемы
+- RemoveLexeme: удаляет лексему
+end note
+@enduml
