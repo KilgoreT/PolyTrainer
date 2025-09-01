@@ -55,11 +55,11 @@ internal fun WordFieldWidget(
                     isEditMode = wordState.isEditMode,
                     textColor = blackColor,
                     textStyle = LexemeStyle.H5,
-                    onTextChange = { sendMessage(Msg.ChangeWordValue(it)) },
-                    onOpenEditMode = { sendMessage(Msg.OpenEditWord) },
+                    onTextChange = { sendMessage(Msg.UpdateWordInput(it)) },
+                    onOpenEditMode = { sendMessage(Msg.EnterWordEditMode) },
                     onCloseEditMode = {
-                        sendMessage(Msg.CloseEditWord)
-                        sendMessage(Msg.SaveWordValue)
+                        sendMessage(Msg.ExitWordEditMode)
+                        sendMessage(Msg.CommitWordChanges)
                     },
                 )
                 wordState.added?.let { date ->

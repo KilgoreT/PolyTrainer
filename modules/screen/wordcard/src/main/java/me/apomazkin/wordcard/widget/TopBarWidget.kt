@@ -34,12 +34,12 @@ internal fun TopBarWidget(
         actions = {
             IconDropdownWidget(
                 isDropDownOpen = topBarState.isMenuOpen,
-                onClickDropDown = { sendMessage(Msg.ShowDropdownMenu) },
-                onDismissRequest = { sendMessage(Msg.HideDropdownMenu) },
+                onClickDropDown = { sendMessage(Msg.OpenTopBarMenu) },
+                onDismissRequest = { sendMessage(Msg.CloseTopBarMenu) },
             ) {
                 DeleteWordMenuItem {
-                    sendMessage(Msg.HideDropdownMenu)
-                    sendMessage(Msg.ShowDeleteWordDialog)
+                    sendMessage(Msg.CloseTopBarMenu)
+                    sendMessage(Msg.OpenDeleteWordDialog)
                 }
             }
         }
