@@ -9,7 +9,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.devtools.ksp") version "2.0.20-1.0.24"
+    id("com.google.devtools.ksp") version "2.2.0-2.0.2"
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
 }
@@ -36,7 +36,7 @@ android {
     defaultConfig {
         applicationId = "me.apomazkin.polytrainer"
         targetSdk = 35
-        minSdk = 21
+        minSdk = 23
         multiDexEnabled = true
 
         val appVersion = getVersionName()
@@ -49,11 +49,7 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.3"
-        //                        projectVersionCatalog
-        //                        .findVersion("kotlinCompilerExtensionVersion").get().toString()
-    }
+    // composeOptions not needed with org.jetbrains.kotlin.plugin.compose
 
     signingConfigs {
         register("signForRelease") {

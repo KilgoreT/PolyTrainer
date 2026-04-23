@@ -1,7 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp") version "2.0.20-1.0.24"
+    id("com.google.devtools.ksp") version "2.2.0-2.0.2"
 }
 android {
     namespace = "me.apomazkin.core_db"
@@ -10,7 +10,7 @@ android {
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        minSdk = 21
+        minSdk = 23
         targetSdk = 35
     }
     

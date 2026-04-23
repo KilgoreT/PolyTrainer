@@ -1,0 +1,39 @@
+# PolyTrainer — Гайды разработки
+
+Конвенции и паттерны для разработки фич в PolyTrainer.
+
+**Reference реализации:**
+- `modules/screen/quiz/chat` — ChatReducer (актуальный стиль редьюсера, inline extension chains)
+- `modules/screen/wordcard` — WordCard (полный TEA с тестами, reference для стейта/расширений)
+
+---
+
+## Архитектура
+
+- [Архитектура проекта](project-architecture.md) — модули, слои, DI, сборка
+- [Навигация](navigation.md) — NavHost, табы, маршруты, передача зависимостей
+- [Слой данных](data-layer.md) — Room, DataStore, UseCase, маппинг сущностей
+
+## Mate (TEA State Management)
+
+- [Mate Framework](mate-framework.md) — типы, цикл, подключение, конвенции
+- [Стейт и расширения](state-and-extensions.md) — иерархия стейта, extension-функции, использование в редьюсере
+- [Сообщения](messages.md) — sealed interface, именование, категории
+- [Паттерны редьюсера](reducer-patterns.md) — inline chains, условия, динамические эффекты, логирование
+- [Эффект-хендлеры](effect-handlers.md) — datasource/ui эффекты, FlowHandler, подключение
+- [ViewModel и DI](viewmodel-wiring.md) — структура ViewModel, Factory, пошаговый гайд нового экрана
+
+## Тестирование
+
+- [Тестирование расширений](testing-extensions.md) — тесты чистых трансформаций, проверка иммутабельности
+- [Тестирование редьюсеров](testing-reducers.md) — testReduce, testScenario, проверка стейта+эффектов
+
+## UI
+
+- [Паттерны UI](ui-patterns.md) — двухуровневые composable, отправка сообщений, общие виджеты, превью, лейаут
+
+## Стиль и конвенции
+
+- [Стиль кода](code-style.md) — форматирование, именование, git-конвенции, gradle
+- [Тема и ресурсы](theme-and-resources.md) — цвета, типографика, ResourceManager, иконки, превью
+- [Утилиты](tools-utils.md) — хелперы для работы со списками (modifyFiltered, insertToEnd)

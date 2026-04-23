@@ -13,8 +13,6 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.settingstab.widgets.about.AboutAppBar
 import me.apomazkin.settingstab.widgets.about.AppDescriptionWidget
 import me.apomazkin.settingstab.widgets.about.LogoVersionWidget
-import me.apomazkin.settingstab.widgets.settings.SettingsSectionWidget
-import me.apomazkin.settingstab.widgets.settings.items.base.SettingsItemWidget
 import me.apomazkin.ui.preview.PreviewScreen
 
 
@@ -63,22 +61,6 @@ fun AboutAppScreen(
                 )
             }
             
-            item {
-                SettingsSectionWidget {
-                    SettingsItemWidget(
-                        iconRes = R.drawable.ic_feedback,
-                        titleRes = R.string.settings_section_feedback,
-                        showNextIcon = true,
-                        onClick = { }
-                    )
-                    SettingsItemWidget(
-                        iconRes = R.drawable.ic_rate,
-                        titleRes = R.string.settings_section_rate,
-                        showNextIcon = true,
-                        onClick = { }
-                    )
-                }
-            }
         }
     }
 }

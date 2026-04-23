@@ -1,6 +1,6 @@
 [versions]
-kotlinVersion = "1.9.10"
-coroutinesVersion = "1.7.3"
+kotlinVersion = "2.2.0"
+coroutinesVersion = "1.10.1"
 
 [libraries]
 stdLibJdk8 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version.ref = "kotlinVersion" }
