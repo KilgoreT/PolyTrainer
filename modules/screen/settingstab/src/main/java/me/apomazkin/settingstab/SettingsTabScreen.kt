@@ -115,8 +115,8 @@ internal fun SettingsTabScreen(
                 item {
                     SettingsSectionWidget {
                         FeedBackWidget()
-                        RateWidget(onClick = null)
-                        AppShareWidget()
+//                        RateWidget(onClick = null)
+//                        AppShareWidget()
                     }
                 }
                 

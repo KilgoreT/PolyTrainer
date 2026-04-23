@@ -1,12 +1,12 @@
 [versions]
-kotlinGPVersion = "2.0.20"
-aGPVersion = "8.7.3" # AGP
-kotlinJvmPluginVersion = "1.9.10"
+kotlinGPVersion = "2.2.0"
+aGPVersion = "8.9.1" # AGP
+kotlinJvmPluginVersion = "2.2.0"
 testLoggerVersion = "4.0.0"
-minSdk = "21"
+minSdk = "23"
 targetSdk = "34"
 compileSdk = "34"
-kotlinCompilerExtensionVersion = "1.5.3"
+kotlinCompilerExtensionVersion = "1.5.3" # legacy, unused with kotlin.plugin.compose
 firebaseCrashlyticsVersion = "3.0.3"
 
 [libraries]
