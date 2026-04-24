@@ -1,7 +1,7 @@
 package me.apomazkin.core_db_impl.room.migrations
 
 import me.apomazkin.core_db_impl.entity.LexemeDb
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.room.schemable.WriteQuizDbV10
 import me.apomazkin.core_db_impl.room.base.BaseMigration
 import me.apomazkin.core_db_impl.room.schemable.LexemeDbV9
 import me.apomazkin.core_db_impl.room.schemable.LexemeV10
@@ -154,12 +154,12 @@ class MigrationFrom09to10 : BaseMigration() {
                     .getFromDatabase(database)
                     .checkData(
                         origin = WriteQuizV5.data(),
-                        originMatcher = { writeQuiz: WriteQuizDb ->
+                        originMatcher = { writeQuiz: WriteQuizDbV10 ->
                             WriteQuizV5
                                 .data()
                                 .firstOrNull { writeQuiz.id == it.id }
                         },
-                        checkMatcher = { migrated: WriteQuizDb, origin: WriteQuizDbV5 ->
+                        checkMatcher = { migrated: WriteQuizDbV10, origin: WriteQuizDbV5 ->
                             migrated.id == origin.id
                                     && migrated.langId == origin.langId
                                     && migrated.lexemeId == origin.definitionId

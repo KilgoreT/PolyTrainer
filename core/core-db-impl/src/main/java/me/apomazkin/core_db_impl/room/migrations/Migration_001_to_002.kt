@@ -4,8 +4,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 val migration_1_2 = object : Migration(1, 2) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL(
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
             "CREATE TABLE `writeQuiz`"
                     + " ("
                     + "`id` INTEGER NOT NULL,"
@@ -16,7 +16,7 @@ val migration_1_2 = object : Migration(1, 2) {
                     + ")"
         )
 
-        database.execSQL(
+        db.execSQL(
             "INSERT INTO writeQuiz (id, definitionId, grade, score) SELECT id, id as definitionId, 0 as grade, 0 as score FROM definitions"
         )
     }

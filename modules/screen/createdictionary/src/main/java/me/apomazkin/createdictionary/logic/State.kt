@@ -1,15 +1,15 @@
 package me.apomazkin.createdictionary.logic
 
-import me.apomazkin.createdictionary.entity.PresetLangUi
+import me.apomazkin.createdictionary.entity.PresetDictionaryUi
 
 data class CreateDictionaryState(
     val isLoading: Boolean = true,
     val needClose: Boolean = false,
-    val langState: LangState = LangState()
+    val dictionarySelectionState: DictionarySelectionState = DictionarySelectionState()
 )
 
-data class LangState(
-    val langList: List<PresetLangUi> = listOf(),
+data class DictionarySelectionState(
+    val dictionaryList: List<PresetDictionaryUi> = listOf(),
     val selectedNumericCode: Int? = null,
-    val addLangButtonEnable: Boolean = false,
+    val addDictionaryButtonEnable: Boolean = false,
 )

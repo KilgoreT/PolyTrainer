@@ -1,7 +1,7 @@
 package me.apomazkin.core_db_api.entity
 
 data class Dump(
-    val languages: List<LanguageDump>,
+    val dictionaries: List<DictionaryDump>,
     val words: List<WordDump>,
     val definitions: List<DefinitionDump>,
     val hints: List<HintDump>,

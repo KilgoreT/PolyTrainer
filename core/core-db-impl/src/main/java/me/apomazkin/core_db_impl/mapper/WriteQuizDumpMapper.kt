@@ -6,7 +6,7 @@ import java.util.Date
 
 fun WriteQuizDb.toDump() = WriteQuizDump(
     id = id,
-    langId = langId,
+    dictionaryId = dictionaryId,
     definitionId = lexemeId,
     grade = grade,
     score = score,
@@ -16,7 +16,7 @@ fun WriteQuizDb.toDump() = WriteQuizDump(
 
 fun WriteQuizDump.toDb() = WriteQuizDb(
         id = id,
-        langId = langId,
+        dictionaryId = this.dictionaryId,
         lexemeId = definitionId,
         grade = grade,
         score = score,

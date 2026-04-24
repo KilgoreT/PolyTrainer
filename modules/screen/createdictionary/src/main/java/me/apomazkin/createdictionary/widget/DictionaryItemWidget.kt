@@ -27,10 +27,10 @@ import me.apomazkin.ui.preview.PreviewWidget
 private const val DEFAULT_HORIZONTAL_PADDING = 8
 
 @Composable
-fun LanguageItemWidget(
+fun DictionaryItemWidget(
     @DrawableRes flagRes: Int,
-    langName: String,
-    langNumericCode: Int,
+    dictionaryName: String,
+    numericCode: Int,
     isSelected: Boolean,
     onClick: (numericCode: Int) -> Unit,
 ) {
@@ -38,7 +38,7 @@ fun LanguageItemWidget(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .clickable { onClick.invoke(langNumericCode) }
+            .clickable { onClick.invoke(numericCode) }
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -47,12 +47,12 @@ fun LanguageItemWidget(
             flagRes = flagRes,
             modifier = Modifier
                 .padding(start = DEFAULT_HORIZONTAL_PADDING.dp),
-            contentDescription = langName,
+            contentDescription = dictionaryName,
         )
         Text(
             modifier = Modifier
                 .weight(1F),
-            text = langName,
+            text = dictionaryName,
             style = MaterialTheme.typography.bodyLarge
                 .copy(color = MaterialTheme.colorScheme.secondary)
         )
@@ -76,10 +76,10 @@ private fun PreviewNotSelect() {
             modifier = Modifier
                 .background(whiteColor)
         ) {
-            LanguageItemWidget(
+            DictionaryItemWidget(
                 flagRes = R.drawable.example_ic_flag_gb,
-                langName = "English",
-                langNumericCode = 0,
+                dictionaryName = "English",
+                numericCode = 0,
                 isSelected = false
             ) {}
         }
@@ -94,10 +94,10 @@ private fun PreviewSelected() {
             modifier = Modifier
                 .background(whiteColor)
         ) {
-            LanguageItemWidget(
+            DictionaryItemWidget(
                 flagRes = R.drawable.example_ic_flag_gb,
-                langName = "English",
-                langNumericCode = 0,
+                dictionaryName = "English",
+                numericCode = 0,
                 isSelected = true
             ) {}
         }

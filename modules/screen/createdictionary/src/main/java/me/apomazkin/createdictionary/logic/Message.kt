@@ -1,12 +1,12 @@
 package me.apomazkin.createdictionary.logic
 
-import me.apomazkin.createdictionary.entity.PresetLangUi
+import me.apomazkin.createdictionary.entity.PresetDictionaryUi
 
 sealed interface Msg {
 
-    data class ShowLangList(val list: List<PresetLangUi>) : Msg
-    data class SelectLang(val numericCode: Int) : Msg
-    data class SaveLang(val numericCode: Int, val langName: String) : Msg
+    data class ShowDictionaryList(val list: List<PresetDictionaryUi>) : Msg
+    data class SelectDictionary(val numericCode: Int) : Msg
+    data class SaveDictionary(val numericCode: Int, val dictionaryName: String) : Msg
 
     object Close : Msg
 

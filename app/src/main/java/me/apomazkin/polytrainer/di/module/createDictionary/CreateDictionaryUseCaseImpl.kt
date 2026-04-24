@@ -8,18 +8,18 @@ import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
 
 class CreateDictionaryUseCaseImpl @Inject constructor(
-    private val langApi: CoreDbApi.LangApi,
+    private val dictionaryApi: CoreDbApi.DictionaryApi,
     private val flagProvider: FlagProvider,
     private val prefsProvider: PrefsProvider,
 ) : CreateDictionaryUseCase {
     override suspend fun getFlagRes(numericCode: Int): Int =
         flagProvider.getFlagRes(numericCode)
 
-    override suspend fun addLang(numericCode: Int, name: String): Long {
-        return langApi.addLang(numericCode, name)
+    override suspend fun addDictionary(numericCode: Int, name: String): Long {
+        return dictionaryApi.addDictionary(numericCode, name)
     }
 
-    override suspend fun saveCurrentLang(numericCode: Int) {
-        prefsProvider.setInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT, numericCode)
+    override suspend fun saveCurrentDictionary(numericCode: Int) {
+        prefsProvider.setInt(PrefKey.CURRENT_DICTIONARY_ID_LONG, numericCode)
     }
 }

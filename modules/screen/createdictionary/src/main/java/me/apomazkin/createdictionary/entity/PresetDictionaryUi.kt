@@ -3,8 +3,8 @@ package me.apomazkin.createdictionary.entity
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 
-data class PresetLangUi(
+data class PresetDictionaryUi(
     @DrawableRes val flagRes: Int,
     val countryNumericCode: Int,
-    @StringRes val langNameRes: Int,
+    @StringRes val dictionaryNameRes: Int,
 )

@@ -14,8 +14,8 @@ import me.apomazkin.mate.MateStateHolder
 
 interface CreateDictionaryUseCase {
     suspend fun getFlagRes(numericCode: Int): Int
-    suspend fun addLang(numericCode: Int, name: String): Long
-    suspend fun saveCurrentLang(numericCode: Int)
+    suspend fun addDictionary(numericCode: Int, name: String): Long
+    suspend fun saveCurrentDictionary(numericCode: Int)
 }
 
 class CreateDictionaryViewModel(
@@ -24,7 +24,7 @@ class CreateDictionaryViewModel(
 
     private val stateHolder = Mate(
         initState = CreateDictionaryState(),
-        initEffects = setOf(DatasourceEffect.LoadLangList),
+        initEffects = setOf(DatasourceEffect.LoadDictionaryList),
         coroutineScope = viewModelScope,
         reducer = CreateDictionaryReducer(),
         effectHandlerSet = setOf(

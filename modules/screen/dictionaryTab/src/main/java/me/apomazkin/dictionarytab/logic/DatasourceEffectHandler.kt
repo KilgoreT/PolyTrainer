@@ -75,12 +75,12 @@ internal class DatasourceEffectHandler(
             is DatasourceEffect.LoadTermFlow -> {
                 withContext(Dispatchers.IO) {
                     // TODO: зачем запрашивать id, если оно есть в стейте.
-                    val langId = dictionaryTabUseCase.getLangId(
+                    val dictionaryId = dictionaryTabUseCase.getDictionaryId(
                             numericCode = dictionaryTabUseCase.getCurrentDict().numericCode
                     )
                     val pagingFlow = dictionaryTabUseCase.searchTerms(
                             pattern = eff.pattern,
-                            langId = langId
+                            dictionaryId = dictionaryId
                     ).let { flow ->
                         if (eff.pattern.isEmpty()) flow.cachedIn(scope) else flow
                     }

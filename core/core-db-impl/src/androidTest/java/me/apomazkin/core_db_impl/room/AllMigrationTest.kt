@@ -9,6 +9,7 @@ import me.apomazkin.core_db_impl.room.migrations.MigrationFrom06to07
 import me.apomazkin.core_db_impl.room.migrations.MigrationFrom07to08
 import me.apomazkin.core_db_impl.room.migrations.MigrationFrom08to09
 import me.apomazkin.core_db_impl.room.migrations.MigrationFrom09to10
+import me.apomazkin.core_db_impl.room.migrations.MigrationFrom10to11
 import org.junit.runner.RunWith
 import org.junit.runners.Suite
 
@@ -23,5 +24,6 @@ import org.junit.runners.Suite
     MigrationFrom07to08::class,
     MigrationFrom08to09::class,
     MigrationFrom09to10::class,
+    MigrationFrom10to11::class,
 )
 class AllMigrationTest

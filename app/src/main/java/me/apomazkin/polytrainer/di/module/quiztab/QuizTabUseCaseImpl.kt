@@ -7,7 +7,7 @@ import me.apomazkin.quiztab.deps.QuizTabUseCase
 import javax.inject.Inject
 
 class QuizTabUseCaseImpl @Inject constructor(
-    private val langApi: CoreDbApi.LangApi,
+    private val dictionaryApi: CoreDbApi.DictionaryApi,
     private val prefsProvider: PrefsProvider,
     private val flagProvider: FlagProvider,
 ) : QuizTabUseCase {

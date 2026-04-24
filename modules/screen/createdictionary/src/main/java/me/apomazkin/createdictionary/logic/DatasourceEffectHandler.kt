@@ -4,9 +4,9 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.createdictionary.CreateDictionaryUseCase
-import me.apomazkin.createdictionary.LanguageData
-import me.apomazkin.createdictionary.entity.PresetLangUi
-import me.apomazkin.createdictionary.toLangNameRes
+import me.apomazkin.createdictionary.DictionaryData
+import me.apomazkin.createdictionary.entity.PresetDictionaryUi
+import me.apomazkin.createdictionary.toDictionaryNameRes
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
 
@@ -16,16 +16,16 @@ import me.apomazkin.mate.MateEffectHandler
 internal sealed interface DatasourceEffect : Effect {
 
     /**
-     * Effect to get available languages.
+     * Effect to get available dictionaries.
      */
-    object LoadLangList : DatasourceEffect
+    object LoadDictionaryList : DatasourceEffect
 
     /**
-     * Effect to save selected language.
+     * Effect to save selected dictionary.
      */
-    data class SaveLangList(
+    data class SaveDictionaryList(
         val numericCode: Int,
-        val langName: String
+        val dictionaryName: String
     ) : DatasourceEffect
 }
 
@@ -42,23 +42,26 @@ internal class DatasourceEffectHandler(
     ) {
         Log.d("##MATE##", "RunEffect: $effect")
         return when (val eff = effect as? DatasourceEffect) {
-            is DatasourceEffect.LoadLangList -> {
+            is DatasourceEffect.LoadDictionaryList -> {
                 withContext(Dispatchers.IO) {
-                    Msg.ShowLangList(
-                        LanguageData.langList.map {
-                            PresetLangUi(
+                    Msg.ShowDictionaryList(
+                        DictionaryData.dictionaryList.map {
+                            PresetDictionaryUi(
                                 flagRes = createDictionaryUseCase.getFlagRes(it.numericCode),
                                 countryNumericCode = it.numericCode,
-                                langNameRes = it.numericCode.toLangNameRes()
+                                dictionaryNameRes = it.numericCode.toDictionaryNameRes()
                             )
                         }
                     )
                 }
             }
-            is DatasourceEffect.SaveLangList -> {
+            is DatasourceEffect.SaveDictionaryList -> {
                 withContext(Dispatchers.IO) {
-                    createDictionaryUseCase.addLang(eff.numericCode, eff.langName)
-                    createDictionaryUseCase.saveCurrentLang(eff.numericCode)
+                    createDictionaryUseCase.addDictionary(
+                        eff.numericCode,
+                        eff.dictionaryName
+                    )
+                    createDictionaryUseCase.saveCurrentDictionary(eff.numericCode)
                 }
                 Msg.Close
             }

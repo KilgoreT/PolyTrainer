@@ -3,10 +3,10 @@ package me.apomazkin.createdictionary
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import me.apomazkin.createdictionary.entity.PresetLangUi
+import me.apomazkin.createdictionary.entity.PresetDictionaryUi
 
-object LanguageData {
-    val langList = listOf(
+object DictionaryData {
+    val dictionaryList = listOf(
         Country.ENGLISH,
         Country.SPANISH,
         Country.FRENCH,
@@ -15,20 +15,20 @@ object LanguageData {
         Country.PORTUGUESE,
     )
 
-    val langPreviewList = listOf(
-        PresetLangUi(
+    val dictionaryPreviewList = listOf(
+        PresetDictionaryUi(
             flagRes = R.drawable.example_ic_flag_gb,
-            langNameRes = R.string.lang_english,
+            dictionaryNameRes = R.string.lang_english,
             countryNumericCode = 0,
         ),
-        PresetLangUi(
+        PresetDictionaryUi(
             flagRes = R.drawable.example_ic_flag_gb,
-            langNameRes = R.string.lang_italian,
+            dictionaryNameRes = R.string.lang_italian,
             countryNumericCode = 0,
         ),
-        PresetLangUi(
+        PresetDictionaryUi(
             flagRes = R.drawable.example_ic_flag_gb,
-            langNameRes = R.string.lang_portuguese,
+            dictionaryNameRes = R.string.lang_portuguese,
             countryNumericCode = 0,
         ),
     )
@@ -44,7 +44,7 @@ enum class Country(val numericCode: Int) {
 }
 
 @Composable
-fun Int.toStringName() = when (this) {
+fun Int.toDictionaryStringName() = when (this) {
     Country.FRENCH.numericCode -> stringResource(id = R.string.lang_french)
     Country.GERMAN.numericCode -> stringResource(id = R.string.lang_german)
     Country.SPANISH.numericCode -> stringResource(id = R.string.lang_spanish)
@@ -55,7 +55,7 @@ fun Int.toStringName() = when (this) {
 }
 
 @StringRes
-fun Int.toLangNameRes() = when (this) {
+fun Int.toDictionaryNameRes() = when (this) {
     Country.FRENCH.numericCode -> R.string.lang_french
     Country.GERMAN.numericCode -> R.string.lang_german
     Country.SPANISH.numericCode -> R.string.lang_spanish

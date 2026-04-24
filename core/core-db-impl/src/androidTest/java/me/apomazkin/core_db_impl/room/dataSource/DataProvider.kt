@@ -1,7 +1,7 @@
 package me.apomazkin.core_db_impl.room.dataSource
 
 import me.apomazkin.core_db_impl.entity.HintDb
-import me.apomazkin.core_db_impl.entity.LanguageDb
+import me.apomazkin.core_db_impl.entity.DictionaryDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.SampleDb
 import java.util.Date
@@ -9,17 +9,15 @@ import java.util.Date
 class DataProvider {
     companion object {
         val languageList = listOf(
-            LanguageDb(
+            DictionaryDb(
                 id = 0,
                 numericCode = 1,
-                code = "en",
                 name = "English",
                 addDate = Date(System.currentTimeMillis())
             ),
-            LanguageDb(
+            DictionaryDb(
                 id = 1,
                 numericCode = 2,
-                code = "ru",
                 name = "Russia",
                 addDate = Date(System.currentTimeMillis())
             ),

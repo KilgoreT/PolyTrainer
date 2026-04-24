@@ -39,17 +39,17 @@
     <string name="button_cancel">Отменить</string>
     <string name="button_delete">Удалить</string>
 
-    <!--LANGUAGE SELECTION-->
-    <string name="lang_selection_title">Создание словаря</string>
-    <string name="lang_selection_subtitle">Язык</string>
+    <!--DICTIONARY SELECTION-->
+    <string name="dictionary_selection_title">Создание словаря</string>
+    <string name="dictionary_selection_subtitle">Язык</string>
     <string name="lang_english">Английский</string>
     <string name="lang_german">Немецкий</string>
     <string name="lang_french">Французский</string>
     <string name="lang_spanish">Испанский</string>
     <string name="lang_italian">Итальянский</string>
     <string name="lang_portuguese">Португальский</string>
-    <string name="lang_selection_button">Создать</string>
-    <string name="lang_selection_error">Язык уже добавлен</string>
+    <string name="dictionary_selection_button">Создать</string>
+    <string name="dictionary_selection_error">Словарь уже добавлен</string>
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Словарь</string>

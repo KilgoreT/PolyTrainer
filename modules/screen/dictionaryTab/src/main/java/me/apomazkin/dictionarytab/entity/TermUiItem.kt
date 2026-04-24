@@ -6,7 +6,7 @@ import java.util.Date
 data class TermUiItem(
     val id: Long,
     val wordValue: String,
-    val langId: Long,
+    val dictionaryId: Long,
     val addDate: Date,
     val changeDate: Date? = null,
     val lexemeList: List<LexemeUiItem> = listOf(),

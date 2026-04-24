@@ -166,9 +166,9 @@ class QuizGameImpl(
     }
 
     private suspend fun fetchData(): List<QuizItem> {
-        val langId = quizChatUseCase.getCurrentLangId()
+        val dictionaryId = quizChatUseCase.getCurrentDictionaryId()
         return quizChatUseCase.getRandomWriteQuizList(
-                langId = langId,
+                dictionaryId = dictionaryId,
                 limit = maxStepInSession,
                 maxGrade = maxGrade
         ).also {
@@ -400,7 +400,7 @@ data class QuizItem(
 ) {
     data class QuizInfo(
             val id: Long,
-            val langId: Long,
+            val dictionaryId: Long,
             val lexemeId: Long,
             val grade: Int,
             val score: Int,
@@ -491,7 +491,7 @@ fun WriteQuiz.toQuizItem(
             },
             info = QuizItem.QuizInfo(
                     id = id,
-                    langId = langId,
+                    dictionaryId = dictionaryId,
                     lexemeId = lexeme.id,
                     grade = grade,
                     score = score,
@@ -526,7 +526,7 @@ fun QuizItem.QuizInfo.correct(
     }
     return WriteQuizUpsertEntity(
             id = id,
-            langId = langId,
+            dictionaryId = dictionaryId,
             lexemeId = lexemeId,
             grade = gradeNew,
             score = scoreNew,
@@ -560,7 +560,7 @@ fun QuizItem.QuizInfo.incorrect(
     }
     return WriteQuizUpsertEntity(
             id = id,
-            langId = langId,
+            dictionaryId = dictionaryId,
             lexemeId = lexemeId,
             grade = gradeNew,
             score = scoreNew,

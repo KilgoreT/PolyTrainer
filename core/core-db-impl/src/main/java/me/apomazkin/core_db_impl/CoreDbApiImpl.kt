@@ -12,13 +12,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DefinitionApiEntity
-import me.apomazkin.core_db_api.entity.LanguageApiEntity
+import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.TranslationApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
-import me.apomazkin.core_db_impl.entity.LanguageDb
+import me.apomazkin.core_db_impl.entity.DictionaryDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
@@ -73,33 +73,32 @@ class CoreDbApiImpl @Inject constructor(
         }
     }
 
-    class LangApiImpl @Inject constructor(
+    class DictionaryApiImpl @Inject constructor(
         private val wordDao: WordDao,
-    ) : CoreDbApi.LangApi {
+    ) : CoreDbApi.DictionaryApi {
 
-        override suspend fun addLang(numericCode: Int, name: String): Long {
+        override suspend fun addDictionary(numericCode: Int, name: String): Long {
             val currentDate = Date(System.currentTimeMillis())
-            return wordDao.addLanguage(
-                LanguageDb(
+            return wordDao.addDictionary(
+                DictionaryDb(
                     numericCode = numericCode,
-                    code = "",
                     name = name,
                     addDate = currentDate,
                 )
             )
         }
 
-        override suspend fun getLang(numericCode: Int): LanguageApiEntity? {
-            return wordDao.getLanguageByNumeric(numericCode)
+        override suspend fun getDictionary(numericCode: Int): DictionaryApiEntity? {
+            return wordDao.getDictionaryByNumeric(numericCode)
                 ?.let { return it.toApiEntity() }
         }
 
-        override suspend fun getLangList(): List<LanguageApiEntity> {
-            return wordDao.getLanguages().map { it.toApiEntity() }
+        override suspend fun getDictionaryList(): List<DictionaryApiEntity> {
+            return wordDao.getDictionaries().map { it.toApiEntity() }
         }
 
-        override fun flowLangList(): Flow<List<LanguageApiEntity>> {
-            return wordDao.flowLanguages().map { it.toApiEntity() }
+        override fun flowDictionaryList(): Flow<List<DictionaryApiEntity>> {
+            return wordDao.flowDictionaries().map { it.toApiEntity() }
         }
 
     }
@@ -108,20 +107,20 @@ class CoreDbApiImpl @Inject constructor(
         private val wordDao: WordDao,
     ) : CoreDbApi.TermApi {
 
-        override suspend fun getTermList(langId: Int): List<TermApiEntity> {
-            return wordDao.getTermList(langId).map { it.toApiEntity() }
+        override suspend fun getTermList(dictionaryId: Int): List<TermApiEntity> {
+            return wordDao.getTermList(dictionaryId).map { it.toApiEntity() }
         }
 
         override suspend fun searchTerms(
             pattern: String,
-            langId: Long,
+            dictionaryId: Long,
         ): List<TermApiEntity> {
-            return wordDao.searchTerms(pattern, langId).map { it.toApiEntity() }
+            return wordDao.searchTerms(pattern, dictionaryId).map { it.toApiEntity() }
         }
 
         override fun searchTermsPaging(
             pattern: String,
-            langId: Int,
+            dictionaryId: Int,
         ): Flow<PagingData<TermApiEntity>> {
             return Pager(
                 config = PagingConfig(
@@ -133,7 +132,7 @@ class CoreDbApiImpl @Inject constructor(
                     if (BuildConfig.DEBUG) {
                         Log.d("###", ">>>> TermsPaging => NEW PAGING SOURCE: $pattern")
                     }
-                    wordDao.searchTermsPaging(pattern, langId)
+                    wordDao.searchTermsPaging(pattern, dictionaryId)
                 }
             ).flow.map { pagingData ->
                 pagingData.map {
@@ -150,12 +149,12 @@ class CoreDbApiImpl @Inject constructor(
     class WordApiImpl @Inject constructor(
         private val wordDao: WordDao,
     ) : CoreDbApi.WordApi {
-        override fun addWordSuspend(value: String, langId: Int): Long {
+        override fun addWordSuspend(value: String, dictionaryId: Int): Long {
             val currentDate = Date(System.currentTimeMillis())
             return wordDao.addWordSuspend(
                 WordDb(
                     value = value,
-                    langId = langId.toLong(),
+                    dictionaryId = dictionaryId.toLong(),
                     addDate = currentDate,
                 )
             )
@@ -260,12 +259,12 @@ class CoreDbApiImpl @Inject constructor(
     ) : CoreDbApi.QuizApi {
 
         override suspend fun addWriteQuiz(
-            langId: Long,
+            dictionaryId: Long,
             lexemeId: Long,
         ): Long {
             return wordDao.addWriteQuiz(
                 WriteQuizDb.create(
-                    langId = langId,
+                    dictionaryId = dictionaryId,
                     lexemeId = lexemeId
                 )
             )
@@ -278,10 +277,10 @@ class CoreDbApiImpl @Inject constructor(
         override suspend fun getRandomWriteQuizList(
             grade: Int,
             limit: Int,
-            langId: Long,
+            dictionaryId: Long,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getRandomWriteQuizList(
-                langId = langId,
+                langId = dictionaryId,
                 grade = grade,
                 limit = limit,
             ).map { it.toApiEntity() }
@@ -289,20 +288,20 @@ class CoreDbApiImpl @Inject constructor(
 
         override suspend fun getEarliestWriteQuizList(
             limit: Int,
-            langId: Long,
+            dictionaryId: Long,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getEarliest(
-                langId = langId,
+                langId = dictionaryId,
                 limit = limit,
             ).map { it.toApiEntity() }
         }
 
         override suspend fun getFrequentMistakesWriteQuizList(
             limit: Int,
-            langId: Long
+            dictionaryId: Long
         ): List<WriteQuizComplexEntity> {
             return wordDao.getFrequentMistakes(
-                langId = langId,
+                langId = dictionaryId,
                 limit = limit,
             ).map { it.toApiEntity() }
         }
@@ -312,16 +311,16 @@ class CoreDbApiImpl @Inject constructor(
         private val wordDao: WordDao
     ): CoreDbApi.StatisticApi {
 
-        override fun flowWordCount(langId: Int): Flow<Int> =
-            wordDao.flowWordCount(langId = langId)
+        override fun flowWordCount(dictionaryId: Int): Flow<Int> =
+            wordDao.flowWordCount(langId = dictionaryId)
 
-        override fun flowLexemeCount(langId: Int): Flow<Int> =
-            wordDao.flowLexemeCount(langId = langId)
+        override fun flowLexemeCount(dictionaryId: Int): Flow<Int> =
+            wordDao.flowLexemeCount(langId = dictionaryId)
 
-        override fun flowQuizCount(langId: Int, maxGrade: Int): Flow<Map<Int, Int>> {
+        override fun flowQuizCount(dictionaryId: Int, maxGrade: Int): Flow<Map<Int, Int>> {
             val gradeRange = 0..maxGrade
             val flows: List<Flow<Pair<Int, Int>>> = gradeRange.map { grade ->
-                wordDao.flowQuizCount(langId, grade).map { count -> grade to count }
+                wordDao.flowQuizCount(dictionaryId, grade).map { count -> grade to count }
             }
 
             return combine(flows) { pairs: Array<Pair<Int, Int>> ->

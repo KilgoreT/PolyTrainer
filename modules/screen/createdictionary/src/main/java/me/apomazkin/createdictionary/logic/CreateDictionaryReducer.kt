@@ -1,7 +1,7 @@
 package me.apomazkin.createdictionary.logic
 
 import android.util.Log
-import me.apomazkin.createdictionary.entity.PresetLangUi
+import me.apomazkin.createdictionary.entity.PresetDictionaryUi
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
@@ -14,9 +14,12 @@ internal class CreateDictionaryReducer : MateReducer<CreateDictionaryState, Msg,
         Log.d("##MATE##", "Reduce --prevState--: $state ")
         Log.d("##MATE##", "Reduce ---message---: $message ")
         return when (message) {
-            is Msg.ShowLangList -> state.loadLang(message.list)
-            is Msg.SelectLang -> state.selectLang(message.numericCode)
-            is Msg.SaveLang -> state.saveLang(message.numericCode, message.langName)
+            is Msg.ShowDictionaryList -> state.loadDictionary(message.list)
+            is Msg.SelectDictionary -> state.selectDictionary(message.numericCode)
+            is Msg.SaveDictionary -> state.saveDictionary(
+                message.numericCode,
+                message.dictionaryName
+            )
             is Msg.Close -> state.closeScreen()
             Msg.Empty -> state to emptySet()
         }.also {
@@ -27,39 +30,41 @@ internal class CreateDictionaryReducer : MateReducer<CreateDictionaryState, Msg,
         }
     }
 
-    private fun CreateDictionaryState.loadLang(
-        list: List<PresetLangUi>
+    private fun CreateDictionaryState.loadDictionary(
+        list: List<PresetDictionaryUi>
     ): Pair<CreateDictionaryState, Set<Effect>> {
         return this.copy(
             isLoading = false,
-            langState = langState.copy(
-                langList = list
+            dictionarySelectionState = dictionarySelectionState.copy(
+                dictionaryList = list
             )
         ) to setOf()
     }
 
-    private fun CreateDictionaryState.selectLang(
+    private fun CreateDictionaryState.selectDictionary(
         numericCode: Int,
     ): Pair<CreateDictionaryState, Set<Effect>> {
         return copy(
-            langState = langState.copy(
-                selectedNumericCode = if (langState.selectedNumericCode == numericCode) null
-                else numericCode,
-                addLangButtonEnable = langState.selectedNumericCode != numericCode,
+            dictionarySelectionState = dictionarySelectionState.copy(
+                selectedNumericCode =
+                    if (dictionarySelectionState.selectedNumericCode == numericCode) null
+                    else numericCode,
+                addDictionaryButtonEnable =
+                    dictionarySelectionState.selectedNumericCode != numericCode,
             )
         ) to setOf()
     }
 
-    private fun CreateDictionaryState.saveLang(
+    private fun CreateDictionaryState.saveDictionary(
         numericCode: Int,
-        langName: String
+        dictionaryName: String
     ): Pair<CreateDictionaryState, Set<Effect>> =
         copy(
-            langState = langState.copy(
-                addLangButtonEnable = false
+            dictionarySelectionState = dictionarySelectionState.copy(
+                addDictionaryButtonEnable = false
             )
         ) to setOf(
-            DatasourceEffect.SaveLangList(numericCode, langName)
+            DatasourceEffect.SaveDictionaryList(numericCode, dictionaryName)
         )
 
     private fun CreateDictionaryState.closeScreen(): Pair<CreateDictionaryState, Set<Effect>> =

@@ -11,9 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import me.apomazkin.createdictionary.LanguageData
+import me.apomazkin.createdictionary.DictionaryData
 import me.apomazkin.createdictionary.R
-import me.apomazkin.createdictionary.entity.PresetLangUi
+import me.apomazkin.createdictionary.entity.PresetDictionaryUi
 import me.apomazkin.createdictionary.logic.Msg
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
@@ -25,14 +25,14 @@ private const val LIST_VERTICAL_PADDING = 12
 private const val LIST_VERTICAL_GAP = 4
 
 @Composable
-fun ColumnScope.LangListWidget(
-    langList: List<PresetLangUi>,
+fun ColumnScope.DictionaryListWidget(
+    dictionaryList: List<PresetDictionaryUi>,
     selectedNumericCode: Int?,
     sendMsg: (Msg) -> Unit,
 ) {
     ListHeaderWidget(
-        titleRes = R.string.lang_selection_title,
-        subTitleRes = R.string.lang_selection_subtitle,
+        titleRes = R.string.dictionary_selection_title,
+        subTitleRes = R.string.dictionary_selection_subtitle,
         modifier = Modifier
             .padding(top = HEADER_TOP_PADDING.dp)
     )
@@ -44,13 +44,13 @@ fun ColumnScope.LangListWidget(
         ),
         verticalArrangement = Arrangement.spacedBy(LIST_VERTICAL_GAP.dp)
     ) {
-        items(langList) { item ->
-            LanguageItemWidget(
+        items(dictionaryList) { item ->
+            DictionaryItemWidget(
                 flagRes = item.flagRes,
-                langName = stringResource(id = item.langNameRes),
-                langNumericCode = item.countryNumericCode,
+                dictionaryName = stringResource(id = item.dictionaryNameRes),
+                numericCode = item.countryNumericCode,
                 isSelected = selectedNumericCode == item.countryNumericCode
-            ) { sendMsg(Msg.SelectLang(it)) }
+            ) { sendMsg(Msg.SelectDictionary(it)) }
         }
     }
 }
@@ -64,8 +64,8 @@ private fun Preview() {
                 .fillMaxSize()
                 .background(whiteColor)
         ) {
-            LangListWidget(
-                langList = LanguageData.langPreviewList,
+            DictionaryListWidget(
+                dictionaryList = DictionaryData.dictionaryPreviewList,
                 selectedNumericCode = null,
             ) {}
         }

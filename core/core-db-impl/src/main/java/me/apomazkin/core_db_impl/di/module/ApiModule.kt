@@ -15,7 +15,7 @@ interface ApiModule {
     fun provideDbInstance(impl: CoreDbApiImpl.DbInstanceImpl): CoreDbApi.DbInstance
     
     @Binds
-    fun provideLangApi(impl: CoreDbApiImpl.LangApiImpl): CoreDbApi.LangApi
+    fun provideDictionaryApi(impl: CoreDbApiImpl.DictionaryApiImpl): CoreDbApi.DictionaryApi
 
     @Binds
     fun provideWordApi(impl: CoreDbApiImpl.WordApiImpl): CoreDbApi.WordApi

@@ -49,17 +49,17 @@
     <string name="button_delete">Delete</string>
 
 
-    <!--LANGUAGE SELECTION-->
-    <string name="lang_selection_title">Creating a dictionary</string>
-    <string name="lang_selection_subtitle">Select language</string>
+    <!--DICTIONARY SELECTION-->
+    <string name="dictionary_selection_title">Creating a dictionary</string>
+    <string name="dictionary_selection_subtitle">Select language</string>
     <string name="lang_english">English</string>
     <string name="lang_german">German</string>
     <string name="lang_french">French</string>
     <string name="lang_spanish">Spanish</string>
     <string name="lang_italian">Italian</string>
     <string name="lang_portuguese">Portuguese</string>
-    <string name="lang_selection_button">Create</string>
-    <string name="lang_selection_error">Language already added</string>
+    <string name="dictionary_selection_button">Create</string>
+    <string name="dictionary_selection_error">Dictionary already added</string>
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Dictionary</string>

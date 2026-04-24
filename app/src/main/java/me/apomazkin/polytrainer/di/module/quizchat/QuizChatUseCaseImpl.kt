@@ -18,28 +18,28 @@ import me.apomazkin.quiz.chat.entity.WriteQuizUpsertEntity
 import javax.inject.Inject
 
 class QuizChatUseCaseImpl @Inject constructor(
-    private val langApi: CoreDbApi.LangApi,
+    private val dictionaryApi: CoreDbApi.DictionaryApi,
     private val quizApi: CoreDbApi.QuizApi,
     private val prefsProvider: PrefsProvider,
 ) : QuizChatUseCase {
     
-    override suspend fun getCurrentLangId(): Long {
-        prefsProvider.getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+    override suspend fun getCurrentDictionaryId(): Long {
+        prefsProvider.getInt(PrefKey.CURRENT_DICTIONARY_ID_LONG)
             ?.let { num ->
-                langApi.getLang(numericCode = num)
-                    ?.let { return it.id.toLong() }
+                dictionaryApi.getDictionary(numericCode = num)
+                    ?.let { return it.id }
             }
-            ?: langApi.getLangList()
+            ?: dictionaryApi.getDictionaryList()
                 .firstOrNull()
                 ?.let {
                     prefsProvider.setInt(
-                        PrefKey.CURRENT_LANG_NUMERIC_CODE_INT,
-                        it.numericCode
+                        PrefKey.CURRENT_DICTIONARY_ID_LONG,
+                        it.numericCode ?: 0
                     )
-                    return it.id.toLong()
+                    return it.id
                 }
-        
-        throw IllegalStateException("Language not found")
+
+        throw IllegalStateException("Dictionary not found")
     }
     
     override suspend fun updateWriteQuiz(entity: List<WriteQuizUpsertEntity>): Int {
@@ -49,15 +49,15 @@ class QuizChatUseCaseImpl @Inject constructor(
     override suspend fun getRandomWriteQuizList(
         limit: Int,
         maxGrade: Int,
-        langId: Long
+        dictionaryId: Long
     ): List<WriteQuiz> {
-        
+
         val allByGrades: Map<Int, List<WriteQuiz>> = (0..maxGrade)
             .associateWith { grade ->
                 quizApi.getRandomWriteQuizList(
                     grade = grade,
                     limit = limit,
-                    langId = langId,
+                    dictionaryId = dictionaryId,
                 ).shuffled().toDomainEntity(type = QuizType.GRADES)
             }
         val sortedGrades = allByGrades.toSortedMap()
@@ -91,7 +91,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                 ?: false
         if (isEarliestOn) {
             val earliest = quizApi
-                    .getEarliestWriteQuizList(limit, langId)
+                    .getEarliestWriteQuizList(limit, dictionaryId)
                     .shuffled()
                     .toDomainEntity(type = QuizType.EARLIEST)
                     .take(2)
@@ -101,7 +101,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                 ?: false
         if (isFrequentMistakesOn) {
             val frequentMistakes = quizApi
-                .getFrequentMistakesWriteQuizList(limit, langId)
+                .getFrequentMistakesWriteQuizList(limit, dictionaryId)
                 .shuffled()
                 .toDomainEntity(type = QuizType.ERRORS)
                 .take(2)
@@ -128,7 +128,7 @@ fun WordApiEntity.toDomainEntity() = Word(
 
 fun WriteQuizComplexEntity.toDomainEntity(type: QuizType?) = WriteQuiz(
         id = quizData.id,
-        langId = quizData.langId,
+        dictionaryId = quizData.dictionaryId,
         grade = quizData.grade,
         score = quizData.score,
         errorCount = quizData.errorCount,
@@ -145,7 +145,7 @@ fun List<WriteQuizComplexEntity>.toDomainEntity(
 
 fun WriteQuizUpsertEntity.toApiEntity() = WriteQuizUpsertApiEntity(
         id = id,
-        langId = langId,
+        dictionaryId = dictionaryId,
         lexemeId = lexemeId,
         grade = grade,
         score = score,

@@ -1,6 +1,6 @@
 package me.apomazkin.createdictionary.entity
 
-data class LangUpdateUi(
+data class DictionaryUpdateUi(
     val countryNumericCode: Int,
-    val langName: String,
+    val dictionaryName: String,
 )

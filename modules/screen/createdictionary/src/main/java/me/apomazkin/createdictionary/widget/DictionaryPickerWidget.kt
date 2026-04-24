@@ -12,11 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import me.apomazkin.createdictionary.LanguageData
+import me.apomazkin.createdictionary.DictionaryData
 import me.apomazkin.createdictionary.R
-import me.apomazkin.createdictionary.logic.LangState
+import me.apomazkin.createdictionary.logic.DictionarySelectionState
 import me.apomazkin.createdictionary.logic.Msg
-import me.apomazkin.createdictionary.toLangNameRes
+import me.apomazkin.createdictionary.toDictionaryNameRes
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
@@ -25,8 +25,8 @@ import me.apomazkin.ui.preview.PreviewWidget
 private const val BOTTOM_PADDING = 16
 
 @Composable
-fun BoxScope.LangPickerWidget(
-    langState: LangState,
+fun BoxScope.DictionaryPickerWidget(
+    dictionarySelectionState: DictionarySelectionState,
     sendMsg: (Msg) -> Unit,
 ) {
     val context = LocalContext.current
@@ -34,20 +34,20 @@ fun BoxScope.LangPickerWidget(
         modifier = Modifier
             .padding(horizontal = 16.dp),
     ) {
-        LangListWidget(
-            langList = langState.langList,
-            selectedNumericCode = langState.selectedNumericCode,
+        DictionaryListWidget(
+            dictionaryList = dictionarySelectionState.dictionaryList,
+            selectedNumericCode = dictionarySelectionState.selectedNumericCode,
             sendMsg = sendMsg,
         )
         Spacer(modifier = Modifier.weight(1F))
 
         PrimaryFullButtonWidget(
-            titleRes = R.string.lang_selection_button,
-            enabled = langState.addLangButtonEnable
+            titleRes = R.string.dictionary_selection_button,
+            enabled = dictionarySelectionState.addDictionaryButtonEnable
         ) {
-            langState.selectedNumericCode?.let { numericCode ->
-                val langName = context.getString(numericCode.toLangNameRes())
-                sendMsg(Msg.SaveLang(numericCode, langName))
+            dictionarySelectionState.selectedNumericCode?.let { numericCode ->
+                val dictionaryName = context.getString(numericCode.toDictionaryNameRes())
+                sendMsg(Msg.SaveDictionary(numericCode, dictionaryName))
             }
         }
         Spacer(modifier = Modifier.height(BOTTOM_PADDING.dp))
@@ -63,10 +63,10 @@ private fun Preview() {
                 .fillMaxSize()
                 .background(whiteColor)
         ) {
-            LangPickerWidget(
-                langState = LangState(
-                    langList = LanguageData.langPreviewList,
-                    addLangButtonEnable = true,
+            DictionaryPickerWidget(
+                dictionarySelectionState = DictionarySelectionState(
+                    dictionaryList = DictionaryData.dictionaryPreviewList,
+                    addDictionaryButtonEnable = true,
                 )
             ) {}
         }

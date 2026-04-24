@@ -11,9 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.createdictionary.logic.CreateDictionaryState
-import me.apomazkin.createdictionary.logic.LangState
+import me.apomazkin.createdictionary.logic.DictionarySelectionState
 import me.apomazkin.createdictionary.logic.Msg
-import me.apomazkin.createdictionary.widget.LangPickerWidget
+import me.apomazkin.createdictionary.widget.DictionaryPickerWidget
 import me.apomazkin.createdictionary.widget.LoadingWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
@@ -59,8 +59,8 @@ fun CreateDictionaryScreen(
         if (state.isLoading) {
             LoadingWidget()
         } else {
-            LangPickerWidget(
-                langState = state.langState,
+            DictionaryPickerWidget(
+                dictionarySelectionState = state.dictionarySelectionState,
                 sendMsg = sendMsg
             )
         }
@@ -74,8 +74,8 @@ private fun Preview() {
         CreateDictionaryScreen(
             state = CreateDictionaryState(
                 isLoading = false,
-                langState = LangState(
-                    langList = LanguageData.langPreviewList,
+                dictionarySelectionState = DictionarySelectionState(
+                    dictionaryList = DictionaryData.dictionaryPreviewList,
                 )
             ),
             onClose = {}

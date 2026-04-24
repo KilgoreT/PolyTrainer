@@ -12,17 +12,17 @@ sealed interface Msg {
     data class AvailableDict(val list: List<DictUiEntity>) : Msg
 
     /**
-     * Message to setup current language.
+     * Message to setup current dictionary.
      */
     data class CurrentDict(val current: DictUiEntity) : Msg
 
     /**
-     * Message to change current language.
+     * Message to change current dictionary.
      */
     data class ChangeDict(val dict: DictUiEntity) : Msg
 
     /**
-     * Messages to expand or collapse Language [DropdownMenu].
+     * Messages to expand or collapse Dictionary [DropdownMenu].
      */
     data object DictMenuOn : Msg
     data object DictMenuOff : Msg

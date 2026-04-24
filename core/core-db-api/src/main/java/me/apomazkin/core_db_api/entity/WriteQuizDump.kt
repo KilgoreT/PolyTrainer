@@ -4,7 +4,7 @@ import java.util.*
 
 data class WriteQuizDump(
     val id: Long = 0,
-    val langId: Long = 0,
+    val dictionaryId: Long = 0,
     val definitionId: Long,
     val grade: Int = 0,
     val score: Int = 0,

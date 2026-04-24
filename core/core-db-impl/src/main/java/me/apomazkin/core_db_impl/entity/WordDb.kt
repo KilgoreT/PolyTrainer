@@ -12,18 +12,18 @@ import java.util.Date
     tableName = "words",
     foreignKeys = [
         ForeignKey(
-            entity = LanguageDb::class,
+            entity = DictionaryDb::class,
             parentColumns = ["id"],
-            childColumns = ["lang_id"],
+            childColumns = ["dictionary_id"],
             onDelete = ForeignKey.CASCADE,
         )
     ],
-    indices = [Index("lang_id")]
+    indices = [Index("dictionary_id")]
 )
 data class WordDb(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id") val id: Long = 0,
-    @ColumnInfo(name = "lang_id") val langId: Long,
+    @ColumnInfo(name = "dictionary_id") val dictionaryId: Long,
     @ColumnInfo(name = "value") val value: String,
     @ColumnInfo(name = "add_date") val addDate: Date,
     @ColumnInfo(name = "change_date") val changeDate: Date? = null,
@@ -31,7 +31,7 @@ data class WordDb(
 
 fun WordDb.toApiEntity() = WordApiEntity(
     id = this.id,
-    langId = this.langId,
+    dictionaryId = this.dictionaryId,
     value = this.value,
     addDate = this.addDate,
     changeDate = this.changeDate,
@@ -41,7 +41,7 @@ fun List<WordDb>.toApiEntity() = this.map { it.toApiEntity() }
 
 fun WordApiEntity.toDbEntity() = WordDb(
     id = this.id,
-    langId = this.langId,
+    dictionaryId = this.dictionaryId,
     value = this.value,
     addDate = this.addDate,
     changeDate = this.changeDate,

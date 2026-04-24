@@ -14,58 +14,58 @@ import me.apomazkin.stattab.deps.StatisticUseCase
 import javax.inject.Inject
 
 class StatisticUseCaseImpl @Inject constructor(
-        private val langApi: CoreDbApi.LangApi,
+        private val dictionaryApi: CoreDbApi.DictionaryApi,
         private val statisticDbApi: CoreDbApi.StatisticApi,
         private val prefsProvider: PrefsProvider,
 ) : StatisticUseCase {
     override suspend fun flowWordCount(): Flow<Int> {
-        val langIdFlow: Flow<Int?> = prefsProvider
-                .getIntFlow(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+        val dictionaryIdFlow: Flow<Int?> = prefsProvider
+                .getIntFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
                 .filterNotNull()
                 .mapLatest { numericCode ->
-                    val langId = langApi
-                            .getLang(numericCode = numericCode)?.id
-                            ?: langApi.getLangList().firstOrNull()?.id
-                    langId
+                    val dictionaryId = dictionaryApi
+                            .getDictionary(numericCode = numericCode)?.id?.toInt()
+                            ?: dictionaryApi.getDictionaryList().firstOrNull()?.id?.toInt()
+                    dictionaryId
                 }
-        return  langIdFlow
+        return  dictionaryIdFlow
                 .filterNotNull()
-                .flatMapLatest { langId ->
-                    statisticDbApi.flowWordCount(langId)
+                .flatMapLatest { dictionaryId ->
+                    statisticDbApi.flowWordCount(dictionaryId)
                 }
     }
 
     override suspend fun flowLexemeCount(): Flow<Int> {
-        val langIdFlow: Flow<Int?> = prefsProvider
-                .getIntFlow(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+        val dictionaryIdFlow: Flow<Int?> = prefsProvider
+                .getIntFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
                 .filterNotNull()
                 .mapLatest { numericCode ->
-                    val langId = langApi
-                            .getLang(numericCode = numericCode)?.id
-                            ?: langApi.getLangList().firstOrNull()?.id
-                    langId
+                    val dictionaryId = dictionaryApi
+                            .getDictionary(numericCode = numericCode)?.id?.toInt()
+                            ?: dictionaryApi.getDictionaryList().firstOrNull()?.id?.toInt()
+                    dictionaryId
                 }
-        return  langIdFlow
+        return  dictionaryIdFlow
                 .filterNotNull()
-                .flatMapLatest { langId ->
-                    statisticDbApi.flowLexemeCount(langId)
+                .flatMapLatest { dictionaryId ->
+                    statisticDbApi.flowLexemeCount(dictionaryId)
                 }
     }
 
     override suspend fun flowQuizStat(): Flow<Map<Int, Int>> {
-        val langIdFlow: Flow<Int?> = prefsProvider
-            .getIntFlow(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
+        val dictionaryIdFlow: Flow<Int?> = prefsProvider
+            .getIntFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
             .filterNotNull()
             .mapLatest { numericCode ->
-                val langId = langApi
-                    .getLang(numericCode = numericCode)?.id
-                    ?: langApi.getLangList().firstOrNull()?.id
-                langId
+                val dictionaryId = dictionaryApi
+                    .getDictionary(numericCode = numericCode)?.id?.toInt()
+                    ?: dictionaryApi.getDictionaryList().firstOrNull()?.id?.toInt()
+                dictionaryId
             }
-        return langIdFlow
+        return dictionaryIdFlow
             .filterNotNull()
-            .flatMapLatest { langId ->
-                statisticDbApi.flowQuizCount(langId = langId, maxGrade = 4)
+            .flatMapLatest { dictionaryId ->
+                statisticDbApi.flowQuizCount(dictionaryId = dictionaryId, maxGrade = 4)
             }
     }
 }
