@@ -12,11 +12,11 @@ private const val QUIZ_ROUTE_ARG = "quizType"
 fun NavGraphBuilder.quiz(
     navController: NavHostController,
     mainUiDeps: MainUiDeps,
-    openAddDict: () -> Unit,
+    openDictionaryManagement: () -> Unit,
 ) {
     composable(TabPoint.QUIZ.route) {
         mainUiDeps.QuizTabScreenDep(
-            openAddDict = openAddDict,
+            openDictionaryManagement = openDictionaryManagement,
             openChatQuiz = { navController.goToQuiz(it) },
         )
     }

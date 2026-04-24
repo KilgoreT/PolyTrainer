@@ -14,7 +14,7 @@ enum class MainPoint(val route: String) {
 
 fun NavGraphBuilder.mainRouter(
     route: String,
-    openAddDict: () -> Unit,
+    openDictionaryManagement: () -> Unit,
 ) {
     navigation(
         startDestination = MainPoint.MAIN.route,
@@ -36,7 +36,7 @@ fun NavGraphBuilder.mainRouter(
                         envParams = context.appComponent.getEnvParams(),
                         logger = context.appComponent.getLogger(),
                 ),
-                openAddDict = openAddDict
+                openDictionaryManagement = openDictionaryManagement
             )
         }
     }

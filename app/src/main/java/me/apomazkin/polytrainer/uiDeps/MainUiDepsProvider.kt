@@ -43,7 +43,7 @@ class MainUiDepsProvider(
 ) : MainUiDeps {
     @Composable
     override fun VocabularyTabDep(
-        openAddDict: () -> Unit,
+        openDictionaryManagement: () -> Unit,
         openWordCard: (wordId: Long) -> Unit,
     ) {
         DictionaryTabScreen(
@@ -56,7 +56,7 @@ class MainUiDepsProvider(
                     titleResId = titleResId,
                     logger = logger,
                     dictionaryAppBarUseCase = dictionaryAppBarUseCase,
-                    openAddDict = openAddDict,
+                    openDictionaryManagement = openDictionaryManagement,
                 )
             },
         )
@@ -76,7 +76,7 @@ class MainUiDepsProvider(
 
     @Composable
     override fun QuizTabScreenDep(
-        openAddDict: () -> Unit,
+        openDictionaryManagement: () -> Unit,
         openChatQuiz: (quizType: String) -> Unit,
     ) {
         QuizTabScreen(
@@ -89,7 +89,7 @@ class MainUiDepsProvider(
                     titleResId = titleResId,
                     logger = logger,
                     dictionaryAppBarUseCase = dictionaryAppBarUseCase,
-                    openAddDict = openAddDict,
+                    openDictionaryManagement = openDictionaryManagement,
                 )
             },
         )
@@ -110,7 +110,7 @@ class MainUiDepsProvider(
 
     @Composable
     override fun StatisticTabScreenDep(
-        openAddDict: () -> Unit,
+        openDictionaryManagement: () -> Unit,
     ) {
         StatisticTabScreen(
             statisticUseCase = statisticUseCase,
@@ -120,7 +120,7 @@ class MainUiDepsProvider(
                     titleResId = titleResId,
                     logger = logger,
                     dictionaryAppBarUseCase = dictionaryAppBarUseCase,
-                    openAddDict = openAddDict,
+                    openDictionaryManagement = openDictionaryManagement,
                 )
             },
             logger = logger,

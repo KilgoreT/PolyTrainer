@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalFoundationApi::class)
 
-package me.apomazkin.createdictionary.widget
+package me.apomazkin.dictionary.widget
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -11,10 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import me.apomazkin.createdictionary.DictionaryData
-import me.apomazkin.createdictionary.R
-import me.apomazkin.createdictionary.entity.PresetDictionaryUi
-import me.apomazkin.createdictionary.logic.Msg
+import me.apomazkin.dictionary.DictionaryData
+import me.apomazkin.dictionary.R
+import me.apomazkin.dictionary.entity.PresetDictionaryUi
+import me.apomazkin.dictionary.logic.Msg
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.preview.PreviewWidget
@@ -30,12 +30,13 @@ fun ColumnScope.DictionaryListWidget(
     selectedNumericCode: Int?,
     sendMsg: (Msg) -> Unit,
 ) {
-    ListHeaderWidget(
-        titleRes = R.string.dictionary_selection_title,
-        subTitleRes = R.string.dictionary_selection_subtitle,
-        modifier = Modifier
-            .padding(top = HEADER_TOP_PADDING.dp)
-    )
+    // TODO: убрать после рефакторинга структуры экрана
+//    ListHeaderWidget(
+//        titleRes = R.string.dictionary_selection_title,
+//        subTitleRes = R.string.dictionary_selection_subtitle,
+//        modifier = Modifier
+//            .padding(top = HEADER_TOP_PADDING.dp)
+//    )
 
     LazyColumn(
         contentPadding = PaddingValues(

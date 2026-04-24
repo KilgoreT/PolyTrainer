@@ -37,7 +37,7 @@ include(":modules:core:tools")
 
 //Features
 include(":modules:screen:splash")
-include(":modules:screen:createdictionary")
+include(":modules:screen:dictionary")
 include(":modules:screen:main")
 include(":modules:screen:dictionaryTab")
 include(":modules:screen:wordcard")

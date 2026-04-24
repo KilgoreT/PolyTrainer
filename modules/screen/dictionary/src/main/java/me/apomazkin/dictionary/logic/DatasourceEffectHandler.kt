@@ -1,12 +1,12 @@
-package me.apomazkin.createdictionary.logic
+package me.apomazkin.dictionary.logic
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.apomazkin.createdictionary.CreateDictionaryUseCase
-import me.apomazkin.createdictionary.DictionaryData
-import me.apomazkin.createdictionary.entity.PresetDictionaryUi
-import me.apomazkin.createdictionary.toDictionaryNameRes
+import me.apomazkin.dictionary.DictionaryUseCase
+import me.apomazkin.dictionary.DictionaryData
+import me.apomazkin.dictionary.entity.PresetDictionaryUi
+import me.apomazkin.dictionary.toDictionaryNameRes
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
 
@@ -33,7 +33,7 @@ internal sealed interface DatasourceEffect : Effect {
  * EffectHandler for datastore calls.
  */
 internal class DatasourceEffectHandler(
-    private val createDictionaryUseCase: CreateDictionaryUseCase,
+    private val dictionaryUseCase: DictionaryUseCase,
 ) : MateEffectHandler<Msg, Effect> {
 
     override suspend fun runEffect(
@@ -47,7 +47,7 @@ internal class DatasourceEffectHandler(
                     Msg.ShowDictionaryList(
                         DictionaryData.dictionaryList.map {
                             PresetDictionaryUi(
-                                flagRes = createDictionaryUseCase.getFlagRes(it.numericCode),
+                                flagRes = dictionaryUseCase.getFlagRes(it.numericCode),
                                 countryNumericCode = it.numericCode,
                                 dictionaryNameRes = it.numericCode.toDictionaryNameRes()
                             )
@@ -57,11 +57,11 @@ internal class DatasourceEffectHandler(
             }
             is DatasourceEffect.SaveDictionaryList -> {
                 withContext(Dispatchers.IO) {
-                    createDictionaryUseCase.addDictionary(
+                    dictionaryUseCase.addDictionary(
                         eff.numericCode,
                         eff.dictionaryName
                     )
-                    createDictionaryUseCase.saveCurrentDictionary(eff.numericCode)
+                    dictionaryUseCase.saveCurrentDictionary(eff.numericCode)
                 }
                 Msg.Close
             }

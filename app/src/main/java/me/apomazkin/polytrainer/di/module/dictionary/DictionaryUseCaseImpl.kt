@@ -1,17 +1,17 @@
-package me.apomazkin.polytrainer.di.module.createDictionary
+package me.apomazkin.polytrainer.di.module.dictionary
 
 import me.apomazkin.core_db_api.CoreDbApi
-import me.apomazkin.createdictionary.CreateDictionaryUseCase
+import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.flags.FlagProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
 
-class CreateDictionaryUseCaseImpl @Inject constructor(
+class DictionaryUseCaseImpl @Inject constructor(
     private val dictionaryApi: CoreDbApi.DictionaryApi,
     private val flagProvider: FlagProvider,
     private val prefsProvider: PrefsProvider,
-) : CreateDictionaryUseCase {
+) : DictionaryUseCase {
     override suspend fun getFlagRes(numericCode: Int): Int =
         flagProvider.getFlagRes(numericCode)
 

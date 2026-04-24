@@ -1,4 +1,4 @@
-package me.apomazkin.createdictionary.widget
+package me.apomazkin.dictionary.widget
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import me.apomazkin.createdictionary.R
+import me.apomazkin.dictionary.R
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.ImageFlagWidget

@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "me.apomazkin.createdictionary"
+    namespace = "me.apomazkin.dictionary"
     compileSdk = 35
     
     defaultConfig {

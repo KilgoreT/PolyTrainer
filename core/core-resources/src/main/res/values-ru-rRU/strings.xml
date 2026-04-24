@@ -40,7 +40,7 @@
     <string name="button_delete">Удалить</string>
 
     <!--DICTIONARY SELECTION-->
-    <string name="dictionary_selection_title">Создание словаря</string>
+    <string name="dictionary_selection_title">Словари</string>
     <string name="dictionary_selection_subtitle">Язык</string>
     <string name="lang_english">Английский</string>
     <string name="lang_german">Немецкий</string>

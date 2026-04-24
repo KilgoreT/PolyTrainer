@@ -9,12 +9,12 @@ private const val ABOUT_APP_ROUTE = "about_app"
 fun NavGraphBuilder.settings(
     navController: NavHostController,
     mainUiDeps: MainUiDeps,
-    openAddDict: () -> Unit,
+    openDictionaryManagement: () -> Unit,
 ) {
     
     composable(TabPoint.SETTINGS.route) {
         mainUiDeps.SettingsTabScreenDep(
-            onLangManagementClick = openAddDict,
+            onLangManagementClick = openDictionaryManagement,
             onAboutAppClick = { navController.goToAboutApp() }
         )
     }

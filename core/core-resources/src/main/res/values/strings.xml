@@ -50,7 +50,7 @@
 
 
     <!--DICTIONARY SELECTION-->
-    <string name="dictionary_selection_title">Creating a dictionary</string>
+    <string name="dictionary_selection_title">Dictionaries</string>
     <string name="dictionary_selection_subtitle">Select language</string>
     <string name="lang_english">English</string>
     <string name="lang_german">German</string>

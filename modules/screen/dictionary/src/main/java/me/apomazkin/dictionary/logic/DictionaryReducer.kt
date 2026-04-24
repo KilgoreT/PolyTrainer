@@ -1,16 +1,16 @@
-package me.apomazkin.createdictionary.logic
+package me.apomazkin.dictionary.logic
 
 import android.util.Log
-import me.apomazkin.createdictionary.entity.PresetDictionaryUi
+import me.apomazkin.dictionary.entity.PresetDictionaryUi
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
 
-internal class CreateDictionaryReducer : MateReducer<CreateDictionaryState, Msg, Effect> {
+internal class DictionaryReducer : MateReducer<DictionaryState, Msg, Effect> {
     override fun reduce(
-        state: CreateDictionaryState,
+        state: DictionaryState,
         message: Msg
-    ): ReducerResult<CreateDictionaryState, Effect> {
+    ): ReducerResult<DictionaryState, Effect> {
         Log.d("##MATE##", "Reduce --prevState--: $state ")
         Log.d("##MATE##", "Reduce ---message---: $message ")
         return when (message) {
@@ -30,9 +30,9 @@ internal class CreateDictionaryReducer : MateReducer<CreateDictionaryState, Msg,
         }
     }
 
-    private fun CreateDictionaryState.loadDictionary(
+    private fun DictionaryState.loadDictionary(
         list: List<PresetDictionaryUi>
-    ): Pair<CreateDictionaryState, Set<Effect>> {
+    ): Pair<DictionaryState, Set<Effect>> {
         return this.copy(
             isLoading = false,
             dictionarySelectionState = dictionarySelectionState.copy(
@@ -41,9 +41,9 @@ internal class CreateDictionaryReducer : MateReducer<CreateDictionaryState, Msg,
         ) to setOf()
     }
 
-    private fun CreateDictionaryState.selectDictionary(
+    private fun DictionaryState.selectDictionary(
         numericCode: Int,
-    ): Pair<CreateDictionaryState, Set<Effect>> {
+    ): Pair<DictionaryState, Set<Effect>> {
         return copy(
             dictionarySelectionState = dictionarySelectionState.copy(
                 selectedNumericCode =
@@ -55,10 +55,10 @@ internal class CreateDictionaryReducer : MateReducer<CreateDictionaryState, Msg,
         ) to setOf()
     }
 
-    private fun CreateDictionaryState.saveDictionary(
+    private fun DictionaryState.saveDictionary(
         numericCode: Int,
         dictionaryName: String
-    ): Pair<CreateDictionaryState, Set<Effect>> =
+    ): Pair<DictionaryState, Set<Effect>> =
         copy(
             dictionarySelectionState = dictionarySelectionState.copy(
                 addDictionaryButtonEnable = false
@@ -67,6 +67,6 @@ internal class CreateDictionaryReducer : MateReducer<CreateDictionaryState, Msg,
             DatasourceEffect.SaveDictionaryList(numericCode, dictionaryName)
         )
 
-    private fun CreateDictionaryState.closeScreen(): Pair<CreateDictionaryState, Set<Effect>> =
+    private fun DictionaryState.closeScreen(): Pair<DictionaryState, Set<Effect>> =
         copy(needClose = true) to setOf()
 }

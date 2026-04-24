@@ -1,4 +1,4 @@
-package me.apomazkin.createdictionary.widget
+package me.apomazkin.dictionary.widget
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -12,11 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import me.apomazkin.createdictionary.DictionaryData
-import me.apomazkin.createdictionary.R
-import me.apomazkin.createdictionary.logic.DictionarySelectionState
-import me.apomazkin.createdictionary.logic.Msg
-import me.apomazkin.createdictionary.toDictionaryNameRes
+import me.apomazkin.dictionary.DictionaryData
+import me.apomazkin.dictionary.R
+import me.apomazkin.dictionary.logic.DictionarySelectionState
+import me.apomazkin.dictionary.logic.Msg
+import me.apomazkin.dictionary.toDictionaryNameRes
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget

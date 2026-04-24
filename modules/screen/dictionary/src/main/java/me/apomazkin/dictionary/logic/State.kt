@@ -1,8 +1,8 @@
-package me.apomazkin.createdictionary.logic
+package me.apomazkin.dictionary.logic
 
-import me.apomazkin.createdictionary.entity.PresetDictionaryUi
+import me.apomazkin.dictionary.entity.PresetDictionaryUi
 
-data class CreateDictionaryState(
+data class DictionaryState(
     val isLoading: Boolean = true,
     val needClose: Boolean = false,
     val dictionarySelectionState: DictionarySelectionState = DictionarySelectionState()

@@ -16,7 +16,7 @@ fun DictDropDownWidget(
         dictList: List<DictUiEntity>,
         currentDict: DictUiEntity?,
         isExpand: Boolean,
-        openAddDict: () -> Unit,
+        openDictionaryManagement: () -> Unit,
         onOpenDropDown: () -> Unit,
         onDismiss: () -> Unit,
         onItemClick: (dict: DictUiEntity) -> Unit,
@@ -41,7 +41,7 @@ fun DictDropDownWidget(
         DividerMenuItem()
         AddDictMenuWidget {
             onDismiss.invoke()
-            openAddDict.invoke()
+            openDictionaryManagement.invoke()
         }
     }
 }
@@ -74,7 +74,7 @@ private fun Preview() {
                     numericCode = 1,
                 ),
                 isExpand = false,
-                openAddDict = {},
+                openDictionaryManagement = {},
                 onOpenDropDown = {},
                 onDismiss = {},
                 onItemClick = {}

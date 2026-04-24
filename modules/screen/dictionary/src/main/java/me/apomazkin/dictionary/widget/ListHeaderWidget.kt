@@ -1,4 +1,4 @@
-package me.apomazkin.createdictionary.widget
+package me.apomazkin.dictionary.widget
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -9,7 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import me.apomazkin.createdictionary.R
+import me.apomazkin.dictionary.R
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.Typography
 import me.apomazkin.theme.whiteColor

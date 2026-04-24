@@ -1,4 +1,4 @@
-package me.apomazkin.createdictionary.widget
+package me.apomazkin.dictionary.widget
 
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material3.CircularProgressIndicator

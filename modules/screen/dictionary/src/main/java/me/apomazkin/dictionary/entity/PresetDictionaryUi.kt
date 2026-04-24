@@ -1,4 +1,4 @@
-package me.apomazkin.createdictionary.entity
+package me.apomazkin.dictionary.entity
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes

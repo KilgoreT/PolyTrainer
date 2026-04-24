@@ -1,6 +1,6 @@
-package me.apomazkin.createdictionary.logic
+package me.apomazkin.dictionary.logic
 
-import me.apomazkin.createdictionary.entity.PresetDictionaryUi
+import me.apomazkin.dictionary.entity.PresetDictionaryUi
 
 sealed interface Msg {
 
