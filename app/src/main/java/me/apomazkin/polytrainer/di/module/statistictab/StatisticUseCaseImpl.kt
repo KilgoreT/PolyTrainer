@@ -20,11 +20,10 @@ class StatisticUseCaseImpl @Inject constructor(
 ) : StatisticUseCase {
     override suspend fun flowWordCount(): Flow<Int> {
         val dictionaryIdFlow: Flow<Int?> = prefsProvider
-                .getIntFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-                .filterNotNull()
-                .mapLatest { numericCode ->
+                .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+                .mapLatest { id ->
                     val dictionaryId = dictionaryApi
-                            .getDictionary(numericCode = numericCode)?.id?.toInt()
+                            .getDictionaryById(id)?.id?.toInt()
                             ?: dictionaryApi.getDictionaryList().firstOrNull()?.id?.toInt()
                     dictionaryId
                 }
@@ -37,11 +36,10 @@ class StatisticUseCaseImpl @Inject constructor(
 
     override suspend fun flowLexemeCount(): Flow<Int> {
         val dictionaryIdFlow: Flow<Int?> = prefsProvider
-                .getIntFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-                .filterNotNull()
-                .mapLatest { numericCode ->
+                .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+                .mapLatest { id ->
                     val dictionaryId = dictionaryApi
-                            .getDictionary(numericCode = numericCode)?.id?.toInt()
+                            .getDictionaryById(id)?.id?.toInt()
                             ?: dictionaryApi.getDictionaryList().firstOrNull()?.id?.toInt()
                     dictionaryId
                 }
@@ -54,11 +52,10 @@ class StatisticUseCaseImpl @Inject constructor(
 
     override suspend fun flowQuizStat(): Flow<Map<Int, Int>> {
         val dictionaryIdFlow: Flow<Int?> = prefsProvider
-            .getIntFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-            .filterNotNull()
-            .mapLatest { numericCode ->
+            .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+            .mapLatest { id ->
                 val dictionaryId = dictionaryApi
-                    .getDictionary(numericCode = numericCode)?.id?.toInt()
+                    .getDictionaryById(id)?.id?.toInt()
                     ?: dictionaryApi.getDictionaryList().firstOrNull()?.id?.toInt()
                 dictionaryId
             }

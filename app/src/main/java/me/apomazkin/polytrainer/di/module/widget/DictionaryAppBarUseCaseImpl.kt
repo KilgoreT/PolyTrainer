@@ -6,7 +6,7 @@ import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarytab.deps.DictionaryNotFoundException
-import me.apomazkin.flags.FlagProvider
+import me.apomazkin.flags.CountryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
@@ -14,13 +14,14 @@ import javax.inject.Inject
 class DictionaryAppBarUseCaseImpl @Inject constructor(
         private val dictionaryApi: CoreDbApi.DictionaryApi,
         private val prefsProvider: PrefsProvider,
-        private val flagProvider: FlagProvider,
+        private val countryProvider: CountryProvider,
 ) : DictionaryAppBarUseCase {
     override fun flowAvailableDict(): Flow<List<DictUiEntity>> = dictionaryApi.flowDictionaryList()
             .map {
                 it.map { dict ->
                     DictUiEntity(
-                            flagRes = flagProvider.getFlagRes(dict.numericCode ?: 0),
+                            id = dict.id,
+                            flagRes = dict.numericCode?.let { countryProvider.getFlagRes(it) } ?: 0,
                             title = dict.name,
                             numericCode = dict.numericCode ?: 0,
                     )
@@ -28,14 +29,15 @@ class DictionaryAppBarUseCaseImpl @Inject constructor(
             }
 
     override fun flowCurrentDict(): Flow<DictUiEntity> {
-        return prefsProvider.getIntFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-                .map { numeric: Int ->
+        return prefsProvider.getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+                .map { id: Long ->
                     val dict = (dictionaryApi
-                            .getDictionary(numeric)
+                            .getDictionaryById(id)
                             ?: dictionaryApi.getDictionaryList().firstOrNull())
                             ?.let { dict ->
                                 DictUiEntity(
-                                        flagRes = flagProvider.getFlagRes(dict.numericCode ?: 0),
+                                        id = dict.id,
+                                        flagRes = dict.numericCode?.let { countryProvider.getFlagRes(it) } ?: 0,
                                         title = dict.name,
                                         numericCode = dict.numericCode ?: 0,
                                 )
@@ -44,7 +46,7 @@ class DictionaryAppBarUseCaseImpl @Inject constructor(
                 }
     }
 
-    override suspend fun changeDict(numericCode: Int) {
-        prefsProvider.setInt(PrefKey.CURRENT_DICTIONARY_ID_LONG, numericCode)
+    override suspend fun changeDict(id: Long) {
+        prefsProvider.setLong(PrefKey.CURRENT_DICTIONARY_ID_LONG, id)
     }
 }

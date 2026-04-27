@@ -34,6 +34,15 @@ interface WordDao {
     @Query("SELECT * FROM dictionaries")
     suspend fun getDictionaries(): List<DictionaryDb>
 
+    @Query("SELECT * FROM dictionaries WHERE id = :id")
+    suspend fun getDictionaryById(id: Long): DictionaryDb?
+
+    @Query("UPDATE dictionaries SET name = :name, numericCode = :numericCode, changeDate = :changeDate WHERE id = :id")
+    suspend fun updateDictionary(id: Long, name: String, numericCode: Int?, changeDate: Long)
+
+    @Query("DELETE FROM dictionaries WHERE id = :id")
+    suspend fun deleteDictionary(id: Long)
+
     @Query("SELECT * FROM dictionaries")
     fun flowDictionaries(): Flow<List<DictionaryDb>>
 

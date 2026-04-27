@@ -74,10 +74,7 @@ internal class DatasourceEffectHandler(
             // https://github.com/KilgoreT/PolyTrainer/issues/369
             is DatasourceEffect.LoadTermFlow -> {
                 withContext(Dispatchers.IO) {
-                    // TODO: зачем запрашивать id, если оно есть в стейте.
-                    val dictionaryId = dictionaryTabUseCase.getDictionaryId(
-                            numericCode = dictionaryTabUseCase.getCurrentDict().numericCode
-                    )
+                    val dictionaryId = dictionaryTabUseCase.getCurrentDict().id.toInt()
                     val pagingFlow = dictionaryTabUseCase.searchTerms(
                             pattern = eff.pattern,
                             dictionaryId = dictionaryId

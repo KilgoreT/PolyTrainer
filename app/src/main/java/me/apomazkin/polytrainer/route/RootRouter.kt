@@ -6,7 +6,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import me.apomazkin.dictionary.DictionaryScreen
+import me.apomazkin.dictionary.form.DictionaryFormScreen
+import me.apomazkin.dictionary.list.DictionaryListScreen
 import me.apomazkin.polytrainer.appComponent
 import me.apomazkin.splash.SplashScreen
 
@@ -15,7 +16,8 @@ enum class RootPoint(
 ) {
     SPLASH("SPLASH"),
     DICTIONARY_SETUP("DICTIONARY_SETUP"),
-    DICTIONARY_MANAGEMENT("DICTIONARY_MANAGEMENT"),
+    DICTIONARY_CREATE("DICTIONARY_CREATE"),
+    DICTIONARY_LIST("DICTIONARY_LIST"),
     MAIN_ROUTER("MAIN_ROUTER")
 }
 
@@ -27,7 +29,8 @@ class RootRouter {
 
 @Composable
 fun RootRouter(
-    navController: NavHostController
+    navController: NavHostController,
+    onExitApp: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var navigator: RootRouterNavigation? = null
@@ -48,22 +51,33 @@ fun RootRouter(
             }
         }
         composable(RootPoint.DICTIONARY_SETUP.route) {
-            DictionaryScreen(
+            DictionaryFormScreen(
                 dictionaryUseCase = context.appComponent.getDictionaryUseCase(),
                 onClose = { navigator?.openMainScreen() },
             )
         }
-        composable(RootPoint.DICTIONARY_MANAGEMENT.route) {
-            DictionaryScreen(
+        composable(RootPoint.DICTIONARY_CREATE.route) {
+            DictionaryFormScreen(
                 dictionaryUseCase = context.appComponent.getDictionaryUseCase(),
                 onClose = { navController.popBackStack() },
                 onBackPress = { navController.popBackStack() },
             )
         }
+        composable(RootPoint.DICTIONARY_LIST.route) {
+            DictionaryListScreen(
+                dictionaryUseCase = context.appComponent.getDictionaryUseCase(),
+                onBackPress = { navController.popBackStack() },
+                onExit = onExitApp,
+                onOpenForm = { navController.navigate(RootPoint.DICTIONARY_CREATE.route) },
+            )
+        }
         mainRouter(
             route = RootPoint.MAIN_ROUTER.route,
-            openDictionaryManagement = {
-                navController.navigate(RootPoint.DICTIONARY_MANAGEMENT.route)
+            openDictionaryCreate = {
+                navController.navigate(RootPoint.DICTIONARY_CREATE.route)
+            },
+            openDictionaryList = {
+                navController.navigate(RootPoint.DICTIONARY_LIST.route)
             }
         )
     }

@@ -12,7 +12,7 @@ import me.apomazkin.dictionarytab.entity.DefinitionUiEntity
 import me.apomazkin.dictionarytab.entity.LexemeUiItem
 import me.apomazkin.dictionarytab.entity.TermUiItem
 import me.apomazkin.dictionarytab.entity.TranslationUiEntity
-import me.apomazkin.flags.FlagProvider
+import me.apomazkin.flags.CountryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
@@ -22,19 +22,16 @@ class DictionaryTabUseCaseImpl @Inject constructor(
     private val wordApi: CoreDbApi.WordApi,
     private val termApi: CoreDbApi.TermApi,
     private val prefsProvider: PrefsProvider,
-    private val flagProvider: FlagProvider,
+    private val countryProvider: CountryProvider,
 ) : DictionaryTabUseCase {
-
-    override suspend fun getDictionaryId(numericCode: Int): Int {
-        return dictionaryApi.getDictionary(numericCode)?.id?.toInt() ?: 0
-    }
 
     override suspend fun getCurrentDict(): DictUiEntity {
         prefsProvider
-            .getInt(PrefKey.CURRENT_DICTIONARY_ID_LONG)?.let { num ->
-                dictionaryApi.getDictionary(numericCode = num)?.let {
+            .getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG)?.let { id ->
+                dictionaryApi.getDictionaryById(id)?.let {
                     return DictUiEntity(
-                        flagRes = flagProvider.getFlagRes(it.numericCode ?: 0),
+                        id = it.id,
+                        flagRes = it.numericCode?.let { nc -> countryProvider.getFlagRes(nc) } ?: 0,
                         title = it.name,
                         numericCode = it.numericCode ?: 0,
                     )
@@ -42,12 +39,13 @@ class DictionaryTabUseCaseImpl @Inject constructor(
             } ?: dictionaryApi.getDictionaryList()
             .firstOrNull()
             ?.let {
-                prefsProvider.setInt(
+                prefsProvider.setLong(
                     PrefKey.CURRENT_DICTIONARY_ID_LONG,
-                    it.numericCode ?: 0
+                    it.id
                 )
                 return DictUiEntity(
-                    flagRes = flagProvider.getFlagRes(it.numericCode ?: 0),
+                    id = it.id,
+                    flagRes = it.numericCode?.let { nc -> countryProvider.getFlagRes(nc) } ?: 0,
                     title = it.name,
                     numericCode = it.numericCode ?: 0,
                 )
@@ -56,14 +54,15 @@ class DictionaryTabUseCaseImpl @Inject constructor(
     }
 
     override fun flowCurrentDict(): Flow<DictUiEntity> = prefsProvider
-        .getIntFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-        .map { numeric: Int ->
+        .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+        .map { id: Long ->
             val dict = (dictionaryApi
-                .getDictionary(numeric)
+                .getDictionaryById(id)
                 ?: dictionaryApi.getDictionaryList().firstOrNull())
                 ?.let { dict ->
                     DictUiEntity(
-                        flagRes = flagProvider.getFlagRes(dict.numericCode ?: 0),
+                        id = dict.id,
+                        flagRes = dict.numericCode?.let { nc -> countryProvider.getFlagRes(nc) } ?: 0,
                         title = dict.name,
                         numericCode = dict.numericCode ?: 0,
                     )
@@ -74,9 +73,9 @@ class DictionaryTabUseCaseImpl @Inject constructor(
     // TODO: Убрать нулеабельность в Dictionary: id и name
     override suspend fun addWord(value: String): Long =
         prefsProvider
-            .getInt(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-            ?.let { numericCode ->
-                dictionaryApi.getDictionary(numericCode)?.let {
+            .getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+            ?.let { id ->
+                dictionaryApi.getDictionaryById(id)?.let {
                     return wordApi.addWordSuspend(value, it.id.toInt())
                 } ?: throw IllegalStateException("Dictionary not found")
             } ?: throw IllegalStateException("Dictionary not found")
@@ -88,17 +87,17 @@ class DictionaryTabUseCaseImpl @Inject constructor(
         wordApi.deleteWordSuspend(wordId)
     }
 
-    override suspend fun changeDict(numericCode: Int) {
-        prefsProvider.setInt(PrefKey.CURRENT_DICTIONARY_ID_LONG, numericCode)
+    override suspend fun changeDict(id: Long) {
+        prefsProvider.setLong(PrefKey.CURRENT_DICTIONARY_ID_LONG, id)
     }
 
     // TODO: Передавать dictionaryId сюда в параметр. нехер делать лишний запрос
     // dictionaryId хранить в стейте
     override suspend fun getWordList(): List<TermUiItem> {
         return prefsProvider
-            .getInt(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-            ?.let { numericCode ->
-                dictionaryApi.getDictionary(numericCode = numericCode)?.id?.toInt()?.let { dictionaryId: Int ->
+            .getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+            ?.let { id ->
+                dictionaryApi.getDictionaryById(id)?.id?.toInt()?.let { dictionaryId: Int ->
                     termApi.getTermList(dictionaryId)
                         .map { term ->
                             TermUiItem(

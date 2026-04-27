@@ -1,330 +1,230 @@
 # Dictionary Management — Спецификация
 
-Управление словарями: создание, переключение, (будущее: редактирование, удаление).
+Управление словарями: просмотр списка, создание, редактирование, удаление.
 
 ---
 
-## Как сейчас
+## Два режима экрана
 
-### Доменная модель
+Экран работает в двух режимах, определяемых route навигации:
 
-Сущность называется "язык" (`Language`). Один язык = один словарь.
-Идентификация — по `numericCode` (ISO 3166-1 numeric).
+- **Setup** (`DICTIONARY_SETUP`) — первый запуск, нет кнопки назад, после завершения → главный экран
+- **Management** (`DICTIONARY_MANAGEMENT`) — из настроек/dropdown, AppBar с кнопкой назад, после завершения → popBackStack
 
-```
-┌─────────────────────────┐
-│ languages               │
-├─────────────────────────┤
-│ id        INTEGER PK    │  autoGenerate
-│ numericCode INTEGER UNQ │  ISO 3166-1, обязательный, UNIQUE
-│ code      TEXT          │  не используется нигде
-│ name      TEXT?         │  nullable, локализованная строка (зависит от локали)
-│ addDate   INTEGER       │  timestamp создания
-│ changeDate INTEGER?     │  timestamp изменения
-└─────────────────────────┘
-     ↑ FK
-┌─────────────────────────┐
-│ words                   │
-├─────────────────────────┤
-│ lang_id   INTEGER FK    │  → languages.id, CASCADE
-│ ...                     │
-└─────────────────────────┘
-     ↑ FK
-┌─────────────────────────┐
-│ write_quiz              │
-├─────────────────────────┤
-│ lang_id   INTEGER       │  дублирует word→language, для прямой фильтрации
-│ lexeme_id INTEGER FK    │  → lexemes.id, CASCADE
-│ ...                     │
-└─────────────────────────┘
-```
+Режим определяется наличием callback `onBackPress`: null → setup, не null → management.
 
-### API контракт
+---
 
-```kotlin
-interface LangApi {
-    suspend fun addLang(numericCode: Int, name: String): Long
-    suspend fun getLang(numericCode: Int): LanguageApiEntity?
-    suspend fun getLangList(): List<LanguageApiEntity>
-    fun flowLangList(): Flow<List<LanguageApiEntity>>
-}
-```
+## Два состояния экрана
 
-Поиск словаря — по `numericCode`, не по `id`.
+Внутри экрана два состояния с анимированным переключением:
 
-### Entity
+### Список словарей (LIST)
 
-```kotlin
-// Room
-data class LanguageDb(
-    val id: Long?,
-    val numericCode: Int,       // обязательный
-    val code: String,           // не используется
-    val name: String?,          // nullable
-    val addDate: Date,
-    val changeDate: Date?,
-)
+- Отображает все словари пользователя
+- Каждый элемент: флаг (или дефолтная иконка), название, иконка удаления
+- Тап на элемент → переход в форму редактирования
+- Тап на иконку удаления → диалог подтверждения
+- Кнопка "Новый словарь" внизу → переход в форму создания
+- Setup режим: после создания первого словаря появляется кнопка "Далее"
 
-// API
-data class LanguageApiEntity(
-    val id: Int,                // Int, не Long — несогласованность
-    val numericCode: Int,
-    val code: String,
-    val name: String,
-    val addDate: Date,
-    val changeDate: Date?,
-)
+### Пустое состояние
 
-// UI (dropdown словарей)
-data class DictUiEntity(
-    val numericCode: Int,       // идентификатор
-    val title: String,
-    val flagRes: Int,           // обязательный
-)
+Если словарей нет — текст "Нет словарей / Создайте первый!" + кнопка "Новый словарь".
 
-// UI (экран создания)
-data class PresetLangUi(
-    val flagRes: Int,
-    val countryNumericCode: Int,
-    val langNameRes: Int,       // @StringRes
-)
-```
+### Форма создания/редактирования (FORM)
 
-### Preference
+Одна форма для обоих действий. Отличие: наличие `editingDictionaryId` в стейте (null = создание, не null = редактирование).
 
-```
-Ключ:   CURRENT_LANG_NUMERIC_CODE_INT
-Тип:    Int (numericCode)
-```
+---
 
-Двойной lookup при каждом чтении:
-```
-prefs → numericCode → getLang(numericCode) → id → использовать
-```
-
-### Переключение словарей
-
-```
-User тапает словарь в dropdown
-  → setInt(CURRENT_LANG_NUMERIC_CODE_INT, numericCode)
-  → Flow-подписчики:
-    ├── DictionaryAppBar → обновляет заголовок
-    ├── VocabularyTab → перезагружает список слов
-    └── Quiz/Stats → при открытии читают из prefs
-```
+## Бизнес-логика
 
 ### Создание словаря
 
-```
-Экран: 6 захардкоженных языков (LanguageData)
-User выбирает → SaveLang(numericCode, langName)
-  → addLang(numericCode, langName) — INSERT в Room
-  → saveCurrentLang(numericCode) — запись в prefs
-  → закрытие экрана
-```
+1. Пользователь заполняет название (обязательно)
+2. Опционально привязывает к языку (чекбокс → выбор языка → выбор флага)
+3. Нажимает "Создать"
+4. Словарь сохраняется в Room (INSERT)
+5. Экран возвращается к списку
+6. Словарь НЕ становится текущим автоматически при создании
 
-- Выбрать можно только один язык
-- Нет проверки на дубли (UNIQUE constraint → краш)
-- `langName` резолвится из string resource в composable
-- Нет кнопки "назад" (кроме первого запуска это неудобно)
+### Выбор текущего словаря
 
-### Удаление / редактирование словаря
+- Setup: нажатие "Далее" → последний созданный становится текущим → закрытие экрана → главный flow
+- Management: текущий словарь не меняется при создании/редактировании. Переключение — через dropdown в AppBar на главном экране (не на этом экране)
 
-Не реализовано. Нет UI, нет API.
+### Редактирование словаря
+
+1. Тап на элемент списка → форма заполняется данными словаря
+2. Пользователь меняет: название, привязку к языку, флаг
+3. Нажимает "Сохранить"
+4. Словарь обновляется в Room (UPDATE)
+5. Экран возвращается к списку
+
+### Удаление словаря
+
+1. Тап на иконку удаления → диалог подтверждения
+2. Диалог: "Удалить словарь? Все слова, определения и результаты квизов будут удалены."
+3. "Удалить" → CASCADE delete в Room (словарь → words → lexemes → write_quiz)
+4. Если удалённый словарь был текущим → переключиться на первый оставшийся
+5. Если словарей не осталось → пустое состояние
+
+### Привязка к языку
+
+1. Чекбокс "Привязать к языку" — по умолчанию выключен
+2. Включение → появляется поле выбора языка
+3. Тап на поле → bottom sheet со списком всех языков мира (~180)
+4. Поле поиска вверху bottom sheet — фильтрация по названию на любом языке
+5. Источник языков: `Locale.getISOLanguages()` + `locale.getDisplayLanguage(currentLocale)`
+6. Выбор языка → bottom sheet закрывается, название в поле
+7. После выбора языка → появляется grid флагов стран, где говорят на этом языке
+8. Источник флагов: blongho `World.getAllCountries()` + `World.getLanguagesFrom()`
+9. Если одна страна → автовыбор
+10. Если несколько → тап для выбора
+11. Выключение чекбокса → сброс языка и флага
 
 ---
 
-## Как должно быть
+## UI логика
 
-### Доменная модель
+### AppBar
 
-Сущность — "словарь" (`Dictionary`). Не привязан к конкретному языку.
-Идентификация — по `id`.
+- Setup: без AppBar
+- Management: AppBar с кнопкой назад и заголовком "Словари"
+- AppBar — отдельный виджет `DictionaryAppBar` (конвенция проекта)
+- Наличие определяется nullable `onBackPress`
+
+### Кнопка "Создать" / "Сохранить"
+
+- Текст зависит от режима: `editingDictionaryId == null` → "Создать", иначе → "Сохранить"
+- Активна когда название не пустое (`name.isNotBlank()`)
+- Расположение: внизу формы, `PrimaryFullButtonWidget` (существующий виджет)
+
+### Кнопка "Далее" (только setup)
+
+- Появляется в списке после создания хотя бы одного словаря
+- Нажатие: `setCurrentDictionary(id)` последнего созданного → `onClose()` → главный экран
+- Расположение: под кнопкой "Новый словарь"
+
+### Кнопка "Новый словарь"
+
+- Расположение: внизу списка
+- `PrimaryFullButtonWidget`
+
+### Диалог удаления
+
+- `AlarmDialogWidget` (существующий виджет)
+- Паттерн 1:1 с `ConfirmDeleteWordWidget` из WordCard
+
+### Bottom sheet языков
+
+- `ModalBottomSheet` с `imePadding()`
+- Поле поиска с автофокусом → клавиатура появляется сразу
+- `LazyColumn` с отфильтрованным списком
+- Тап на элемент → закрытие sheet, выбор зафиксирован
+
+### Grid флагов
+
+- `LazyVerticalGrid(columns = Fixed(5))`
+- `ImageFlagWidget` (существующий, 24dp → увеличить через modifier до 48dp)
+- Выбранный флаг выделен рамкой (`BorderStroke`)
+
+### Элемент списка словаря
+
+- `Row`: флаг (ImageFlagWidget или дефолтная иконка) + название + иконка удаления (IconBoxed)
+- Тап на строку → редактирование
+- Тап на иконку → удаление
+
+### Анимация переходов
+
+- `AnimatedContent(targetState = screenMode)` — fadeIn/fadeOut между LIST и FORM
+
+---
+
+## Уточнения
+
+### Навигация из формы
+
+- "Назад" из формы → данные теряются молча, возврат к списку. Без диалога подтверждения.
+- В setup режиме кнопки "Назад" нет — ситуация не возникает.
+
+### Валидация названия
+
+- Только `isNotBlank()`. Без ограничения длины. Дубликаты разрешены.
+
+### Язык выбран, флаг не выбран
+
+- Разрешено. Словарь сохраняется с `numericCode = null`. В списке: дефолтная иконка + название языка.
+
+### Удаление единственного словаря (management)
+
+- Разрешено. После удаления → пустое состояние.
+- Кнопка "Назад" в AppBar → выход из приложения.
+- При следующем запуске → splash → нет словарей → setup.
+
+### Порядок словарей в списке
+
+- По алфавиту (по `name`).
+
+### Кнопка "Далее" (setup)
+
+- Видна только когда есть хотя бы один словарь.
+- Создал → появилась. Удалил единственный → пропала.
+
+### Снятие привязки к языку при редактировании
+
+- Разрешено. Выключение чекбокса → `numericCode` = null → флаг пропадает из словаря.
+
+---
+
+## Доменная модель
+
+### Таблица dictionaries (Room)
 
 ```
 ┌──────────────────────────┐
 │ dictionaries             │
 ├──────────────────────────┤
 │ id          INTEGER PK   │  autoGenerate
-│ numericCode INTEGER?     │  nullable, опциональный (словарь без языка)
+│ numericCode INTEGER?     │  nullable (словарь без языка)
 │ name        TEXT NOT NULL │  user-defined название
-│ description TEXT?        │  опциональный комментарий
-│ addDate     INTEGER      │  timestamp создания
-│ changeDate  INTEGER?     │  timestamp изменения
-└──────────────────────────┘
-     ↑ FK
-┌──────────────────────────┐
-│ words                    │
-├──────────────────────────┤
-│ dictionary_id INTEGER FK │  → dictionaries.id, CASCADE
-│ ...                      │
-└──────────────────────────┘
-     ↑ FK
-┌──────────────────────────┐
-│ write_quiz               │
-├──────────────────────────┤
-│ dictionary_id INTEGER    │  для прямой фильтрации
-│ lexeme_id   INTEGER FK   │  → lexemes.id, CASCADE
-│ ...                      │
+│ addDate     INTEGER      │  timestamp
+│ changeDate  INTEGER?     │  timestamp
 └──────────────────────────┘
 ```
 
-Изменения:
-- Таблица `languages` → `dictionaries`
-- `numericCode` — nullable, не UNIQUE (несколько словарей могут ссылаться на один язык)
-- `code` — удалён (не использовался)
-- `name` — NOT NULL, user-defined
-- `description` — новое поле
-- `lang_id` → `dictionary_id` в `words` и `write_quiz`
+FK CASCADE: dictionaries → words → lexemes → write_quiz.
 
-### API контракт
+### DictionaryUseCase
 
 ```kotlin
-interface DictionaryApi {
-    suspend fun addDictionary(name: String, numericCode: Int? = null, description: String? = null): Long
-    suspend fun getDictionary(id: Long): DictionaryApiEntity?
-    suspend fun getDictionaryList(): List<DictionaryApiEntity>
-    fun flowDictionaryList(): Flow<List<DictionaryApiEntity>>
-    suspend fun updateDictionary(id: Long, name: String, description: String?)   // будущее
-    suspend fun deleteDictionary(id: Long)                                        // будущее
+interface DictionaryUseCase {
+    suspend fun getDictionaryList(): List<DictionaryListItem>
+    suspend fun addDictionary(name: String, numericCode: Int?): Long
+    suspend fun updateDictionary(id: Long, name: String, numericCode: Int?)
+    suspend fun deleteDictionary(id: Long)
+    suspend fun setCurrentDictionary(id: Long)
+    fun getAvailableLanguages(): List<LanguageItem>
+    suspend fun getCountriesForLanguage(languageCode: String): List<CountryFlagItem>
 }
 ```
 
-Поиск — по `id`, не по `numericCode`.
-
-### Entity
+### FlagProvider (расширенный)
 
 ```kotlin
-// Room
-data class DictionaryDb(
-    val id: Long?,
-    val numericCode: Int?,          // nullable
-    val name: String,               // NOT NULL
-    val description: String?,       // новое
-    val addDate: Date,
-    val changeDate: Date?,
-)
-
-// API
-data class DictionaryApiEntity(
-    val id: Long,                   // Long (было Int — несогласованность)
-    val numericCode: Int?,          // nullable
-    val name: String,
-    val description: String?,       // новое
-    val addDate: Date,
-    val changeDate: Date?,
-)
-
-// UI (dropdown словарей)
-data class DictUiEntity(
-    val id: Long,                   // новое — идентификатор
-    val numericCode: Int?,          // nullable
-    val title: String,
-    val flagRes: Int?,              // nullable (словарь без флага)
-)
-
-// UI (экран создания — пресеты)
-data class PresetLangUi(
-    val flagRes: Int,
-    val countryNumericCode: Int,
-    val langNameRes: Int,
-)
-// PresetLangUi не меняется — пресеты языков остаются
+interface FlagProvider {
+    suspend fun getFlagRes(numericCode: Int): Int
+    fun getAllCountries(): List<CountryInfo>
+    fun getLanguagesForCountry(numericCode: Int): List<String>
+}
 ```
 
 ### Preference
 
 ```
 Ключ:   CURRENT_DICTIONARY_ID_LONG
-Тип:    Long (id записи в таблице dictionaries)
+Тип:    Long (id записи в dictionaries)
+Запись: setLong()
+Чтение: getLong()
 ```
-
-Прямой доступ, без промежуточного lookup:
-```
-prefs → id → использовать
-```
-
-Fallback: если ключ пуст → взять первый словарь из списка → записать id.
-
-### Переключение словарей
-
-```
-User тапает словарь в dropdown
-  → setLong(CURRENT_DICTIONARY_ID_LONG, dictionary.id)
-  → Flow-подписчики:
-    ├── DictionaryAppBar → обновляет заголовок
-    ├── VocabularyTab → перезагружает список слов
-    └── Quiz/Stats → при открытии читают из prefs
-```
-
-Логика та же, тип ключа другой (Long вместо Int, id вместо numericCode).
-
-### Создание словаря (текущий этап — IS441)
-
-Пока остаётся экран с 6 пресетами. Изменения:
-- При создании: `addDictionary(name, numericCode)` → получаем `id`
-- Сохранение текущего: `setLong(CURRENT_DICTIONARY_ID_LONG, id)`
-- Добавить AppBar с кнопкой "назад" (кроме первого запуска)
-- Добавить фильтрацию уже созданных словарей
-
-### Создание словаря (будущее — кастомный)
-
-```
-Экран:
-  [Название словаря]        — текстовое поле, обязательно
-  [Описание]                — текстовое поле, опционально
-  Язык (опционально):       — выбор из списка
-    ○ English / Spanish / ...
-    ○ Без языка
-  Флаг (опционально):       — выбор из подмножества стран по языку
-    🇬🇧 🇺🇸 🇦🇺 🇨🇦 ...
-  [ Создать ]
-```
-
-### Редактирование словаря (будущее)
-
-- Изменение `name`, `description`
-- Изменение флага (numericCode)
-- UI: экран аналогичный созданию, но с предзаполненными полями
-
-### Удаление словаря (будущее)
-
-- CASCADE: удаление словаря → удаление всех words → lexemes → write_quiz
-- Подтверждение через диалог
-- Если удаляется текущий словарь → переключиться на первый из оставшихся
-- Если словарей не осталось → перенаправить на экран создания
-
-### UI — дефолтная иконка для словарей без флага
-
-Когда `numericCode == null` (словарь без языка) → `flagRes == null` → показать дефолтную иконку (например, ic_dictionary или ic_book). Нужно добавить в core-resources.
-
----
-
-## Export/Import
-
-### Сейчас
-
-```kotlin
-data class Dump(
-    val languages: List<LanguageDump>,
-    val words: List<WordDump>,        // содержит langId
-    val lexemes: List<LexemeDump>,
-    val quizzes: List<WriteQuizDump>, // содержит langId
-)
-```
-
-### Как должно быть
-
-```kotlin
-data class Dump(
-    val version: Int = 2,                       // версионирование
-    val dictionaries: List<DictionaryDump>,      // было languages
-    val words: List<WordDump>,                   // dictionaryId вместо langId
-    val lexemes: List<LexemeDump>,
-    val quizzes: List<WriteQuizDump>,            // dictionaryId вместо langId
-)
-```
-
-Обратная совместимость при импорте:
-- `version == 1` (или отсутствует): маппить `LanguageDump` → `DictionaryDump`, `langId` → `dictionaryId`
-- `version == 2`: читать напрямую

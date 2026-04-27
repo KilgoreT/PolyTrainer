@@ -45,10 +45,10 @@ class WordCardUseCaseImpl @Inject constructor(
     }
 
     override suspend fun addLexeme(wordId: Long): Lexeme? {
-        val numericCode = prefsProvider
-            .getInt(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+        val currentId = prefsProvider
+            .getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG)
             ?: throw IllegalStateException("Dictionary not found")
-        val dictionaryId = dictionaryApi.getDictionary(numericCode = numericCode)?.id
+        val dictionaryId = dictionaryApi.getDictionaryById(currentId)?.id
             ?: throw IllegalStateException("Dictionary not found")
         val lexemeId = lexemeApi.addLexeme(wordId)
         quizApi.addWriteQuiz(dictionaryId = dictionaryId, lexemeId = lexemeId)

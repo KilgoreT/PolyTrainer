@@ -24,17 +24,17 @@ class QuizChatUseCaseImpl @Inject constructor(
 ) : QuizChatUseCase {
     
     override suspend fun getCurrentDictionaryId(): Long {
-        prefsProvider.getInt(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-            ?.let { num ->
-                dictionaryApi.getDictionary(numericCode = num)
+        prefsProvider.getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+            ?.let { id ->
+                dictionaryApi.getDictionaryById(id)
                     ?.let { return it.id }
             }
             ?: dictionaryApi.getDictionaryList()
                 .firstOrNull()
                 ?.let {
-                    prefsProvider.setInt(
+                    prefsProvider.setLong(
                         PrefKey.CURRENT_DICTIONARY_ID_LONG,
-                        it.numericCode ?: 0
+                        it.id
                     )
                     return it.id
                 }

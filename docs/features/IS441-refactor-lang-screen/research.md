@@ -603,3 +603,86 @@ UI экрана пока остаётся как есть — кастомный
 4. **UI для словарей без флага** — дефолтная иконка, отсутствие `numericCode`.
 
 Рекомендую делать в **отдельной задаче**, не в IS441. IS441 — рефакторинг экрана. Переименование домена — отдельный мерж.
+
+---
+
+## R2. Выбор языка и флага для словаря
+
+### Задача
+
+Пользователь создаёт словарь. Нужно:
+1. Выбрать язык из списка (с поиском на любом языке)
+2. На основе выбранного языка — выбрать флаг страны
+
+### Библиотека blongho/worldCountryData — что умеет
+
+Уже используется в проекте (`modules/library/flags/`).
+
+```
+World.init(context)                           // инициализация
+World.getAllCountries(): List<Country>         // все страны мира
+World.getCountryFrom(numericCode): Country    // страна по коду
+World.getCountriesFrom(Continent): List       // страны по континенту
+World.getFlagOf(numericCode): Int             // drawable флага
+World.getLanguagesFrom(numericCode): List<String>  // языки страны ("Spanish", "English")
+World.getAllCurrencies(): List<Currency>       // валюты
+```
+
+**Ограничение:** маппинг только страна → языки. Обратного (язык → страны) нет. Названия языков — только на английском ("Spanish", не "испанский").
+
+### java.util.Locale — список языков на любом языке
+
+Встроено в JDK, без библиотек.
+
+```kotlin
+Locale.getISOLanguages()  // все ISO 639 коды: "en", "es", "fr", ... (~180 языков)
+
+val locale = Locale("es")
+locale.displayLanguage                    // "Spanish" (на английском)
+locale.getDisplayLanguage(Locale("ru"))   // "испанский" (на русском)
+locale.getDisplayLanguage(Locale("es"))   // "español" (на испанском)
+locale.getDisplayLanguage(Locale("de"))   // "Spanisch" (на немецком)
+```
+
+Поиск работает на языке устройства: юзер вводит "исп" → фильтруется "испанский".
+
+### Решение: Locale + blongho
+
+Новая библиотека не нужна. Комбинация:
+- `Locale` — полный список языков с локализованными названиями + поиск/фильтрация
+- `blongho` — флаги стран
+
+#### Маппинг язык → страны
+
+Построить один раз при инициализации:
+
+```kotlin
+val languageToCountries: Map<String, List<Country>> =
+    World.getAllCountries()
+        .flatMap { country ->
+            World.getLanguagesFrom(country.id).map { lang -> lang.lowercase() to country }
+        }
+        .groupBy({ it.first }, { it.second })
+
+// "spanish" → [Spain, Mexico, Argentina, Colombia, ...]
+// "english" → [UK, US, Australia, Canada, ...]
+```
+
+#### Связка Locale ↔ blongho
+
+Locale даёт ISO 639 код ("es"), blongho даёт языки как строки ("Spanish").
+Мост: `Locale("es").getDisplayLanguage(Locale.ENGLISH).lowercase()` → "spanish" → ключ в map.
+
+#### UX-flow
+
+1. Показать список из `Locale.getISOLanguages()` → отображать `locale.getDisplayLanguage(currentLocale)`
+2. Юзер фильтрует (поиск по названию на своём языке)
+3. Юзер выбирает язык → `languageToCountries["spanish"]` → список стран
+4. Для каждой страны: `World.getFlagOf(country.numericCode)` → drawable флага
+5. Юзер выбирает флаг
+
+#### Ограничения
+
+- `getLanguagesFrom()` возвращает английские названия, не ISO-коды. Маппинг через `displayLanguage(ENGLISH)` — нечёткий (могут быть расхождения в написании).
+- Некоторые языки могут не иметь стран в blongho (мёртвые языки, диалекты).
+- ~180 языков в Locale, но реально используемых для словарей — 20-30. Можно отфильтровать по наличию стран в blongho.

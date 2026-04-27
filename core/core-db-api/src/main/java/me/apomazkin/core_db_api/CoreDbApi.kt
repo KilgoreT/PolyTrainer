@@ -44,9 +44,12 @@ interface CoreDbApi {
      */
 
     interface DictionaryApi {
-        suspend fun addDictionary(numericCode: Int, name: String): Long
+        suspend fun addDictionary(name: String, numericCode: Int? = null): Long
         suspend fun getDictionary(numericCode: Int): DictionaryApiEntity?
+        suspend fun getDictionaryById(id: Long): DictionaryApiEntity?
         suspend fun getDictionaryList(): List<DictionaryApiEntity>
+        suspend fun updateDictionary(id: Long, name: String, numericCode: Int?)
+        suspend fun deleteDictionary(id: Long)
         fun flowDictionaryList(): Flow<List<DictionaryApiEntity>>
     }
 

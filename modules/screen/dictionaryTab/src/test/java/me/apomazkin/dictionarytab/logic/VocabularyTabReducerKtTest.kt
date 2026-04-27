@@ -86,6 +86,7 @@ class VocabularyTabReducerKtTest {
     )
 
     private val testDictEntity = DictUiEntity(
+        id = 1L,
         flagRes = 0,
         title = "Test Language",
         numericCode = 1

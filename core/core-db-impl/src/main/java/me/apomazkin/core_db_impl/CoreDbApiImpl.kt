@@ -77,7 +77,7 @@ class CoreDbApiImpl @Inject constructor(
         private val wordDao: WordDao,
     ) : CoreDbApi.DictionaryApi {
 
-        override suspend fun addDictionary(numericCode: Int, name: String): Long {
+        override suspend fun addDictionary(name: String, numericCode: Int?): Long {
             val currentDate = Date(System.currentTimeMillis())
             return wordDao.addDictionary(
                 DictionaryDb(
@@ -93,8 +93,20 @@ class CoreDbApiImpl @Inject constructor(
                 ?.let { return it.toApiEntity() }
         }
 
+        override suspend fun getDictionaryById(id: Long): DictionaryApiEntity? {
+            return wordDao.getDictionaryById(id)?.toApiEntity()
+        }
+
         override suspend fun getDictionaryList(): List<DictionaryApiEntity> {
             return wordDao.getDictionaries().map { it.toApiEntity() }
+        }
+
+        override suspend fun updateDictionary(id: Long, name: String, numericCode: Int?) {
+            wordDao.updateDictionary(id, name, numericCode, System.currentTimeMillis())
+        }
+
+        override suspend fun deleteDictionary(id: Long) {
+            wordDao.deleteDictionary(id)
         }
 
         override fun flowDictionaryList(): Flow<List<DictionaryApiEntity>> {

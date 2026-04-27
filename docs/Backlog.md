@@ -61,6 +61,15 @@
   Каждый ViewModel — идентичный inner class Factory с `@Suppress("UNCHECKED_CAST")`.
   Нужно: Hilt `@HiltViewModel` или generic Factory.
 
+- **[Int/Long мисматч в TermApi и других API].**
+  `TermApi.getTermList(dictionaryId: Int)`, `searchTermsPaging(dictionaryId: Int)` принимают Int, но dictionary id теперь Long.
+  `.toInt()` в DictionaryTabUseCaseImpl и StatisticUseCaseImpl — потенциальное переполнение.
+  Нужно: перевести все API методы на Long для dictionaryId.
+
+- **[Двойной тап на навигационных кнопках].**
+  `navController.navigate()` без `launchSingleTop = true`. Быстрый двойной тап создаёт два экрана в стеке.
+  Нужно: добавить `launchSingleTop = true` во все navigate вызовы.
+
 ---
 
 ## State Management
@@ -90,6 +99,39 @@
   Нужно: сделать private set или список job'ов.
 
 ---
+
+## Тестирование — конвенция
+
+- **[Конвенция тестов extension-функций].**
+  Один тест-файл = одна extension-функция (`<FunctionName>ExtTest.kt`).
+  Doc-комментарий класса: полный список тест-кейсов.
+  Каждая тестовая функция: комментарий UI-логики, бизнес-логики (если есть), конкретного тест-кейса.
+
+## Тестирование — каркас миграций
+
+- **[`getFromDatabase()` — копипаста на каждый Schemable].**
+  50-80 строк boilerplate на версию. Нужно: generic cursor→map парсер.
+
+- **[`checkMatcher` — нет exhaustiveness].**
+  Новое поле — компилятор молчит. Нужно: assertEquals на entity или генерировать matcher.
+
+- **[Schemable.data() использует актуальные entity].**
+  При переименовании полей ломаются старые Schemable. Нужно: отдельный data class на каждую версию.
+
+- **[Дублирование интерфейсов в Schemable.kt и Schema.kt].**
+  Два набора одинаковых интерфейсов. Нужно: убрать дубли.
+
+- **[Schema.kt — god object, 400+ строк].**
+  Часть вынесена в schemable/, часть нет. Нужно: вынести всё.
+
+- **[afterCreateCheck дублирует afterMigrationCheck].**
+  Нужно: извлечь helper verifySchemable().
+
+- **[Нет теста на удаление данных].**
+  Нужно: негативные проверки — дропнутая колонка не существует.
+
+- **[Date — хак с погрешностью 1000ms].**
+  isEqualTo() с погрешностью, даты закомментированы в checkMatcher. Нужно: починить.
 
 ## Тестирование
 

@@ -15,7 +15,7 @@ import me.apomazkin.polytrainer.di.module.LoggerModule
 import me.apomazkin.polytrainer.di.module.ResourceModule
 import me.apomazkin.polytrainer.di.module.dictionary.DictionaryModule
 import me.apomazkin.polytrainer.di.module.dictionarytab.DictionaryTabModule
-import me.apomazkin.polytrainer.di.module.flags.FlagProviderModule
+import me.apomazkin.polytrainer.di.module.flags.CountryProviderModule
 import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
 import me.apomazkin.polytrainer.di.module.quizchat.QuizChatModule
 import me.apomazkin.polytrainer.di.module.quiztab.QuizTabModule
@@ -82,7 +82,7 @@ interface AppComponent : AppProvider {
         StatisticModule::class,
         SettingsModule::class,
         DictionaryAppBarModule::class,
-        FlagProviderModule::class,
+        CountryProviderModule::class,
         PrefsProviderModule::class,
         LoggerModule::class,
         ResourceModule::class,

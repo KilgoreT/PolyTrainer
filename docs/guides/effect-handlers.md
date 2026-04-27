@@ -154,6 +154,53 @@ UiEffect.ShowSnackbar         → UiMsg.Snackbar
 
 Паттерн: деструктивные операции часто запускают полную перезагрузку (`Msg.TermLoading`) вместо локального патча стейта.
 
+## Реактивное обновление данных через FlowHandler
+
+Если экран должен автоматически обновляться при изменении данных (другой экран добавил/удалил запись) — используй `MateFlowHandler` с подпиской на Room Flow, а не ручную перезагрузку при lifecycle events.
+
+```kotlin
+class DictionaryListFlowHandler(
+    private val useCase: DictionaryUseCase,
+) : MateFlowHandler<Msg, Effect> {
+
+    override var job: Job? = null
+
+    override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
+        job = scope.launch {
+            useCase.flowDictionaryList()
+                .collectLatest { list -> send(Msg.DictionariesLoaded(list)) }
+        }
+    }
+
+    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
+        // Flow handler — одноразовые эффекты в другом хендлере
+    }
+}
+```
+
+В ViewModel — `initEffects = emptySet()`, данные придут через подписку:
+
+```kotlin
+Mate(
+    initState = State(),
+    initEffects = emptySet(),  // НЕ загружаем вручную
+    effectHandlerSet = setOf(
+        EffectHandler(useCase),      // одноразовые эффекты
+        FlowHandler(useCase),        // реактивная подписка
+    )
+)
+```
+
+Room DAO автоматически эмитит новый список при INSERT/DELETE. FlowHandler ловит и отправляет `Msg.DataLoaded(list)` в reducer.
+
+**Когда использовать:**
+- Экран показывает список из БД, который может измениться из другого экрана
+- Данные должны быть актуальны при возврате (popBackStack)
+
+**Когда НЕ использовать:**
+- Данные загружаются один раз и не меняются (языки из Locale)
+- Данные не из Room (сетевой запрос без кеша)
+
 ## Конвенции
 
 1. **Sealed interface** для каждой категории эффектов, расширяющий `Effect`.

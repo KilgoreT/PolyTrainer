@@ -16,7 +16,7 @@ fun DictDropDownWidget(
         dictList: List<DictUiEntity>,
         currentDict: DictUiEntity?,
         isExpand: Boolean,
-        openDictionaryManagement: () -> Unit,
+        openDictionaryCreate: () -> Unit,
         onOpenDropDown: () -> Unit,
         onDismiss: () -> Unit,
         onItemClick: (dict: DictUiEntity) -> Unit,
@@ -25,14 +25,19 @@ fun DictDropDownWidget(
         isDropDownOpen = isExpand,
         onClickDropDown = onOpenDropDown,
         onDismissRequest = onDismiss,
-        icon = { ImageFlagWidget(flagRes = currentDict?.flagRes ?: 0) },
+        icon = {
+            val flagRes = currentDict?.flagRes ?: 0
+            if (flagRes != 0) {
+                ImageFlagWidget(flagRes = flagRes)
+            }
+        },
     ) {
         dictList.forEach {
             key(it) {
                 ItemDictMenuWidget(
                     iconRes = it.flagRes,
                     title = it.title,
-                    isSelected = it.numericCode == currentDict?.numericCode,
+                    isSelected = it.id == currentDict?.id,
                 ) {
                     onItemClick.invoke(it)
                 }
@@ -41,7 +46,7 @@ fun DictDropDownWidget(
         DividerMenuItem()
         AddDictMenuWidget {
             onDismiss.invoke()
-            openDictionaryManagement.invoke()
+            openDictionaryCreate.invoke()
         }
     }
 }
@@ -53,28 +58,32 @@ private fun Preview() {
         DictDropDownWidget(
                 dictList = listOf(
                         DictUiEntity(
+                                id = 1L,
                                 flagRes = R.drawable.example_ic_flag_gb,
                                 title = "Бритишь",
                                 numericCode = 2,
                         ),
                         DictUiEntity(
+                                id = 2L,
                                 flagRes = R.drawable.example_ic_flag_gb,
                                 title = "Спанишь",
                                 numericCode = 1,
                         ),
                         DictUiEntity(
+                                id = 3L,
                                 flagRes = R.drawable.example_ic_flag_gb,
                                 title = "Лягушатишь",
                                 numericCode = 3,
                         ),
                 ),
                 currentDict = DictUiEntity(
+                    id = 2L,
                     flagRes = R.drawable.example_ic_flag_gb,
                     title = "Спанишь",
                     numericCode = 1,
                 ),
                 isExpand = false,
-                openDictionaryManagement = {},
+                openDictionaryCreate = {},
                 onOpenDropDown = {},
                 onDismiss = {},
                 onItemClick = {}
