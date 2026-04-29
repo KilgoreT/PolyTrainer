@@ -1,23 +1,23 @@
 package me.apomazkin.dictionary.form.widget
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Checkbox
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.dictionary.R
@@ -26,6 +26,7 @@ import me.apomazkin.dictionary.form.DictionaryFormScreenState
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.grayTextColor
+import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 import me.apomazkin.ui.input.base.LexemeTextFieldWidget
 import me.apomazkin.ui.preview.PreviewWidget
@@ -40,76 +41,74 @@ internal fun DictionaryFormWidget(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
     ) {
-        LexemeTextFieldWidget(
-            modifier = Modifier.fillMaxWidth(),
-            value = formState.name,
-            onValueChange = { sendMsg(DictionaryFormMsg.NameChanged(it)) },
-            placeHolder = R.string.dictionary_name_hint,
-            onKeyboardActions = {},
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { sendMsg(DictionaryFormMsg.ToggleLanguageBound) },
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Checkbox(
-                checked = formState.isLanguageBound,
-                onCheckedChange = { sendMsg(DictionaryFormMsg.ToggleLanguageBound) },
-            )
+            if (formState.selectedFlag != null) {
+                ImageFlagWidget(
+                    flagRes = formState.selectedFlag.flagRes,
+                    modifier = Modifier.size(48.dp),
+                )
+            } else {
+                FlagPlaceholderWidget(
+                    letter = formState.name.firstOrNull()?.toString() ?: "",
+                )
+            }
             Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(id = R.string.dictionary_bind_language),
-                style = LexemeStyle.BodyM,
-                color = MaterialTheme.colorScheme.secondary,
+            LexemeTextFieldWidget(
+                modifier = Modifier.weight(1f),
+                value = formState.name,
+                onValueChange = { sendMsg(DictionaryFormMsg.NameChanged(it)) },
+                placeHolder = R.string.dictionary_name_hint,
+                onKeyboardActions = {},
             )
         }
 
-        if (formState.isLanguageBound) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { sendMsg(DictionaryFormMsg.OpenLanguagePicker) },
-            ) {
-                OutlinedTextField(
-                    value = formState.selectedLanguage?.displayName ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = false,
-                    placeholder = {
-                        Text(
-                            text = stringResource(
-                                id = R.string.dictionary_bind_language
-                            ),
-                            style = LexemeStyle.BodyM.copy(color = grayTextColor),
-                        )
-                    },
-                    trailingIcon = {
+        Spacer(modifier = Modifier.padding(top = 8.dp))
+
+        OutlinedTextField(
+            value = formState.flagFilter,
+            onValueChange = { sendMsg(DictionaryFormMsg.FlagFilterChanged(it)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            textStyle = LexemeStyle.BodyM,
+            placeholder = {
+                Text(
+                    text = stringResource(id = R.string.dictionary_filter_flags_hint),
+                    style = LexemeStyle.BodyM.copy(color = grayTextColor),
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                )
+            },
+            trailingIcon = {
+                if (formState.flagFilter.isNotEmpty()) {
+                    IconButton(
+                        onClick = { sendMsg(DictionaryFormMsg.FlagFilterChanged("")) },
+                    ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_next),
+                            imageVector = Icons.Default.Close,
                             contentDescription = null,
                         )
-                    },
-                    textStyle = LexemeStyle.BodyL,
-                )
-            }
+                    }
+                }
+            },
+        )
 
-            if (formState.selectedLanguage != null && formState.availableFlags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                FlagGridWidget(
-                    flags = formState.availableFlags,
-                    selectedFlag = formState.selectedFlag,
-                    onFlagClick = { sendMsg(DictionaryFormMsg.SelectFlag(it)) },
-                )
-            }
-        }
+        Spacer(modifier = Modifier.padding(top = 8.dp))
 
-        Spacer(modifier = Modifier.height(24.dp))
+        FlagGridWidget(
+            flags = formState.flags,
+            selectedFlag = formState.selectedFlag,
+            onFlagClick = { sendMsg(DictionaryFormMsg.SelectFlag(it)) },
+            modifier = Modifier.weight(1f),
+        )
+
+        Spacer(modifier = Modifier.padding(top = 8.dp))
 
         val buttonTextRes = if (formState.editingDictionaryId != null) {
             R.string.dictionary_save
@@ -122,6 +121,8 @@ internal fun DictionaryFormWidget(
             enabled = formState.saveButtonEnabled,
             onClick = { sendMsg(DictionaryFormMsg.Save) },
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

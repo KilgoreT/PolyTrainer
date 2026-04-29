@@ -7,8 +7,8 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
 
 sealed interface DictionaryFormEffect : Effect {
-    data object LoadLanguages : DictionaryFormEffect
-    data class LoadFlagsForLanguage(val languageCode: String) : DictionaryFormEffect
+    data class FilterFlags(val query: String) : DictionaryFormEffect
+    data class LoadDictionary(val id: Long) : DictionaryFormEffect
     data class SaveDictionary(val name: String, val numericCode: Int?) : DictionaryFormEffect
     data class UpdateDictionary(
         val id: Long,
@@ -26,16 +26,12 @@ class DictionaryFormEffectHandler(
         consumer: (DictionaryFormMsg) -> Unit
     ) {
         val msg = when (val e = effect as? DictionaryFormEffect) {
-            is DictionaryFormEffect.LoadLanguages -> {
-                val list = dictionaryUseCase.getAvailableLanguages()
-                DictionaryFormMsg.LanguagesLoaded(list)
-            }
-
-            is DictionaryFormEffect.LoadFlagsForLanguage -> {
-                val list = withContext(Dispatchers.IO) {
-                    dictionaryUseCase.getCountriesForLanguage(e.languageCode)
+            is DictionaryFormEffect.LoadDictionary -> {
+                val item = withContext(Dispatchers.IO) {
+                    dictionaryUseCase.getDictionary(e.id)
                 }
-                DictionaryFormMsg.FlagsLoaded(list)
+                val flag = item.numericCode?.let { dictionaryUseCase.findFlag(it) }
+                DictionaryFormMsg.DictionaryLoaded(item.name, flag)
             }
 
             is DictionaryFormEffect.SaveDictionary -> {
@@ -51,6 +47,8 @@ class DictionaryFormEffectHandler(
                 }
                 DictionaryFormMsg.DictionarySaved
             }
+
+            is DictionaryFormEffect.FilterFlags -> DictionaryFormMsg.Empty
 
             null -> DictionaryFormMsg.Empty
         }

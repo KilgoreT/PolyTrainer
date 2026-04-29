@@ -4,8 +4,10 @@ import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import me.apomazkin.dictionary.form.DictionaryFormScreen
 import me.apomazkin.dictionary.list.DictionaryListScreen
 import me.apomazkin.polytrainer.appComponent
@@ -16,7 +18,7 @@ enum class RootPoint(
 ) {
     SPLASH("SPLASH"),
     DICTIONARY_SETUP("DICTIONARY_SETUP"),
-    DICTIONARY_CREATE("DICTIONARY_CREATE"),
+    DICTIONARY_CREATE("DICTIONARY_CREATE?editId={editId}"),
     DICTIONARY_LIST("DICTIONARY_LIST"),
     MAIN_ROUTER("MAIN_ROUTER")
 }
@@ -53,14 +55,24 @@ fun RootRouter(
         composable(RootPoint.DICTIONARY_SETUP.route) {
             DictionaryFormScreen(
                 dictionaryUseCase = context.appComponent.getDictionaryUseCase(),
-                onClose = { navigator?.openMainScreen() },
+                onBack = { navigator?.openMainScreen() },
+                showAppBar = false,
             )
         }
-        composable(RootPoint.DICTIONARY_CREATE.route) {
+        composable(
+            route = RootPoint.DICTIONARY_CREATE.route,
+            arguments = listOf(
+                navArgument("editId") {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                }
+            ),
+        ) { backStackEntry ->
+            val editId = backStackEntry.arguments?.getLong("editId", -1L) ?: -1L
             DictionaryFormScreen(
                 dictionaryUseCase = context.appComponent.getDictionaryUseCase(),
-                onClose = { navController.popBackStack() },
-                onBackPress = { navController.popBackStack() },
+                editingDictionaryId = if (editId != -1L) editId else null,
+                onBack = { navController.popBackStack() },
             )
         }
         composable(RootPoint.DICTIONARY_LIST.route) {
@@ -68,13 +80,20 @@ fun RootRouter(
                 dictionaryUseCase = context.appComponent.getDictionaryUseCase(),
                 onBackPress = { navController.popBackStack() },
                 onExit = onExitApp,
-                onOpenForm = { navController.navigate(RootPoint.DICTIONARY_CREATE.route) },
+                onOpenForm = { id ->
+                    val route = if (id != null) {
+                        "DICTIONARY_CREATE?editId=$id"
+                    } else {
+                        "DICTIONARY_CREATE"
+                    }
+                    navController.navigate(route)
+                },
             )
         }
         mainRouter(
             route = RootPoint.MAIN_ROUTER.route,
             openDictionaryCreate = {
-                navController.navigate(RootPoint.DICTIONARY_CREATE.route)
+                navController.navigate("DICTIONARY_CREATE")
             },
             openDictionaryList = {
                 navController.navigate(RootPoint.DICTIONARY_LIST.route)

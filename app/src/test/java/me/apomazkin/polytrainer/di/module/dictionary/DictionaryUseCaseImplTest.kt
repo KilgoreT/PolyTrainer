@@ -23,7 +23,7 @@ import java.util.Date
  *
  * === getDictionaryList ===
  * 1. Standard: returns list mapped with flags and language names
- * 2. Standard: dictionary without numericCode → flagRes=null, languageName=null
+ * 2. Standard: dictionary without numericCode → flagRes=null
  * 3. Boundary: empty list → returns empty
  * 4. Standard: multiple dictionaries mapped correctly
  *
@@ -89,7 +89,6 @@ class DictionaryUseCaseImplTest {
         assertEquals(1L, result[0].id)
         assertEquals("English", result[0].name)
         assertEquals(100, result[0].flagRes)
-        assertEquals("English", result[0].languageName)
     }
 
     @Test
@@ -103,7 +102,6 @@ class DictionaryUseCaseImplTest {
 
         assertEquals(1, result.size)
         assertNull("flagRes should be null", result[0].flagRes)
-        assertNull("languageName should be null", result[0].languageName)
     }
 
     @Test

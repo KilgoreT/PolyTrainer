@@ -1,78 +1,164 @@
 package me.apomazkin.dictionary.form.reducer
 
+import me.apomazkin.dictionary.form.DictionaryFormEffect
+import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.dictionary.form.DictionaryFormMsg
 import me.apomazkin.dictionary.form.DictionaryFormReducer
 import me.apomazkin.dictionary.form.DictionaryFormScreenState
 import me.apomazkin.dictionary.model.CountryFlagItem
-import me.apomazkin.dictionary.model.LanguageItem
 import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertNoEffects
+import me.apomazkin.mate.test.assertSingleEffect
 import me.apomazkin.mate.test.testReduce
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * Test cases:
- * 1. Standard: LanguagesLoaded → sets languages and filteredLanguages
- * 2. Standard: FlagsLoaded with multiple → sets flags, no auto-select
- * 3. Standard: FlagsLoaded with single → auto-selects flag
- * 4. Standard: DictionarySaved → needClose=true
+ * 1. Boundary: FlagsUpdated with empty list
+ * 2. Standard: FlagsUpdated with list
+ * 3. Standard: FlagsUpdated preserves other fields
+ * 4. Standard: DictionaryLoaded with name and flag
+ * 5. Standard: DictionaryLoaded with null flag
+ * 6. Edge: DictionaryLoaded with empty name
+ * 7. Standard: DictionaryLoaded preserves other fields
+ * 8. Standard: DictionarySaved emits Close
+ * 9. Standard: DictionarySaved preserves state
  */
 class FormDataLoadingTest {
 
     private val reducer = DictionaryFormReducer()
 
-    private val languages = listOf(
-        LanguageItem("en", "English"),
-        LanguageItem("es", "Spanish"),
+    private val spainFlag = CountryFlagItem(
+        numericCode = 724, countryName = "Spain", flagRes = 100,
+        languages = listOf("Spanish", "Catalan"),
     )
+    private val mexicoFlag = CountryFlagItem(
+        numericCode = 484, countryName = "Mexico", flagRes = 101,
+        languages = listOf("Spanish"),
+    )
+    private val flags = listOf(spainFlag, mexicoFlag)
 
-    private val multipleFlags = listOf(
-        CountryFlagItem(724, "Spain", 100),
-        CountryFlagItem(484, "Mexico", 101),
-        CountryFlagItem(32, "Argentina", 102),
-    )
-
-    private val singleFlag = listOf(
-        CountryFlagItem(392, "Japan", 200),
-    )
+    // === FlagsUpdated ===
 
     @Test
-    fun `should set languages when LanguagesLoaded`() {
-        // Test case 1
-        val result = reducer.testReduce(DictionaryFormScreenState(), DictionaryFormMsg.LanguagesLoaded(languages))
+    fun `should set empty flags when FlagsUpdated with empty list`() {
+        val result = reducer.testReduce(
+            DictionaryFormScreenState(),
+            DictionaryFormMsg.FlagsUpdated(emptyList()),
+        )
 
-        assertEquals("languages should be set", languages, result.state().languagePickerState.languages)
-        assertEquals("filteredLanguages should match", languages, result.state().languagePickerState.filteredLanguages)
+        assertTrue("flags should be empty", result.state().flags.isEmpty())
         result.assertNoEffects()
     }
 
     @Test
-    fun `should set flags without auto-select when FlagsLoaded multiple`() {
-        // Test case 2
-        val result = reducer.testReduce(DictionaryFormScreenState(), DictionaryFormMsg.FlagsLoaded(multipleFlags))
+    fun `should set flags when FlagsUpdated with list`() {
+        val result = reducer.testReduce(
+            DictionaryFormScreenState(),
+            DictionaryFormMsg.FlagsUpdated(flags),
+        )
 
-        assertEquals("should have 3 flags", 3, result.state().availableFlags.size)
+        assertEquals("should have 2 flags", 2, result.state().flags.size)
+        assertEquals("flags should match", flags, result.state().flags)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `should preserve other fields when FlagsUpdated`() {
+        val initial = DictionaryFormScreenState(
+            name = "Eng",
+            selectedFlag = spainFlag,
+        )
+        val result = reducer.testReduce(initial, DictionaryFormMsg.FlagsUpdated(flags))
+
+        assertEquals("name should not change", "Eng", result.state().name)
+        assertEquals("selectedFlag should not change", spainFlag, result.state().selectedFlag)
+    }
+
+    // === DictionaryLoaded ===
+
+    @Test
+    fun `should prefill name and flag when DictionaryLoaded`() {
+        val initial = DictionaryFormScreenState(editingDictionaryId = 5)
+        val result = reducer.testReduce(
+            initial,
+            DictionaryFormMsg.DictionaryLoaded("English", spainFlag),
+        )
+
+        assertEquals("name should be English", "English", result.state().name)
+        assertEquals("selectedFlag should be set", spainFlag, result.state().selectedFlag)
+        assertTrue("saveButtonEnabled should be true", result.state().saveButtonEnabled)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `should prefill name with null flag when DictionaryLoaded without flag`() {
+        val initial = DictionaryFormScreenState(editingDictionaryId = 5)
+        val result = reducer.testReduce(
+            initial,
+            DictionaryFormMsg.DictionaryLoaded("English", null),
+        )
+
+        assertEquals("name should be English", "English", result.state().name)
         assertNull("selectedFlag should be null", result.state().selectedFlag)
+        assertTrue("saveButtonEnabled should be true", result.state().saveButtonEnabled)
         result.assertNoEffects()
     }
 
     @Test
-    fun `should auto-select flag when FlagsLoaded single`() {
-        // Test case 3
-        val result = reducer.testReduce(DictionaryFormScreenState(), DictionaryFormMsg.FlagsLoaded(singleFlag))
+    fun `should disable save when DictionaryLoaded with empty name`() {
+        val initial = DictionaryFormScreenState(editingDictionaryId = 5)
+        val result = reducer.testReduce(
+            initial,
+            DictionaryFormMsg.DictionaryLoaded("", null),
+        )
 
-        assertEquals("should have 1 flag", 1, result.state().availableFlags.size)
-        assertEquals("should auto-select Japan", singleFlag[0], result.state().selectedFlag)
+        assertEquals("name should be empty", "", result.state().name)
+        assertFalse("saveButtonEnabled should be false", result.state().saveButtonEnabled)
+        result.assertNoEffects()
     }
 
     @Test
-    fun `should set needClose when DictionarySaved`() {
-        // Test case 4
-        val result = reducer.testReduce(DictionaryFormScreenState(), DictionaryFormMsg.DictionarySaved)
+    fun `should preserve other fields when DictionaryLoaded`() {
+        val initial = DictionaryFormScreenState(
+            editingDictionaryId = 5,
+            flagFilter = "spa",
+        )
+        val result = reducer.testReduce(
+            initial,
+            DictionaryFormMsg.DictionaryLoaded("English", spainFlag),
+        )
 
-        assertTrue("needClose should be true", result.state().needClose)
+        assertEquals("flagFilter should not change", "spa", result.state().flagFilter)
+        assertEquals("editingDictionaryId should not change", 5L, result.state().editingDictionaryId)
+    }
+
+    // === DictionarySaved ===
+
+    @Test
+    fun `should emit Close effect when DictionarySaved`() {
+        val result = reducer.testReduce(
+            DictionaryFormScreenState(),
+            DictionaryFormMsg.DictionarySaved,
+        )
+
+        result.assertSingleEffect<NavigationEffect.Back>()
+    }
+
+    @Test
+    fun `should preserve state when DictionarySaved`() {
+        val initial = DictionaryFormScreenState(
+            name = "Eng",
+            selectedFlag = spainFlag,
+        )
+        val result = reducer.testReduce(initial, DictionaryFormMsg.DictionarySaved)
+
+        assertEquals("name should not change", "Eng", result.state().name)
+        assertEquals("selectedFlag should not change", spainFlag, result.state().selectedFlag)
+        result.assertSingleEffect<NavigationEffect.Back>()
     }
 }

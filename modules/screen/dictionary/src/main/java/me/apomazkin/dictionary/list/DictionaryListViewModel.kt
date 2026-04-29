@@ -10,6 +10,9 @@ import me.apomazkin.mate.MateStateHolder
 
 class DictionaryListViewModel(
     dictionaryUseCase: DictionaryUseCase,
+    onBackPress: (() -> Unit)? = null,
+    onExit: (() -> Unit)? = null,
+    onEditDictionary: (Long) -> Unit = {},
 ) : ViewModel(), MateStateHolder<DictionaryListScreenState, DictionaryListMsg> {
 
     private val stateHolder = Mate(
@@ -20,6 +23,11 @@ class DictionaryListViewModel(
         effectHandlerSet = setOf(
             DictionaryListEffectHandler(dictionaryUseCase = dictionaryUseCase),
             DictionaryListFlowHandler(dictionaryUseCase = dictionaryUseCase),
+            ListNavigationEffectHandler(
+                onBackPress = onBackPress,
+                onExit = onExit,
+                onEditDictionary = onEditDictionary,
+            ),
         )
     )
 
@@ -30,10 +38,18 @@ class DictionaryListViewModel(
 
     class Factory(
         private val dictionaryUseCase: DictionaryUseCase,
+        private val onBackPress: (() -> Unit)? = null,
+        private val onExit: (() -> Unit)? = null,
+        private val onEditDictionary: (Long) -> Unit = {},
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return DictionaryListViewModel(dictionaryUseCase) as T
+            return DictionaryListViewModel(
+                dictionaryUseCase,
+                onBackPress,
+                onExit,
+                onEditDictionary,
+            ) as T
         }
     }
 }

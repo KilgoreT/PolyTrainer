@@ -329,3 +329,24 @@ val focusRequester = remember { FocusRequester() }
 LaunchedEffect(Unit) { focusRequester.requestFocus() }
 DisposableEffect(Unit) { onDispose { keyboardController?.hide() } }
 ```
+
+## Выделение логически отдельных элементов в виджеты
+
+Логически самостоятельный UI-элемент выносить в отдельный `*Widget.kt` — даже при однократном использовании. Это не про переиспользование, а про читаемость: экран/форма не должны содержать inline-вёрстку для каждого элемента.
+
+**Выносить:** placeholder, карточка элемента, диалог, панель ввода, кастомная кнопка — всё что имеет свой смысл и состав.
+
+**Не выносить:** один `Text()`, один `Spacer()`, простой `Row` без логики.
+
+```kotlin
+// Плохо — inline в форме
+Box(
+    modifier = Modifier.size(48.dp).clip(CircleShape).background(gray),
+    contentAlignment = Alignment.Center,
+) {
+    Text(text = letter, style = LexemeStyle.BodyL, color = grayTextColor)
+}
+
+// Хорошо — отдельный виджет
+FlagPlaceholderWidget(letter = name.firstOrNull()?.toString() ?: "")
+```

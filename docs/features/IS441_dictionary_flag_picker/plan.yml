@@ -1,0 +1,112 @@
+name: lexeme_feature
+
+conductor_model: opus
+verification: verification_feature.output
+context:
+  ticket: IS441
+  feature_name: dictionary-flag-picker
+  branch: IS441-refactor-lang-screen
+  mode: manual
+  log: [file, console]
+  overlay: docs/forgeflow-overlay
+  dir: docs/features/IS441_dictionary_flag_picker/
+
+steps:
+  # --- Planning ---
+  - step: task
+    model: opus
+    output: [00_task.md]
+    pause: true
+    status: done
+
+  - step: spec
+    model: opus
+    input: [task.output]
+    output: [01_spec.md]
+    review:
+      agents: [analyst]
+      retry: 3
+    pause: true
+    status: done
+
+  - step: verification_feature
+    model: opus
+    input: [spec.output]
+    output: [02_verification.md]
+    review:
+      agents: [qa_engineer]
+      retry: 3
+    pause: true
+    status: done
+
+  - step: guides
+    model: opus
+    input: [spec.output]
+    output: [03_guides.md]
+    pause: true
+    status: done
+
+  - group: contract
+    output: [04_contract.md, architecture.puml]
+    review:
+      agents: [architect]
+      retry: 3
+    pause: true
+    status: done
+    flow:
+      steps:
+        - step: contract_state
+          model: opus
+          input: [spec.output, verification_feature.output, guides.output]
+          status: done
+        - step: contract_ui_msg
+          model: opus
+          input: [spec.output, verification_feature.output, guides.output]
+          status: done
+        - step: contract_effect_msg
+          model: opus
+          input: [spec.output, verification_feature.output, guides.output]
+          status: done
+        - step: contract_schema
+          model: opus
+          input: [verification_feature.output, guides.output]
+          status: done
+
+  - step: usecase
+    model: opus
+    input: [spec.output, contract.output, verification_feature.output]
+    output: [05_usecase.md]
+    pause: true
+    status: done
+
+  # --- Design tree ---
+  - step: design_tree
+    model: opus
+    input: [spec.output, contract.output, usecase.output, verification_feature.output, guides.output]
+    output: [06_design_tree.md]
+    review:
+      agents: [architect]
+      retry: 3
+    pause: true
+    status: done
+
+  # --- Implementation ---
+  - step: test
+    model: opus
+    input: [contract.output, design_tree.output, spec.output, verification_feature.output, guides.output]
+    output: [07_test.md]
+    status: done
+
+  - step: implement
+    model: opus
+    input: [design_tree.output, contract.output, test.output, spec.output, usecase.output, verification_feature.output, guides.output]
+    output: [08_impl.md]
+    pause: true
+    status: done
+
+  # --- Verification ---
+  - step: verification_feature_run
+    model: opus
+    input: [verification_feature.output, implement.output]
+    output: [09_verification_result.md]
+    status: done

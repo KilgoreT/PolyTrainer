@@ -2,8 +2,8 @@ package me.apomazkin.dictionary
 
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.dictionary.model.CountryFlagItem
+import me.apomazkin.dictionary.model.DictionaryItem
 import me.apomazkin.dictionary.model.DictionaryListItem
-import me.apomazkin.dictionary.model.LanguageItem
 
 interface DictionaryUseCase {
     suspend fun getDictionaryList(): List<DictionaryListItem>
@@ -12,6 +12,8 @@ interface DictionaryUseCase {
     suspend fun updateDictionary(id: Long, name: String, numericCode: Int?)
     suspend fun deleteDictionary(id: Long)
     suspend fun setCurrentDictionary(id: Long)
-    fun getAvailableLanguages(): List<LanguageItem>
-    suspend fun getCountriesForLanguage(languageCode: String): List<CountryFlagItem>
+    fun updateFilter(query: String)
+    fun flagsFlow(): Flow<List<CountryFlagItem>>
+    suspend fun getDictionary(id: Long): DictionaryItem
+    fun findFlag(numericCode: Int): CountryFlagItem?
 }

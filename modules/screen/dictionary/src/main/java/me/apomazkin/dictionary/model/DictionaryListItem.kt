@@ -7,5 +7,4 @@ data class DictionaryListItem(
     val id: Long,
     val name: String,
     val flagRes: Int? = null,
-    val languageName: String? = null,
 )

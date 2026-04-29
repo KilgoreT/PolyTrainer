@@ -11,25 +11,25 @@ import me.apomazkin.mate.MateStateHolder
 class DictionaryFormViewModel(
     dictionaryUseCase: DictionaryUseCase,
     editingDictionaryId: Long? = null,
-    editingName: String = "",
-    editingHasFlag: Boolean = false,
+    onBack: () -> Unit,
 ) : ViewModel(), MateStateHolder<DictionaryFormScreenState, DictionaryFormMsg> {
 
     private val stateHolder = Mate(
         initState = DictionaryFormScreenState(
             editingDictionaryId = editingDictionaryId,
-            name = editingName,
-            isLanguageBound = editingHasFlag,
-            saveButtonEnabled = editingName.isNotBlank(),
         ),
-        initEffects = setOf(
-            DictionaryFormEffect.LoadLanguages,
-        ),
+        initEffects = if (editingDictionaryId != null) {
+            setOf(DictionaryFormEffect.LoadDictionary(editingDictionaryId))
+        } else {
+            emptySet()
+        },
         coroutineScope = viewModelScope,
         reducer = DictionaryFormReducer(),
         effectHandlerSet = setOf(
-            DictionaryFormEffectHandler(dictionaryUseCase = dictionaryUseCase),
-        )
+            DictionaryFormEffectHandler(dictionaryUseCase),
+            FlagFilterFlowHandler(dictionaryUseCase),
+            NavigationEffectHandler(onBack),
+        ),
     )
 
     override val state: StateFlow<DictionaryFormScreenState>
@@ -40,16 +40,14 @@ class DictionaryFormViewModel(
     class Factory(
         private val dictionaryUseCase: DictionaryUseCase,
         private val editingDictionaryId: Long? = null,
-        private val editingName: String = "",
-        private val editingHasFlag: Boolean = false,
+        private val onBack: () -> Unit,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return DictionaryFormViewModel(
                 dictionaryUseCase,
                 editingDictionaryId,
-                editingName,
-                editingHasFlag,
+                onBack,
             ) as T
         }
     }

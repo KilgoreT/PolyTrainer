@@ -1,8 +1,10 @@
 package me.apomazkin.dictionary.form
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -14,7 +16,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.dictionary.form.widget.DictionaryFormWidget
-import me.apomazkin.dictionary.form.widget.LanguagePickerBottomSheet
 import me.apomazkin.dictionary.widget.DictionaryAppBar
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
@@ -25,40 +26,39 @@ import me.apomazkin.ui.preview.PreviewWidget
 fun DictionaryFormScreen(
     dictionaryUseCase: DictionaryUseCase,
     editingDictionaryId: Long? = null,
-    editingName: String = "",
-    editingHasFlag: Boolean = false,
+    onBack: () -> Unit,
+    showAppBar: Boolean = true,
     viewModel: DictionaryFormViewModel = viewModel(
         factory = DictionaryFormViewModel.Factory(
             dictionaryUseCase,
             editingDictionaryId,
-            editingName,
-            editingHasFlag,
+            onBack,
         )
     ),
-    onClose: () -> Unit,
-    onBackPress: (() -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     DictionaryFormScreen(
         state = state,
-        onClose = onClose,
-        onBackPress = onBackPress,
+        showAppBar = showAppBar,
     ) { viewModel.accept(it) }
 }
 
 @Composable
 internal fun DictionaryFormScreen(
     state: DictionaryFormScreenState,
-    onClose: () -> Unit,
-    onBackPress: (() -> Unit)? = null,
+    showAppBar: Boolean = true,
     sendMsg: (DictionaryFormMsg) -> Unit,
 ) {
+    BackHandler { sendMsg(DictionaryFormMsg.Back) }
+
     SystemBarsWidget(
         color = whiteColor,
     )
     Scaffold(
         topBar = {
-            onBackPress?.let { DictionaryAppBar(onBackPress = it) }
+            if (showAppBar) {
+                DictionaryAppBar(onBackPress = { sendMsg(DictionaryFormMsg.Back) })
+            }
         }
     ) { paddings ->
         Box(
@@ -67,25 +67,14 @@ internal fun DictionaryFormScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .imePadding()
                 .background(color = whiteColor)
         ) {
-            if (state.needClose) {
-                onClose.invoke()
-            }
             DictionaryFormWidget(
                 formState = state,
                 sendMsg = sendMsg,
             )
         }
-    }
-
-    if (state.languagePickerState.show) {
-        LanguagePickerBottomSheet(
-            state = state.languagePickerState,
-            onQueryChange = { sendMsg(DictionaryFormMsg.LanguageQueryChanged(it)) },
-            onSelect = { sendMsg(DictionaryFormMsg.SelectLanguage(it)) },
-            onDismiss = { sendMsg(DictionaryFormMsg.CloseLanguagePicker) },
-        )
     }
 }
 
@@ -95,8 +84,6 @@ private fun PreviewForm() {
     AppTheme {
         DictionaryFormScreen(
             state = DictionaryFormScreenState(),
-            onClose = {},
-            onBackPress = {},
         ) {}
     }
 }

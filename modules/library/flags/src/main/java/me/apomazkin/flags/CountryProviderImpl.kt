@@ -2,18 +2,15 @@ package me.apomazkin.flags
 
 import android.content.Context
 import com.blongho.country_data.World
-import com.blongho.country_data.exception.CountryDataException
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 data class CountryInfo(
     val numericCode: Int,
     val name: String,
+    val alpha2: String,
 )
 
 interface CountryProvider {
-    suspend fun getFlagRes(numericCode: Int): Int
+    fun getFlagRes(numericCode: Int): Int
     fun getAllCountries(): List<CountryInfo>
     fun getLanguagesForCountry(numericCode: Int): List<String>
 }
@@ -26,24 +23,12 @@ class CountryProviderImpl(
         World.init(context)
     }
 
-    override suspend fun getFlagRes(numericCode: Int): Int = suspendCoroutine { continuation ->
-        try {
-            val flagRes = World.getFlagOf(numericCode)
-            continuation.resume(flagRes)
-        } catch (e: Exception) {
-            when (e) {
-                is CountryDataException -> {
-                    continuation.resumeWithException(IllegalStateException(e.message))
-                }
-                else -> {
-                    continuation.resumeWithException(IllegalStateException("Unknown error"))
-                }
-            }
-        }
+    override fun getFlagRes(numericCode: Int): Int {
+        return World.getFlagOf(numericCode)
     }
 
     override fun getAllCountries(): List<CountryInfo> {
-        return World.getAllCountries().map { CountryInfo(it.id, it.name) }
+        return World.getAllCountries().map { CountryInfo(it.id, it.name, it.alpha2) }
     }
 
     override fun getLanguagesForCountry(numericCode: Int): List<String> {

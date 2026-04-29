@@ -6,8 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,26 +25,24 @@ import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.grayTextColor
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
-import java.util.Locale
 
 @Composable
 internal fun FlagGridWidget(
     flags: List<CountryFlagItem>,
     selectedFlag: CountryFlagItem?,
     onFlagClick: (CountryFlagItem) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(5),
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(flags) { flag ->
             val isSelected = selectedFlag?.numericCode == flag.numericCode
-            val localizedName = getLocalizedCountryName(flag.countryName)
-
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .width(64.dp)
-                    .padding(vertical = 4.dp),
             ) {
                 Surface(
                     shape = CircleShape,
@@ -53,6 +52,7 @@ internal fun FlagGridWidget(
                         null
                     },
                     onClick = { onFlagClick(flag) },
+                    modifier = Modifier.padding(4.dp),
                 ) {
                     ImageFlagWidget(
                         flagRes = flag.flagRes,
@@ -60,26 +60,17 @@ internal fun FlagGridWidget(
                     )
                 }
                 Text(
-                    text = localizedName,
+                    text = flag.localizedName,
                     style = LexemeStyle.BodyS,
                     color = grayTextColor,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(56.dp),
                 )
             }
         }
     }
-}
-
-private fun getLocalizedCountryName(englishName: String): String {
-    val currentLocale = Locale.getDefault()
-    return Locale.getISOCountries()
-        .map { Locale("", it) }
-        .firstOrNull { it.getDisplayCountry(Locale.ENGLISH).equals(englishName, ignoreCase = true) }
-        ?.getDisplayCountry(currentLocale)
-        ?: englishName
 }
 
 @PreviewWidget

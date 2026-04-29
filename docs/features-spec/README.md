@@ -7,7 +7,9 @@
 
 ## По экранам
 
-- [Управление словарями](dictionary-management.md) (CreateDictionary / LangScreen)
+- Словари
+  - [Список](dictionary-list.md)
+  - [Создание/редактирование](dictionary-create.md)
 - Splash
 - Главный экран (Main)
   - Словарь (DictionaryTab / VocabularyTab)

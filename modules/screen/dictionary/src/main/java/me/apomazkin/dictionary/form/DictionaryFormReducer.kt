@@ -2,6 +2,7 @@ package me.apomazkin.dictionary.form
 
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
+import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.ReducerResult
 
 class DictionaryFormReducer : MateReducer<DictionaryFormScreenState, DictionaryFormMsg, Effect> {
@@ -13,8 +14,18 @@ class DictionaryFormReducer : MateReducer<DictionaryFormScreenState, DictionaryF
             is DictionaryFormMsg.NameChanged -> state
                 .updateName(message.value) to emptySet()
 
-            is DictionaryFormMsg.ToggleLanguageBound -> state
-                .toggleLanguageBound() to emptySet()
+            is DictionaryFormMsg.FlagFilterChanged -> state
+                .updateFlagFilter(message.query) to setOf(
+                    DictionaryFormEffect.FilterFlags(message.query)
+                )
+
+            is DictionaryFormMsg.SelectFlag -> {
+                if (message.item == state.selectedFlag) {
+                    state.deselectFlag() to emptySet()
+                } else {
+                    state.selectFlag(message.item) to emptySet()
+                }
+            }
 
             is DictionaryFormMsg.Save -> {
                 val numericCode = state.selectedFlag?.numericCode
@@ -36,31 +47,15 @@ class DictionaryFormReducer : MateReducer<DictionaryFormScreenState, DictionaryF
                 }
             }
 
-            is DictionaryFormMsg.OpenLanguagePicker -> state
-                .showLanguagePicker() to emptySet()
+            is DictionaryFormMsg.Back -> state to setOf(NavigationEffect.Back)
 
-            is DictionaryFormMsg.CloseLanguagePicker -> state
-                .hideLanguagePicker() to emptySet()
-
-            is DictionaryFormMsg.LanguageQueryChanged -> state
-                .filterLanguages(message.query) to emptySet()
-
-            is DictionaryFormMsg.SelectLanguage -> state
-                .selectLanguage(message.item) to setOf(
-                    DictionaryFormEffect.LoadFlagsForLanguage(message.item.code)
-                )
-
-            is DictionaryFormMsg.SelectFlag -> state
-                .selectFlag(message.item) to emptySet()
-
-            is DictionaryFormMsg.LanguagesLoaded -> state
-                .setLanguages(message.list) to emptySet()
-
-            is DictionaryFormMsg.FlagsLoaded -> state
+            is DictionaryFormMsg.FlagsUpdated -> state
                 .updateFlags(message.list) to emptySet()
 
-            is DictionaryFormMsg.DictionarySaved -> state
-                .close() to emptySet()
+            is DictionaryFormMsg.DictionaryLoaded -> state
+                .prefillForEdit(message.name, message.flag) to emptySet()
+
+            is DictionaryFormMsg.DictionarySaved -> state to setOf(NavigationEffect.Back)
 
             is DictionaryFormMsg.Empty -> state to emptySet()
         }

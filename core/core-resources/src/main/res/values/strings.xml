@@ -70,6 +70,7 @@
     <string name="dictionary_empty_subtitle">Create your first!</string>
     <string name="dictionary_save">Save</string>
     <string name="dictionary_create">Create</string>
+    <string name="dictionary_filter_flags_hint">Filter flags…</string>
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Dictionary</string>

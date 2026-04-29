@@ -27,6 +27,10 @@ class DictionaryListReducer : MateReducer<DictionaryListScreenState, DictionaryL
 
             is DictionaryListMsg.DictionaryDeleted -> state to emptySet()
 
+            is DictionaryListMsg.EditDictionary -> state to setOf(
+                ListNavigationEffect.OpenEdit(message.id)
+            )
+
             is DictionaryListMsg.Empty -> state to emptySet()
         }
     }

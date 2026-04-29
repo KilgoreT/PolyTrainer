@@ -17,5 +17,5 @@
 /build-logic/build
 /.cursor
 /.vscode
-docs/flow
+docs/forgeflow
 app/keystore/

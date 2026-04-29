@@ -1,7 +1,6 @@
 package me.apomazkin.dictionary.list.widget
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +19,6 @@ import me.apomazkin.dictionary.model.DictionaryListItem
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.enableIconColor
-import me.apomazkin.theme.grayTextColor
 import me.apomazkin.ui.IconBoxed
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
@@ -47,20 +45,12 @@ internal fun DictionaryListItemWidget(
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = item.name,
-                style = LexemeStyle.BodyL,
-                color = MaterialTheme.colorScheme.secondary,
-            )
-            if (item.languageName != null) {
-                Text(
-                    text = item.languageName,
-                    style = LexemeStyle.BodyS,
-                    color = grayTextColor,
-                )
-            }
-        }
+        Text(
+            modifier = Modifier.weight(1f),
+            text = item.name,
+            style = LexemeStyle.BodyL,
+            color = MaterialTheme.colorScheme.secondary,
+        )
         IconBoxed(
             iconRes = R.drawable.ic_trash,
             enabled = true,
@@ -79,7 +69,6 @@ private fun Preview() {
             item = DictionaryListItem(
                 id = 1L,
                 name = "English",
-                languageName = "English",
             ),
             onItemClick = {},
             onDeleteClick = {},
