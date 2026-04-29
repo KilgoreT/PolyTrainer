@@ -7,7 +7,6 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
-import me.apomazkin.flags.CountryInfo
 import me.apomazkin.flags.CountryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
@@ -44,16 +43,7 @@ import java.util.Date
  * === setCurrentDictionary ===
  * 13. Standard: writes id to prefs via setLong
  *
- * === getAvailableLanguages ===
- * 14. Standard: returns non-empty sorted list
- * 15. Standard: displayName capitalized
- * 16. Standard: filtered — no blank displayNames
- *
- * === getCountriesForLanguage ===
- * 17. Standard: filters countries by language name
- * 18. Standard: returns flags for matching countries
- * 19. Edge: no countries speak this language → empty list
- * 20. Standard: case-insensitive matching
+ * (getAvailableLanguages and getCountriesForLanguage removed — language binding removed)
  */
 class DictionaryUseCaseImplTest {
 
@@ -238,107 +228,4 @@ class DictionaryUseCaseImplTest {
         coVerify { prefsProvider.setLong(PrefKey.CURRENT_DICTIONARY_ID_LONG, 42L) }
     }
 
-    // === getAvailableLanguages ===
-
-    @Test
-    fun `should return non-empty sorted list of languages`() {
-        // Test case 14
-        val result = useCase.getAvailableLanguages()
-
-        assertTrue("should not be empty", result.isNotEmpty())
-        val sorted = result.sortedBy { it.displayName }
-        assertEquals("should be sorted", sorted, result)
-    }
-
-    @Test
-    fun `should have capitalized displayNames`() {
-        // Test case 15
-        val result = useCase.getAvailableLanguages()
-
-        result.forEach { item ->
-            assertTrue(
-                "${item.displayName} should start with uppercase",
-                item.displayName.first().isUpperCase()
-            )
-        }
-    }
-
-    @Test
-    fun `should not have blank displayNames`() {
-        // Test case 16
-        val result = useCase.getAvailableLanguages()
-
-        result.forEach { item ->
-            assertTrue(
-                "displayName should not be blank for ${item.code}",
-                item.displayName.isNotBlank()
-            )
-        }
-    }
-
-    // === getCountriesForLanguage ===
-
-    @Test
-    fun `should filter countries by language`() = runTest {
-        // Test case 17
-        every { countryProvider.getAllCountries() } returns listOf(
-            CountryInfo(724, "Spain"),
-            CountryInfo(276, "Germany"),
-            CountryInfo(484, "Mexico"),
-        )
-        every { countryProvider.getLanguagesForCountry(724) } returns listOf("Spanish", "Catalan")
-        every { countryProvider.getLanguagesForCountry(276) } returns listOf("German")
-        every { countryProvider.getLanguagesForCountry(484) } returns listOf("Spanish")
-        coEvery { countryProvider.getFlagRes(724) } returns 100
-        coEvery { countryProvider.getFlagRes(484) } returns 101
-
-        val result = useCase.getCountriesForLanguage("es")
-
-        assertEquals("should have 2 Spanish countries", 2, result.size)
-        assertEquals("Spain", result[0].countryName)
-        assertEquals("Mexico", result[1].countryName)
-    }
-
-    @Test
-    fun `should return flags for matching countries`() = runTest {
-        // Test case 18
-        every { countryProvider.getAllCountries() } returns listOf(
-            CountryInfo(392, "Japan"),
-        )
-        every { countryProvider.getLanguagesForCountry(392) } returns listOf("Japanese")
-        coEvery { countryProvider.getFlagRes(392) } returns 200
-
-        val result = useCase.getCountriesForLanguage("ja")
-
-        assertEquals(1, result.size)
-        assertEquals(200, result[0].flagRes)
-        assertEquals(392, result[0].numericCode)
-    }
-
-    @Test
-    fun `should return empty when no countries speak language`() = runTest {
-        // Test case 19
-        every { countryProvider.getAllCountries() } returns listOf(
-            CountryInfo(276, "Germany"),
-        )
-        every { countryProvider.getLanguagesForCountry(276) } returns listOf("German")
-
-        val result = useCase.getCountriesForLanguage("xx")
-
-        assertTrue("should be empty", result.isEmpty())
-    }
-
-    @Test
-    fun `should match case-insensitively`() = runTest {
-        // Test case 20
-        every { countryProvider.getAllCountries() } returns listOf(
-            CountryInfo(724, "Spain"),
-        )
-        every { countryProvider.getLanguagesForCountry(724) } returns listOf("SPANISH")
-        coEvery { countryProvider.getFlagRes(724) } returns 100
-
-        val result = useCase.getCountriesForLanguage("es")
-
-        assertEquals("should find Spain despite case", 1, result.size)
-    }
 }
