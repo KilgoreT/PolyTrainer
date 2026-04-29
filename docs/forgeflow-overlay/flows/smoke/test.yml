@@ -1,0 +1,13 @@
+name: smoke_test
+conductor_model: opus
+steps:
+  - step: task
+    model: opus
+    output: [task.md]
+    pause: true
+
+  - step: echo
+    model: opus
+    input: [task.output]
+    output: [echo.md]
+    pause: true

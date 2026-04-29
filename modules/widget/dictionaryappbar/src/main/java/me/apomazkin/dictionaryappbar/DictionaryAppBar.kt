@@ -30,7 +30,7 @@ fun DictionaryAppBar(
         @StringRes titleResId: Int,
         logger: LexemeLogger,
         dictionaryAppBarUseCase: DictionaryAppBarUseCase,
-        openAddDict: () -> Unit,
+        openDictionaryCreate: () -> Unit,
         viewModel: DictionaryAppBarViewModel = viewModel(
                 factory = DictionaryAppBarViewModel.Factory(
                         logger = logger,
@@ -42,7 +42,7 @@ fun DictionaryAppBar(
     DictionaryAppBar(
             titleResId = titleResId,
             state = state,
-            openAddDict = openAddDict,
+            openDictionaryCreate = openDictionaryCreate,
     ) { viewModel.accept(it) }
 }
 
@@ -50,7 +50,7 @@ fun DictionaryAppBar(
 internal fun DictionaryAppBar(
         @StringRes titleResId: Int,
         state: DictionaryAppBarState,
-        openAddDict: () -> Unit,
+        openDictionaryCreate: () -> Unit,
         sendMessage: (Msg) -> Unit,
 ) {
 
@@ -72,7 +72,7 @@ internal fun DictionaryAppBar(
                             dictList = state.availableDictList,
                             currentDict = state.currentDict,
                             isExpand = state.isDropDownMenuOpen,
-                            openAddDict = openAddDict,
+                            openDictionaryCreate = openDictionaryCreate,
                             onOpenDropDown = { sendMessage(Msg.DictMenuOn) },
                             onDismiss = { sendMessage(Msg.DictMenuOff) },
                             onItemClick = { sendMessage(Msg.ChangeDict(dict = it)) },
@@ -90,7 +90,7 @@ private fun PreviewWidget() {
         DictionaryAppBar(
                 titleResId = R.string.quiz_tab_title,
                 state = DictionaryAppBarState(),
-                openAddDict = {},
+                openDictionaryCreate = {},
                 sendMessage = {},
         )
     }

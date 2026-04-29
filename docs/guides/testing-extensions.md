@@ -150,6 +150,81 @@ fun `should clear userInput when clearUserInput is called`() {
 - Генерацию эффектов (расширения не производят эффекты)
 - Сложные сценарии (используйте тесты редьюсера для многошаговых flow)
 
+## Формат описания тест-кейсов (до реализации)
+
+Перед написанием тестов — документ с описанием кейсов. Для каждого extension:
+
+### Таблица "до → после"
+
+Показывает что меняется и что не должно:
+
+```
+#### showDeleteDialog(id=3, name="English")
+
+| Поле | До | После |
+|------|----|-------|
+| `deleteDialogState.show` | false | **true** |
+| `deleteDialogState.dictionaryId` | 0 | **3** |
+| `deleteDialogState.dictionaryName` | "" | **"English"** |
+| `listState` | * | не меняется |
+| `formState` | * | не меняется |
+```
+
+Жирным — что изменилось. "не меняется" — что проверить на иммутабельность.
+
+### Варианты входных данных
+
+Для extension'ов с параметрами — таблица вариантов:
+
+```
+#### updateName(value)
+
+| value | name → | saveButtonEnabled → |
+|-------|--------|---------------------|
+| `"English"` | "English" | **true** |
+| `""` | "" | **false** |
+| `"   "` | "   " | **false** |
+
+Не меняются: `editingDictionaryId`, `isLanguageBound`, `selectedLanguage`
+```
+
+### Сигнатуры тестов
+
+После таблиц — список сигнатур без реализации:
+
+```kotlin
+fun `should show dialog with data when showDeleteDialog`()
+fun `should preserve other fields when showDeleteDialog`()
+fun `should reset dialog when hideDeleteDialog`()
+```
+
+## Формат описания тест-кейсов для reducer'а
+
+Для каждого Msg:
+
+### Структура сообщения + варианты данных
+
+```
+#### Msg.SelectLanguage
+
+data class SelectLanguage(val item: LanguageItem) : Msg
+
+item: LanguageItem(code="es", displayName="Испанский")
+```
+
+### Таблица кейсов
+
+```
+| # | Кейс | Начальный стейт | Ожидание (state) | Effects |
+|---|------|----------------|------------------|---------|
+| 1 | Standard | picker open, query="исп" | selectedLanguage=item, picker closed, query="" | LoadFlagsForLanguage("es") |
+| 2 | Standard | любой | name не изменился | — |
+```
+
+Видно: входные данные, что проверить в стейте, какие эффекты.
+
+---
+
 ## Чеклист для новых тестов расширений
 
 - [ ] Тест-класс имеет нумерованную документацию кейсов

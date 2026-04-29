@@ -2,8 +2,12 @@
 junit = "4.13.2"
 androidxTestExt = "1.2.1"
 espressoCore = "3.6.1"
+mockk = "1.13.12"
+coroutinesTest = "1.10.1"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidxTestExt = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
 espressoCore = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+coroutinesTest = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }

@@ -12,11 +12,11 @@ private const val WORD_ID_ARG = "wordId"
 fun NavGraphBuilder.vocabulary(
     navController: NavHostController,
     mainUiDeps: MainUiDeps,
-    openAddDict: () -> Unit,
+    openDictionaryCreate: () -> Unit,
 ) {
     composable(TabPoint.VOCABULARY.route) {
         mainUiDeps.VocabularyTabDep(
-            openAddDict = openAddDict,
+            openDictionaryCreate = openDictionaryCreate,
             openWordCard = { navController.goToWordCard(it) },
         )
     }

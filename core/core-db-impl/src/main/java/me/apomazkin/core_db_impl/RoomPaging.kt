@@ -8,7 +8,7 @@ import javax.inject.Inject
 
 class RoomPaging @Inject constructor(
         private val dao: WordDao,
-        private val langId: Int,
+        private val dictionaryId: Int,
 ) : PagingSource<Int, TermDbEntity>() {
 
     override fun getRefreshKey(state: PagingState<Int, TermDbEntity>): Int? {
@@ -25,7 +25,7 @@ class RoomPaging @Inject constructor(
         val offset = page * limit
 
         return try {
-            val items = dao.searchTermsManual("pattern", langId, limit, offset)
+            val items = dao.searchTermsManual("pattern", dictionaryId, limit, offset)
             LoadResult.Page(
                     data = items,
                     prevKey = if (page == 0) null else page - 1,

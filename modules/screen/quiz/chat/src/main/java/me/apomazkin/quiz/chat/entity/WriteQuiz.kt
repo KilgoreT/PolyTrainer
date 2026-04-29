@@ -4,7 +4,7 @@ import java.util.Date
 
 data class WriteQuiz(
         val id: Long,
-        val langId: Long,
+        val dictionaryId: Long,
         val grade: Int,
         val score: Int,
         val errorCount: Int,
@@ -25,7 +25,7 @@ enum class QuizType(
 
 data class WriteQuizUpsertEntity(
         val id: Long,
-        val langId: Long,
+        val dictionaryId: Long,
         val lexemeId: Long,
         val grade: Int,
         val score: Int,

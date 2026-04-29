@@ -21,7 +21,7 @@ import javax.inject.Inject
 
 class WordCardUseCaseImpl @Inject constructor(
     private val wordApi: CoreDbApi.WordApi,
-    private val langApi: CoreDbApi.LangApi,
+    private val dictionaryApi: CoreDbApi.DictionaryApi,
     private val termApi: CoreDbApi.TermApi,
     private val lexemeApi: CoreDbApi.LexemeApi,
     private val quizApi: CoreDbApi.QuizApi,
@@ -45,13 +45,13 @@ class WordCardUseCaseImpl @Inject constructor(
     }
 
     override suspend fun addLexeme(wordId: Long): Lexeme? {
-        val numericCode = prefsProvider
-            .getInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
-            ?: throw IllegalStateException("Language not found")
-        val langId = langApi.getLang(numericCode = numericCode)?.id?.toLong()
-            ?: throw IllegalStateException("Language not found")
+        val currentId = prefsProvider
+            .getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+            ?: throw IllegalStateException("Dictionary not found")
+        val dictionaryId = dictionaryApi.getDictionaryById(currentId)?.id
+            ?: throw IllegalStateException("Dictionary not found")
         val lexemeId = lexemeApi.addLexeme(wordId)
-        quizApi.addWriteQuiz(langId = langId, lexemeId = lexemeId)
+        quizApi.addWriteQuiz(dictionaryId = dictionaryId, lexemeId = lexemeId)
         
         return lexemeApi.getLexemeById(lexemeId)?.toDomainEntity()
     }

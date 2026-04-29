@@ -9,7 +9,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
-import me.apomazkin.core_db_impl.entity.LanguageDb
+import me.apomazkin.core_db_impl.entity.DictionaryDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.LexemeDbEntity
 import me.apomazkin.core_db_impl.entity.SampleDb
@@ -23,19 +23,28 @@ import me.apomazkin.core_db_impl.entity.WriteQuizDbEntity
 interface WordDao {
 
     /**
-     * Languages
+     * Dictionaries
      */
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun addLanguage(languageDb: LanguageDb): Long
+    suspend fun addDictionary(dictionaryDb: DictionaryDb): Long
 
-    @Query("SELECT * FROM languages WHERE numericCode = :numericCode")
-    suspend fun getLanguageByNumeric(numericCode: Int): LanguageDb?
+    @Query("SELECT * FROM dictionaries WHERE numericCode = :numericCode")
+    suspend fun getDictionaryByNumeric(numericCode: Int): DictionaryDb?
 
-    @Query("SELECT * FROM languages")
-    suspend fun getLanguages(): List<LanguageDb>
+    @Query("SELECT * FROM dictionaries")
+    suspend fun getDictionaries(): List<DictionaryDb>
 
-    @Query("SELECT * FROM languages")
-    fun flowLanguages(): Flow<List<LanguageDb>>
+    @Query("SELECT * FROM dictionaries WHERE id = :id")
+    suspend fun getDictionaryById(id: Long): DictionaryDb?
+
+    @Query("UPDATE dictionaries SET name = :name, numericCode = :numericCode, changeDate = :changeDate WHERE id = :id")
+    suspend fun updateDictionary(id: Long, name: String, numericCode: Int?, changeDate: Long)
+
+    @Query("DELETE FROM dictionaries WHERE id = :id")
+    suspend fun deleteDictionary(id: Long)
+
+    @Query("SELECT * FROM dictionaries")
+    fun flowDictionaries(): Flow<List<DictionaryDb>>
 
     /**
      * WORD
@@ -54,33 +63,34 @@ interface WordDao {
      */
 
     @Transaction
-    @Query("SELECT * FROM words WHERE lang_id = :langId ORDER BY id DESC")
+    @Query("SELECT * FROM words WHERE dictionary_id = :langId ORDER BY id DESC")
     suspend fun getTermList(langId: Int): List<TermDbEntity>
 
 
     @Transaction
-    @Query("SELECT * FROM words WHERE value LIKE :pattern AND lang_id = :langId ORDER BY id DESC")
+    @Query("SELECT * FROM words WHERE value LIKE :pattern AND dictionary_id = :langId ORDER BY id DESC")
     suspend fun searchTerms(pattern: String, langId: Long): List<TermDbEntity>
 
     @Transaction
     @Query(
         """
         SELECT * FROM words
-             WHERE (:pattern = '' OR value LIKE :pattern || '%') 
-             AND lang_id = :langId 
+             WHERE (:pattern = '' OR value LIKE :pattern || '%')
+             AND dictionary_id = :langId
              ORDER BY id DESC
     """
     )
     fun searchTermsPaging(pattern: String, langId: Int): PagingSource<Int, TermDbEntity>
 
+    @Transaction
     @Query(
         """
         SELECT * FROM words
             WHERE (:pattern = '' OR value LIKE :pattern || '%')
-            AND lang_id = :langId
-            ORDER BY id    
+            AND dictionary_id = :langId
+            ORDER BY id
             DESC
-            LIMIT :limit 
+            LIMIT :limit
             OFFSET :offset
     """
     )
@@ -151,7 +161,7 @@ interface WordDao {
     fun updateWriteQuiz(writeQuizDb: List<WriteQuizDb>): Int
 
     @Transaction
-    @Query("SELECT * from write_quiz  WHERE grade = :grade AND lang_id = :langId ORDER BY RANDOM() LIMIT :limit")
+    @Query("SELECT * from write_quiz  WHERE grade = :grade AND dictionary_id = :langId ORDER BY RANDOM() LIMIT :limit")
     suspend fun getRandomWriteQuizList(
         grade: Int,
         limit: Int,
@@ -161,8 +171,8 @@ interface WordDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM write_quiz 
-        WHERE lang_id = :langId 
+        SELECT * FROM write_quiz
+        WHERE dictionary_id = :langId
         ORDER BY last_select_date ASC
         LIMIT :limit
     """
@@ -175,8 +185,8 @@ interface WordDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM write_quiz 
-        WHERE lang_id = :langId 
+        SELECT * FROM write_quiz
+        WHERE dictionary_id = :langId
         ORDER BY error_count DESC
         LIMIT :limit
     """
@@ -194,22 +204,22 @@ interface WordDao {
      */
 
     @Transaction
-    @Query("SELECT COUNT(*) FROM words WHERE lang_id = :langId")
+    @Query("SELECT COUNT(*) FROM words WHERE dictionary_id = :langId")
     fun flowWordCount(langId: Int): Flow<Int>
 
     @Transaction
     @Query(
         """
-            SELECT COUNT(*) 
-            FROM lexemes 
-            INNER JOIN words ON lexemes.word_id = words.id 
-            WHERE words.lang_id = :langId
+            SELECT COUNT(*)
+            FROM lexemes
+            INNER JOIN words ON lexemes.word_id = words.id
+            WHERE words.dictionary_id = :langId
         """
     )
     fun flowLexemeCount(langId: Int): Flow<Int>
 
 
-    @Query("SELECT COUNT(*) FROM write_quiz WHERE lang_id = :langId AND grade = :grade")
+    @Query("SELECT COUNT(*) FROM write_quiz WHERE dictionary_id = :langId AND grade = :grade")
     fun flowQuizCount(langId: Int, grade: Int): Flow<Int>
 
 }

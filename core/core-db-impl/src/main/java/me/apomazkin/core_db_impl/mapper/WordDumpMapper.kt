@@ -5,7 +5,7 @@ import me.apomazkin.core_db_impl.entity.WordDb
 
 fun WordDb.toDumpEntity() = WordDump(
     id = this.id,
-    langId = this.langId,
+    dictionaryId = this.dictionaryId,
     word = this.value,
     addDate = this.addDate,
     changeDate = this.changeDate,
@@ -15,7 +15,7 @@ fun List<WordDb>.toDumpEntity() = this.map { it.toDumpEntity() }
 
 fun WordDump.toDbEntity() = WordDb(
     id = this.id ?: throw IllegalArgumentException("Word id is null"),
-    langId = this.langId,
+    dictionaryId = this.dictionaryId,
     value = this.word ?: throw IllegalArgumentException("Word value is null"),
     addDate = this.addDate
         ?: throw IllegalArgumentException("Word add date is null"),

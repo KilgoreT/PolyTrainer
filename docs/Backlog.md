@@ -28,6 +28,22 @@
 
 ## Архитектура
 
+- **[Разобраться в слоях entity].**
+  Нет доменного слоя. ApiEntity (core-db-api) де-факто выполняет роль доменной сущности. UI модели (UiItem, CountryFlagItem) содержат и бизнес-поля и UI-поля. Суффиксы непоследовательны (ApiEntity, UiItem, UiEntity, Item, Info).
+  Нужно: определить конвенцию слоёв entity, решить нужен ли отдельный domain layer или ApiEntity = доменная (с переименованием). Описать в гайде.
+
+- **[NavigationEffect в модуле mate].**
+  Навигация через Effect вместо boolean флагов в State (needClose, closeScreen, exit). NavigationEffect как sealed interface в core/mate. NavigationEffectHandler принимает callback'и (onClose, onBackPress, onExit). Убирает навигационные флаги из State, LaunchedEffect из Screen. Базовая иерархия в mate: Close (popBackStack), ExitApp (finish()). Переходы вперёд — конкретные Effect'ы в модулях, не generic Navigate(route). Миграция постепенная — начать с DictionaryForm, потом WordCard, ChatScreen.
+
+- **[DictionaryUseCase.getDictionaryList() — кандидат на удаление].**
+  suspend-версия не вызывается — используется только flowDictionaryList(). CoreDbApi.getDictionaryList() нужен другим UseCase'ам, но в DictionaryUseCase — мёртвый код.
+
+- **[Placeholder флага в AppBar].**
+  В DictionaryPicker (AppBar главного экрана) placeholder словаря без флага — белый, не видно. Добавить серый круг с буквой (как в форме словаря).
+
+- **[Шиммеры при загрузке].**
+  Добавить loading-состояние для цепочек эффектов. Пока цепочка не завершена — показывать шиммеры вместо контента. Шиммеров в проекте ещё нет — нужно создать компонент. Начать с формы словаря (загрузка флагов + данных словаря).
+
 - **[Reducer не чистый — ChatReducer].**
   ChatReducer принимает ResourceManager и LexemeLogger. Логирование — сайд-эффект.
   WordCardReducer чистый — несоответствие reference-реализации.
@@ -61,6 +77,15 @@
   Каждый ViewModel — идентичный inner class Factory с `@Suppress("UNCHECKED_CAST")`.
   Нужно: Hilt `@HiltViewModel` или generic Factory.
 
+- **[Int/Long мисматч в TermApi и других API].**
+  `TermApi.getTermList(dictionaryId: Int)`, `searchTermsPaging(dictionaryId: Int)` принимают Int, но dictionary id теперь Long.
+  `.toInt()` в DictionaryTabUseCaseImpl и StatisticUseCaseImpl — потенциальное переполнение.
+  Нужно: перевести все API методы на Long для dictionaryId.
+
+- **[Двойной тап на навигационных кнопках].**
+  `navController.navigate()` без `launchSingleTop = true`. Быстрый двойной тап создаёт два экрана в стеке.
+  Нужно: добавить `launchSingleTop = true` во все navigate вызовы.
+
 ---
 
 ## State Management
@@ -90,6 +115,39 @@
   Нужно: сделать private set или список job'ов.
 
 ---
+
+## Тестирование — конвенция
+
+- **[Конвенция тестов extension-функций].**
+  Один тест-файл = одна extension-функция (`<FunctionName>ExtTest.kt`).
+  Doc-комментарий класса: полный список тест-кейсов.
+  Каждая тестовая функция: комментарий UI-логики, бизнес-логики (если есть), конкретного тест-кейса.
+
+## Тестирование — каркас миграций
+
+- **[`getFromDatabase()` — копипаста на каждый Schemable].**
+  50-80 строк boilerplate на версию. Нужно: generic cursor→map парсер.
+
+- **[`checkMatcher` — нет exhaustiveness].**
+  Новое поле — компилятор молчит. Нужно: assertEquals на entity или генерировать matcher.
+
+- **[Schemable.data() использует актуальные entity].**
+  При переименовании полей ломаются старые Schemable. Нужно: отдельный data class на каждую версию.
+
+- **[Дублирование интерфейсов в Schemable.kt и Schema.kt].**
+  Два набора одинаковых интерфейсов. Нужно: убрать дубли.
+
+- **[Schema.kt — god object, 400+ строк].**
+  Часть вынесена в schemable/, часть нет. Нужно: вынести всё.
+
+- **[afterCreateCheck дублирует afterMigrationCheck].**
+  Нужно: извлечь helper verifySchemable().
+
+- **[Нет теста на удаление данных].**
+  Нужно: негативные проверки — дропнутая колонка не существует.
+
+- **[Date — хак с погрешностью 1000ms].**
+  isEqualTo() с погрешностью, даты закомментированы в checkMatcher. Нужно: починить.
 
 ## Тестирование
 

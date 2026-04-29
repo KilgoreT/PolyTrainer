@@ -34,7 +34,6 @@ internal class DatasourceEffectHandler(
         job = scope.launch {
             launch {
                 useCase.flowAvailableDict()
-                        .debounce { 1000L }
                         .collectLatest { send(Msg.AvailableDict(list = it)) }
             }
             launch {
@@ -53,7 +52,7 @@ internal class DatasourceEffectHandler(
             is DatasourceEffect.ChangeDict -> {
                 withContext(Dispatchers.IO) {
                     useCase
-                            .changeDict(numericCode = eff.dict.numericCode)
+                            .changeDict(id = eff.dict.id)
                     Msg.Empty
                 }
             }

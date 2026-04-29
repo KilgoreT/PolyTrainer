@@ -24,8 +24,8 @@ import java.util.Date
 data class WriteQuizDb(
         @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-        @ColumnInfo(name = "lang_id")
-    val langId: Long = 0,
+        @ColumnInfo(name = "dictionary_id")
+    val dictionaryId: Long = 0,
         @ColumnInfo(name = "lexeme_id")
     val lexemeId: Long,
         @ColumnInfo(name = "grade")
@@ -40,8 +40,8 @@ data class WriteQuizDb(
     val lastCorrectAnswerDate: Date? = null,
 ) {
     companion object {
-        fun create(langId: Long, lexemeId: Long) = WriteQuizDb(
-            langId = langId,
+        fun create(dictionaryId: Long, lexemeId: Long) = WriteQuizDb(
+            dictionaryId = dictionaryId,
             lexemeId = lexemeId,
             addDate = Date(System.currentTimeMillis())
         )
@@ -50,7 +50,7 @@ data class WriteQuizDb(
 
 fun WriteQuizDb.toApiEntity() = WriteQuizApiEntity(
         id = id,
-        langId = langId,
+        dictionaryId = dictionaryId,
         lexemeId = lexemeId,
         grade = grade,
         score = score,
@@ -61,7 +61,7 @@ fun WriteQuizDb.toApiEntity() = WriteQuizApiEntity(
 
 fun WriteQuizUpsertApiEntity.toDb() = WriteQuizDb(
         id = id,
-        langId = langId,
+        dictionaryId = dictionaryId,
         lexemeId = lexemeId,
         grade = grade,
         score = score,

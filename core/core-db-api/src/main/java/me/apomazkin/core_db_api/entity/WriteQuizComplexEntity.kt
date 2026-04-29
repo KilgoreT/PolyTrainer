@@ -11,7 +11,7 @@ data class WriteQuizComplexEntity(
 
 data class WriteQuizApiEntity(
         val id: Long = 0,
-        val langId: Long,
+        val dictionaryId: Long,
         val lexemeId: Long,
         val grade: Int = 0,
         val score: Int = 0,
@@ -22,7 +22,7 @@ data class WriteQuizApiEntity(
 
 data class WriteQuizUpsertApiEntity(
         val id: Long,
-        val langId: Long,
+        val dictionaryId: Long,
         val lexemeId: Long,
         val grade: Int,
         val score: Int,

@@ -25,10 +25,12 @@ fun ItemDictMenuWidget(
 ) {
     DropdownMenuItem(
         leadingIcon = {
-            ImageFlagWidget(
-                flagRes = iconRes,
-                contentDescription = title
-            )
+            if (iconRes != 0) {
+                ImageFlagWidget(
+                    flagRes = iconRes,
+                    contentDescription = title
+                )
+            }
         },
         text = {
             Text(

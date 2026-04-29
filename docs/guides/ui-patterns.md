@@ -107,6 +107,71 @@ LaunchedEffect(state.snackbarState.show) {
 }
 ```
 
+## Когда выносить composable в отдельный файл
+
+Composable выносится в отдельный `*Widget.kt` если **2+ критериев**:
+
+1. **Переиспользуется** в 2+ местах
+2. **Принимает state-объект** + callback'и
+3. **Имеет эффекты** (LaunchedEffect, DisposableEffect)
+4. **Представляет визуальный блок** со своим стилем
+5. **Имеет preview**
+
+Если 0-1 — остаётся inline. Layout-обёртки (Box, Column, Spacer) — всегда inline.
+
+## Три уровня виджетов
+
+| Уровень | Где | State management | Используется из | Пример |
+|---------|-----|-----------------|----------------|--------|
+| Примитивы | `core/ui/` | Нет | Везде | `PrimaryFabWidget`, `IconBoxed` |
+| Модуль-виджет | `modules/widget/` | TEA (если сложный) | Несколько экранов | `dictionaryappbar` |
+| Экранный виджет | `screen/*/widget/` | Нет (props + callbacks) | Только свой экран | `TopBarWidget`, `LexemeItemWidget` |
+
+**Правило уровня:**
+- Без бизнес-логики, используется везде → `core/ui/`
+- Несколько экранов, может иметь свой TEA → `modules/widget/`
+- Только один экран → `screen/*/widget/`
+
+Зависимости строго послойно: `core/ui` ← `modules/widget` ← `screen/*/widget`. Обратных зависимостей нет.
+
+## AppBar — всегда отдельный виджет
+
+AppBar **никогда** не пишется inline в `Scaffold`. Каждый экран использует отдельный виджет:
+
+```kotlin
+// Правильно:
+topBar = { AboutAppBar(onBackPress = onBackPress) }
+topBar = { SettingsAppBar() }
+topBar = { TopBarWidget(state = state.topBarState, onBackPress = onBackPress, sendMsg = sendMsg) }
+
+// Неправильно:
+topBar = {
+    TopAppBar(
+        navigationIcon = { IconBoxed(...) },
+        title = { Text(...) }
+    )
+}
+```
+
+Паттерны AppBar:
+
+| Тип | Виджет | Параметры |
+|-----|--------|-----------|
+| Только назад + заголовок | `AboutAppBar(onBackPress)` | `onBackPress: () -> Unit` |
+| Без навигации | `SettingsAppBar()` | нет |
+| С состоянием (меню, действия) | `TopBarWidget(state, onBackPress, sendMsg)` | state + callbacks |
+| Через DI (MainUiDeps) | `uiDeps.AppBar(titleResId)` | `@StringRes titleResId` |
+
+Если экран условно показывает AppBar (например, onboarding без AppBar, management с AppBar) — `onBackPress: (() -> Unit)? = null`:
+
+```kotlin
+Scaffold(
+    topBar = {
+        onBackPress?.let { MyAppBar(onBackPress = it) }
+    }
+)
+```
+
 ## Структура Scaffold
 
 Типичный скелет экрана:
@@ -263,4 +328,25 @@ Box(
 val focusRequester = remember { FocusRequester() }
 LaunchedEffect(Unit) { focusRequester.requestFocus() }
 DisposableEffect(Unit) { onDispose { keyboardController?.hide() } }
+```
+
+## Выделение логически отдельных элементов в виджеты
+
+Логически самостоятельный UI-элемент выносить в отдельный `*Widget.kt` — даже при однократном использовании. Это не про переиспользование, а про читаемость: экран/форма не должны содержать inline-вёрстку для каждого элемента.
+
+**Выносить:** placeholder, карточка элемента, диалог, панель ввода, кастомная кнопка — всё что имеет свой смысл и состав.
+
+**Не выносить:** один `Text()`, один `Spacer()`, простой `Row` без логики.
+
+```kotlin
+// Плохо — inline в форме
+Box(
+    modifier = Modifier.size(48.dp).clip(CircleShape).background(gray),
+    contentAlignment = Alignment.Center,
+) {
+    Text(text = letter, style = LexemeStyle.BodyL, color = grayTextColor)
+}
+
+// Хорошо — отдельный виджет
+FlagPlaceholderWidget(letter = name.firstOrNull()?.toString() ?: "")
 ```

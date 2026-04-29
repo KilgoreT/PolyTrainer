@@ -103,7 +103,7 @@ dependencies {
     implementation(project("path" to ":modules:core:ui"))
 
     implementation(project("path" to ":modules:screen:splash"))
-    implementation(project("path" to ":modules:screen:createdictionary"))
+    implementation(project("path" to ":modules:screen:dictionary"))
     implementation(project("path" to ":modules:screen:main"))
     implementation(project("path" to ":modules:screen:dictionaryTab"))
     implementation(project("path" to ":modules:screen:wordcard"))
@@ -147,6 +147,8 @@ dependencies {
 
     // Test
     testImplementation(testLibs.junit)
+    testImplementation(testLibs.mockk)
+    testImplementation(testLibs.coroutinesTest)
     androidTestImplementation(testLibs.androidxTestExt)
     androidTestImplementation(testLibs.espressoCore)
     androidTestImplementation(composeLibs.uiTestJunit4)

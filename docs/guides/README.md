@@ -27,6 +27,7 @@
 
 - [Тестирование расширений](testing-extensions.md) — тесты чистых трансформаций, проверка иммутабельности
 - [Тестирование редьюсеров](testing-reducers.md) — testReduce, testScenario, проверка стейта+эффектов
+- [Тестирование Room-миграций](testing-migrations.md) — BaseMigration, Schemable, checkData, пошаговый гайд новой миграции
 
 ## UI
 

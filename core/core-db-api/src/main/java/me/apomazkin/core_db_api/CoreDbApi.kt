@@ -3,7 +3,7 @@ package me.apomazkin.core_db_api
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.core_db_api.entity.DefinitionApiEntity
-import me.apomazkin.core_db_api.entity.LanguageApiEntity
+import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.TranslationApiEntity
@@ -43,30 +43,33 @@ interface CoreDbApi {
      * xxx -> xxxApiEntity -> xxxDb
      */
 
-    interface LangApi {
-        suspend fun addLang(numericCode: Int, name: String): Long
-        suspend fun getLang(numericCode: Int): LanguageApiEntity?
-        suspend fun getLangList(): List<LanguageApiEntity>
-        fun flowLangList(): Flow<List<LanguageApiEntity>>
+    interface DictionaryApi {
+        suspend fun addDictionary(name: String, numericCode: Int? = null): Long
+        suspend fun getDictionary(numericCode: Int): DictionaryApiEntity?
+        suspend fun getDictionaryById(id: Long): DictionaryApiEntity?
+        suspend fun getDictionaryList(): List<DictionaryApiEntity>
+        suspend fun updateDictionary(id: Long, name: String, numericCode: Int?)
+        suspend fun deleteDictionary(id: Long)
+        fun flowDictionaryList(): Flow<List<DictionaryApiEntity>>
     }
 
     interface TermApi {
-        suspend fun getTermList(langId: Int): List<TermApiEntity>
+        suspend fun getTermList(dictionaryId: Int): List<TermApiEntity>
         suspend fun searchTerms(
             pattern: String,
-            langId: Long,
+            dictionaryId: Long,
         ): List<TermApiEntity>
 
         fun searchTermsPaging(
             pattern: String,
-            langId: Int,
+            dictionaryId: Int,
         ): Flow<PagingData<TermApiEntity>>
 
         suspend fun getTermById(id: Long): TermApiEntity?
     }
 
     interface WordApi {
-        fun addWordSuspend(value: String, langId: Int): Long
+        fun addWordSuspend(value: String, dictionaryId: Int): Long
         suspend fun deleteWordSuspend(id: Long): Int
         suspend fun updateWordSuspend(id: Long, value: String): Boolean
     }
@@ -98,29 +101,29 @@ interface CoreDbApi {
     }
 
     interface QuizApi {
-        suspend fun addWriteQuiz(langId: Long, lexemeId: Long): Long
+        suspend fun addWriteQuiz(dictionaryId: Long, lexemeId: Long): Long
         suspend fun updateWriteQuiz(entity: List<WriteQuizUpsertApiEntity>): Int
 
         suspend fun getRandomWriteQuizList(
             grade: Int,
             limit: Int,
-            langId: Long,
+            dictionaryId: Long,
         ): List<WriteQuizComplexEntity>
 
         suspend fun getEarliestWriteQuizList(
             limit: Int,
-            langId: Long,
+            dictionaryId: Long,
         ): List<WriteQuizComplexEntity>
 
         suspend fun getFrequentMistakesWriteQuizList(
             limit: Int,
-            langId: Long,
+            dictionaryId: Long,
         ): List<WriteQuizComplexEntity>
     }
 
     interface StatisticApi {
-        fun flowWordCount(langId: Int): Flow<Int>
-        fun flowLexemeCount(langId: Int): Flow<Int>
-        fun flowQuizCount(langId: Int, maxGrade: Int): Flow<Map<Int, Int>>
+        fun flowWordCount(dictionaryId: Int): Flow<Int>
+        fun flowLexemeCount(dictionaryId: Int): Flow<Int>
+        fun flowQuizCount(dictionaryId: Int, maxGrade: Int): Flow<Map<Int, Int>>
     }
 }

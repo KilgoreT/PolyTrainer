@@ -6,17 +6,15 @@ import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarytab.entity.TermUiItem
 
 interface DictionaryTabUseCase {
-    suspend fun getLangId(numericCode: Int): Int
-
     //TODO kilg 29.06.2025 21:33 завести слой доменных сущностей.
     suspend fun getCurrentDict(): DictUiEntity
     fun flowCurrentDict(): Flow<DictUiEntity>
-    suspend fun changeDict(numericCode: Int)
+    suspend fun changeDict(id: Long)
 
     suspend fun getWordList(): List<TermUiItem>
     fun searchTerms(
         pattern: String,
-        langId: Int
+        dictionaryId: Int
     ): Flow<PagingData<TermUiItem>>
 
     suspend fun addWord(value: String): Long
@@ -24,4 +22,4 @@ interface DictionaryTabUseCase {
     suspend fun updateWord(id: Long, value: String): Boolean
 }
 
-class LangNotFoundException: IllegalStateException("No Languages found")
+class DictionaryNotFoundException: IllegalStateException("No Dictionaries found")

@@ -4,7 +4,7 @@ import java.util.*
 
 data class WordDump(
     val id: Long? = null,
-    val langId: Long = 0,
+    val dictionaryId: Long = 0,
     val word: String? = null,
     val addDate: Date? = null,
     val changeDate: Date? = null,

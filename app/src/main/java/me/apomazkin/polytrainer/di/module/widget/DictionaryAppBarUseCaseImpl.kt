@@ -5,46 +5,48 @@ import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
-import me.apomazkin.dictionarytab.deps.LangNotFoundException
-import me.apomazkin.flags.FlagProvider
+import me.apomazkin.dictionarytab.deps.DictionaryNotFoundException
+import me.apomazkin.flags.CountryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
 
 class DictionaryAppBarUseCaseImpl @Inject constructor(
-        private val langApi: CoreDbApi.LangApi,
+        private val dictionaryApi: CoreDbApi.DictionaryApi,
         private val prefsProvider: PrefsProvider,
-        private val flagProvider: FlagProvider,
+        private val countryProvider: CountryProvider,
 ) : DictionaryAppBarUseCase {
-    override fun flowAvailableDict(): Flow<List<DictUiEntity>> = langApi.flowLangList()
+    override fun flowAvailableDict(): Flow<List<DictUiEntity>> = dictionaryApi.flowDictionaryList()
             .map {
-                it.map { lang ->
+                it.map { dict ->
                     DictUiEntity(
-                            flagRes = flagProvider.getFlagRes(lang.numericCode),
-                            title = lang.name,
-                            numericCode = lang.numericCode,
+                            id = dict.id,
+                            flagRes = dict.numericCode?.let { countryProvider.getFlagRes(it) } ?: 0,
+                            title = dict.name,
+                            numericCode = dict.numericCode ?: 0,
                     )
                 }
             }
 
     override fun flowCurrentDict(): Flow<DictUiEntity> {
-        return prefsProvider.getIntFlow(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT)
-                .map { numeric: Int ->
-                    val lang = (langApi
-                            .getLang(numeric)
-                            ?: langApi.getLangList().firstOrNull())
-                            ?.let { lang ->
+        return prefsProvider.getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+                .map { id: Long ->
+                    val dict = (dictionaryApi
+                            .getDictionaryById(id)
+                            ?: dictionaryApi.getDictionaryList().firstOrNull())
+                            ?.let { dict ->
                                 DictUiEntity(
-                                        flagRes = flagProvider.getFlagRes(lang.numericCode),
-                                        title = lang.name,
-                                        numericCode = lang.numericCode,
+                                        id = dict.id,
+                                        flagRes = dict.numericCode?.let { countryProvider.getFlagRes(it) } ?: 0,
+                                        title = dict.name,
+                                        numericCode = dict.numericCode ?: 0,
                                 )
                             }
-                    lang ?: throw LangNotFoundException()
+                    dict ?: throw DictionaryNotFoundException()
                 }
     }
 
-    override suspend fun changeDict(numericCode: Int) {
-        prefsProvider.setInt(PrefKey.CURRENT_LANG_NUMERIC_CODE_INT, numericCode)
+    override suspend fun changeDict(id: Long) {
+        prefsProvider.setLong(PrefKey.CURRENT_DICTIONARY_ID_LONG, id)
     }
 }

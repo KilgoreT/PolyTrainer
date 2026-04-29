@@ -7,10 +7,10 @@ import me.apomazkin.splash.SplashUseCase
 import javax.inject.Inject
 
 class SplashUseCaseImpl @Inject constructor(
-    private val langApi: CoreDbApi.LangApi
+    private val dictionaryApi: CoreDbApi.DictionaryApi
 ) : SplashUseCase {
-    override fun checkIfNeedAddLang(): Flow<Boolean> {
-        return langApi.flowLangList().transform {
+    override fun checkIfNeedAddDictionary(): Flow<Boolean> {
+        return dictionaryApi.flowDictionaryList().transform {
             emit(!it.any())
         }
     }

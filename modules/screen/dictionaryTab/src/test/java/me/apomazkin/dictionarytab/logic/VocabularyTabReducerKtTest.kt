@@ -50,7 +50,7 @@ class VocabularyTabReducerKtTest {
     private val testTermList = listOf(
         TermUiItem(
             id = 1,
-            langId = 0,
+            dictionaryId = 0,
             wordValue = "1",
             isSelected = false,
             addDate = Date.from(
@@ -61,7 +61,7 @@ class VocabularyTabReducerKtTest {
         ),
         TermUiItem(
             id = 2,
-            langId = 0,
+            dictionaryId = 0,
             wordValue = "2",
             isSelected = false,
             addDate = Date.from(
@@ -73,7 +73,7 @@ class VocabularyTabReducerKtTest {
         ),
         TermUiItem(
             id = 3,
-            langId = 0,
+            dictionaryId = 0,
             wordValue = "3",
             isSelected = false,
             addDate = Date.from(
@@ -86,6 +86,7 @@ class VocabularyTabReducerKtTest {
     )
 
     private val testDictEntity = DictUiEntity(
+        id = 1L,
         flagRes = 0,
         title = "Test Language",
         numericCode = 1

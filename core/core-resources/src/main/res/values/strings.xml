@@ -49,17 +49,28 @@
     <string name="button_delete">Delete</string>
 
 
-    <!--LANGUAGE SELECTION-->
-    <string name="lang_selection_title">Creating a dictionary</string>
-    <string name="lang_selection_subtitle">Select language</string>
+    <!--DICTIONARY SELECTION-->
+    <string name="dictionary_selection_title">Dictionaries</string>
+    <string name="dictionary_selection_subtitle">Select language</string>
     <string name="lang_english">English</string>
     <string name="lang_german">German</string>
     <string name="lang_french">French</string>
     <string name="lang_spanish">Spanish</string>
     <string name="lang_italian">Italian</string>
     <string name="lang_portuguese">Portuguese</string>
-    <string name="lang_selection_button">Create</string>
-    <string name="lang_selection_error">Language already added</string>
+    <string name="dictionary_selection_button">Create</string>
+    <string name="dictionary_selection_error">Dictionary already added</string>
+    <string name="dictionary_name_hint">Dictionary name</string>
+    <string name="dictionary_bind_language">Bind to language</string>
+    <string name="dictionary_new">New dictionary</string>
+    <string name="dictionary_continue">Continue</string>
+    <string name="dictionary_delete_title">Delete dictionary?</string>
+    <string name="dictionary_delete_message">All words, definitions and quiz results will be deleted.</string>
+    <string name="dictionary_empty_title">No dictionaries</string>
+    <string name="dictionary_empty_subtitle">Create your first!</string>
+    <string name="dictionary_save">Save</string>
+    <string name="dictionary_create">Create</string>
+    <string name="dictionary_filter_flags_hint">Filter flags…</string>
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Dictionary</string>
@@ -157,7 +168,7 @@
     <string name="stat_title_lexeme_count">Lexemes</string>
 
     <!--Settings-->
-    <string name="settings_section_lang_management">Language Management</string>
+    <string name="settings_section_lang_management">Dictionaries</string>
     <string name="settings_section_about_app">About the App</string>
     <string name="settings_section_feedback">Feedback</string>
     <string name="settings_section_rate">Rate us on Google Play</string>

@@ -28,9 +28,9 @@ fun SplashScreen(
     onExit: (isInitLaunch: Boolean) -> Unit
 ) {
 
-    val checkIfNeedInitLang by viewModel.checkIfNeedAddLang.collectAsStateWithLifecycle()
-    LaunchedEffect(checkIfNeedInitLang) {
-        checkIfNeedInitLang?.let {
+    val checkIfNeedInitDict by viewModel.checkIfNeedAddDictionary.collectAsStateWithLifecycle()
+    LaunchedEffect(checkIfNeedInitDict) {
+        checkIfNeedInitDict?.let {
             onExit.invoke(it)
         }
     }
@@ -60,7 +60,7 @@ private fun Preview() {
     AppTheme {
         SplashScreen(
             splashUseCase = object : SplashUseCase {
-                override fun checkIfNeedAddLang(): Flow<Boolean> = flowOf(false)
+                override fun checkIfNeedAddDictionary(): Flow<Boolean> = flowOf(false)
             }
         ) {}
     }

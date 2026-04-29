@@ -5,14 +5,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 val migration_4_5 = object : Migration(4, 5) {
 
-    override fun migrate(database: SupportSQLiteDatabase) {
+    override fun migrate(db: SupportSQLiteDatabase) {
 
         val defaultId = 0
         val code = "en"
         val name = "English"
         val currentTime = System.currentTimeMillis()
 
-        database.execSQL(
+        db.execSQL(
             "CREATE TABLE `languages`"
                     + " ("
                     + "`id` INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -22,11 +22,11 @@ val migration_4_5 = object : Migration(4, 5) {
                     + "`changeDate` INTEGER "
                     + ");"
         )
-        database.execSQL(
+        db.execSQL(
             "INSERT INTO languages (id, code, name, addDate) VALUES ($defaultId, '$code', '$name', $currentTime)"
         )
-        database.execSQL("ALTER TABLE words ADD COLUMN langId INTEGER NOT NULL default $defaultId")
-        database.execSQL("ALTER TABLE writeQuiz ADD COLUMN langId INTEGER NOT NULL default $defaultId")
+        db.execSQL("ALTER TABLE words ADD COLUMN langId INTEGER NOT NULL default $defaultId")
+        db.execSQL("ALTER TABLE writeQuiz ADD COLUMN langId INTEGER NOT NULL default $defaultId")
 
     }
 }

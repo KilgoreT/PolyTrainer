@@ -6,15 +6,15 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.*
 
 interface SplashUseCase {
-    fun checkIfNeedAddLang(): Flow<Boolean>
+    fun checkIfNeedAddDictionary(): Flow<Boolean>
 }
 
 class SplashViewModel(
     splashUseCase: SplashUseCase
 ) : ViewModel() {
 
-    val checkIfNeedAddLang: StateFlow<Boolean?> = splashUseCase
-        .checkIfNeedAddLang()
+    val checkIfNeedAddDictionary: StateFlow<Boolean?> = splashUseCase
+        .checkIfNeedAddDictionary()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,

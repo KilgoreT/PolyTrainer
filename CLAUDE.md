@@ -86,12 +86,22 @@ DI: Dagger 2 with KSP. ViewModels use factory pattern.
 ## Code Standards
 
 - **Max line length:** 120 characters.
-- **Language:** Code, comments, docs — English. Chat responses — Russian.
+- **Language:** Code, comments — English. Feature docs (specs, contracts, verification) — Russian. Chat responses — Russian.
 - **Extension test files:** `*ExtTest.kt` / `*ExtTests.kt` in `ext/` folder.
 - Extension tests must verify immutability of all untouched state fields.
 - Test ordering: Boundary → Standard → Edge cases. Numbered in class doc comment.
 - Test names: `should [expected] when [condition]`.
 - Assertion messages must include expected vs actual values, under 80 chars.
+
+## ForgeFlow Framework
+
+При "флоу", "запусти flow", "ебашь" → прочитай `docs/forgeflow/BOOTSTRAP.md`, выполни `main()` из `docs/forgeflow/spec/runner.md`. Каждая строка псевдокода = одно действие. Не пропускать, не интерпретировать, не заменять своей логикой. Модель conductor — из `conductor_model` в flow-файле.
+
+При работе внутри flow:
+- НИКОГДА не пропускай вызов log()
+- НИКОГДА не обновляй plan.yml несколькими Edit — только один write
+- НИКОГДА не выполняй содержание шага сам — делегируй суб-агенту
+- Паузы обязательны в соответствии с mode и pause на шаге
 
 ## TEA Feature File Layout
 

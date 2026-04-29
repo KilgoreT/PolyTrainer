@@ -5,7 +5,7 @@ import androidx.core.database.getLongOrNull
 import androidx.core.database.getStringOrNull
 import androidx.sqlite.db.SupportSQLiteDatabase
 import me.apomazkin.core_db_impl.entity.HintDb
-import me.apomazkin.core_db_impl.entity.LanguageDb
+import me.apomazkin.core_db_impl.entity.DictionaryDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.SampleDb
 import me.apomazkin.core_db_impl.room.utils.selectAllFromTable
@@ -15,7 +15,7 @@ object Schema {
 
     const val DATABASE_NAME = "TestDatabaseName"
 
-    object Languages : TableName, ColumnId, ContentValue<LanguageDb>, FromDatabase<LanguageDb> {
+    object Languages : TableName, ColumnId, ContentValue<DictionaryDb>, FromDatabase<DictionaryDb> {
         override val tableName = "languages"
         const val COLUMN_NUMERIC_CODE = "numericCode"
         const val COLUMN_CODE = "code"
@@ -23,12 +23,12 @@ object Schema {
         const val COLUMN_ADD_DATE = "addDate"
         const val COLUMN_CHANGE_DATE = "changeDate"
 
-        override fun asContentValue(list: List<LanguageDb>): List<ContentValues> =
+        override fun asContentValue(list: List<DictionaryDb>): List<ContentValues> =
             list.map { lang ->
                 ContentValues().apply {
                     put(columnId, lang.id)
                     put(COLUMN_NUMERIC_CODE, lang.numericCode)
-                    put(COLUMN_CODE, lang.code)
+                    put(COLUMN_CODE, "")  // legacy field, removed in v11
                     put(COLUMN_NAME, lang.name)
                     put(COLUMN_ADD_DATE, lang.addDate.time)
                     lang.changeDate?.let {
@@ -37,24 +37,22 @@ object Schema {
                 }
             }
 
-        override fun getFromDatabase(db: SupportSQLiteDatabase): List<LanguageDb> {
-            val result = mutableListOf<LanguageDb>()
+        override fun getFromDatabase(db: SupportSQLiteDatabase): List<DictionaryDb> {
+            val result = mutableListOf<DictionaryDb>()
             val c = db.query(selectAllFromTable(tableName))
             if (c.moveToNext()) {
                 do {
                     val id = c.getLong(c.getColumnIndex(columnId))
                     val numericCode =
                         c.getInt(c.getColumnIndex(COLUMN_NUMERIC_CODE))
-                    val code = c.getString(c.getColumnIndex(COLUMN_CODE))
                     val name = c.getStringOrNull(c.getColumnIndex(COLUMN_NAME))
                     val addDate = c.getLong(c.getColumnIndex(COLUMN_ADD_DATE))
                     val changeDate = c.getLongOrNull(c.getColumnIndex(COLUMN_CHANGE_DATE))
                     result.add(
-                        LanguageDb(
+                        DictionaryDb(
                             id = id,
                             numericCode = numericCode,
-                            code = code,
-                            name = name,
+                            name = name ?: "",
                             addDate = Date(addDate),
                             changeDate = changeDate?.let { return@let Date(it) },
                         )
@@ -65,18 +63,18 @@ object Schema {
         }
     }
 
-    object LanguagesV1 : TableName, ColumnId, ContentValue<LanguageDb>, FromDatabase<LanguageDb> {
+    object LanguagesV1 : TableName, ColumnId, ContentValue<DictionaryDb>, FromDatabase<DictionaryDb> {
         override val tableName = "languages"
         const val COLUMN_CODE = "code"
         const val COLUMN_NAME = "name"
         const val COLUMN_ADD_DATE = "addDate"
         const val COLUMN_CHANGE_DATE = "changeDate"
 
-        override fun asContentValue(list: List<LanguageDb>): List<ContentValues> =
+        override fun asContentValue(list: List<DictionaryDb>): List<ContentValues> =
             list.map { lang ->
                 ContentValues().apply {
                     put(columnId, lang.id)
-                    put(COLUMN_CODE, lang.code)
+                    put(COLUMN_CODE, "")  // legacy field
                     put(COLUMN_NAME, lang.name)
                     put(COLUMN_ADD_DATE, lang.addDate.time)
                     lang.changeDate?.let {
@@ -85,22 +83,20 @@ object Schema {
                 }
             }
 
-        override fun getFromDatabase(db: SupportSQLiteDatabase): List<LanguageDb> {
-            val result = mutableListOf<LanguageDb>()
+        override fun getFromDatabase(db: SupportSQLiteDatabase): List<DictionaryDb> {
+            val result = mutableListOf<DictionaryDb>()
             val c = db.query(selectAllFromTable(tableName))
             if (c.moveToNext()) {
                 do {
                     val id = c.getLong(c.getColumnIndex(columnId))
-                    val code = c.getString(c.getColumnIndex(COLUMN_CODE))
                     val name = c.getStringOrNull(c.getColumnIndex(COLUMN_NAME))
                     val addDate = c.getLong(c.getColumnIndex(COLUMN_ADD_DATE))
                     val changeDate = c.getLongOrNull(c.getColumnIndex(COLUMN_CHANGE_DATE))
                     result.add(
-                        LanguageDb(
+                        DictionaryDb(
                             id = id,
-                            numericCode = 0,
-                            code = code,
-                            name = name,
+                            numericCode = null,
+                            name = name ?: "",
                             addDate = Date(addDate),
                             changeDate = changeDate?.let { return@let Date(it) },
                         )

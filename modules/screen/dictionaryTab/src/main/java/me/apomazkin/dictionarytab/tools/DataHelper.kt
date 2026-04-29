@@ -17,7 +17,7 @@ object DataHelper {
             TermUiItem(
                 id = 0,
                 wordValue = "uno",
-                langId = 0,
+                dictionaryId = 0,
                 lexemeList = listOf(
                     LexemeUiItem(
                         id = 0,
@@ -40,7 +40,7 @@ object DataHelper {
             TermUiItem(
                 id = 1,
                 wordValue = "dos",
-                langId = 0,
+                dictionaryId = 0,
                 lexemeList = listOf(
                     LexemeUiItem(
                         id = 2,
@@ -56,7 +56,7 @@ object DataHelper {
             TermUiItem(
                 id = 2,
                 wordValue = "tres",
-                langId = 0,
+                dictionaryId = 0,
                 addDate = Date(0),
                 isExpand = false
             ),

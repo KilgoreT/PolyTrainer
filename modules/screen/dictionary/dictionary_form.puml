@@ -1,0 +1,158 @@
+@startuml Dictionary Form TEA Logic Flow
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceParticipant underline
+
+title Dictionary Form - Pure TEA Logic
+
+actor User
+participant "UI" as UI
+participant Reducer
+participant "Data Handler" as DH
+participant "Nav Handler" as NH
+participant "Flow Handler" as FH
+
+== Структура состояния ==
+note over Reducer
+**DictionaryFormScreenState:**
+|- editingDictionaryId: Long? = null
+|}  |-- ID словаря для редактирования (null = создание)
+|- name: String = ""
+|}  |-- Текст в поле названия словаря
+|- flagFilter: String = ""
+|}  |-- Текст в поле фильтрации флагов
+|- flags: List<CountryFlagItem> = emptyList()
+|}  |-- Отфильтрованные флаги для отображения в grid
+|- selectedFlag: CountryFlagItem? = null
+|}  |-- Выбранный флаг (null = placeholder)
+|- saveButtonEnabled: Boolean = false
+|}  |-- Активность кнопки, = name.isNotBlank()
+
+**Ключевые инварианты:**
+- saveButtonEnabled = name.isNotBlank()
+- editingDictionaryId неизменен после инициализации
+- flags обновляется реактивно через FlowHandler
+- allFlags хранится в UseCase, не в State
+end note
+
+== Инициализация (создание) ==
+note over UI : Initial State:\n- editingDictionaryId = null\n- name = ""\n- saveButtonEnabled = false
+note over FH : subscribe:\nUseCase.flagsFlow()\n→ FlagsUpdated(allFlags)
+
+FH -> Reducer : Msg.FlagsUpdated(allFlags)
+note right : State change:\nflags = allFlags
+
+== Инициализация (редактирование) — параллельно ==
+note over UI : Initial State:\n- editingDictionaryId = id\ninitEffects: LoadDictionary(id)
+note over FH : subscribe:\nUseCase.flagsFlow()\n→ FlagsUpdated(allFlags)
+
+FH -> Reducer : Msg.FlagsUpdated(allFlags)
+note right : State change:\nflags = allFlags
+
+Reducer -> DH : LoadDictionary(id)
+note over DH : useCase.getDictionary(id)\nuseCase.findFlag(numericCode)
+DH -> Reducer : Msg.DictionaryLoaded(name, flag)
+note right : State change:\nname = dictName\nselectedFlag = flag\nsaveButtonEnabled = true
+
+== Ввод названия ==
+User -> UI : Type "English"
+UI -> Reducer : Msg.NameChanged("English")
+
+Reducer -> UI : newState
+note right : State change:\nname = "English"\nsaveButtonEnabled = true
+
+== Фильтрация флагов ==
+User -> UI : Type "ger" in filter
+UI -> Reducer : Msg.FlagFilterChanged("ger")
+
+Reducer -> UI : newState
+note right : State change:\nflagFilter = "ger"
+
+Reducer -> FH : Effect.FilterFlags("ger")
+note over FH : useCase.updateFilter("ger")\n→ debounce 300ms\n→ фильтрация в UseCase
+FH -> Reducer : Msg.FlagsUpdated(filtered)
+note right : State change:\nflags = filtered
+
+== Выбор флага ==
+User -> UI : Tap on flag (not selected)
+UI -> Reducer : Msg.SelectFlag(item)
+
+Reducer -> UI : newState
+note right : State change:\nselectedFlag = item
+
+== Снятие выбора флага ==
+User -> UI : Tap on already selected flag
+UI -> Reducer : Msg.SelectFlag(item) [item == selectedFlag]
+
+Reducer -> UI : newState
+note right : State change:\nselectedFlag = null
+
+== Сохранение (создание) ==
+User -> UI : Click "Создать"
+UI -> Reducer : Msg.Save
+
+Reducer -> DH : SaveDictionary(name, numericCode)
+note right : numericCode = selectedFlag?.numericCode
+DH -> DH : addDictionary + setCurrentDictionary
+DH -> Reducer : Msg.DictionarySaved
+
+Reducer -> NH : Effect.Close
+note over NH : onClose()
+NH -> Reducer : Msg.Empty
+
+== Сохранение (редактирование) ==
+User -> UI : Click "Сохранить"
+UI -> Reducer : Msg.Save
+
+Reducer -> DH : UpdateDictionary(id, name, numericCode)
+DH -> DH : updateDictionary
+DH -> Reducer : Msg.DictionarySaved
+
+Reducer -> NH : Effect.Close
+note over NH : onClose()
+NH -> Reducer : Msg.Empty
+
+== Навигация назад ==
+User -> UI : Back press
+UI -> Reducer : Msg.Back
+
+Reducer -> NH : Effect.Back
+note over NH : onBackPress()
+NH -> Reducer : Msg.Empty
+
+== Обработка сообщений ==
+note over Reducer
+**Reducer Logic:**
+- NameChanged(value): updateName(value) → no effects
+- FlagFilterChanged(query): updateFlagFilter(query) → Effect.FilterFlags(query)
+- SelectFlag(item): toggle — if selected → deselect, else select → no effects
+- Save: if editingId==null → SaveDictionary, else UpdateDictionary
+- FlagsUpdated(list): updateFlags(list) → no effects
+- DictionaryLoaded(name, flag): prefillForEdit(name, flag) → no effects
+- DictionarySaved: no state → Effect.Close
+- Back: no state → Effect.Back
+- Empty: no-op
+end note
+
+== Effect Handlers ==
+note over DH
+**Data Handler:**
+- LoadDictionary(id): load by id → DictionaryLoaded
+- SaveDictionary(name, code): add + setCurrent → DictionarySaved
+- UpdateDictionary(id, name, code): update → DictionarySaved
+end note
+
+note over NH
+**Navigation Handler:**
+- Close: onClose() → Msg.Empty
+- Back: onBackPress() → Msg.Empty
+end note
+
+note over FH
+**Flow Handler:**
+- subscribe: useCase.flagsFlow() → Msg.FlagsUpdated(list)
+- runEffect: FilterFlags(query) → useCase.updateFilter(query)
+- Debounce 300ms в UseCase
+- При старте эмитит все флаги (query пуст)
+end note
+@enduml

@@ -6,5 +6,5 @@ import me.apomazkin.dictionarypicker.entity.DictUiEntity
 interface DictionaryAppBarUseCase {
     fun flowAvailableDict(): Flow<List<DictUiEntity>>
     fun flowCurrentDict(): Flow<DictUiEntity>
-    suspend fun changeDict(numericCode: Int)
+    suspend fun changeDict(id: Long)
 }

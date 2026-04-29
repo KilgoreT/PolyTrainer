@@ -21,7 +21,8 @@ enum class TabPoint(val route: String) {
 @Composable
 fun MainScreen(
     mainUiDeps: MainUiDeps,
-    openAddDict: () -> Unit,
+    openDictionaryCreate: () -> Unit,
+    openDictionaryList: () -> Unit,
 ) {
     val navController = rememberNavController()
 
@@ -41,21 +42,21 @@ fun MainScreen(
             vocabulary(
                 navController = navController,
                 mainUiDeps = mainUiDeps,
-                openAddDict = openAddDict,
+                openDictionaryCreate = openDictionaryCreate,
             )
             quiz(
                 navController = navController,
                 mainUiDeps = mainUiDeps,
-                openAddDict = openAddDict,
+                openDictionaryCreate = openDictionaryCreate,
             )
             composable(TabPoint.STATS.route) {
-                mainUiDeps.StatisticTabScreenDep(openAddDict = openAddDict)
+                mainUiDeps.StatisticTabScreenDep(openDictionaryCreate = openDictionaryCreate)
             }
-            
+
             settings(
                 navController = navController,
                 mainUiDeps = mainUiDeps,
-                openAddDict = openAddDict,
+                openDictionaryList = openDictionaryList,
             )
         }
         BottomBarWidget(navController = navController)

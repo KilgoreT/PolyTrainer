@@ -3,13 +3,12 @@ package me.apomazkin.core_db_impl.room.schemable
 import android.content.ContentValues
 import androidx.core.database.getLongOrNull
 import androidx.sqlite.db.SupportSQLiteDatabase
-import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import me.apomazkin.core_db_impl.room.base.Schemable
 import me.apomazkin.core_db_impl.room.utils.selectAllFromTable
 import java.util.Date
 
-object WriteQuizV10 : Schemable<WriteQuizDb> {
-    
+object WriteQuizV10 : Schemable<WriteQuizDbV10> {
+
     private const val COLUMN_LANG_ID = "lang_id"
     private const val COLUMN_LEXEME_ID = "lexeme_id"
     private const val COLUMN_GRADE = "grade"
@@ -17,9 +16,9 @@ object WriteQuizV10 : Schemable<WriteQuizDb> {
     private const val COLUMN_ERROR_COUNT = "error_count"
     private const val COLUMN_ADD_DATE = "add_date"
     private const val COLUMN_LAST_SELECT_DATE = "last_select_date"
-    
+
     override val tableName = "write_quiz"
-    
+
     override val columnList: Array<String> = arrayOf(
         columnId,
         COLUMN_LANG_ID,
@@ -30,8 +29,8 @@ object WriteQuizV10 : Schemable<WriteQuizDb> {
         COLUMN_ADD_DATE,
         COLUMN_LAST_SELECT_DATE,
     )
-    
-    override fun asContentValue(list: List<WriteQuizDb>): List<ContentValues> =
+
+    override fun asContentValue(list: List<WriteQuizDbV10>): List<ContentValues> =
         list.map { writeQuizDb ->
             ContentValues().apply {
                 put(columnId, writeQuizDb.id)
@@ -41,114 +40,59 @@ object WriteQuizV10 : Schemable<WriteQuizDb> {
                 put(COLUMN_SCORE, writeQuizDb.score)
                 put(COLUMN_ERROR_COUNT, writeQuizDb.errorCount)
                 put(COLUMN_ADD_DATE, writeQuizDb.addDate.time)
-                put(COLUMN_LAST_SELECT_DATE, writeQuizDb.lastCorrectAnswerDate?.time)
+                put(COLUMN_LAST_SELECT_DATE, writeQuizDb.lastSelectDate?.time)
             }
         }
-    
-    override fun getFromDatabase(db: SupportSQLiteDatabase): List<WriteQuizDb> {
-        val result = mutableListOf<WriteQuizDb>()
+
+    override fun getFromDatabase(db: SupportSQLiteDatabase): List<WriteQuizDbV10> {
+        val result = mutableListOf<WriteQuizDbV10>()
         val cursorWriteQuiz = db.query(selectAllFromTable(tableName))
         if (cursorWriteQuiz.moveToNext()) {
             do {
-                val id = cursorWriteQuiz.getLong(
-                    cursorWriteQuiz.getColumnIndex(columnId)
-                )
-                val langId = cursorWriteQuiz.getLong(
-                    cursorWriteQuiz.getColumnIndex(COLUMN_LANG_ID)
-                )
-                val lexemeId = cursorWriteQuiz.getLong(
-                    cursorWriteQuiz.getColumnIndex(COLUMN_LEXEME_ID)
-                )
-                val grade = cursorWriteQuiz.getInt(
-                    cursorWriteQuiz.getColumnIndex(COLUMN_GRADE)
-                )
-                val score = cursorWriteQuiz.getInt(
-                    cursorWriteQuiz.getColumnIndex(COLUMN_SCORE)
-                )
-                val errorCount = cursorWriteQuiz.getInt(
-                    cursorWriteQuiz.getColumnIndex(COLUMN_ERROR_COUNT)
-                )
-                val addDate = cursorWriteQuiz.getLongOrNull(
-                    cursorWriteQuiz.getColumnIndex(COLUMN_ADD_DATE)
-                )
-                val lastSelectDate = cursorWriteQuiz.getLongOrNull(
-                    cursorWriteQuiz.getColumnIndex(COLUMN_LAST_SELECT_DATE)
-                )
+                val id = cursorWriteQuiz.getLong(cursorWriteQuiz.getColumnIndex(columnId))
+                val langId = cursorWriteQuiz.getLong(cursorWriteQuiz.getColumnIndex(COLUMN_LANG_ID))
+                val lexemeId = cursorWriteQuiz.getLong(cursorWriteQuiz.getColumnIndex(COLUMN_LEXEME_ID))
+                val grade = cursorWriteQuiz.getInt(cursorWriteQuiz.getColumnIndex(COLUMN_GRADE))
+                val score = cursorWriteQuiz.getInt(cursorWriteQuiz.getColumnIndex(COLUMN_SCORE))
+                val errorCount = cursorWriteQuiz.getInt(cursorWriteQuiz.getColumnIndex(COLUMN_ERROR_COUNT))
+                val addDate = cursorWriteQuiz.getLongOrNull(cursorWriteQuiz.getColumnIndex(COLUMN_ADD_DATE))
+                val lastSelectDate = cursorWriteQuiz.getLongOrNull(cursorWriteQuiz.getColumnIndex(COLUMN_LAST_SELECT_DATE))
                 result.add(
-                    WriteQuizDb(
-                            id = id,
-                            langId = langId,
-                            lexemeId = lexemeId,
-                            grade = grade,
-                            score = score,
-                            errorCount = errorCount,
-                            addDate = addDate?.let { return@let Date(it) }
-                            ?: Date(),
-                            lastCorrectAnswerDate = lastSelectDate?.let {
-                            return@let Date(
-                                it
-                            )
-                        }
+                    WriteQuizDbV10(
+                        id = id,
+                        langId = langId,
+                        lexemeId = lexemeId,
+                        grade = grade,
+                        score = score,
+                        errorCount = errorCount,
+                        addDate = addDate?.let { Date(it) } ?: Date(),
+                        lastSelectDate = lastSelectDate?.let { Date(it) },
                     )
                 )
             } while (cursorWriteQuiz.moveToNext())
         }
         return result
     }
-    
-    override fun data(): List<WriteQuizDb> {
+
+    override fun data(): List<WriteQuizDbV10> {
         val date = Date(System.currentTimeMillis())
         return listOf(
-            WriteQuizDb(
-                    id = 0,
-                    langId = 0,
-                    lexemeId = 0,
-                    grade = 0,
-                    score = 2,
-                    errorCount = 9,
-                    addDate = date,
-                    lastCorrectAnswerDate = null
-            ),
-            WriteQuizDb(
-                    id = 1,
-                    langId = 0,
-                    lexemeId = 1,
-                    grade = 0,
-                    score = 0,
-                    errorCount = 0,
-                    addDate = date,
-                    lastCorrectAnswerDate = date
-            ),
-            WriteQuizDb(
-                    id = 2,
-                    langId = 1,
-                    lexemeId = 0,
-                    grade = 0,
-                    score = 0,
-                    errorCount = 0,
-                    addDate = date,
-                    lastCorrectAnswerDate = null
-            ),
-            WriteQuizDb(
-                    id = 3,
-                    langId = 0,
-                    lexemeId = 2,
-                    grade = 0,
-                    score = 11,
-                    errorCount = 2,
-                    addDate = date,
-                    lastCorrectAnswerDate = null
-            ),
-            WriteQuizDb(
-                    id = 4,
-                    langId = 1,
-                    lexemeId = 1,
-                    grade = 0,
-                    score = 3,
-                    errorCount = 27,
-                    addDate = date,
-                    lastCorrectAnswerDate = date
-            )
+            WriteQuizDbV10(id = 0, langId = 0, lexemeId = 0, grade = 0, score = 2, errorCount = 9, addDate = date, lastSelectDate = null),
+            WriteQuizDbV10(id = 1, langId = 0, lexemeId = 1, grade = 0, score = 0, errorCount = 0, addDate = date, lastSelectDate = date),
+            WriteQuizDbV10(id = 2, langId = 1, lexemeId = 0, grade = 0, score = 0, errorCount = 0, addDate = date, lastSelectDate = null),
+            WriteQuizDbV10(id = 3, langId = 0, lexemeId = 2, grade = 0, score = 11, errorCount = 2, addDate = date, lastSelectDate = null),
+            WriteQuizDbV10(id = 4, langId = 1, lexemeId = 1, grade = 0, score = 3, errorCount = 27, addDate = date, lastSelectDate = date),
         )
     }
 }
+
+data class WriteQuizDbV10(
+    val id: Long,
+    val langId: Long,
+    val lexemeId: Long,
+    val grade: Int,
+    val score: Int,
+    val errorCount: Int,
+    val addDate: Date,
+    val lastSelectDate: Date?,
+)

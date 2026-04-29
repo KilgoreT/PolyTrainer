@@ -5,9 +5,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 val migration_3_4 = object : Migration(3, 4) {
 
-    override fun migrate(database: SupportSQLiteDatabase) {
+    override fun migrate(db: SupportSQLiteDatabase) {
 
-        database.execSQL(
+        db.execSQL(
             "CREATE TABLE `hint`"
                     + " ("
                     + "`id` INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -18,7 +18,7 @@ val migration_3_4 = object : Migration(3, 4) {
                     + ");"
         )
 
-        database.execSQL(
+        db.execSQL(
             "CREATE TABLE `sample`"
                     + " ("
                     + "`id` INTEGER PRIMARY KEY AUTOINCREMENT,"

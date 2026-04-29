@@ -37,7 +37,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    RootRouter(navController = navController)
+                    RootRouter(
+                        navController = navController,
+                        onExitApp = { finish() },
+                    )
                 }
             }
         }

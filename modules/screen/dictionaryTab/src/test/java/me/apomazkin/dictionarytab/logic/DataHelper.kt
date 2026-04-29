@@ -11,7 +11,7 @@ class DataHelper {
         val termList = listOf(
             TermUiItem(
                 id = 1,
-                langId = 0,
+                dictionaryId = 0,
                 wordValue = "1",
                 isSelected = false,
                 addDate = Date.from(
@@ -22,7 +22,7 @@ class DataHelper {
             ),
             TermUiItem(
                 id = 2,
-                langId = 0,
+                dictionaryId = 0,
                 wordValue = "2",
                 isSelected = false,
                 addDate = Date.from(
@@ -34,7 +34,7 @@ class DataHelper {
             ),
             TermUiItem(
                 id = 3,
-                langId = 0,
+                dictionaryId = 0,
                 wordValue = "3",
                 isSelected = false,
                 addDate = Date.from(

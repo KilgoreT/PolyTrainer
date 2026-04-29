@@ -39,17 +39,28 @@
     <string name="button_cancel">Отменить</string>
     <string name="button_delete">Удалить</string>
 
-    <!--LANGUAGE SELECTION-->
-    <string name="lang_selection_title">Создание словаря</string>
-    <string name="lang_selection_subtitle">Язык</string>
+    <!--DICTIONARY SELECTION-->
+    <string name="dictionary_selection_title">Словари</string>
+    <string name="dictionary_selection_subtitle">Язык</string>
     <string name="lang_english">Английский</string>
     <string name="lang_german">Немецкий</string>
     <string name="lang_french">Французский</string>
     <string name="lang_spanish">Испанский</string>
     <string name="lang_italian">Итальянский</string>
     <string name="lang_portuguese">Португальский</string>
-    <string name="lang_selection_button">Создать</string>
-    <string name="lang_selection_error">Язык уже добавлен</string>
+    <string name="dictionary_selection_button">Создать</string>
+    <string name="dictionary_selection_error">Словарь уже добавлен</string>
+    <string name="dictionary_name_hint">Название словаря</string>
+    <string name="dictionary_bind_language">Привязать к языку</string>
+    <string name="dictionary_new">Новый словарь</string>
+    <string name="dictionary_continue">Далее</string>
+    <string name="dictionary_delete_title">Удалить словарь?</string>
+    <string name="dictionary_delete_message">Все слова, определения и результаты квизов будут удалены.</string>
+    <string name="dictionary_empty_title">Нет словарей</string>
+    <string name="dictionary_empty_subtitle">Создайте первый!</string>
+    <string name="dictionary_save">Сохранить</string>
+    <string name="dictionary_create">Создать</string>
+    <string name="dictionary_filter_flags_hint">Поиск по стране или языку…</string>
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Словарь</string>
@@ -148,7 +159,7 @@
 
 
     <!--Settings-->
-    <string name="settings_section_lang_management">Управление языками</string>
+    <string name="settings_section_lang_management">Все словари</string>
     <string name="settings_section_about_app">О приложении</string>
     <string name="settings_section_feedback">Обратная связь</string>
     <string name="settings_section_rate">Оцените нас на Google Play</string>
