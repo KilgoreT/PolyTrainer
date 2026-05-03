@@ -26,6 +26,7 @@ import me.apomazkin.dictionary.form.DictionaryFormScreenState
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.grayTextColor
+import me.apomazkin.ui.FlagPlaceholderWidget
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 import me.apomazkin.ui.input.base.LexemeTextFieldWidget
@@ -53,6 +54,7 @@ internal fun DictionaryFormWidget(
             } else {
                 FlagPlaceholderWidget(
                     letter = formState.name.firstOrNull()?.toString() ?: "",
+                    modifier = Modifier.size(48.dp),
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))

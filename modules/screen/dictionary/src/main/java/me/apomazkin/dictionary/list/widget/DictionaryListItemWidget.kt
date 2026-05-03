@@ -6,19 +6,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.dictionary.R
 import me.apomazkin.dictionary.model.DictionaryListItem
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.enableIconColor
+import me.apomazkin.ui.FlagPlaceholderWidget
 import me.apomazkin.ui.IconBoxed
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
@@ -39,9 +38,8 @@ internal fun DictionaryListItemWidget(
         if (item.flagRes != null) {
             ImageFlagWidget(flagRes = item.flagRes)
         } else {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_tab_vocabulary),
-                contentDescription = null,
+            FlagPlaceholderWidget(
+                letter = item.name.firstOrNull()?.toString() ?: "",
             )
         }
         Spacer(modifier = Modifier.width(8.dp))

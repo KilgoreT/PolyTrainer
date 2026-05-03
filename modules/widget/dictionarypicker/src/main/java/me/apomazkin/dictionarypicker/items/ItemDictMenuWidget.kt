@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.dictionarypicker.R
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
+import me.apomazkin.ui.FlagPlaceholderWidget
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
@@ -29,6 +30,10 @@ fun ItemDictMenuWidget(
                 ImageFlagWidget(
                     flagRes = iconRes,
                     contentDescription = title
+                )
+            } else {
+                FlagPlaceholderWidget(
+                    letter = title.firstOrNull()?.toString() ?: "",
                 )
             }
         },

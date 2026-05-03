@@ -8,6 +8,7 @@ import me.apomazkin.dictionarypicker.items.ItemDictMenuWidget
 import me.apomazkin.icondropdowned.IconDropdownWidget
 import me.apomazkin.icondropdowned.DividerMenuItem
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.ui.FlagPlaceholderWidget
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
@@ -26,9 +27,13 @@ fun DictDropDownWidget(
         onClickDropDown = onOpenDropDown,
         onDismissRequest = onDismiss,
         icon = {
-            val flagRes = currentDict?.flagRes ?: 0
-            if (flagRes != 0) {
+            val flagRes = currentDict?.flagRes
+            if (flagRes != null && flagRes != 0) {
                 ImageFlagWidget(flagRes = flagRes)
+            } else {
+                FlagPlaceholderWidget(
+                    letter = currentDict?.title?.firstOrNull()?.toString() ?: "",
+                )
             }
         },
     ) {

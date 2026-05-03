@@ -1,4 +1,4 @@
-package me.apomazkin.dictionary.form.widget
+package me.apomazkin.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -16,11 +16,10 @@ import me.apomazkin.theme.grayTextColor
 @Composable
 fun FlagPlaceholderWidget(
     letter: String,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier.size(24.dp),
 ) {
     Box(
         modifier = modifier
-            .size(48.dp)
             .clip(CircleShape)
             .background(grayTextColor.copy(alpha = 0.2f)),
         contentAlignment = Alignment.Center,
