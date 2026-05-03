@@ -1,0 +1,48 @@
+@startuml IS443 FlagPlaceholderWidget - UI Only Change
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title IS443 — FlagPlaceholderWidget: UI-only refactoring (no TEA changes)
+
+note as N1
+**IS443 — Контракт TEA не затрагивается**
+
+Задача: перенос FlagPlaceholderWidget
+из modules/screen/dictionary в modules/core/ui
+и подстановка в 3 точках отображения.
+
+**State:** без изменений
+**UI Messages:** без изменений
+**Effects:** без изменений
+**Datasource Messages:** без изменений
+**Reducer:** без изменений
+
+Все изменения — уровень Composable (UI rendering).
+end note
+
+package "modules/core/ui" as CoreUI {
+  [FlagPlaceholderWidget] as FPW
+  note right of FPW
+    Перенесён из screen/dictionary
+    Package: me.apomazkin.ui
+    Default size: 24dp (было 48dp)
+    Params: letter, modifier
+  end note
+}
+
+package "modules/widget/dictionarypicker" as WidgetPicker {
+  [DictDropDownWidget] as DDW
+  [ItemDictMenuWidget] as IDMW
+}
+
+package "modules/screen/dictionary" as ScreenDict {
+  [DictionaryListItemWidget] as DLIW
+  [DictionaryFormWidget] as DFW
+}
+
+DDW --> FPW : if flagRes == 0\nshow placeholder\n(letter = currentDict.title.first)
+IDMW --> FPW : if iconRes == 0\nshow placeholder\n(letter = title.first)
+DLIW --> FPW : if flagRes == null\nshow placeholder\n(letter = item.name.first)
+DFW --> FPW : import change only\nme.apomazkin.ui.*
+
+@enduml

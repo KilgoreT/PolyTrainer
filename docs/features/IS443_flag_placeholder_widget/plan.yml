@@ -1,0 +1,232 @@
+flow: lexeme_feature
+started: "2026-05-03T01:01:18"
+dir: docs/features/IS443_flag_placeholder_widget/
+
+context:
+  ticket: IS443
+  feature_name: flag-placeholder-widget
+  branch: IS443-flag-placeholder-widget
+  mode: manual
+  overlay: docs/forgeflow-overlay
+  workspace:
+    dir_template: "docs/features/{ticket}_{name}/"
+    spec_dir: "docs/features-spec/"
+
+steps:
+  task:
+    status: done
+    started: "2026-05-03T08:06:31"
+    finished: "2026-05-03T08:07:15"
+    model: opus
+    output: [00_task.md]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  spec:
+    status: done
+    started: "2026-05-03T02:11:36"
+    finished: "2026-05-03T02:13:30"
+    model: opus
+    input: [task.output]
+    output: [01_spec.md]
+    review:
+      agents: [analyst]
+      retry: 3
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  checklist_init:
+    status: done
+    started: "2026-05-03T02:16:01"
+    finished: "2026-05-03T02:17:11"
+    model: opus
+    input: [spec.output]
+    output: [02_checklist.md]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  contract:
+    type: group
+    status: done
+    started: "2026-05-03T02:24:21"
+    finished: "2026-05-03T02:36:54"
+    output: [04_contract.md, architecture.puml]
+    review:
+      agents: [architect]
+      retry: 3
+    pause: true
+    steps:
+      contract_state:
+        status: done
+        started: "2026-05-03T02:24:21"
+        finished: "2026-05-03T02:34:19"
+        model: opus
+        input: [spec.output, checklist_init.output]
+        with:
+          logging:
+            phases:
+              - "finalize:after"
+          checklist:
+            phases:
+              - "finalize:after"
+          guides:
+            enabled: true
+      contract_ui_msg:
+        status: done
+        started: "2026-05-03T02:34:19"
+        finished: "2026-05-03T02:35:12"
+        model: opus
+        input: [spec.output, checklist_init.output]
+        with:
+          logging:
+            phases:
+              - "finalize:after"
+          checklist:
+            phases:
+              - "finalize:after"
+          guides:
+            enabled: true
+      contract_effect_msg:
+        status: done
+        started: "2026-05-03T02:35:12"
+        finished: "2026-05-03T02:35:56"
+        model: opus
+        input: [spec.output, checklist_init.output]
+        with:
+          logging:
+            phases:
+              - "finalize:after"
+          checklist:
+            phases:
+              - "finalize:after"
+          guides:
+            enabled: true
+      contract_schema:
+        status: done
+        started: "2026-05-03T02:35:56"
+        finished: "2026-05-03T02:36:54"
+        model: opus
+        input: [checklist_init.output]
+        with:
+          logging:
+            phases:
+              - "finalize:after"
+          guides:
+            enabled: true
+
+  usecase:
+    status: done
+    started: "2026-05-03T08:41:17"
+    finished: "2026-05-03T08:42:18"
+    model: opus
+    input: [spec.output, contract.output, checklist_init.output]
+    output: [05_usecase.md]
+    review:
+      agents: [architect]
+      retry: 3
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checklist:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  design_tree:
+    status: done
+    started: "2026-05-03T08:45:13"
+    finished: "2026-05-03T08:49:34"
+    model: opus
+    input: [spec.output, contract.output, usecase.output, checklist_init.output]
+    output: [06_design_tree.md]
+    review:
+      agents: [architect]
+      retry: 3
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checklist:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  test:
+    status: skipped
+    model: opus
+    input: [contract.output, design_tree.output, spec.output, checklist_init.output]
+    output: [07_test.md]
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checklist:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  implement:
+    status: done
+    started: "2026-05-03T09:07:01"
+    finished: "2026-05-03T09:23:45"
+    model: opus
+    input: [design_tree.output, contract.output, test.output, spec.output, usecase.output, checklist_init.output]
+    output: [08_impl.md]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checklist:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  check:
+    status: done
+    started: "2026-05-03T03:27:43"
+    finished: "2026-05-03T03:48:50"
+    model: opus
+    output: [09_check.md]
+    pause: true
+    with:
+      checks: [lint, test, build]
+      logging:
+        phases:
+          - "finalize:after"
+
+  checklist_run:
+    status: done
+    started: "2026-05-03T03:49:44"
+    finished: "2026-05-03T03:50:36"
+    model: opus
+    input: [checklist_init.output, implement.output]
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  publish_spec:
+    status: done
+    started: "2026-05-03T04:59:37"
+    finished: "2026-05-03T04:59:37"
+    model: opus
+    output: [publish_spec.md]

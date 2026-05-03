@@ -19,6 +19,10 @@
 - Карточка слова (WordCard)
 - Квиз-чат (QuizChat)
 
+## Виджеты
+
+- [FlagPlaceholderWidget](flag-placeholder-widget.md)
+
 ## Общие
 
 - Доменная модель (entity, Room, API контракты)
