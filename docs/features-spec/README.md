@@ -21,6 +21,7 @@
 
 ## Виджеты
 
+- [DictionaryAppBar](dictionary-appbar.md)
 - [FlagPlaceholderWidget](flag-placeholder-widget.md)
 
 ## Общие

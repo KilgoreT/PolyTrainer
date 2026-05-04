@@ -1,0 +1,125 @@
+@startuml IS445 DictionaryAppBar - Reactive Current Dictionary
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceParticipant underline
+
+title DictionaryAppBar - TEA Logic (IS445 fix)
+
+actor User
+participant "UI" as UI
+participant Reducer
+participant "FlowHandler\n(DatasourceEffectHandler)" as FH
+participant "UseCase\n(DictionaryAppBarUseCaseImpl)" as UC
+database "Room\n(DictionaryApi)" as DB
+database "Prefs\n(PrefsProvider)" as Prefs
+
+== Структура состояния ==
+note over Reducer
+**DictionaryAppBarState (без изменений):**
+├── isLoading: Boolean = true
+│   └── Индикатор загрузки, скрывается после первого списка
+├── currentDict: DictUiEntity? = null
+│   └── Текущий словарь: иконка флага или placeholder
+├── availableDictList: List<DictUiEntity> = emptyList()
+│   └── Список словарей для dropdown picker
+└── isDropDownMenuOpen: Boolean = false
+    └── Состояние выпадающего меню
+
+**Ключевые инварианты:**
+- currentDict содержит актуальные данные (включая flagRes)
+- currentDict обновляется при смене ID и при изменении данных словаря
+- Fallback: если currentDict не найден → первый словарь из списка
+end note
+
+== Инициализация (подписки FlowHandler) ==
+note over UI : Initial State:\n- isLoading = true\n- currentDict = null\n- availableDictList = empty
+note over UI : Init Effects: emptySet()
+
+FH -> UC : subscribe: flowAvailableDict()
+UC -> DB : flowDictionaryList()
+DB --> UC : Flow<List<DictionaryApiEntity>>
+UC --> FH : Flow<List<DictUiEntity>>
+FH -> Reducer : Msg.AvailableDict(list)
+Reducer -> UI : newState
+note right : State change:\nisLoading = false\navailableDictList = list
+
+FH -> UC : subscribe: flowCurrentDict()
+note over UC #FFDDDD
+**БЫЛО (баг):**
+prefsFlow.map { getDictionaryById(id) }
+Одноразовый suspend — не реактивный
+
+**СТАЛО (фикс):**
+combine(prefsFlow, flowDictionaryList())
+{ id, list -> list.find(id) }
+Реактивный — обе подписки
+end note
+UC -> Prefs : getLongFlow(CURRENT_DICTIONARY_ID_LONG)
+UC -> DB : flowDictionaryList()
+UC --> FH : Flow<DictUiEntity> (combine)
+FH -> Reducer : Msg.CurrentDict(current)
+Reducer -> UI : newState
+note right : State change:\ncurrentDict = current
+
+== Сценарий 1: ��мена флага словаря (IS445 fix) ==
+User -> UI : Меняет флаг в DictionaryForm\n(другой экран)
+UI -> DB : Room UPDATE dictionary\n(numericCode changed)
+note over DB : Room invalidation\n→ flowDictionaryList() emit
+DB --> UC : новый List<DictionaryApiEntity>
+note over UC : combine пересчитывает:\nlist.find { it.id == currentId }\n→ DictUiEntity с новым flagRes
+UC --> FH : DictUiEntity (обновлённый)
+FH -> Reducer : Msg.CurrentDict(updated)
+Reducer -> UI : newState
+note right #90EE90 : State change:\ncurrentDict = updated\n(flagRes обновлён)\n\nUI показывает актуальный флаг
+
+== Сценарий 2: Переключение словаря ==
+User -> UI : Нажимает на иконку в appbar
+UI -> Reducer : Msg.DictMenuOn
+Reducer -> UI : newState
+note right : State change:\nisDropDownMenuOpen = true
+
+User -> UI : Выбирает словарь в dropdown
+UI -> Reducer : Msg.ChangeDict(dict)
+Reducer -> UI : newState
+note right : State change:\nisDropDownMenuOpen = false
+Reducer -> FH : DatasourceEffect.ChangeDict(dict)
+
+FH -> UC : changeDict(id)
+UC -> Prefs : setLong(CURRENT_DICTIONARY_ID_LONG, id)
+note over Prefs : getLongFlow emit (новый ID)
+Prefs --> UC : новый ID
+note over UC : combine пересчитывает:\nlist.find { it.id == newId }
+UC --> FH : DictUiEntity (новый словарь)
+FH -> Reducer : Msg.CurrentDict(newDict)
+Reducer -> UI : newState
+note right : State change:\ncurrentDict = newDict
+
+== Закрытие dropdown ==
+User -> UI : Dismiss dropdown
+UI -> Reducer : Msg.DictMenuOff
+Reducer -> UI : newState
+note right : State change:\nisDropDownMenuOpen = false
+
+== Обработка сообщений ==
+note over Reducer
+**Reducer Logic (без изменений):**
+- AvailableDict: hideLoading + обновить availableDictList
+- CurrentDict: обновить currentDict
+- ChangeDict: dictMenuOff + DatasourceEffect.ChangeDict
+- DictMenuOn: открыть dropdown
+- DictMenuOff: закрыть dropdown
+- Empty: no-op
+end note
+
+== Effect Handlers ==
+note over FH
+**DatasourceEffectHandler (MateFlowHandler):**
+
+Подписки (subscribe):
+- flowAvailableDict() → Msg.AvailableDict
+- flowCurrentDict() → Msg.CurrentDict
+
+Эффекты (runEffect):
+- ChangeDict(dict) → useCase.changeDict(id) → Msg.Empty
+end note
+@enduml
