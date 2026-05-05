@@ -33,6 +33,7 @@ import me.apomazkin.settingstab.widgets.settings.items.ExportDataWidget
 import me.apomazkin.settingstab.widgets.settings.items.FeedBackWidget
 import me.apomazkin.settingstab.widgets.settings.items.ImportDataWidget
 import me.apomazkin.settingstab.widgets.settings.items.LangManageWidget
+import me.apomazkin.settingstab.widgets.settings.items.PrivacyPolicyWidget
 import me.apomazkin.settingstab.widgets.settings.items.RateWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.logger.LexemeLogger
@@ -99,11 +100,6 @@ internal fun SettingsTabScreen(
                 item {
                     SettingsSectionWidget {
                         LangManageWidget(onClick = onLangManagementClick)
-                        AboutAppWidget(onClick = onAboutAppClick)
-                    }
-                }
-                item {
-                    SettingsSectionWidget {
                         ExportDataWidget(
                             onClick = { sendMessage(Msg.ExportData(uri = it)) },
                         )
@@ -114,9 +110,9 @@ internal fun SettingsTabScreen(
                 }
                 item {
                     SettingsSectionWidget {
-                        FeedBackWidget()
-//                        RateWidget(onClick = null)
-//                        AppShareWidget()
+                        PrivacyPolicyWidget()
+//                        FeedBackWidget()
+                        AboutAppWidget(onClick = onAboutAppClick)
                     }
                 }
                 

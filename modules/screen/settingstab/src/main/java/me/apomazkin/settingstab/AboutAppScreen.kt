@@ -46,7 +46,7 @@ fun AboutAppScreen(
                         .padding(top = 44.dp),
                 ) {
                     LogoVersionWidget(
-                        imageRes = R.drawable.ic_logo,
+                        imageRes = me.apomazkin.core_resources.R.drawable.ic_logo_splash,
                         titleRes = R.string.logo_title,
                         versionTitle = "v$appVersion",
                     )

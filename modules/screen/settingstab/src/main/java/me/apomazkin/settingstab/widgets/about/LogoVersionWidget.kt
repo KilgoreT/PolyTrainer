@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.settingstab.R
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.theme.LexemeColor
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.grayTextColor
 import me.apomazkin.theme.whiteColor
@@ -53,7 +54,7 @@ fun LogoVersionWidget(
                 .aspectRatio(1f),
             shape = RoundedCornerShape(32.dp),
             shadowElevation = 4.dp,
-            color = Color.Black,
+            color = LexemeColor.primary,
         ) {
             Image(
                 painter = painterResource(id = imageRes),
@@ -78,7 +79,7 @@ private fun Preview() {
                 .background(whiteColor)
         ) {
             LogoVersionWidget(
-                imageRes = R.drawable.ic_logo,
+                imageRes = me.apomazkin.core_resources.R.drawable.ic_logo_splash,
                 titleRes = R.string.logo_title,
                 versionTitle = "v1.0.0",
             )

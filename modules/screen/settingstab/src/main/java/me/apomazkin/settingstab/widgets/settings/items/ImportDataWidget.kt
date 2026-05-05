@@ -18,7 +18,7 @@ fun ImportDataWidget(
     )
     
     SettingsItemWidget(
-        iconRes = R.drawable.ic_move,
+        iconRes = R.drawable.ic_download,
         titleRes = R.string.settings_section_import,
         showNextIcon = false,
         onClick = {

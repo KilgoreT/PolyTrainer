@@ -77,11 +77,6 @@ internal fun QuizTabScreen(
             ) {
                 openQuiz.invoke("chat")
             }
-            QuizItemWidget(
-                imageRes = R.drawable.ic_quiz_write,
-                titleRes = R.string.quiz_item_title_write,
-                subTitleRes = R.string.quiz_item_subtitle_write
-            ) {}
         }
     }
     

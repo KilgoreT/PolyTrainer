@@ -5,13 +5,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -81,10 +84,12 @@ internal fun StatisticScreen(
                     state.lexemeCount.toString()
                 )
                 Spacer(modifier = Modifier.height(20.dp))
-                Row(
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .width(IntrinsicSize.Max)
+                        .align(Alignment.CenterHorizontally),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     state.quizState.quizStat.forEach { stat ->
                         GradeWidget(
@@ -95,22 +100,22 @@ internal fun StatisticScreen(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                ) {
-                    state.quizState.quizGrades
-                        .forEach { quizGrade ->
-                            GradeWidget(
-                                value = quizGrade.value.toString(),
-                                grade = quizGrade.grade.toString(),
-                                fgColor = statInProcessFg,
-                                bgColor = statInProcessBg,
-                            )
-                        }
-                }
+//                Spacer(modifier = Modifier.height(4.dp))
+//                Row(
+//                    modifier = Modifier
+//                        .fillMaxWidth(),
+//                    horizontalArrangement = Arrangement.SpaceEvenly,
+//                ) {
+//                    state.quizState.quizGrades
+//                        .forEach { quizGrade ->
+//                            GradeWidget(
+//                                value = quizGrade.value.toString(),
+//                                grade = quizGrade.grade.toString(),
+//                                fgColor = statInProcessFg,
+//                                bgColor = statInProcessBg,
+//                            )
+//                        }
+//                }
             }
         }
     }

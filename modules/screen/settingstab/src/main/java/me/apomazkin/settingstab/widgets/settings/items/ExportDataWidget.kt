@@ -18,7 +18,7 @@ fun ExportDataWidget(
         onResult = { uri: Uri? -> uri?.let(onClick) }
     )
     SettingsItemWidget(
-        iconRes = R.drawable.ic_move,
+        iconRes = R.drawable.ic_upload,
         titleRes = R.string.settings_section_export,
         showNextIcon = false,
         onClick = {
