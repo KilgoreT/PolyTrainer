@@ -13,11 +13,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.blackColor
+import me.apomazkin.theme.LexemeColor
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
-private val colorBackground = blackColor
+private val colorBackground = LexemeColor.primary
 
 @Composable
 fun SplashScreen(

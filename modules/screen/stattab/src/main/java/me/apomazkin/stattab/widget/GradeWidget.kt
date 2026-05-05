@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -32,7 +33,7 @@ fun GradeWidget(
     fgColor: Color,
 ) {
     Surface(
-        modifier = Modifier,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         shadowElevation = 4.dp,
         border = BorderStroke(width = 1.dp, color = dividerColor)

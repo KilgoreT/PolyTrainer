@@ -64,7 +64,7 @@
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Словарь</string>
-    <string name="item_title_training">Тренировки</string>
+    <string name="item_title_training">Квизы</string>
     <string name="item_title_stats">Статистика</string>
     <string name="item_title_settings">Настройки</string>
     <string name="menu_item_title_add_dict">Добавить словарь</string>
@@ -95,8 +95,8 @@
 
     <!--Quiz-->
     <string name="quiz_tab_title">Квизы</string>
-    <string name="quiz_item_title_write">Правильное написание</string>
-    <string name="quiz_item_subtitle_write">По переводу или определению написать слово правильно</string>
+    <string name="quiz_item_title_write">Учить сейчас</string>
+    <string name="quiz_item_subtitle_write">Тренируй слова в чате</string>
 
     <!--ChatQuiz-->
     <string name="chat_quiz_app_bar_title">Квиз чат</string>
@@ -166,6 +166,7 @@
     <string name="settings_section_share">Поделитесь приложением</string>
     <string name="settings_section_export">Экспорт данных в файл</string>
     <string name="settings_section_import">Импорт данных</string>
+    <string name="settings_section_privacy_policy">Конфиденциальность</string>
 
     <string name="settings_section_about_app_title">Lexeme — это приложение, которое позволяет создавать собственный словарь иностранных слов.\nМы — команда разработчиков, которая понимает на своём опыте, как важно держать иностранную лексику в порядке и постоянно её повторять.</string>
 
