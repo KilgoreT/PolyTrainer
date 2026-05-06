@@ -16,6 +16,7 @@
   - Выбор квиза (QuizTab)
   - Статистика (StatTab)
   - Настройки (SettingsTab)
+  - [WebView](webview-screen.md)
 - Карточка слова (WordCard)
 - Квиз-чат (QuizChat)
 

@@ -43,6 +43,7 @@ import me.apomazkin.ui.preview.PreviewScreen
 fun SettingsTabScreen(
     onLangManagementClick: () -> Unit,
     onAboutAppClick: () -> Unit,
+    onPrivacyPolicyClick: () -> Unit,
     settingsTabUseCase: SettingsTabUseCase,
     logger: LexemeLogger,
     viewModel: SettingsTabViewModel = viewModel(
@@ -56,16 +57,18 @@ fun SettingsTabScreen(
     SettingsTabScreen(
         onLangManagementClick = onLangManagementClick,
         onAboutAppClick = onAboutAppClick,
+        onPrivacyPolicyClick = onPrivacyPolicyClick,
         state = state,
         sendMessage = { viewModel.accept(it) }
     )
-    
+
 }
 
 @Composable
 internal fun SettingsTabScreen(
     onLangManagementClick: () -> Unit,
     onAboutAppClick: () -> Unit,
+    onPrivacyPolicyClick: () -> Unit,
     state: SettingsTabState,
     sendMessage: (Msg) -> Unit,
 ) {
@@ -110,7 +113,7 @@ internal fun SettingsTabScreen(
                 }
                 item {
                     SettingsSectionWidget {
-                        PrivacyPolicyWidget()
+                        PrivacyPolicyWidget(onClick = onPrivacyPolicyClick)
 //                        FeedBackWidget()
                         AboutAppWidget(onClick = onAboutAppClick)
                     }
@@ -138,6 +141,7 @@ private fun Preview() {
         SettingsTabScreen(
             onLangManagementClick = {},
             onAboutAppClick = {},
+            onPrivacyPolicyClick = {},
             state = SettingsTabState(),
             sendMessage = {}
         )

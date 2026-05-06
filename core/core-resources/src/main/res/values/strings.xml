@@ -177,6 +177,10 @@
     <string name="settings_section_import">Import data</string>
     <string name="settings_section_privacy_policy">Privacy Policy</string>
 
+    <!--WebView-->
+    <string name="webview_error_title">Failed to load page</string>
+    <string name="webview_retry">Retry</string>
+
     <string name="settings_section_about_app_title">Lexeme is an app that allows you to create your own dictionary of foreign words.\nWe are a team of developers who know from our own experience how important it is to keep foreign vocabulary organized and to review it regularly.</string>
 
 </resources>
