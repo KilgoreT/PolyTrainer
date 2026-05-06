@@ -3,6 +3,7 @@ package me.apomazkin.polytrainer.uiDeps
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.res.stringResource
 import me.apomazkin.dictionaryappbar.DictionaryAppBar
 import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionarytab.deps.DictionaryTabUiDeps
@@ -18,6 +19,7 @@ import me.apomazkin.quiztab.deps.QuizTabUiDeps
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.settingstab.AboutAppScreen
 import me.apomazkin.settingstab.SettingsTabScreen
+import me.apomazkin.settingstab.WebViewScreen
 import me.apomazkin.settingstab.deps.SettingsTabUseCase
 import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.stattab.deps.StatisticUiDeps
@@ -131,10 +133,15 @@ class MainUiDepsProvider(
     override fun SettingsTabScreenDep(
         onLangManagementClick: () -> Unit,
         onAboutAppClick: () -> Unit,
+        onPrivacyPolicyClick: () -> Unit,
     ) {
         SettingsTabScreen(
             onLangManagementClick = onLangManagementClick,
             onAboutAppClick = onAboutAppClick,
+            onPrivacyPolicyClick = {
+                logger.log(tag = "###Settings###", message = "navigate: privacy_policy")
+                onPrivacyPolicyClick()
+            },
             settingsTabUseCase = settingsTabUseCase,
             logger = logger,
         )
@@ -148,5 +155,35 @@ class MainUiDepsProvider(
             appVersion = envParams.appVersion,
             onBackPress = onBackPress,
         )
+    }
+
+    @Composable
+    override fun WebViewScreenDep(
+        pageKey: String,
+        onBackPress: () -> Unit,
+    ) {
+        val webPage = WebPage.fromKey(pageKey) ?: run {
+            logger.log(tag = "###WebView###", message = "unknown pageKey: $pageKey")
+            return
+        }
+        WebViewScreen(
+            url = webPage.url,
+            title = stringResource(id = webPage.titleRes),
+            pageKey = pageKey,
+            logger = logger,
+            onBackPress = onBackPress,
+        )
+    }
+}
+
+private enum class WebPage(val key: String, val url: String, @StringRes val titleRes: Int) {
+    PRIVACY_POLICY(
+        key = "privacy_policy",
+        url = "https://kilgoret.github.io/lexeme-docs/privacy-policy",
+        titleRes = me.apomazkin.core_resources.R.string.settings_section_privacy_policy,
+    );
+
+    companion object {
+        fun fromKey(key: String): WebPage? = entries.find { it.key == key }
     }
 }

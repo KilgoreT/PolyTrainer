@@ -6,16 +6,18 @@ import me.apomazkin.settingstab.widgets.settings.items.base.SettingsItemWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
-fun PrivacyPolicyWidget() {
+fun PrivacyPolicyWidget(
+    onClick: () -> Unit,
+) {
     SettingsItemWidget(
         iconRes = R.drawable.ic_privacy_policy,
         titleRes = R.string.settings_section_privacy_policy,
-        onClick = null,
+        onClick = onClick,
     )
 }
 
 @Composable
 @PreviewWidget
 private fun Preview() {
-    PrivacyPolicyWidget()
+    PrivacyPolicyWidget(onClick = {})
 }

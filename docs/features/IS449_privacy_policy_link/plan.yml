@@ -1,0 +1,176 @@
+flow: lexeme_feature
+started: "2026-05-06T00:06:32"
+dir: docs/features/IS449_privacy_policy_link/
+
+context:
+  ticket: IS449
+  feature_name: privacy_policy_link
+  branch: IS449-privacy-policy-link
+  mode: normal
+  overlay: docs/forgeflow-overlay
+  workspace:
+    dir_template: "docs/features/{ticket}_{name}/"
+    spec_dir: "docs/features-spec/"
+
+steps:
+  task:
+    status: done
+    model: opus
+    output: [00_task.md]
+    pause: true
+    finished: "2026-05-06T00:06:32"
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  spec:
+    status: done
+    model: opus
+    input: [task.output]
+    output: [01_spec.md]
+    review:
+      agents: [analyst]
+      retry: 3
+    pause: true
+    finished: "2026-05-06T00:06:32"
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  checklist_init:
+    status: done
+    model: opus
+    input: [spec.output]
+    output: [checklist.md]
+    pause: true
+    finished: "2026-05-06T00:07:55"
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  contract:
+    type: group
+    status: skipped
+    output: [04_contract.md, architecture.puml]
+    review:
+      agents: [architect]
+      retry: 3
+    pause: true
+    steps:
+      contract_state:
+        status: skipped
+      contract_ui_msg:
+        status: skipped
+      contract_effect_msg:
+        status: skipped
+      contract_schema:
+        status: skipped
+
+  usecase:
+    status: skipped
+    model: opus
+    input: [spec.output, contract.output, checklist_init.output]
+    output: [05_usecase.md]
+    review:
+      agents: [architect]
+      retry: 3
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checklist:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  design_tree:
+    status: done
+    finished: "2026-05-06T00:09:24"
+    note: "implement was started without permission - reverted"
+    model: opus
+    input: [spec.output, contract.output, usecase.output, checklist_init.output]
+    output: [06_design_tree.md]
+    review:
+      agents: [architect]
+      retry: 3
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checklist:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  test:
+    status: skipped
+    model: opus
+    input: [contract.output, design_tree.output, spec.output, checklist_init.output]
+    output: [07_test.md]
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checklist:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  implement:
+    status: done
+    model: opus
+    input: [design_tree.output, contract.output, test.output, spec.output, usecase.output, checklist_init.output]
+    output: [08_impl.md]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checklist:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  check:
+    status: done
+    model: opus
+    output: [09_check.md]
+    pause: true
+    with:
+      checks: [lint, test, build]
+      logging:
+        phases:
+          - "finalize:after"
+
+  checklist_run:
+    status: done
+    finished: "2026-05-06T02:50:22"
+    model: opus
+    input: [checklist_init.output, implement.output]
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  publish_spec:
+    status: done
+    finished: "2026-05-05T20:52:54"
+    model: opus
+    input: [spec.output, implement.output]
+    output: [publish_spec.md]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"

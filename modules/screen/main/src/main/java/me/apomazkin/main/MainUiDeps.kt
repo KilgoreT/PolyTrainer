@@ -37,10 +37,17 @@ interface MainUiDeps {
     fun SettingsTabScreenDep(
             onLangManagementClick: () -> Unit,
             onAboutAppClick: () -> Unit,
+            onPrivacyPolicyClick: () -> Unit,
     )
 
     @Composable
     fun AboutAppScreenDep(
+            onBackPress: () -> Unit,
+    )
+
+    @Composable
+    fun WebViewScreenDep(
+            pageKey: String,
             onBackPress: () -> Unit,
     )
 }
