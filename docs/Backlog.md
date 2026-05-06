@@ -55,6 +55,19 @@
 
 ---
 
+- **[Правильный запуск Gradle из CLI (для агентов/CI)].**
+  Формат: `./gradlew <task> --console=plain >| /tmp/ff_<name>.log 2>&1; echo EXIT:$?`
+  - `--console=plain` — убирает escape-коды прогресс-бара
+  - `>| /tmp/...` — redirect в файл (не pipe), перезаписывает
+  - `echo EXIT:$?` — единственный видимый output = exit code
+  - Таймаут: 600000ms (10 мин)
+  - НЕ использовать `run_in_background` — ломает redirect
+  - НЕ использовать pipe (`| tail`) — Gradle может не flush'ить
+
+- **[Lint rule: запрет прямого android.util.Log].**
+  Написать кастомный lint check или CI grep-проверку. `android.util.Log` допустим только в `LogcatSink`. Везде остальное — через `LexemeLogger`.
+  Нужно: lint модуль с Detector + Issue, или detekt rule, или минимум grep в CI.
+
 - **[Централизованная система ошибок и снекбаров].**
   Сейчас каждый экран по-своему обрабатывает ошибки: кто-то Toast, кто-то Snackbar с boolean флагом, кто-то просто молчит. Нет единого механизма показа ошибок пользователю.
   Нужно: централизованный ErrorHandler / SnackbarManager. Единый API для показа ошибок из любого места (EffectHandler, WebView, навигация). Единый UI компонент (Snackbar/BottomSheet). Типизированные ошибки (network, unknown, validation).

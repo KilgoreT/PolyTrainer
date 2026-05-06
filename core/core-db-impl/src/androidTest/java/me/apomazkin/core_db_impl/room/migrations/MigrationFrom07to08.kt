@@ -1,6 +1,5 @@
 package me.apomazkin.core_db_impl.room.migrations
 
-import android.util.Log
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.room.Schema
 import me.apomazkin.core_db_impl.room.base.BaseMigration
@@ -169,10 +168,6 @@ class MigrationFrom07to08 : BaseMigration() {
                     )
             },
             afterMigrationCheck = { database ->
-                Log.d(
-                    "###",
-                    "<MigrationFrom07to08.kt>::from07to08 => afterMigrationCheck"
-                )
                 database.hasTable(tableName = WordV8.tableName)
                 database.hasColumns(
                     tableName = WordV8.tableName,

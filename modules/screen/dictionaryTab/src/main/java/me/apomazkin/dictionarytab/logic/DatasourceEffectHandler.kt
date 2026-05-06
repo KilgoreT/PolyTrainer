@@ -1,6 +1,5 @@
 package me.apomazkin.dictionarytab.logic
 
-import android.util.Log
 import androidx.paging.cachedIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -9,12 +8,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.apomazkin.dictionarytab.BuildConfig
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.entity.WordInfo
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateFlowHandler
+import me.apomazkin.mate.LogTags
+import me.apomazkin.ui.logger.LexemeLogger
 
 /**
  * Effect
@@ -46,6 +46,7 @@ internal sealed interface DatasourceEffect : Effect {
 internal class DatasourceEffectHandler(
         private val dictionaryTabUseCase: DictionaryTabUseCase,
         private val scope: CoroutineScope,
+        private val logger: LexemeLogger,
 ) : MateFlowHandler<Msg, Effect> {
 
     override var job: Job? = null
@@ -62,16 +63,9 @@ internal class DatasourceEffectHandler(
             effect: Effect,
             consumer: (Msg) -> Unit,
     ) {
-        //TODO kilg 14.06.2025 00:48
-        // https://github.com/KilgoreT/PolyTrainer/issues/372
-        if (BuildConfig.DEBUG) {
-            Log.d("##MATE##", "RunEffect: $effect")
-        }
+        logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         return when (val eff = effect as? DatasourceEffect) {
 
-            //TODO kilg 25.05.2025 03:16 В префах хранить именно id текущего языка,
-            // а не numericCode. И вообще, кешировать бы его, а не запрашивать каждый раз.
-            // https://github.com/KilgoreT/PolyTrainer/issues/369
             is DatasourceEffect.LoadTermFlow -> {
                 withContext(Dispatchers.IO) {
                     val dictionaryId = dictionaryTabUseCase.getCurrentDict().id.toInt()

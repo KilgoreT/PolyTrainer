@@ -1,6 +1,5 @@
 package me.apomazkin.quiz.chat.quiz
 
-import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ParagraphStyle
@@ -18,6 +17,8 @@ import me.apomazkin.quiz.chat.entity.WriteQuiz
 import me.apomazkin.quiz.chat.entity.WriteQuizUpsertEntity
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.chatCorrectColor
+import me.apomazkin.quiz.chat.LogTags
+import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -28,6 +29,7 @@ class QuizGameImpl(
         private val quizChatUseCase: QuizChatUseCase,
         private val resourceManager: ResourceManager,
         private val prefsProvider: PrefsProvider,
+        private val logger: LexemeLogger,
         private val maxStepInSession: Int = 10,
         private val maxGrade: Int = 3,
         private val maxScoreInGrade: Int = 5,
@@ -273,7 +275,7 @@ class QuizGameImpl(
      */
     private fun addQuizData(quizData: List<QuizItem>) {
         quizList.addAll(quizData)
-        Log.d("###", "<QuizGameImpl.kt>::addQuizData => quiz size = ${quizList.size}")
+        logger.d(tag = LogTags.CHAT, message = "addQuizData: size = ${quizList.size}")
     }
 
     private fun getQuiz(step: Step): QuizItem {

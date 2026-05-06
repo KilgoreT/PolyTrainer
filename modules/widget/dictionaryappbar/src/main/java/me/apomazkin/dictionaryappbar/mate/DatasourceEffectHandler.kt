@@ -1,6 +1,5 @@
 package me.apomazkin.dictionaryappbar.mate
 
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,6 +11,8 @@ import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateFlowHandler
+import me.apomazkin.mate.LogTags
+import me.apomazkin.ui.logger.LexemeLogger
 
 /**
  * Effect
@@ -25,6 +26,7 @@ internal sealed interface DatasourceEffect : Effect {
  */
 internal class DatasourceEffectHandler(
         private val useCase: DictionaryAppBarUseCase,
+        private val logger: LexemeLogger,
 ) : MateFlowHandler<Msg, Effect> {
 
     override var job: Job? = null
@@ -47,7 +49,7 @@ internal class DatasourceEffectHandler(
             effect: Effect,
             consumer: (Msg) -> Unit,
     ) {
-        Log.d("##MATE##", "RunEffect: $effect")
+        logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         return when (val eff = effect as? DatasourceEffect) {
             is DatasourceEffect.ChangeDict -> {
                 withContext(Dispatchers.IO) {

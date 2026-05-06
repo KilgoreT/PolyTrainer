@@ -1,6 +1,5 @@
 package me.apomazkin.quiz.chat.logic
 
-import android.util.Log
 import androidx.compose.ui.text.AnnotatedString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -11,6 +10,8 @@ import me.apomazkin.mate.MateEffectHandler
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.quiz.QuizGame
+import me.apomazkin.mate.LogTags
+import me.apomazkin.ui.logger.LexemeLogger
 import kotlin.random.Random
 
 /**
@@ -39,13 +40,14 @@ internal sealed interface DatasourceEffect : Effect {
 internal class DatasourceEffectHandler(
         private val quizGame: QuizGame,
         private val prefsProvider: PrefsProvider,
+        private val logger: LexemeLogger,
 ) : MateEffectHandler<Msg, Effect> {
 
     override suspend fun runEffect(
             effect: Effect,
             consumer: (Msg) -> Unit,
     ) {
-        Log.d("##MATE##", "RunEffect: $effect")
+        logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         val eff = effect as DatasourceEffect
         return when (eff) {
             is DatasourceEffect.PrepareToStart -> {

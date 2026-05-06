@@ -39,8 +39,10 @@ class ChatViewModel(
                     quizChatUseCase = quizChatUseCase,
                     resourceManager = resourceManager,
                     prefsProvider = prefsProvider,
+                    logger = logger,
                 ),
                 prefsProvider = prefsProvider,
+                logger = logger,
             ),
             AppBarFlowHandler(
                 prefsProvider = prefsProvider,

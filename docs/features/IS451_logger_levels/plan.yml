@@ -1,0 +1,52 @@
+flow: lexeme_feature
+started: "2026-05-06T00:10:00"
+dir: docs/features/IS451_logger_levels/
+
+context:
+  ticket: IS451
+  feature_name: logger_levels
+  branch: IS451-logger-levels
+  mode: normal
+
+steps:
+  task:
+    status: done
+    finished: "2026-05-06T00:10:00"
+
+  spec:
+    status: done
+    finished: "2026-05-06T00:15:00"
+
+  checklist_init:
+    status: done
+    finished: "2026-05-06T00:23:28"
+
+  contract:
+    type: group
+    status: skipped
+
+  usecase:
+    status: skipped
+
+  design_tree:
+    status: done
+    finished: "2026-05-06T00:30:57"
+    pause: true
+
+  test:
+    status: skipped
+
+  implement:
+    status: pending
+    pause: true
+
+  check:
+    status: pending
+    pause: true
+
+  checklist_run:
+    status: pending
+
+  publish_spec:
+    status: pending
+    pause: true

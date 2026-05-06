@@ -2,8 +2,8 @@ package me.apomazkin.core_db_impl.room.utils
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
-import android.util.Log
 import androidx.sqlite.db.SupportSQLiteDatabase
+import me.apomazkin.ui.logger.LexemeLogger
 import org.junit.Assert
 
 fun SupportSQLiteDatabase.hasTable(tableName: String) {
@@ -61,16 +61,17 @@ inline fun <reified MIGRATED, reified ORIGIN> List<MIGRATED>.checkData(
     originMatcher: List<ORIGIN>.(MIGRATED) -> ORIGIN?,
     checkMatcher: (migrated: MIGRATED, origin: ORIGIN) -> Boolean,
     afterMigrationState: Boolean = true,
+    logger: LexemeLogger? = null,
 ): List<MIGRATED> {
-    
+
     val logTitle =
         if (afterMigrationState) "Migration Test" else "Creating Test"
-    
+
     Assert.assertTrue(
         "Given count must be ${origin.size}, but here is ${this.size} (${MIGRATED::class.simpleName})",
         origin.size == this.size
     )
-    
+
     this.forEach { migratedItem ->
         val originItem = origin.originMatcher(migratedItem)
         Assert.assertNotNull(
@@ -78,14 +79,14 @@ inline fun <reified MIGRATED, reified ORIGIN> List<MIGRATED>.checkData(
             originItem
         )
         originItem?.let {
-            Log.d("###", "$logTitle: => \nm:$migratedItem\no:$it")
+            logger?.d(message = "$logTitle: => \nm:$migratedItem\no:$it")
             Assert.assertTrue(
                 "Database item $migratedItem doesn't match to origin item $it",
                 checkMatcher.invoke(migratedItem, it)
             )
         }
     }
-    
+
     return this
 }
 
@@ -94,15 +95,16 @@ inline fun <reified T> List<T>.checkItems(
     originMatcher: List<T>.(T) -> T?,
     checkMatcher: (migrated: T, origin: T) -> Boolean,
     afterMigrationState: Boolean = true,
+    logger: LexemeLogger? = null,
 ): List<T> {
-    
+
     val logTitle = if (afterMigrationState) "Migration Test" else "Creating Test"
-    
+
     Assert.assertTrue(
         "Given count must be ${origin.size}, but here is ${this.size} (${T::class.simpleName})",
         origin.size == this.size
     )
-    
+
     this.forEach { migratedItem ->
         val originItem = origin.originMatcher(migratedItem)
         Assert.assertNotNull(
@@ -110,13 +112,13 @@ inline fun <reified T> List<T>.checkItems(
             originItem
         )
         originItem?.let {
-            Log.d("###", "$logTitle: => \nm:$migratedItem\no:$it")
+            logger?.d(message = "$logTitle: => \nm:$migratedItem\no:$it")
             Assert.assertTrue(
                 "Database item doesn't match to origin item",
                 checkMatcher.invoke(migratedItem, it)
             )
         }
     }
-    
+
     return this
 }

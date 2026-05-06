@@ -42,18 +42,9 @@ me.apomazkin.<module>.entity   — Domain модели
 - Эффекты: `DatasourceEffect`, `UiEffect` (sealed interface extends `Effect`)
 - UseCases: интерфейс `*UseCase`, реализация `*UseCaseImpl`
 
-### Формат отладочных логов
+### Логирование
 
-Тег: `###СМЫСЛОВОЕ_СЛОВО###` — тройные решётки + слово описывающее область отладки.
-
-```kotlin
-android.util.Log.d("###FILTER###", "updateFilter: query='$query'")
-android.util.Log.d("###NAVIGATION###", "Back: onBack called")
-```
-
-- Тег всегда в формате `###СЛОВО###` — легко искать в Logcat, легко грепать для удаления
-- Логи временные — удалять после отладки. Не коммитить
-- Смысловое слово — область (FILTER, NAVIGATION, LOADING, STATE), не имя класса
+См. отдельный гайд: [logging.md](logging.md)
 
 ### Принцип именования
 
