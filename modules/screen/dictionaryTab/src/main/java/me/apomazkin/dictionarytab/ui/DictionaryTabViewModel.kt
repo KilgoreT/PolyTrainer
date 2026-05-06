@@ -29,6 +29,7 @@ class DictionaryTabViewModel(
             DatasourceEffectHandler(
                     dictionaryTabUseCase = dictionaryTabUseCase,
                     scope = viewModelScope,
+                    logger = logger,
             ),
             UiEffectHandler()
         )

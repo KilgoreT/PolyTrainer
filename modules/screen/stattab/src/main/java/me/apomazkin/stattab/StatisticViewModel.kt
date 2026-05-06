@@ -26,6 +26,7 @@ class StatisticViewModel(
             effectHandlerSet = setOf(
                     DatasourceEffectHandler(
                             useCase = statisticUseCase,
+                            logger = logger,
                     ),
             )
     )

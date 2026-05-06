@@ -24,6 +24,7 @@ import me.apomazkin.settingstab.deps.SettingsTabUseCase
 import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.stattab.deps.StatisticUiDeps
 import me.apomazkin.stattab.deps.StatisticUseCase
+import me.apomazkin.polytrainer.LogTags
 import me.apomazkin.ui.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
 import me.apomazkin.wordcard.WordCardScreen
@@ -139,7 +140,7 @@ class MainUiDepsProvider(
             onLangManagementClick = onLangManagementClick,
             onAboutAppClick = onAboutAppClick,
             onPrivacyPolicyClick = {
-                logger.log(tag = "###Settings###", message = "navigate: privacy_policy")
+                logger.log(tag = me.apomazkin.settingstab.LogTags.SETTINGS, message = "navigate: privacy_policy")
                 onPrivacyPolicyClick()
             },
             settingsTabUseCase = settingsTabUseCase,
@@ -163,7 +164,7 @@ class MainUiDepsProvider(
         onBackPress: () -> Unit,
     ) {
         val webPage = WebPage.fromKey(pageKey) ?: run {
-            logger.log(tag = "###WebView###", message = "unknown pageKey: $pageKey")
+            logger.log(tag = LogTags.APP, message = "unknown pageKey: $pageKey")
             return
         }
         WebViewScreen(

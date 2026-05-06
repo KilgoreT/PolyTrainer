@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.viewinterop.AndroidView
+import me.apomazkin.settingstab.LogTags
 import me.apomazkin.ui.logger.LexemeLogger
 
 private const val ALLOWED_DOMAIN = "kilgoret.github.io"
@@ -49,7 +50,7 @@ fun WebViewScreen(
     var isError by remember { mutableStateOf(false) }
 
     BackHandler {
-        logger.log(tag = "###WebView###", message = "back: $pageKey")
+        logger.log(tag = LogTags.WEBVIEW, message = "back: $pageKey")
         onBackPress()
     }
 
@@ -58,7 +59,7 @@ fun WebViewScreen(
             WebViewAppBar(
                 title = title,
                 onBackPress = {
-                    logger.log(tag = "###WebView###", message = "back: $pageKey")
+                    logger.log(tag = LogTags.WEBVIEW, message = "back: $pageKey")
                     onBackPress()
                 },
             )
@@ -78,7 +79,7 @@ fun WebViewScreen(
             if (isError) {
                 ErrorContent(
                     onRetry = {
-                        logger.log(tag = "###WebView###", message = "retry: $url")
+                        logger.log(tag = LogTags.WEBVIEW, message = "retry: $url")
                         isError = false
                         isLoading = true
                     }
@@ -88,7 +89,7 @@ fun WebViewScreen(
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     onRelease = { webView ->
-                        logger.log(tag = "###WebView###", message = "destroy: $url")
+                        logger.log(tag = LogTags.WEBVIEW, message = "destroy: $url")
                         webView.stopLoading()
                         webView.destroy()
                     },
@@ -102,7 +103,7 @@ fun WebViewScreen(
                                     loadingUrl: String?,
                                     favicon: Bitmap?
                                 ) {
-                                    logger.log(tag = "###WebView###", message = "loading: $loadingUrl")
+                                    logger.log(tag = LogTags.WEBVIEW, message = "loading: $loadingUrl")
                                     isLoading = true
                                     isError = false
                                 }
@@ -111,7 +112,7 @@ fun WebViewScreen(
                                     view: WebView?,
                                     finishedUrl: String?
                                 ) {
-                                    logger.log(tag = "###WebView###", message = "loaded: $finishedUrl")
+                                    logger.log(tag = LogTags.WEBVIEW, message = "loaded: $finishedUrl")
                                     isLoading = false
                                 }
 
@@ -121,7 +122,7 @@ fun WebViewScreen(
                                     error: WebResourceError?
                                 ) {
                                     if (request?.isForMainFrame == true) {
-                                        logger.log(tag = "###WebView###", message = "error: $url")
+                                        logger.log(tag = LogTags.WEBVIEW, message = "error: $url")
                                         isLoading = false
                                         isError = true
                                     }
@@ -133,7 +134,7 @@ fun WebViewScreen(
                                     errorResponse: android.webkit.WebResourceResponse?
                                 ) {
                                     if (request?.isForMainFrame == true) {
-                                        logger.log(tag = "###WebView###", message = "http error: ${errorResponse?.statusCode} $url")
+                                        logger.log(tag = LogTags.WEBVIEW, message = "http error: ${errorResponse?.statusCode} $url")
                                         isLoading = false
                                         isError = true
                                     }

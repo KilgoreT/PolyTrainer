@@ -1,6 +1,5 @@
 package me.apomazkin.main
 
-import android.util.Log
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -37,7 +36,6 @@ fun NavGraphBuilder.settings(
         arguments = listOf(navArgument("pageKey") { type = NavType.StringType })
     ) { backStackEntry ->
         val pageKey = backStackEntry.arguments?.getString("pageKey") ?: run {
-            Log.e("Settings", "###WebView### missing pageKey argument")
             return@composable
         }
         mainUiDeps.WebViewScreenDep(

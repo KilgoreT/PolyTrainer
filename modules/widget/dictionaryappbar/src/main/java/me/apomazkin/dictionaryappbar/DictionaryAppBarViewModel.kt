@@ -25,7 +25,8 @@ class DictionaryAppBarViewModel(
             reducer = DictionaryAppBarReducer(logger = logger),
             effectHandlerSet = setOf(
                     DatasourceEffectHandler(
-                            useCase = useCase
+                            useCase = useCase,
+                            logger = logger,
                     )
             )
     )

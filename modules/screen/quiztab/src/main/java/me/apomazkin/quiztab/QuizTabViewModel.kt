@@ -25,7 +25,7 @@ class QuizTabViewModel(
         coroutineScope = viewModelScope,
         reducer = QuizTabReducer(logger = logger),
         effectHandlerSet = setOf(
-            DatasourceEffectHandler(quizTabUseCase = quizTabUseCase),
+            DatasourceEffectHandler(quizTabUseCase = quizTabUseCase, logger = logger),
             UiEffectHandler()
         )
     )

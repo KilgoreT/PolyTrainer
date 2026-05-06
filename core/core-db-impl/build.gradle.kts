@@ -50,6 +50,7 @@ dependencies {
     implementation(diLibs.dagger)
     ksp(diLibs.daggerCompiler)
 
+    androidTestImplementation(project("path" to ":modules:core:ui"))
     androidTestImplementation(datastoreLibs.roomTesting)
     
     testImplementation("junit:junit:4.13.2")

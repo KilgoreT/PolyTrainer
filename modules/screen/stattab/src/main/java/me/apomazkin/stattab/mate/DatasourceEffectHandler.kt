@@ -1,6 +1,5 @@
 package me.apomazkin.stattab.mate
 
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
@@ -9,6 +8,8 @@ import kotlinx.coroutines.launch
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateFlowHandler
 import me.apomazkin.stattab.deps.StatisticUseCase
+import me.apomazkin.mate.LogTags
+import me.apomazkin.ui.logger.LexemeLogger
 
 /**
  * Effect
@@ -21,6 +22,7 @@ internal sealed interface DatasourceEffect : Effect {
  */
 internal class DatasourceEffectHandler(
     private val useCase: StatisticUseCase,
+    private val logger: LexemeLogger,
 ) : MateFlowHandler<Msg, Effect> {
 
     override var job: Job? = null
@@ -47,7 +49,7 @@ internal class DatasourceEffectHandler(
         effect: Effect,
         consumer: (Msg) -> Unit
     ) {
-        Log.d("##MATE##", "RunEffect: $effect")
+        logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         return when (val eff = effect as? DatasourceEffect) {
 
             null -> Msg.Empty

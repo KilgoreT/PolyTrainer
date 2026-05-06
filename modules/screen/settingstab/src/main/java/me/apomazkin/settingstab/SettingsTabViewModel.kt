@@ -25,7 +25,7 @@ class SettingsTabViewModel(
         coroutineScope = viewModelScope,
         reducer = SettingsTabReducer(logger = logger),
         effectHandlerSet = setOf(
-            DatasourceEffectHandler(settingsTabUseCase),
+            DatasourceEffectHandler(settingsTabUseCase, logger = logger),
             UiEffectHandler()
         )
     )

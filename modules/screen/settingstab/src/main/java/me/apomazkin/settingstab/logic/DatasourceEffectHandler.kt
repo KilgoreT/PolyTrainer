@@ -1,12 +1,13 @@
 package me.apomazkin.settingstab.logic
 
 import android.net.Uri
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
 import me.apomazkin.settingstab.deps.SettingsTabUseCase
+import me.apomazkin.mate.LogTags
+import me.apomazkin.ui.logger.LexemeLogger
 
 /**
  * Effect
@@ -20,14 +21,15 @@ internal sealed interface DatasourceEffect : Effect {
  * EffectHandler for datastore calls.
  */
 internal class DatasourceEffectHandler(
-    private val settingsTabUseCase: SettingsTabUseCase
+    private val settingsTabUseCase: SettingsTabUseCase,
+    private val logger: LexemeLogger,
 ) : MateEffectHandler<Msg, Effect> {
     
     override suspend fun runEffect(
         effect: Effect,
         consumer: (Msg) -> Unit
     ) {
-        Log.d("##MATE##", "RunEffect: $effect")
+        logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         return when (val eff = effect as? DatasourceEffect) {
             is DatasourceEffect.ExportData -> {
                 withContext(Dispatchers.IO) {

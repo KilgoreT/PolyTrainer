@@ -83,6 +83,10 @@ android {
         getByName("debug") {
             signingConfig = signingConfigs.getByName("signForRelease")
             isMinifyEnabled = false
+            val logLevel = project.findProperty("LOG_LEVEL")?.toString() ?: "DEBUG"
+            val remoteLogLevel = project.findProperty("REMOTE_LOG_LEVEL")?.toString() ?: "NONE"
+            buildConfigField("String", "LOG_LEVEL", "\"$logLevel\"")
+            buildConfigField("String", "REMOTE_LOG_LEVEL", "\"$remoteLogLevel\"")
         }
         getByName("release") {
             signingConfig = signingConfigs.getByName("signForRelease")
@@ -91,6 +95,10 @@ android {
                     getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"
             )
+            val logLevel = project.findProperty("LOG_LEVEL")?.toString() ?: "NONE"
+            val remoteLogLevel = project.findProperty("REMOTE_LOG_LEVEL")?.toString() ?: "WARNING"
+            buildConfigField("String", "LOG_LEVEL", "\"$logLevel\"")
+            buildConfigField("String", "REMOTE_LOG_LEVEL", "\"$remoteLogLevel\"")
         }
     }
 }

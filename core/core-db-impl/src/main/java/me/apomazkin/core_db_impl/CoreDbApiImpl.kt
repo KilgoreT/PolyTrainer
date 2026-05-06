@@ -1,6 +1,5 @@
 package me.apomazkin.core_db_impl
 
-import android.util.Log
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
@@ -141,9 +140,6 @@ class CoreDbApiImpl @Inject constructor(
                     enablePlaceholders = false
                 ),
                 pagingSourceFactory = {
-                    if (BuildConfig.DEBUG) {
-                        Log.d("###", ">>>> TermsPaging => NEW PAGING SOURCE: $pattern")
-                    }
                     wordDao.searchTermsPaging(pattern, dictionaryId)
                 }
             ).flow.map { pagingData ->
