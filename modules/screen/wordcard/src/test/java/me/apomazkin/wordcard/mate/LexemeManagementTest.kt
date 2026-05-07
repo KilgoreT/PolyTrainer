@@ -378,9 +378,9 @@ class LexemeManagementTest {
             "",
             addedLexeme.translation?.origin
         )
-        assertFalse(
-            "Translation should not be in edit mode",
-            addedLexeme.translation?.isEdit ?: true
+        assertTrue(
+            "Translation should be in edit mode for new field",
+            addedLexeme.translation?.isEdit ?: false
         )
         assertNull(
             "Definition should be null because isDefinitionCheck was false",

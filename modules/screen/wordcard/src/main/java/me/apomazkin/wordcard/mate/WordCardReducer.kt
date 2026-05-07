@@ -76,7 +76,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                         translation = if (state.addLexemeBottomState.isTranslationCheck) {
                             TextValueState(
                                 origin = "",
-                                isEdit = false,
+                                isEdit = true,
                             )
                         } else {
                             null
@@ -84,7 +84,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                         definition = if (state.addLexemeBottomState.isDefinitionCheck) {
                             TextValueState(
                                 origin = "",
-                                isEdit = false,
+                                isEdit = true,
                             )
                         } else {
                             null
