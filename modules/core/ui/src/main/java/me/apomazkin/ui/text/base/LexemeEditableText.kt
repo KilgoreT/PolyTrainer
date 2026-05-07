@@ -5,10 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -33,7 +32,7 @@ import me.apomazkin.ui.preview.BoolParam
 import me.apomazkin.ui.preview.PreviewWidget
 
 private const val DEFAULT_SPACE_BEFORE_ICON = 8
-private const val DEFAULT_ICON_SIZE = 12
+private const val DEFAULT_ICON_SIZE = 16
 private val defaultTextStyle = LexemeStyle.BodyL
 
 @Composable
@@ -46,7 +45,7 @@ fun LexemeEditableText(
     onCloseEditMode: () -> Unit,
     textColor: Color,
     textStyle: TextStyle = defaultTextStyle,
-    @DrawableRes iconClose: Int = R.drawable.ic_close,
+    @DrawableRes iconConfirm: Int = R.drawable.ic_confirm,
     @DrawableRes iconOpen: Int? = null,
     iconSize: Int = DEFAULT_ICON_SIZE,
     spaceBeforeIcon: Int = DEFAULT_SPACE_BEFORE_ICON,
@@ -72,8 +71,7 @@ fun LexemeEditableText(
             ) {
                 BasicTextField(
                     modifier = Modifier
-                        .weight(1f, fill = false)
-                        .width(IntrinsicSize.Min)
+                        .weight(1f)
                         .focusRequester(focusRequester),
                     value = changedValue,
                     onValueChange = onTextChange,
@@ -91,10 +89,10 @@ fun LexemeEditableText(
 //                )
                 IconBoxed(
                     modifier = Modifier,
-                    iconRes = iconClose,
+                    iconRes = iconConfirm,
                     size = iconSize,
                     enabled = true,
-                    colorEnabled = blackColor,
+                    colorEnabled = MaterialTheme.colorScheme.primary,
                 ) { onCloseEditMode.invoke() }
             }
         } else {
