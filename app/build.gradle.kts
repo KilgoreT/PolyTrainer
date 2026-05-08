@@ -34,7 +34,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "me.apomazkin.polytrainer"
+        applicationId = "co.lexeme.app"
         targetSdk = 35
         minSdk = 23
         multiDexEnabled = true
