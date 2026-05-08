@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "479682905397",
-    "project_id": "polytrainer",
-    "storage_bucket": "polytrainer.appspot.com"
+    "project_number": "791291485956",
+    "project_id": "lexeme-app",
+    "storage_bucket": "lexeme-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:479682905397:android:4adb6ab154086d3eb8387c",
+        "mobilesdk_app_id": "1:791291485956:android:f889454ddf0868328d7a51",
         "android_client_info": {
-          "package_name": "me.apomazkin.polytrainer"
+          "package_name": "co.lexeme.app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "479682905397-cu2le53i5qpgkervpu9a8idr67rtb4ou.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB7llz8krh5ulXtOXrvBV4aYWErnivee18"
+          "current_key": "AIzaSyC8JC1iJbZER0TiS8NBcM6Oj8jqF5DFlzE"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "479682905397-cu2le53i5qpgkervpu9a8idr67rtb4ou.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

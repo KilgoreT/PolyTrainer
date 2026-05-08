@@ -15,7 +15,7 @@ pluginManagement {
         id("com.android.library") version "8.7.3" apply false
         id("org.jetbrains.kotlin.android") version "2.0.20" apply false // Kotlin Android Plugin
         id("androidx.navigation.safeargs.kotlin") version "2.9.0"
-        id("com.google.gms.google-services") version "4.4.2"
+        id("com.google.gms.google-services") version "4.4.4"
         id("com.google.firebase.crashlytics") version "3.0.3"
         id("androidx.room") version "2.7.1" apply false
         id("org.jetbrains.kotlin.jvm") version "1.9.10"
