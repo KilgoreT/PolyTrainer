@@ -1,0 +1,167 @@
+flow: lexeme_bugfix
+started: "2026-05-08T10:03:12"
+dir: docs/features/IS461_quiz_empty_list_crash/
+
+context:
+  ticket: IS461
+  feature_name: quiz_empty_list_crash
+  branch: IS461-quiz-empty-list-crash
+  mode: normal
+  overlay: docs/forgeflow-overlay
+  workspace:
+    dir_template: "docs/features/{ticket}_{name}/"
+    spec_dir: "docs/features-spec/"
+  needs_spec_update: false
+
+steps:
+  task:
+    status: done
+    output: 00_task.md
+    model: opus
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+    finished: "2026-05-08T10:03:12"
+
+  triage:
+    status: done
+    started: "2026-05-08T10:03:58"
+    finished: "2026-05-08T10:06:11"
+    model: opus
+    input: [task.output]
+    output: 01_triage.md
+    sets: [needs_spec_update]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  research:
+    status: done
+    started: "2026-05-08T10:09:31"
+    finished: "2026-05-08T10:10:30"
+    model: opus
+    input: [triage.output]
+    output: 02_research.md
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  update_spec:
+    status: skipped
+    model: opus
+    input: [research.output, triage.output, task.output]
+    output: 03_update_spec.md
+    if: needs_spec_update
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  solutions:
+    status: done
+    started: "2026-05-08T10:10:30"
+    finished: "2026-05-08T10:11:29"
+    model: opus
+    input: [research.output, triage.output, update_spec.output]
+    output: 04_solutions.md
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  impact_analysis:
+    status: done
+    started: "2026-05-08T10:11:29"
+    finished: "2026-05-08T10:12:24"
+    model: opus
+    input: [solutions.output, research.output, triage.output, update_spec.output]
+    output: 05_impact_analysis.md
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  design_tree:
+    status: skipped
+    model: opus
+    input: [research.output, solutions.output, impact_analysis.output, update_spec.output]
+    output: 06_design_tree.md
+    if: needs_spec_update
+    review:
+      agents: [architect]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  test:
+    status: done
+    started: "2026-05-08T04:18:44"
+    finished: "2026-05-08T04:24:46"
+    model: opus
+    input: [solutions.output, impact_analysis.output, research.output, update_spec.output, design_tree.output]
+    output: 07_test.md
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  implement:
+    status: done
+    started: "2026-05-08T04:45:00"
+    finished: "2026-05-08T04:48:22"
+    model: opus
+    input: [test.output, solutions.output, impact_analysis.output, research.output, update_spec.output, design_tree.output]
+    output: 08_implement.md
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  publish_spec:
+    status: skipped
+    model: opus
+    input: [update_spec.output, implement.output]
+    output: 09_publish_spec.md
+    if: needs_spec_update
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  check:
+    status: done
+    started: "2026-05-08T04:50:22"
+    finished: "2026-05-08T05:06:42"
+    model: opus
+    output: 10_check.md
+    pause: true
+    with:
+      checks: [lint, test, build]
+      logging:
+        phases:
+          - "finalize:after"
