@@ -46,6 +46,9 @@ class QuizGameImpl(
     override suspend fun loadData() {
         clearData()
         val quizData = fetchData()
+        if (quizData.isEmpty()) {
+            logger.w(tag = LogTags.CHAT, message = "loadData: fetchData returned empty list")
+        }
         addQuizData(quizData)
     }
 
@@ -281,7 +284,11 @@ class QuizGameImpl(
     private fun getQuiz(step: Step): QuizItem {
         return when (step) {
             is Step.Pending -> throw QuizNotLoadedException()
-            is Step.Started -> quizList[step.value]
+            is Step.Started -> quizList.getOrElse(step.value) {
+                throw IndexOutOfBoundsException(
+                    "Quiz index ${step.value} out of bounds, quizList.size=${quizList.size}"
+                )
+            }
         }
     }
 
@@ -340,7 +347,7 @@ class QuizGameImpl(
 
     private fun nextStep() {
         currentStep = when (val step = currentStep) {
-            is Step.Pending -> Step.Started(0)
+            is Step.Pending -> if (quizList.isNotEmpty()) Step.Started(0) else Step.Pending
             is Step.Started -> if (step.value < maxStep() - 1) Step.Started(step.value + 1) else Step.Pending
         }
     }
