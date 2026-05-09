@@ -18,7 +18,7 @@ import me.apomazkin.quiz.chat.entity.WriteQuizUpsertEntity
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.chatCorrectColor
 import me.apomazkin.quiz.chat.LogTags
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
 import java.text.SimpleDateFormat
 import java.util.Date

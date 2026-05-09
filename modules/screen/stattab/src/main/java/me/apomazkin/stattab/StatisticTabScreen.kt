@@ -28,7 +28,7 @@ import me.apomazkin.stattab.widget.TitleWithValue
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.statInProcessBg
 import me.apomazkin.theme.statInProcessFg
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewScreen
 
 @Composable

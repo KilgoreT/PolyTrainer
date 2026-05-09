@@ -28,6 +28,7 @@ dependencies {
     
     api(project("path" to ":core:core-db-api"))
     implementation(project("path" to ":core:core-db-impl"))
+    implementation(project("path" to ":modules:core:logger"))
     
     //Dagger2
     implementation(diLibs.dagger)

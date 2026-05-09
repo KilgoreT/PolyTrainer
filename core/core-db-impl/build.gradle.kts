@@ -37,6 +37,7 @@ android {
 
 dependencies {
     implementation(project("path" to ":core:core-db-api"))
+    implementation(project("path" to ":modules:core:logger"))
 
     implementation(androidLibs.coreKtx)
 

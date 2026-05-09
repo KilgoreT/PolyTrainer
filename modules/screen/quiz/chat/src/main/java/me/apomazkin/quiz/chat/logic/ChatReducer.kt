@@ -9,7 +9,7 @@ import me.apomazkin.mate.effects
 import me.apomazkin.mate.state
 import me.apomazkin.quiz.chat.R
 import me.apomazkin.quiz.chat.logic.ChatMessage.Companion.UserAction
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
 
 internal class ChatReducer(

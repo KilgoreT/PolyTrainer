@@ -160,12 +160,16 @@ interface WordDao {
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: List<WriteQuizDb>): Int
 
-    @Transaction
-    @Query("SELECT * from write_quiz  WHERE grade = :grade AND dictionary_id = :langId ORDER BY RANDOM() LIMIT :limit")
-    suspend fun getRandomWriteQuizList(
+    @Query("SELECT id from write_quiz WHERE grade = :grade AND dictionary_id = :langId")
+    suspend fun getWriteQuizIds(
         grade: Int,
-        limit: Int,
         langId: Long
+    ): List<Long>
+
+    @Transaction
+    @Query("SELECT * from write_quiz WHERE id IN (:ids)")
+    suspend fun getWriteQuizByIds(
+        ids: List<Long>
     ): List<WriteQuizDbEntity>
 
     @Transaction

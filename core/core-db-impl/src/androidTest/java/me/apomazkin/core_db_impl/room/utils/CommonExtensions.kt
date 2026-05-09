@@ -3,7 +3,7 @@ package me.apomazkin.core_db_impl.room.utils
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import org.junit.Assert
 
 fun SupportSQLiteDatabase.hasTable(tableName: String) {

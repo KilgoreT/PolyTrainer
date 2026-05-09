@@ -15,7 +15,7 @@ import me.apomazkin.quiz.chat.logic.DatasourceEffect
 import me.apomazkin.quiz.chat.logic.DatasourceEffectHandler
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.quiz.QuizGameImpl
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
 
 class ChatViewModel(

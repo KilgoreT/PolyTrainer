@@ -11,7 +11,7 @@ import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.quiz.QuizGame
 import me.apomazkin.mate.LogTags
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import kotlin.random.Random
 
 /**

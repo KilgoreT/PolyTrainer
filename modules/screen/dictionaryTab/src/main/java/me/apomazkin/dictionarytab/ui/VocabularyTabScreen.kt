@@ -44,7 +44,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.btn.PrimaryFabWidget
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable

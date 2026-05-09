@@ -17,7 +17,7 @@ pluginManagement {
         id("androidx.navigation.safeargs.kotlin") version "2.9.0"
         id("com.google.gms.google-services") version "4.4.4"
         id("com.google.firebase.crashlytics") version "3.0.3"
-        id("androidx.room") version "2.7.1" apply false
+        id("androidx.room") version "2.8.4" apply false
         id("org.jetbrains.kotlin.jvm") version "1.9.10"
     }
 }
@@ -33,6 +33,7 @@ include(":app")
 include(":modules:core:mate")
 include(":modules:core:theme")
 include(":modules:core:ui")
+include(":modules:core:logger")
 include(":modules:core:tools")
 
 //Features

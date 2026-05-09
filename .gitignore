@@ -19,3 +19,4 @@
 /.vscode
 docs/forgeflow
 app/keystore/
+/modules/core/logger/build/

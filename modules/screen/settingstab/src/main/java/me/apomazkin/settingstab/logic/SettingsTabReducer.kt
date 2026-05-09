@@ -5,7 +5,7 @@ import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
 import me.apomazkin.settingstab.logic.DatasourceEffect.ExportData
 import me.apomazkin.settingstab.logic.DatasourceEffect.ImportData
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 internal class SettingsTabReducer(
     private val logger: LexemeLogger,

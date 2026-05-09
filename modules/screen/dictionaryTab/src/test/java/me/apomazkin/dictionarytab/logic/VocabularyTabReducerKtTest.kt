@@ -8,7 +8,7 @@ import me.apomazkin.dictionarytab.entity.TermUiItem
 import me.apomazkin.dictionarytab.entity.WordInfo
 import me.apomazkin.mate.*
 import me.apomazkin.mate.test.*
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -42,7 +42,7 @@ class VocabularyTabReducerKtTest {
 
     private val reducer = VocabularyTabReducer(
         logger = object : LexemeLogger {
-            override fun log(level: me.apomazkin.ui.logger.LogLevel, tag: String, message: String) {}
+            override fun log(level: me.apomazkin.logger.LogLevel, tag: String, message: String) {}
         }
     )
 

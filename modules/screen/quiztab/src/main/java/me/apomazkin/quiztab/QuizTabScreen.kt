@@ -22,7 +22,7 @@ import me.apomazkin.quiztab.logic.processor.toMateEvent
 import me.apomazkin.quiztab.widget.QuizItemWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewScreen
 
 @Composable

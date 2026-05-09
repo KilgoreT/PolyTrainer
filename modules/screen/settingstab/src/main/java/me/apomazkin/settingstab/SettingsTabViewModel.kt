@@ -12,7 +12,7 @@ import me.apomazkin.settingstab.logic.Msg
 import me.apomazkin.settingstab.logic.SettingsTabReducer
 import me.apomazkin.settingstab.logic.SettingsTabState
 import me.apomazkin.settingstab.logic.UiEffectHandler
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 class SettingsTabViewModel(
     settingsTabUseCase: SettingsTabUseCase,

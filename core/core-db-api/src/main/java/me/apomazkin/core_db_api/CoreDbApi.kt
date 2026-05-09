@@ -104,10 +104,13 @@ interface CoreDbApi {
         suspend fun addWriteQuiz(dictionaryId: Long, lexemeId: Long): Long
         suspend fun updateWriteQuiz(entity: List<WriteQuizUpsertApiEntity>): Int
 
-        suspend fun getRandomWriteQuizList(
+        suspend fun getWriteQuizIds(
             grade: Int,
-            limit: Int,
             dictionaryId: Long,
+        ): List<Long>
+
+        suspend fun getWriteQuizByIds(
+            ids: List<Long>,
         ): List<WriteQuizComplexEntity>
 
         suspend fun getEarliestWriteQuizList(

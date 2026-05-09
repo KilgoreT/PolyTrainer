@@ -25,12 +25,14 @@ import me.apomazkin.core_db_impl.entity.toApiEntity
 import me.apomazkin.core_db_impl.entity.toDb
 import me.apomazkin.core_db_impl.room.Database
 import me.apomazkin.core_db_impl.room.WordDao
+import me.apomazkin.logger.LexemeLogger
 import java.util.Date
 import javax.inject.Inject
 
 
 class CoreDbApiImpl @Inject constructor(
     private val wordDao: WordDao,
+    private val logger: LexemeLogger,
 ) : CoreDbApi {
 
     class DbInstanceImpl @Inject constructor(
@@ -264,6 +266,7 @@ class CoreDbApiImpl @Inject constructor(
 
     class QuizApiImpl @Inject constructor(
         private val wordDao: WordDao,
+        private val logger: LexemeLogger,
     ) : CoreDbApi.QuizApi {
 
         override suspend fun addWriteQuiz(
@@ -282,16 +285,20 @@ class CoreDbApiImpl @Inject constructor(
             return wordDao.updateWriteQuiz(entity.toDb())
         }
 
-        override suspend fun getRandomWriteQuizList(
+        override suspend fun getWriteQuizIds(
             grade: Int,
-            limit: Int,
             dictionaryId: Long,
+        ): List<Long> {
+            return wordDao.getWriteQuizIds(grade = grade, langId = dictionaryId)
+        }
+
+        override suspend fun getWriteQuizByIds(
+            ids: List<Long>,
         ): List<WriteQuizComplexEntity> {
-            return wordDao.getRandomWriteQuizList(
-                langId = dictionaryId,
-                grade = grade,
-                limit = limit,
-            ).map { it.toApiEntity() }
+            logger.d(tag = LogTags.DB, message = "getWriteQuizByIds: ${ids.size} ids")
+            val result = wordDao.getWriteQuizByIds(ids).map { it.toApiEntity() }
+            logger.d(tag = LogTags.DB, message = "getWriteQuizByIds: returned ${result.size} items")
+            return result
         }
 
         override suspend fun getEarliestWriteQuizList(

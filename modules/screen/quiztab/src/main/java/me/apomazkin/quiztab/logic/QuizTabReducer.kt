@@ -4,7 +4,7 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
 import me.apomazkin.quiztab.logic.processor.processUiMessage
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 internal class QuizTabReducer(
     private val logger: LexemeLogger,

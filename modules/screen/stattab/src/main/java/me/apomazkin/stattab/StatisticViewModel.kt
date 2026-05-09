@@ -11,7 +11,7 @@ import me.apomazkin.stattab.mate.DatasourceEffectHandler
 import me.apomazkin.stattab.mate.Msg
 import me.apomazkin.stattab.mate.StatisticReducer
 import me.apomazkin.stattab.mate.StatisticState
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 class StatisticViewModel(
         statisticUseCase: StatisticUseCase,

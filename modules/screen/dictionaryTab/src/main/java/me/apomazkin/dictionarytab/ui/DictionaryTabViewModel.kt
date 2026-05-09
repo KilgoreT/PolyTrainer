@@ -13,7 +13,7 @@ import me.apomazkin.dictionarytab.logic.UiEffectHandler
 import me.apomazkin.dictionarytab.logic.VocabularyTabReducer
 import me.apomazkin.mate.Mate
 import me.apomazkin.mate.MateStateHolder
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 class DictionaryTabViewModel(
     dictionaryTabUseCase: DictionaryTabUseCase,

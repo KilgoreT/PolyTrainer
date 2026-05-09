@@ -8,6 +8,7 @@ import me.apomazkin.core_db.di.CoreDbComponent
 import me.apomazkin.polytrainer.di.AppComponent
 import me.apomazkin.polytrainer.di.DaggerAppComponent
 import me.apomazkin.polytrainer.di.DaggerAppComponent_CoreDbDependenciesComponent
+import me.apomazkin.polytrainer.di.LoggerComponent
 
 class App : Application() {
 
@@ -15,14 +16,16 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        val logger = LoggerComponent.create().getLogger()
         appComponent = DaggerAppComponent
             .factory()
             .create(
                 appContext = this,
+                logger = logger,
                 coreDbProvider = DaggerAppComponent_CoreDbDependenciesComponent
                     //TODO kilg 13.05.2020 06:39 заменить билдер на фабрику
                     .builder()
-                    .coreDbProvider(CoreDbComponent.get(this))
+                    .coreDbProvider(CoreDbComponent.init(this, logger))
                     .build(),
             )
         initCrashlytics()

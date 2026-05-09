@@ -1,4 +1,4 @@
-package me.apomazkin.ui.logger
+package me.apomazkin.logger
 
 interface LexemeLogger {
     fun log(level: LogLevel = LogLevel.DEBUG, tag: String = "###LEXEME###", message: String)

@@ -5,6 +5,8 @@
 **ЗАПРЕЩЕНО** использовать `android.util.Log` напрямую. Единственное место — `LogcatSink`.
 Всё логирование — через `LexemeLogger`. Без исключений.
 
+**Модуль:** `modules/core/logger` (пакет `me.apomazkin.logger`). Чистый Kotlin, без Android зависимостей. Интерфейсы: `LexemeLogger`, `LogLevel`, `LogSink`.
+
 ## Архитектура
 
 ```

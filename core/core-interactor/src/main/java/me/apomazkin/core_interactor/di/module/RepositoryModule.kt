@@ -11,5 +11,6 @@ class RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideCoreDbApi(context: Context) = CoreDbComponent.get(context).getCoreDbApi()
+    fun provideCoreDbApi(context: Context) =
+        CoreDbComponent.get(context).getCoreDbApi()
 }
