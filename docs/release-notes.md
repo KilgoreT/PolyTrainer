@@ -1,5 +1,13 @@
 # Release Notes
 
+## v0.1.2
+
+**English:**
+Bug fixes and dependency updates.
+
+**Русский:**
+Исправление ошибок и обновление зависимостей.
+
 ## v0.1.1
 
 **English:**
