@@ -45,6 +45,9 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
+# country_data — Gson reflection, нет consumer rules
+-keep class com.blongho.country_data.** { *; }
+
 # Coroutines
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
