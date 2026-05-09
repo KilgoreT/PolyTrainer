@@ -1,21 +1,56 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Keep line numbers for stack traces
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+-keepattributes *Annotation*
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Room — keep all entities, DAOs, and database classes
+-keep class * extends androidx.room.RoomDatabase { *; }
+-keep @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao interface * { *; }
+-keep class * extends androidx.room.RoomDatabase$Callback { *; }
+-keep class **_Impl { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Room @Relation and @Embedded
+-keepclassmembers class * {
+    @androidx.room.Embedded *;
+    @androidx.room.Relation *;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep all DB entities in core-db-impl
+-keep class me.apomazkin.core_db_impl.entity.** { *; }
+-keep class me.apomazkin.core_db_impl.room.** { *; }
+
+# Keep all API entities in core-db-api
+-keep class me.apomazkin.core_db_api.entity.** { *; }
+
+# Dagger — keep generated components and factories
+-keep class **_Factory { *; }
+-keep class **_MembersInjector { *; }
+-keep class dagger.** { *; }
+-keepclassmembers class * {
+    @javax.inject.Inject <init>(...);
+    @javax.inject.Inject <fields>;
+}
+
+# DataStore
+-keep class androidx.datastore.** { *; }
+
+# Kotlin serialization (Firebase Sessions)
+-keepattributes InnerClasses
+-keep,includedescriptorclasses class com.google.firebase.sessions.**$$serializer { *; }
+-keepclassmembers class com.google.firebase.sessions.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.google.firebase.sessions.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+
+# Compose
+-keep class androidx.compose.** { *; }
+-keepclassmembers class * {
+    @androidx.compose.runtime.Composable <methods>;
+}
