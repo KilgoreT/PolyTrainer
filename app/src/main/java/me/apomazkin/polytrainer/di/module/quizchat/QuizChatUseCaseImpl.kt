@@ -54,11 +54,11 @@ class QuizChatUseCaseImpl @Inject constructor(
 
         val allByGrades: Map<Int, List<WriteQuiz>> = (0..maxGrade)
             .associateWith { grade ->
-                quizApi.getRandomWriteQuizList(
-                    grade = grade,
-                    limit = limit,
-                    dictionaryId = dictionaryId,
-                ).shuffled().toDomainEntity(type = QuizType.GRADES)
+                val ids = quizApi.getWriteQuizIds(grade = grade, dictionaryId = dictionaryId)
+                val randomIds = ids.shuffled().take(limit)
+                if (randomIds.isEmpty()) return@associateWith emptyList()
+                quizApi.getWriteQuizByIds(randomIds)
+                    .toDomainEntity(type = QuizType.GRADES)
             }
         val sortedGrades = allByGrades.toSortedMap()
         

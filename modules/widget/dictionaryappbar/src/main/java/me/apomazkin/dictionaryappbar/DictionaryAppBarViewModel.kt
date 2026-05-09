@@ -11,7 +11,7 @@ import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarState
 import me.apomazkin.dictionaryappbar.mate.Msg
 import me.apomazkin.mate.Mate
 import me.apomazkin.mate.MateStateHolder
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 class DictionaryAppBarViewModel(
         logger: LexemeLogger,

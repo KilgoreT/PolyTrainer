@@ -12,7 +12,7 @@ import me.apomazkin.quiztab.logic.Msg
 import me.apomazkin.quiztab.logic.QuizTabReducer
 import me.apomazkin.quiztab.logic.QuizTabState
 import me.apomazkin.quiztab.logic.UiEffectHandler
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 class QuizTabViewModel(
     quizTabUseCase: QuizTabUseCase,

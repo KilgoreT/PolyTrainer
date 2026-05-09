@@ -27,7 +27,7 @@ import me.apomazkin.quiz.chat.widget.appbar.AppBarWidget
 import me.apomazkin.quiz.chat.widget.state.ChatWidget
 import me.apomazkin.quiz.chat.widget.state.InitQuizWidget
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewScreen
 import me.apomazkin.ui.resource.ResourceManager
 

@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.viewinterop.AndroidView
 import me.apomazkin.settingstab.LogTags
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 private const val ALLOWED_DOMAIN = "kilgoret.github.io"
 

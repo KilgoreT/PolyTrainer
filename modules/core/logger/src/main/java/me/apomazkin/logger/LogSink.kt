@@ -1,4 +1,4 @@
-package me.apomazkin.ui.logger
+package me.apomazkin.logger
 
 interface LogSink {
     val minLevel: LogLevel

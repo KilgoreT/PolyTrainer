@@ -1,8 +1,8 @@
 package me.apomazkin.polytrainer.logger
 
-import me.apomazkin.ui.logger.LexemeLogger
-import me.apomazkin.ui.logger.LogLevel
-import me.apomazkin.ui.logger.LogSink
+import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.logger.LogLevel
+import me.apomazkin.logger.LogSink
 import javax.inject.Inject
 
 class LexemeLoggerImpl @Inject constructor(

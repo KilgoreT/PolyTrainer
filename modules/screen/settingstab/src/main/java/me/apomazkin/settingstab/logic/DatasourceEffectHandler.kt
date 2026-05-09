@@ -7,7 +7,7 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateEffectHandler
 import me.apomazkin.settingstab.deps.SettingsTabUseCase
 import me.apomazkin.mate.LogTags
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 /**
  * Effect

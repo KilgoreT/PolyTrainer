@@ -1,0 +1,161 @@
+flow: lexeme_bugfix
+started: "2026-05-08T11:15:03"
+dir: docs/features/IS463_room_relation_null/
+
+context:
+  ticket: IS463
+  feature_name: room_relation_null
+  branch: IS463-room-relation-null
+  mode: normal
+  overlay: docs/forgeflow-overlay
+  workspace:
+    dir_template: "docs/features/{ticket}_{name}/"
+    spec_dir: "docs/features-spec/"
+  needs_spec_update: false
+
+steps:
+  task:
+    status: done
+    model: opus
+    output: 00_task.md
+    pause: true
+    finished: "2026-05-08T11:15:03"
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  triage:
+    status: done
+    started: "2026-05-08T11:16:08"
+    finished: "2026-05-08T11:20:21"
+    model: opus
+    input: [task.output]
+    output: 01_triage.md
+    sets: [needs_spec_update]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  research:
+    status: done
+    started: "2026-05-08T11:24:33"
+    finished: "2026-05-08T11:28:52"
+    model: opus
+    input: [triage.output]
+    output: 02_research.md
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  update_spec:
+    status: skipped
+    model: opus
+    input: [research.output, triage.output, task.output]
+    output: 03_update_spec.md
+    if: needs_spec_update
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  solutions:
+    status: done
+    started: "2026-05-08T11:29:33"
+    finished: "2026-05-08T11:31:30"
+    model: opus
+    input: [research.output, triage.output, update_spec.output]
+    output: 04_solutions.md
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  impact_analysis:
+    status: done
+    started: "2026-05-08T11:31:30"
+    finished: "2026-05-08T11:33:29"
+    model: opus
+    input: [solutions.output, research.output, triage.output, update_spec.output]
+    output: 05_impact_analysis.md
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  design_tree:
+    status: pending
+    model: opus
+    input: [research.output, solutions.output, impact_analysis.output, update_spec.output]
+    output: 06_design_tree.md
+    if: needs_spec_update
+    review:
+      agents: [architect]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  test:
+    status: pending
+    model: opus
+    input: [solutions.output, impact_analysis.output, research.output, update_spec.output, design_tree.output]
+    output: 07_test.md
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  implement:
+    status: pending
+    model: opus
+    input: [test.output, solutions.output, impact_analysis.output, research.output, update_spec.output, design_tree.output]
+    output: 08_implement.md
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  publish_spec:
+    status: pending
+    model: opus
+    input: [update_spec.output, implement.output]
+    output: 09_publish_spec.md
+    if: needs_spec_update
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  check:
+    status: pending
+    model: opus
+    output: 10_check.md
+    pause: true
+    with:
+      checks: [lint, test, build]
+      logging:
+        phases:
+          - "finalize:after"

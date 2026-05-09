@@ -8,7 +8,7 @@ import me.apomazkin.dictionarytab.logic.processor.processUiMessage
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 internal class VocabularyTabReducer(
     val logger: LexemeLogger,

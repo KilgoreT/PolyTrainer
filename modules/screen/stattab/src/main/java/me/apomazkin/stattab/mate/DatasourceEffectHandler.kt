@@ -9,7 +9,7 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateFlowHandler
 import me.apomazkin.stattab.deps.StatisticUseCase
 import me.apomazkin.mate.LogTags
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 
 /**
  * Effect

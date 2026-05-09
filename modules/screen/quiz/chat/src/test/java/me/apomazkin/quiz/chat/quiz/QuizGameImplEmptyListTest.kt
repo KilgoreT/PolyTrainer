@@ -7,7 +7,7 @@ import kotlinx.coroutines.test.runTest
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.LogTags
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
 import org.junit.Assert.assertFalse
 import org.junit.Before

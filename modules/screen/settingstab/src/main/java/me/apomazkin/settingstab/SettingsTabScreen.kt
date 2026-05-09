@@ -36,7 +36,7 @@ import me.apomazkin.settingstab.widgets.settings.items.LangManageWidget
 import me.apomazkin.settingstab.widgets.settings.items.PrivacyPolicyWidget
 import me.apomazkin.settingstab.widgets.settings.items.RateWidget
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewScreen
 
 @Composable

@@ -25,7 +25,7 @@ import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.stattab.deps.StatisticUiDeps
 import me.apomazkin.stattab.deps.StatisticUseCase
 import me.apomazkin.polytrainer.LogTags
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.resource.ResourceManager
 import me.apomazkin.wordcard.WordCardScreen
 import me.apomazkin.wordcard.deps.WordCardUseCase

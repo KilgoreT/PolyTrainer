@@ -22,7 +22,7 @@ import me.apomazkin.dictionaryappbar.widget.AppBarTitleWidget
 import me.apomazkin.dictionarypicker.DictDropDownWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeColor
-import me.apomazkin.ui.logger.LexemeLogger
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
