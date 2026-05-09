@@ -119,9 +119,8 @@ jobs:
         with:
           name: release-artifacts
           path: |
-            app/build/outputs/bundle/release/app-release.aab
-            app/build/outputs/mapping/release/mapping.txt
-            app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip
+            app/build/outputs/bundle/release/
+            app/build/outputs/mapping/release/
 
   publish_job:
     name: Publish
@@ -141,6 +140,9 @@ jobs:
           name: release-artifacts
           path: artifacts
 
+      - name: List artifacts
+        run: find artifacts -type f
+
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1.0.15
         with:
@@ -151,5 +153,3 @@ jobs:
           track: alpha
           whatsNewDirectory: distribution/whatsnew
           mappingFile: artifacts/app/build/outputs/mapping/release/mapping.txt
-          debugSymbols: artifacts/app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip
-          changesNotSentForReview: true
