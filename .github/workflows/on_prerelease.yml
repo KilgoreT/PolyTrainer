@@ -80,12 +80,7 @@ jobs:
       - name: Save TAG to environment
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
-      - name: Print TAG
-        run: |
-          echo $RELEASE_VERSION
-          echo ${{ env.RELEASE_VERSION }}
-
-      - name: Checkout
+      - name: Checkout Keystore
         uses: actions/checkout@v3
         with:
           repository: ${{ secrets.KEYSTORE_GIT_REPO }}
@@ -109,7 +104,7 @@ jobs:
       - name: Build APK Release
         run: ./gradlew assembleRelease
 
-      - name: Upload Files to Release
+      - name: Upload Files to GitHub Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -119,22 +114,42 @@ jobs:
             app/build/outputs/apk/release/app-release.apk
             app/build/outputs/bundle/release/app-release.aab
 
-      - name: Upload to Google Play Internal
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            app/build/outputs/bundle/release/app-release.aab
+            app/build/outputs/mapping/release/mapping.txt
+            app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip
+
+  publish_job:
+    name: Publish
+    needs: [ build_job ]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Save TAG to environment
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: artifacts
+
+      - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1.0.15
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: ${{ secrets.APP_PACKAGE_NAME }}
-          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          releaseFiles: artifacts/app/build/outputs/bundle/release/app-release.aab
           releaseName: "v${{ env.RELEASE_VERSION }}"
           track: alpha
           whatsNewDirectory: distribution/whatsnew
-          mappingFile: app/build/outputs/mapping/release/mapping.txt
-          debugSymbols: app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip
+          mappingFile: artifacts/app/build/outputs/mapping/release/mapping.txt
+          debugSymbols: artifacts/app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip
           changesNotSentForReview: true
-
-
-#      - name: Upload AAB
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: app-release.aab
-#          path: 'app/build/outputs/bundle/**/**.aab'
