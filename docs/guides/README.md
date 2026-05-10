@@ -39,4 +39,5 @@
 - [Стиль кода](code-style.md) — форматирование, именование, git-конвенции, gradle
 - [Логирование](logging.md) — LexemeLogger, sink-паттерн, уровни, теги, конфигурация
 - [Тема и ресурсы](theme-and-resources.md) — цвета, типографика, ResourceManager, иконки, превью
+- [Preferences](prefs-datastore.md) — DataStore, PrefsProvider, nullable Flow, ключи
 - [Утилиты](tools-utils.md) — хелперы для работы со списками (modifyFiltered, insertToEnd)
