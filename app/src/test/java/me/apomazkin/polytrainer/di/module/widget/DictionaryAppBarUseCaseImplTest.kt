@@ -53,7 +53,7 @@ class DictionaryAppBarUseCaseImplTest {
     private val dictNoFlag =
         DictionaryApiEntity(id = 3L, numericCode = null, name = "Biology", addDate = now)
 
-    private lateinit var prefsFlow: MutableStateFlow<Long>
+    private lateinit var prefsFlow: MutableStateFlow<Long?>
     private lateinit var dictListFlow: MutableStateFlow<List<DictionaryApiEntity>>
 
     @Before
@@ -194,5 +194,17 @@ class DictionaryAppBarUseCaseImplTest {
         useCase.changeDict(42L)
 
         io.mockk.coVerify { prefsProvider.setLong(PrefKey.CURRENT_DICTIONARY_ID_LONG, 42L) }
+    }
+
+    // === null prefs ID ===
+
+    @Test
+    fun `flowCurrentDict falls back to first dict when prefs ID is null`() = runTest {
+        prefsFlow.value = null
+
+        val result = useCase.flowCurrentDict().first()
+
+        assertEquals(dictEn.id, result.id)
+        assertEquals("English", result.title)
     }
 }

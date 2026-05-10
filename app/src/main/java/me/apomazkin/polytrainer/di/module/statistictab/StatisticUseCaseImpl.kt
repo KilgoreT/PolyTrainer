@@ -22,8 +22,7 @@ class StatisticUseCaseImpl @Inject constructor(
         val dictionaryIdFlow: Flow<Int?> = prefsProvider
                 .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
                 .mapLatest { id ->
-                    val dictionaryId = dictionaryApi
-                            .getDictionaryById(id)?.id?.toInt()
+                    val dictionaryId = id?.let { dictionaryApi.getDictionaryById(it)?.id?.toInt() }
                             ?: dictionaryApi.getDictionaryList().firstOrNull()?.id?.toInt()
                     dictionaryId
                 }
@@ -38,8 +37,7 @@ class StatisticUseCaseImpl @Inject constructor(
         val dictionaryIdFlow: Flow<Int?> = prefsProvider
                 .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
                 .mapLatest { id ->
-                    val dictionaryId = dictionaryApi
-                            .getDictionaryById(id)?.id?.toInt()
+                    val dictionaryId = id?.let { dictionaryApi.getDictionaryById(it)?.id?.toInt() }
                             ?: dictionaryApi.getDictionaryList().firstOrNull()?.id?.toInt()
                     dictionaryId
                 }
@@ -54,8 +52,7 @@ class StatisticUseCaseImpl @Inject constructor(
         val dictionaryIdFlow: Flow<Int?> = prefsProvider
             .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
             .mapLatest { id ->
-                val dictionaryId = dictionaryApi
-                    .getDictionaryById(id)?.id?.toInt()
+                val dictionaryId = id?.let { dictionaryApi.getDictionaryById(it)?.id?.toInt() }
                     ?: dictionaryApi.getDictionaryList().firstOrNull()?.id?.toInt()
                 dictionaryId
             }

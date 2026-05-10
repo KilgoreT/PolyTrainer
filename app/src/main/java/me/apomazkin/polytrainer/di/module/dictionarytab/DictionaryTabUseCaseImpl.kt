@@ -55,9 +55,8 @@ class DictionaryTabUseCaseImpl @Inject constructor(
 
     override fun flowCurrentDict(): Flow<DictUiEntity> = prefsProvider
         .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-        .map { id: Long ->
-            val dict = (dictionaryApi
-                .getDictionaryById(id)
+        .map { id: Long? ->
+            val dict = (id?.let { dictionaryApi.getDictionaryById(it) }
                 ?: dictionaryApi.getDictionaryList().firstOrNull())
                 ?.let { dict ->
                     DictUiEntity(

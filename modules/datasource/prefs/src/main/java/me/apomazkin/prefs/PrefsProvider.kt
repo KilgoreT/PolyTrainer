@@ -17,12 +17,9 @@ class PrefsProvider(
 ) {
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "lexemePrefStore")
 
-    fun getIntFlow(prefKey: PrefKey): Flow<Int> {
+    fun getIntFlow(prefKey: PrefKey): Flow<Int?> {
         return context.dataStore.data
-            .map {
-                it[intPreferencesKey(prefKey.value)]
-                    ?: throw IllegalStateException("PrefKey $prefKey not found")
-            }
+            .map { it[intPreferencesKey(prefKey.value)] }
     }
     
     suspend fun getInt(prefKey: PrefKey): Int? {
@@ -35,12 +32,9 @@ class PrefsProvider(
         }
     }
 
-    fun getLongFlow(prefKey: PrefKey): Flow<Long> {
+    fun getLongFlow(prefKey: PrefKey): Flow<Long?> {
         return context.dataStore.data
-            .map {
-                it[longPreferencesKey(prefKey.value)]
-                    ?: throw IllegalStateException("PrefKey $prefKey not found")
-            }
+            .map { it[longPreferencesKey(prefKey.value)] }
     }
 
     suspend fun getLong(prefKey: PrefKey): Long? {
