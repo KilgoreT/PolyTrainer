@@ -19,6 +19,7 @@ pluginManagement {
         id("com.google.firebase.crashlytics") version "3.0.3"
         id("androidx.room") version "2.8.4" apply false
         id("org.jetbrains.kotlin.jvm") version "1.9.10"
+        id("org.jetbrains.kotlinx.kover") version "0.9.1" apply false
     }
 }
 
@@ -59,7 +60,6 @@ include(":modules:datasource:prefs")
 include(":modules:library:flags")
 
 //Old
-include(":core:core-interactor")
 include(":core:core-resources")
 include(":core:core-db-api")
 include(":core:core-db-impl")

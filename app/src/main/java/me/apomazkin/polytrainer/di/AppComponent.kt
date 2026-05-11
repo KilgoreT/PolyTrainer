@@ -9,7 +9,6 @@ import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.polytrainer.MainActivity
-import me.apomazkin.polytrainer.api.AppProvider
 import me.apomazkin.polytrainer.di.module.EnvModule
 import me.apomazkin.polytrainer.di.module.ResourceModule
 import me.apomazkin.polytrainer.di.module.dictionary.DictionaryModule
@@ -40,7 +39,7 @@ import javax.inject.Singleton
     dependencies = [CoreDbProvider::class]
 )
 @Singleton
-interface AppComponent : AppProvider {
+interface AppComponent {
     
     fun inject(mainActivity: MainActivity)
     
