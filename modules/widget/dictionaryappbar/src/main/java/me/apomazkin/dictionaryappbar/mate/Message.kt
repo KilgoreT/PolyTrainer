@@ -27,5 +27,7 @@ sealed interface Msg {
     data object DictMenuOn : Msg
     data object DictMenuOff : Msg
 
+    data object OpenDictionaryCreate : Msg
+
     data object Empty : Msg
 }

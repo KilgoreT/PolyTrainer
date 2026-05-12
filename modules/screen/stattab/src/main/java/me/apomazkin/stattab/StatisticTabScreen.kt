@@ -19,8 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.stattab.deps.StatisticUiDeps
-import me.apomazkin.stattab.deps.StatisticUseCase
 import me.apomazkin.stattab.mate.Msg
 import me.apomazkin.stattab.mate.StatisticState
 import me.apomazkin.stattab.widget.GradeWidget
@@ -28,19 +28,15 @@ import me.apomazkin.stattab.widget.TitleWithValue
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.statInProcessBg
 import me.apomazkin.theme.statInProcessFg
-import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewScreen
 
 @Composable
 fun StatisticTabScreen(
-    statisticUseCase: StatisticUseCase,
+    factory: StatisticViewModel.Factory,
+    navigator: StatisticNavigator,
     statisticUiDeps: StatisticUiDeps,
-    logger: LexemeLogger,
     viewModel: StatisticViewModel = viewModel(
-        factory = StatisticViewModel.Factory(
-            logger = logger,
-            statisticUseCase = statisticUseCase,
-        )
+        factory = viewModelFactory { factory.create(navigator) },
     ),
 ) {
     val state: StatisticState by viewModel.state.collectAsStateWithLifecycle()

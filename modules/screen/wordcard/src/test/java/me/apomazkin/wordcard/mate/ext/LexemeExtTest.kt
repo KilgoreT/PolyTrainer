@@ -57,7 +57,6 @@ class LexemeExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(), // Empty list initially
@@ -82,11 +81,6 @@ class LexemeExtTest {
             "addLexemeBottomState should not mutate on setLexemeList() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on setLexemeList() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "isLoading should not mutate on setLexemeList() - violates immutability",
@@ -159,11 +153,6 @@ class LexemeExtTest {
             "addLexemeBottomState should not mutate on addLexeme() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on addLexeme() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "isLoading should not mutate on addLexeme() - violates immutability",
@@ -316,11 +305,6 @@ class LexemeExtTest {
             "addLexemeBottomState should not mutate on removeLexeme() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on removeLexeme() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "isLoading should not mutate on removeLexeme() - violates immutability",

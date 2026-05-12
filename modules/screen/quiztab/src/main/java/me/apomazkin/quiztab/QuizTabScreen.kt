@@ -13,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.quiztab.deps.QuizTabUiDeps
-import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.quiztab.logic.Msg
 import me.apomazkin.quiztab.logic.QuizTabState
 import me.apomazkin.quiztab.logic.UiMsg
@@ -22,20 +22,18 @@ import me.apomazkin.quiztab.logic.processor.toMateEvent
 import me.apomazkin.quiztab.widget.QuizItemWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
-import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewScreen
 
 @Composable
 fun QuizTabScreen(
-    quizTabUseCase: QuizTabUseCase,
+    factory: QuizTabViewModel.Factory,
+    navigator: QuizTabNavigator,
     quizTabUiDeps: QuizTabUiDeps,
-    logger: LexemeLogger,
     viewModel: QuizTabViewModel = viewModel(
-        factory = QuizTabViewModel.Factory(quizTabUseCase, logger)
+        factory = viewModelFactory { factory.create(navigator) },
     ),
-    openQuiz: (quizType: String) -> Unit,
 ) {
-    
+
     LifecycleEventHandler(
         action = { viewModel.accept(UiMsg.LifeCycleEvent(it.toMateEvent())) }
     )
@@ -43,16 +41,14 @@ fun QuizTabScreen(
     QuizTabScreen(
         state = state,
         quizTabUiDeps = quizTabUiDeps,
-        openQuiz = openQuiz,
     ) { viewModel.accept(it) }
-    
+
 }
 
 @Composable
 internal fun QuizTabScreen(
     state: QuizTabState,
     quizTabUiDeps: QuizTabUiDeps,
-    openQuiz: (quizType: String) -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
     Scaffold(
@@ -75,12 +71,10 @@ internal fun QuizTabScreen(
                 titleRes = R.string.quiz_item_title_write,
                 subTitleRes = R.string.quiz_item_subtitle_write
             ) {
-                openQuiz.invoke("chat")
+                sendMessage(Msg.OpenChat(quizType = "chat"))
             }
         }
     }
-    
-    
 }
 
 @PreviewScreen
@@ -93,7 +87,6 @@ private fun Preview() {
                     @Composable
                     override fun AppBar(@StringRes titleResId: Int) {}
                 },
-                openQuiz = {},
         ) {}
     }
 }

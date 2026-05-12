@@ -1,28 +1,22 @@
 package me.apomazkin.wordcard.mate
 
 import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateEffectHandler
+import me.apomazkin.mate.MateTypedEffectHandler
+import javax.inject.Inject
 
-/**
- * Effect
- */
-internal sealed interface UiEffect : Effect {
+sealed interface UiEffect : Effect {
     data class ShowNotification(val title: String) : UiEffect
 }
 
-/**
- * EffectHandler
- */
-internal class UiEffectHandler :
-    MateEffectHandler<Msg, Effect> {
+class UiEffectHandler @Inject constructor() :
+    MateTypedEffectHandler<Msg, UiEffect>() {
 
-    override suspend fun runEffect(
-        effect: Effect,
-        consumer: (Msg) -> Unit
-    ) {
-        return when (val eff = effect as? UiEffect) {
-            is UiEffect.ShowNotification -> UiMsg.ShowNotification(text = eff.title, show = true)
-            null -> Msg.NoOperation
-        }.let(consumer)
+    override fun filter(effect: Effect): UiEffect? = effect as? UiEffect
+
+    override suspend fun onEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
+        val msg: Msg = when (effect) {
+            is UiEffect.ShowNotification -> UiMsg.ShowNotification(text = effect.title, show = true)
+        }
+        consumer(msg)
     }
 }

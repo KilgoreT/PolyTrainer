@@ -33,7 +33,6 @@ class WordEditTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(
                 id = 123L,
@@ -99,11 +98,6 @@ class WordEditTest {
             result.state().addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
-        )
-        assertEquals(
             "isLoading should remain unchanged",
             initialState.isLoading,
             result.state().isLoading
@@ -166,7 +160,6 @@ class WordEditTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(
                 id = 123L,
@@ -226,11 +219,6 @@ class WordEditTest {
             "addLexemeBottomState should remain unchanged",
             initialState.addLexemeBottomState,
             result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
         )
         assertEquals(
             "isLoading should remain unchanged",

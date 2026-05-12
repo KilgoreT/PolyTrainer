@@ -50,7 +50,6 @@ fun `should set isActionMenuOpen to true when showActionMenu is called`() {
     // Given
     val initialState = ChatScreenState(
         loading = false,
-        exit = false,
         appBarState = AppBarState(isActionMenuOpen = false),
         chat = ChatState(),
         snackbarState = SnackbarState(),
@@ -71,11 +70,6 @@ fun `should set isActionMenuOpen to true when showActionMenu is called`() {
         "loading should not change after showActionMenu()",
         initialState.loading,
         resultState.loading
-    )
-    assertEquals(
-        "exit should not change after showActionMenu()",
-        initialState.exit,
-        resultState.exit
     )
     assertEquals(
         "chat should not change after showActionMenu()",

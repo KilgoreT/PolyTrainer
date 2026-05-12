@@ -2,7 +2,9 @@ package me.apomazkin.quiztab.logic
 
 
 sealed interface Msg {
-    
+
+    data class OpenChat(val quizType: String) : Msg
+
     data object Empty : Msg
 }
 

@@ -8,8 +8,9 @@
 
 - Открывается из списка словарей (тап на элемент = редактирование, "Новый словарь" = создание)
 - Или напрямую через route DICTIONARY_CREATE (из dropdown AppBar)
+- Также через `DICTIONARY_SETUP` route — первое создание словаря после splash, без AppBar (`showAppBar = false`)
 - Route с параметром `editId` — optional, если есть = редактирование
-- Вся навигация через `NavigationEffect.Back` → `NavigationEffectHandler` → callback
+- Вся навигация через `NavigationEffect.Back` → `FormNavigationEffectHandler` (наследует `MateNavigationEffectHandler`) → `FormNavigator.back()` → `FormNavigatorImpl` в `app/.../navigator/`. Для SETUP-флоу `FormNavigatorImpl` дёргает `openMainScreen()`; для CREATE — `popBackStack()`
 
 ---
 
@@ -63,7 +64,17 @@ blongho `World.getAllCountries()` + `World.getLanguagesFrom()`. Загружаю
 ### Навигация назад
 
 - Данные теряются молча. Без диалога подтверждения.
-- Реализуется через `Msg.Back` → `NavigationEffect.Back` → handler
+- Реализуется через `Msg.Back` → `NavigationEffect.Back` → `FormNavigator.back()`
+
+### Фильтрация флагов (отдельный sealed effect)
+
+Чтобы не было конфликта двух handlers на одном sealed-эффекте (см. урок IS471), фильтрация вынесена в отдельный `FlagFilterEffect` / `FlagFilterFlowHandler`:
+
+- `DictionaryFormEffect` — операции с БД (Save, Update, LoadDictionary)
+- `FlagFilterEffect` — отдельный sealed для `FilterFlags(query)`
+- `FlagFilterFlowHandler` — подписка на отфильтрованный Flow + обработка `FilterFlags` для обновления query
+
+Правило: один sealed эффект — один handler. Иначе `MateTypedEffectHandler` обработает один эффект дважды.
 
 ---
 

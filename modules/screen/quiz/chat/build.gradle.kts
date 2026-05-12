@@ -2,6 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -26,7 +27,11 @@ android {
 dependencies {
     
     implementation(project("path" to ":core:core-resources"))
+    implementation(project("path" to ":modules:core:di"))
     implementation(project("path" to ":modules:core:mate"))
+    implementation(diLibs.dagger)
+    ksp(diLibs.daggerCompiler)
+    implementation("javax.inject:javax.inject:1")
     implementation(project("path" to ":modules:core:theme"))
     implementation(project("path" to ":modules:core:ui"))
     implementation(project("path" to ":modules:datasource:prefs"))

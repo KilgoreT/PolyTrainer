@@ -26,18 +26,12 @@ CoreDbComponent [без scope]
     ↓ CoreDbProvider
     │
 AppComponent [@Singleton]
-    │ modules: AppModule (15 sub-модулей, без LoggerModule)
+    │ modules: AppModule (13 sub-модулей)
     │ dependencies: CoreDbProvider
     │ @BindsInstance: Context, LexemeLogger
-    │ implements: AppProvider
-    │ provides: все UseCase, ViewModel factories, Prefs, Resources
-    │
-    ↓ appComponent
-    │
-CoreInteractorComponent [@Singleton, ленивый]
-    │ modules: RepositoryModule, ScenarioModule
-    │ @BindsInstance: Context
-    │ implements: CoreInteractorApi
+    │ provides: UseCase'ы, AssistedFactory всех ViewModel,
+    │           EnvParams, Logger
+    │ ViewModel'ы — через @AssistedInject + AssistedFactory (single pattern)
 ```
 
 ## Порядок создания (App.onCreate)
@@ -97,10 +91,10 @@ interface RoomComponent : CoreDbProvider {
     modules = [AppModule::class],
     dependencies = [CoreDbProvider::class]
 )
-interface AppComponent : AppProvider, CoreDbProvider
+interface AppComponent {
 ```
 
-AppModule включает 15 модулей: SplashModule, DictionaryModule, PrefsProviderModule и т.д. LoggerModule вынесен в LoggerComponent.
+AppModule включает 13 модулей. LoggerModule вынесен в LoggerComponent. AppComponent не наследует AppProvider/CoreDbProvider — DB API не экспонируется наружу.
 
 ## Модули
 
@@ -132,14 +126,6 @@ AppModule включает 15 модулей: SplashModule, DictionaryModule, Pr
 
 Вынесен из AppModule в отдельный LoggerComponent — создаётся первым, logger передаётся через @BindsInstance в RoomComponent и AppComponent.
 
-### RepositoryModule (core-interactor)
-
-| Provides | Тип | Scope |
-|----------|-----|-------|
-| `provideCoreDbApi(context)` | CoreDbApi | @Singleton |
-
-Получает через `CoreDbComponent.get(context).getCoreDbApi()`.
-
 ## @Inject constructor в core-db-impl
 
 Все inner-классы `CoreDbApiImpl` получают `wordDao: WordDao` через @Inject:
@@ -152,22 +138,101 @@ AppModule включает 15 модулей: SplashModule, DictionaryModule, Pr
 | TermApiImpl | wordDao |
 | WordApiImpl | wordDao |
 | LexemeApiImpl | wordDao |
-| QuizApiImpl | wordDao |
+| QuizApiImpl | wordDao, logger |
 | StatisticApiImpl | wordDao |
 
-## Доступ к зависимостям из UI
+## ViewModel инфраструктура (core/di)
 
+Модуль `modules/core/di` содержит helper для AssistedFactory ViewModel'ей.
+
+### Файлы
+
+```
+modules/core/di/
+└── ViewModelHelper.kt    — viewModelFactory { ... } helper для AssistedInject ViewModel
+```
+
+`viewModelFactory { ... }` оборачивает `ViewModelProvider.Factory` вокруг `AssistedFactory.create(...)`. Используется в composable.
+
+## Паттерн ViewModel: @AssistedInject + @AssistedFactory
+
+**Все** ViewModel в проекте инжектятся через `@AssistedInject`. Даже если runtime аргументов нет — `Navigator` приходит через `@Assisted`, остальные зависимости через обычный constructor injection.
+
+**ViewModel:**
 ```kotlin
-// В Composable (Service Locator паттерн)
-val appComponent = (context as App).appComponent
-val logger = appComponent.getLogger()
+class WordCardViewModel @AssistedInject constructor(
+    @Assisted wordId: Long,
+    @Assisted navigator: WordCardNavigator,
+    datasourceHandler: DatasourceEffectHandler,
+    uiHandler: UiEffectHandler,
+    navHandlerFactory: WordCardNavigationEffectHandler.Factory,
+) : ViewModel() {
 
-// Через MainUiDepsProvider (инжектится в конструктор)
-class MainUiDepsProvider(
-    private val logger: LexemeLogger,
-    private val settingsTabUseCase: SettingsTabUseCase,
+    @AssistedFactory
+    interface Factory {
+        fun create(wordId: Long, navigator: WordCardNavigator): WordCardViewModel
+    }
+}
+```
+
+**Module (в app)** — только `@Binds` для UseCase, биндинг ViewModel НЕ нужен:
+```kotlin
+@Module
+interface WordCardModule {
+    @Binds
+    fun bindUseCase(impl: WordCardUseCaseImpl): WordCardUseCase
+}
+```
+
+**AppComponent** экспонирует Factory:
+```kotlin
+interface AppComponent {
+    fun getWordCardViewModelFactory(): WordCardViewModel.Factory
+}
+```
+
+**build.gradle.kts (screen модуль):**
+```kotlin
+plugins {
+    id("com.google.devtools.ksp")  // ← нужен KSP для @AssistedFactory
+}
+
+dependencies {
+    implementation(diLibs.dagger)
+    ksp(diLibs.daggerCompiler)
+}
+```
+
+**Composable:**
+```kotlin
+@Composable
+fun WordCardScreen(
+    wordId: Long,
+    factory: WordCardViewModel.Factory,
+    navigator: WordCardNavigator,
+    viewModel: WordCardViewModel = viewModel(
+        key = "wordCard_$wordId",
+        factory = viewModelFactory { factory.create(wordId, navigator) }
+    ),
+) { ... }
+```
+
+**CompositionRootImpl** — собирает Factory + Navigator и создаёт screen:
+```kotlin
+class CompositionRootImpl(
+    private val wordCardViewModelFactory: WordCardViewModel.Factory,
     // ...
-)
+) : CompositionRoot {
+    @Composable
+    override fun WordCardScreenDep(wordId: Long, onBackPress: () -> Unit) {
+        val navigator = remember(onBackPress) { WordCardNavigatorImpl(onBackPress) }
+        WordCardScreen(
+            wordId = wordId,
+            factory = wordCardViewModelFactory,
+            navigator = navigator,
+        )
+    }
+}
 ```
 
 ## Конвенции
@@ -179,3 +244,6 @@ class MainUiDepsProvider(
 5. @Provides для создания объектов (RoomModule, LoggerModule)
 6. Component.Factory вместо Builder
 7. Double-checked locking в companion object для синглтонов
+8. **ViewModel — `@AssistedInject` + `@AssistedFactory`** для всех экранов
+9. **AppComponent экспонирует `getXxxViewModelFactory()`** для каждой ViewModel
+10. KSP processor нужен в каждом screen модуле с @AssistedFactory (handlers + ViewModel)

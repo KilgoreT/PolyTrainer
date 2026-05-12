@@ -16,7 +16,7 @@ class DictionaryFormReducer : MateReducer<DictionaryFormScreenState, DictionaryF
 
             is DictionaryFormMsg.FlagFilterChanged -> state
                 .updateFlagFilter(message.query) to setOf(
-                    DictionaryFormEffect.FilterFlags(message.query)
+                    FlagFilterEffect.FilterFlags(message.query)
                 )
 
             is DictionaryFormMsg.SelectFlag -> {

@@ -9,8 +9,9 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateFlowHandler
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
+import javax.inject.Inject
 
-class AppBarFlowHandler(
+class AppBarFlowHandler @Inject constructor(
         private val prefsProvider: PrefsProvider,
 ) : MateFlowHandler<Msg, Effect> {
 

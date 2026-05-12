@@ -1,17 +1,20 @@
 package me.apomazkin.dictionary.form
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.mate.Mate
 import me.apomazkin.mate.MateStateHolder
 
-class DictionaryFormViewModel(
-    dictionaryUseCase: DictionaryUseCase,
-    editingDictionaryId: Long? = null,
-    onBack: () -> Unit,
+class DictionaryFormViewModel @AssistedInject constructor(
+    @Assisted editingDictionaryId: Long?,
+    @Assisted navigator: FormNavigator,
+    datasourceHandler: DictionaryFormEffectHandler,
+    flagFilterHandler: FlagFilterFlowHandler,
+    navHandlerFactory: FormNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<DictionaryFormScreenState, DictionaryFormMsg> {
 
     private val stateHolder = Mate(
@@ -26,9 +29,9 @@ class DictionaryFormViewModel(
         coroutineScope = viewModelScope,
         reducer = DictionaryFormReducer(),
         effectHandlerSet = setOf(
-            DictionaryFormEffectHandler(dictionaryUseCase),
-            FlagFilterFlowHandler(dictionaryUseCase),
-            NavigationEffectHandler(onBack),
+            datasourceHandler,
+            flagFilterHandler,
+            navHandlerFactory.create(navigator),
         ),
     )
 
@@ -37,18 +40,11 @@ class DictionaryFormViewModel(
 
     override fun accept(message: DictionaryFormMsg) = stateHolder.accept(message)
 
-    class Factory(
-        private val dictionaryUseCase: DictionaryUseCase,
-        private val editingDictionaryId: Long? = null,
-        private val onBack: () -> Unit,
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return DictionaryFormViewModel(
-                dictionaryUseCase,
-                editingDictionaryId,
-                onBack,
-            ) as T
-        }
+    @AssistedFactory
+    interface Factory {
+        fun create(
+            editingDictionaryId: Long?,
+            navigator: FormNavigator,
+        ): DictionaryFormViewModel
     }
 }

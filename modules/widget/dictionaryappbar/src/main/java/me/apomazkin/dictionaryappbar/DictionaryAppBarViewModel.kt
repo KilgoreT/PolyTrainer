@@ -1,34 +1,35 @@
 package me.apomazkin.dictionaryappbar
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionaryappbar.mate.DatasourceEffectHandler
 import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarReducer
 import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarState
 import me.apomazkin.dictionaryappbar.mate.Msg
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.mate.Mate
 import me.apomazkin.mate.MateStateHolder
-import me.apomazkin.logger.LexemeLogger
 
-class DictionaryAppBarViewModel(
-        logger: LexemeLogger,
-        useCase: DictionaryAppBarUseCase,
+class DictionaryAppBarViewModel @AssistedInject constructor(
+    @Assisted navigator: DictionaryAppBarNavigator,
+    logger: LexemeLogger,
+    datasourceHandler: DatasourceEffectHandler,
+    navHandlerFactory: DictionaryAppBarNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<DictionaryAppBarState, Msg> {
 
     private val stateHolder = Mate(
-            initState = DictionaryAppBarState(),
-            initEffects = setOf(),
-            coroutineScope = viewModelScope,
-            reducer = DictionaryAppBarReducer(logger = logger),
-            effectHandlerSet = setOf(
-                    DatasourceEffectHandler(
-                            useCase = useCase,
-                            logger = logger,
-                    )
-            )
+        initState = DictionaryAppBarState(),
+        initEffects = setOf(),
+        coroutineScope = viewModelScope,
+        reducer = DictionaryAppBarReducer(logger = logger),
+        effectHandlerSet = setOf(
+            datasourceHandler,
+            navHandlerFactory.create(navigator),
+        )
     )
 
     override val state: StateFlow<DictionaryAppBarState>
@@ -36,16 +37,8 @@ class DictionaryAppBarViewModel(
 
     override fun accept(message: Msg) = stateHolder.accept(message)
 
-    class Factory(
-            private val useCase: DictionaryAppBarUseCase,
-            private val logger: LexemeLogger,
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return DictionaryAppBarViewModel(
-                    logger = logger,
-                    useCase = useCase,
-            ) as T
-        }
+    @AssistedFactory
+    interface Factory {
+        fun create(navigator: DictionaryAppBarNavigator): DictionaryAppBarViewModel
     }
 }

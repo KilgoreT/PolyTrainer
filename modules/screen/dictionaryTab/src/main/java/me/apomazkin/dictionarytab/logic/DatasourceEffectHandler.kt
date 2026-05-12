@@ -15,43 +15,30 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateFlowHandler
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
+import javax.inject.Inject
 
-/**
- * Effect
- */
-internal sealed interface DatasourceEffect : Effect {
+sealed interface DatasourceEffect : Effect {
 
-    /**
-     * Effect to load data.
-     */
     data class LoadTermFlow(
             val pattern: String = EMPTY_STRING,
     ) : DatasourceEffect
 
-    /**
-     * Effect to create new word.
-     */
     data class CreateWord(val value: String) : DatasourceEffect
     data class UpdateWord(val wordId: Long, val value: String) : DatasourceEffect
 
-    /**
-     * Effect to remove words.
-     */
     data class RemoveWords(val wordSet: Set<WordInfo>) : DatasourceEffect
 }
 
-/**
- * EffectHandler for datastore calls.
- */
-internal class DatasourceEffectHandler(
+class DatasourceEffectHandler @Inject constructor(
         private val dictionaryTabUseCase: DictionaryTabUseCase,
-        private val scope: CoroutineScope,
         private val logger: LexemeLogger,
 ) : MateFlowHandler<Msg, Effect> {
 
     override var job: Job? = null
+    private var pagingScope: CoroutineScope? = null
 
     override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
+        pagingScope = scope
         scope.launch {
             dictionaryTabUseCase.flowCurrentDict().collectLatest {
                 send(Msg.SelectDictionary(current = it))
@@ -64,44 +51,30 @@ internal class DatasourceEffectHandler(
             consumer: (Msg) -> Unit,
     ) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
-        return when (val eff = effect as? DatasourceEffect) {
-
-            is DatasourceEffect.LoadTermFlow -> {
-                withContext(Dispatchers.IO) {
-                    val dictionaryId = dictionaryTabUseCase.getCurrentDict().id.toInt()
-                    val pagingFlow = dictionaryTabUseCase.searchTerms(
-                            pattern = eff.pattern,
-                            dictionaryId = dictionaryId
-                    ).let { flow ->
-                        if (eff.pattern.isEmpty()) flow.cachedIn(scope) else flow
-                    }
-                    Msg.TermsLoaded(
-                            pattern = eff.pattern,
-                            termList = pagingFlow,
-                    )
-
+        val msg = when (val eff = effect as? DatasourceEffect) {
+            is DatasourceEffect.LoadTermFlow -> withContext(Dispatchers.IO) {
+                val dictionaryId = dictionaryTabUseCase.getCurrentDict().id.toInt()
+                val pagingFlow = dictionaryTabUseCase.searchTerms(
+                        pattern = eff.pattern,
+                        dictionaryId = dictionaryId,
+                ).let { flow ->
+                    val scope = pagingScope
+                    if (eff.pattern.isEmpty() && scope != null) flow.cachedIn(scope) else flow
                 }
+                Msg.TermsLoaded(
+                        pattern = eff.pattern,
+                        termList = pagingFlow,
+                )
             }
 
-            is DatasourceEffect.CreateWord -> {
-                withContext(Dispatchers.IO) {
-                    dictionaryTabUseCase
-                            .addWord(eff.value)
-                            .let { Msg.NoOperation }
-                }
+            is DatasourceEffect.CreateWord -> withContext(Dispatchers.IO) {
+                dictionaryTabUseCase.addWord(eff.value)
+                Msg.NoOperation
             }
 
-            is DatasourceEffect.UpdateWord -> {
-                withContext(Dispatchers.IO) {
-                    async {
-                        dictionaryTabUseCase.updateWord(
-                                eff.wordId,
-                                eff.value
-                        )
-                    }
-                            .await()
-                            .let { Msg.NoOperation }
-                }
+            is DatasourceEffect.UpdateWord -> withContext(Dispatchers.IO) {
+                async { dictionaryTabUseCase.updateWord(eff.wordId, eff.value) }.await()
+                Msg.NoOperation
             }
 
             is DatasourceEffect.RemoveWords -> {
@@ -109,9 +82,11 @@ internal class DatasourceEffectHandler(
                     eff.wordSet.map { id ->
                         async { dictionaryTabUseCase.deleteWord(id.id) }.await()
                     }
-                }.let { Msg.NoOperation }
+                }
+                Msg.NoOperation
             }
-            null -> Msg.NoOperation
-        }.let(consumer)
+            null -> return
+        }
+        consumer(msg)
     }
 }

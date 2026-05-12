@@ -213,14 +213,59 @@ fun `should handle complete data loading flow`() {
 8. **Порядок:** Boundary → Standard → Edge.
 9. **Сообщения ассертов < 80 символов.**
 
+## Тестирование навигационных эффектов
+
+После IS471 навигация выражается через `NavigationEffect` — reducer возвращает `NavigationEffect.Back` или per-screen `XxxNavigationEffect.ExitApp/OpenYyy`. Тест проверяет именно эффект, а не флаги в state.
+
+```kotlin
+@Test
+fun `NavigateBack emits Back effect without state change`() {
+    val initialState = WordCardState(/* ... */)
+
+    val result = reducer.testReduce(initialState, Msg.NavigateBack)
+
+    result.assertSingleEffect<NavigationEffect.Back>()
+    assertEquals("state should remain unchanged", initialState, result.state())
+}
+
+@Test
+fun `RequestBack emits ExitApp when list is empty`() {
+    val initialState = DictionaryListScreenState(dictionaries = emptyList())
+
+    val result = reducer.testReduce(initialState, DictionaryListMsg.RequestBack)
+
+    result.assertSingleEffect<ListNavigationEffect.ExitApp>()
+}
+
+@Test
+fun `RequestBack emits Back when list is not empty`() {
+    val initialState = DictionaryListScreenState(dictionaries = listOf(/* ... */))
+
+    val result = reducer.testReduce(initialState, DictionaryListMsg.RequestBack)
+
+    result.assertSingleEffect<NavigationEffect.Back>()
+}
+
+@Test
+fun `OpenWordCard emits OpenWordCard navigation effect`() {
+    val result = reducer.testReduce(DictionaryTabState(), Msg.OpenWordCard(wordId = 42L))
+
+    result.assertSingleEffect<VocabularyNavigationEffect.OpenWordCard>()
+    val effect = result.effects().first() as VocabularyNavigationEffect.OpenWordCard
+    assertEquals(42L, effect.wordId)
+}
+```
+
+Conditional навигация (выбор `ExitApp` vs `Back` по state) — обязательно покрыть обе ветки.
+
 ## Что тестировать
 
 - Каждое сообщение в sealed interface
 - Изменения стейта для каждого сообщения
-- Корректные эффекты для каждого сообщения
+- Корректные эффекты для каждого сообщения, **включая `NavigationEffect.Back` и per-screen `XxxNavigationEffect.*`**
 - Иммутабельность не затронутых полей стейта
 - Граничные случаи: пустые списки, NOT_IN_DB id, null значения
-- Ветвление в редьюсере (if/else в обработке сообщений)
+- Ветвление в редьюсере (if/else в обработке сообщений, особенно conditional навигация)
 
 ## Что НЕ тестировать в тестах редьюсера
 
@@ -228,3 +273,4 @@ fun `should handle complete data loading flow`() {
 - Рендеринг UI
 - Жизненный цикл ViewModel
 - Поведение корутин
+- **State-флаги навигации (`closeScreen`, `exit`)** — таких полей в state больше нет, навигация только через `NavigationEffect`

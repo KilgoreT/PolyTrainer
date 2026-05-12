@@ -44,7 +44,6 @@ class LexemeManagementTest {
                 isTranslationCheck = true, // Will be reset
                 isDefinitionCheck = true // Will be reset
             ),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -79,11 +78,6 @@ class LexemeManagementTest {
             "topBarState should remain unchanged",
             initialState.topBarState,
             result.state().topBarState
-        )
-        assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
         )
         assertEquals(
             "isLoading should remain unchanged",

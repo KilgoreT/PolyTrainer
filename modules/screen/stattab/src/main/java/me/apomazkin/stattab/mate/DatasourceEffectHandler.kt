@@ -10,17 +10,9 @@ import me.apomazkin.mate.MateFlowHandler
 import me.apomazkin.stattab.deps.StatisticUseCase
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
+import javax.inject.Inject
 
-/**
- * Effect
- */
-internal sealed interface DatasourceEffect : Effect {
-}
-
-/**
- * EffectHandler for datastore calls.
- */
-internal class DatasourceEffectHandler(
+class DatasourceEffectHandler @Inject constructor(
     private val useCase: StatisticUseCase,
     private val logger: LexemeLogger,
 ) : MateFlowHandler<Msg, Effect> {
@@ -50,11 +42,6 @@ internal class DatasourceEffectHandler(
         consumer: (Msg) -> Unit
     ) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
-        return when (val eff = effect as? DatasourceEffect) {
-
-            null -> Msg.Empty
-            else -> Msg.Empty
-        }.let(consumer)
+        // экранных эффектов нет — только подписка через subscribe()
     }
-
 }

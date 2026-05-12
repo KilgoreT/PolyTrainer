@@ -1,32 +1,36 @@
 package me.apomazkin.splash
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.*
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 interface SplashUseCase {
     fun checkIfNeedAddDictionary(): Flow<Boolean>
 }
 
-class SplashViewModel(
-    splashUseCase: SplashUseCase
+class SplashViewModel @AssistedInject constructor(
+    splashUseCase: SplashUseCase,
+    @Assisted navigator: SplashNavigator,
 ) : ViewModel() {
 
-    val checkIfNeedAddDictionary: StateFlow<Boolean?> = splashUseCase
-        .checkIfNeedAddDictionary()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = null,
-        )
-
-    class Factory(
-        private val splashUseCase: SplashUseCase
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return SplashViewModel(splashUseCase) as T
+    init {
+        viewModelScope.launch {
+            val isInitLaunch = splashUseCase.checkIfNeedAddDictionary().first()
+            if (isInitLaunch) {
+                navigator.openDictionarySetup()
+            } else {
+                navigator.openMainScreen()
+            }
         }
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(navigator: SplashNavigator): SplashViewModel
     }
 }

@@ -25,7 +25,6 @@ class LoadingWordTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false, // Not loading initially
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -62,11 +61,6 @@ class LoadingWordTest {
             result.state().addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
-        )
-        assertEquals(
             "wordState should remain unchanged",
             initialState.wordState,
             result.state().wordState
@@ -92,7 +86,6 @@ class LoadingWordTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = wordId, value = "another test"),
             lexemeList = listOf(),
@@ -138,7 +131,6 @@ class LoadingWordTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = true, // Already loading
             wordState = WordState(id = 789L, value = "test"),
             lexemeList = listOf(),
@@ -203,7 +195,6 @@ class LoadingWordTest {
                 isTranslationCheck = true,
                 isDefinitionCheck = false
             ),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(
                 id = 456L,
@@ -246,11 +237,6 @@ class LoadingWordTest {
             result.state().addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
-        )
-        assertEquals(
             "wordState should remain unchanged",
             initialState.wordState,
             result.state().wordState
@@ -275,7 +261,6 @@ class LoadingWordTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = -1L, value = ""), // NOT_IN_DB
             lexemeList = listOf(),

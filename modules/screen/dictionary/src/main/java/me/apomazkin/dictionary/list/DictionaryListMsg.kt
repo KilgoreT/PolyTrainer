@@ -5,6 +5,8 @@ import me.apomazkin.dictionary.model.DictionaryListItem
 sealed interface DictionaryListMsg {
 
     // Navigation
+    data object RequestBack : DictionaryListMsg
+    data object OpenNewDictionary : DictionaryListMsg
     data class EditDictionary(val id: Long) : DictionaryListMsg
 
     // Delete

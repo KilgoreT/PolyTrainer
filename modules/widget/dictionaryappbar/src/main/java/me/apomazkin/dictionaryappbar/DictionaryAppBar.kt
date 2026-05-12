@@ -15,34 +15,28 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarState
 import me.apomazkin.dictionaryappbar.mate.Msg
 import me.apomazkin.dictionaryappbar.widget.AppBarTitleWidget
 import me.apomazkin.dictionarypicker.DictDropDownWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeColor
-import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun DictionaryAppBar(
         @StringRes titleResId: Int,
-        logger: LexemeLogger,
-        dictionaryAppBarUseCase: DictionaryAppBarUseCase,
-        openDictionaryCreate: () -> Unit,
+        factory: DictionaryAppBarViewModel.Factory,
+        navigator: DictionaryAppBarNavigator,
         viewModel: DictionaryAppBarViewModel = viewModel(
-                factory = DictionaryAppBarViewModel.Factory(
-                        logger = logger,
-                        useCase = dictionaryAppBarUseCase,
-                )
+                factory = viewModelFactory { factory.create(navigator) },
         ),
 ) {
     val state: DictionaryAppBarState by viewModel.state.collectAsStateWithLifecycle()
     DictionaryAppBar(
             titleResId = titleResId,
             state = state,
-            openDictionaryCreate = openDictionaryCreate,
     ) { viewModel.accept(it) }
 }
 
@@ -50,7 +44,6 @@ fun DictionaryAppBar(
 internal fun DictionaryAppBar(
         @StringRes titleResId: Int,
         state: DictionaryAppBarState,
-        openDictionaryCreate: () -> Unit,
         sendMessage: (Msg) -> Unit,
 ) {
 
@@ -72,7 +65,7 @@ internal fun DictionaryAppBar(
                             dictList = state.availableDictList,
                             currentDict = state.currentDict,
                             isExpand = state.isDropDownMenuOpen,
-                            openDictionaryCreate = openDictionaryCreate,
+                            openDictionaryCreate = { sendMessage(Msg.OpenDictionaryCreate) },
                             onOpenDropDown = { sendMessage(Msg.DictMenuOn) },
                             onDismiss = { sendMessage(Msg.DictMenuOff) },
                             onItemClick = { sendMessage(Msg.ChangeDict(dict = it)) },
@@ -90,7 +83,6 @@ private fun PreviewWidget() {
         DictionaryAppBar(
                 titleResId = R.string.quiz_tab_title,
                 state = DictionaryAppBarState(),
-                openDictionaryCreate = {},
                 sendMessage = {},
         )
     }

@@ -29,7 +29,6 @@ class SnackbarExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -56,11 +55,6 @@ class SnackbarExtTest {
             resultState.addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should not mutate on showSnackbar() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
-        )
-        assertEquals(
             "isLoading should not mutate on showSnackbar() - violates immutability",
             initialState.isLoading,
             resultState.isLoading
@@ -85,7 +79,6 @@ class SnackbarExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -112,11 +105,6 @@ class SnackbarExtTest {
             resultState.addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should not mutate on showSnackbar() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
-        )
-        assertEquals(
             "isLoading should not mutate on showSnackbar() - violates immutability",
             initialState.isLoading,
             resultState.isLoading
@@ -141,7 +129,6 @@ class SnackbarExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -166,11 +153,6 @@ class SnackbarExtTest {
             "addLexemeBottomState should not mutate on showSnackbar() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on showSnackbar() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "isLoading should not mutate on showSnackbar() - violates immutability",
@@ -216,7 +198,6 @@ class SnackbarExtTest {
                 isTranslationCheck = true,
                 isDefinitionCheck = false
             ),
-            closeScreen = false,
             isLoading = true,
             wordState = WordState(
                 id = 456L,
@@ -250,11 +231,6 @@ class SnackbarExtTest {
             resultState.addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should not mutate on showSnackbar() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
-        )
-        assertEquals(
             "isLoading should not mutate on showSnackbar() - violates immutability",
             initialState.isLoading,
             resultState.isLoading
@@ -278,7 +254,6 @@ class SnackbarExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -305,11 +280,6 @@ class SnackbarExtTest {
             resultState.addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should not mutate on hideSnackbar() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
-        )
-        assertEquals(
             "isLoading should not mutate on hideSnackbar() - violates immutability",
             initialState.isLoading,
             resultState.isLoading
@@ -333,7 +303,6 @@ class SnackbarExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -358,11 +327,6 @@ class SnackbarExtTest {
             "addLexemeBottomState should not mutate on hideSnackbar() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on hideSnackbar() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "isLoading should not mutate on hideSnackbar() - violates immutability",
@@ -407,7 +371,6 @@ class SnackbarExtTest {
                 isTranslationCheck = false,
                 isDefinitionCheck = true
             ),
-            closeScreen = true,
             isLoading = false,
             wordState = WordState(
                 id = 789L,
@@ -439,11 +402,6 @@ class SnackbarExtTest {
             "addLexemeBottomState should not mutate on hideSnackbar() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on hideSnackbar() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "isLoading should not mutate on hideSnackbar() - violates immutability",

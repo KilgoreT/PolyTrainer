@@ -5,7 +5,7 @@ import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
 import me.apomazkin.logger.LexemeLogger
 
-internal class StatisticReducer(
+class StatisticReducer(
     private val logger: LexemeLogger,
 ) : MateReducer<StatisticState, Msg, Effect> {
     override fun reduce(

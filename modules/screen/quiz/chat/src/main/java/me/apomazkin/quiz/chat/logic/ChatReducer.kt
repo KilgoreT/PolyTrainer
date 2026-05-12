@@ -4,6 +4,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
+import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.ReducerResult
 import me.apomazkin.mate.effects
 import me.apomazkin.mate.state
@@ -151,10 +152,10 @@ internal class ChatReducer(
                     ) to emptySet()
 
             is Msg.UserAction -> {
-                val effects = when (message.action) {
+                val effects: Set<Effect> = when (message.action) {
                     UserAction.CONTINUE -> setOf(DatasourceEffect.LoadQuiz)
                     UserAction.SUMMARY -> setOf(DatasourceEffect.Summary)
-                    UserAction.EXIT -> emptySet()
+                    UserAction.EXIT -> setOf(NavigationEffect.Back)
                 }
 
                 val newState = when (message.action) {
@@ -165,7 +166,7 @@ internal class ChatReducer(
                                             showAssessmentUserMessage()
                                     )
                             )
-                    UserAction.EXIT -> state.exit()
+                    UserAction.EXIT -> state
                 }
 
                 newState to effects

@@ -52,7 +52,6 @@ class SpecializedLexemeExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 456L, value = "test"),
             lexemeList = listOf(
@@ -100,11 +99,6 @@ class SpecializedLexemeExtTest {
             "addLexemeBottomState should not mutate on setLexemeMenuOpen() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on setLexemeMenuOpen() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "isLoading should not mutate on setLexemeMenuOpen() - violates immutability",

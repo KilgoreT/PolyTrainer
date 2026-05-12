@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.settingstab.contract.FileShareContract
-import me.apomazkin.settingstab.deps.SettingsTabUseCase
 import me.apomazkin.settingstab.logic.DbExportDialogState
 import me.apomazkin.settingstab.logic.Msg
 import me.apomazkin.settingstab.logic.SettingsTabState
@@ -36,28 +36,18 @@ import me.apomazkin.settingstab.widgets.settings.items.LangManageWidget
 import me.apomazkin.settingstab.widgets.settings.items.PrivacyPolicyWidget
 import me.apomazkin.settingstab.widgets.settings.items.RateWidget
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewScreen
 
 @Composable
 fun SettingsTabScreen(
-    onLangManagementClick: () -> Unit,
-    onAboutAppClick: () -> Unit,
-    onPrivacyPolicyClick: () -> Unit,
-    settingsTabUseCase: SettingsTabUseCase,
-    logger: LexemeLogger,
+    factory: SettingsTabViewModel.Factory,
+    navigator: SettingsNavigator,
     viewModel: SettingsTabViewModel = viewModel(
-        factory = SettingsTabViewModel.Factory(
-            settingsTabUseCase = settingsTabUseCase,
-            logger = logger,
-        )
+        factory = viewModelFactory { factory.create(navigator) },
     ),
 ) {
     val state: SettingsTabState by viewModel.state.collectAsStateWithLifecycle()
     SettingsTabScreen(
-        onLangManagementClick = onLangManagementClick,
-        onAboutAppClick = onAboutAppClick,
-        onPrivacyPolicyClick = onPrivacyPolicyClick,
         state = state,
         sendMessage = { viewModel.accept(it) }
     )
@@ -66,9 +56,6 @@ fun SettingsTabScreen(
 
 @Composable
 internal fun SettingsTabScreen(
-    onLangManagementClick: () -> Unit,
-    onAboutAppClick: () -> Unit,
-    onPrivacyPolicyClick: () -> Unit,
     state: SettingsTabState,
     sendMessage: (Msg) -> Unit,
 ) {
@@ -102,7 +89,7 @@ internal fun SettingsTabScreen(
             ) {
                 item {
                     SettingsSectionWidget {
-                        LangManageWidget(onClick = onLangManagementClick)
+                        LangManageWidget(onClick = { sendMessage(Msg.OpenLangManagement) })
                         ExportDataWidget(
                             onClick = { sendMessage(Msg.ExportData(uri = it)) },
                         )
@@ -113,9 +100,9 @@ internal fun SettingsTabScreen(
                 }
                 item {
                     SettingsSectionWidget {
-                        PrivacyPolicyWidget(onClick = onPrivacyPolicyClick)
+                        PrivacyPolicyWidget(onClick = { sendMessage(Msg.OpenWebView(pageKey = "privacy_policy")) })
 //                        FeedBackWidget()
-                        AboutAppWidget(onClick = onAboutAppClick)
+                        AboutAppWidget(onClick = { sendMessage(Msg.OpenAboutApp) })
                     }
                 }
                 
@@ -139,9 +126,6 @@ internal fun SettingsTabScreen(
 private fun Preview() {
     AppTheme {
         SettingsTabScreen(
-            onLangManagementClick = {},
-            onAboutAppClick = {},
-            onPrivacyPolicyClick = {},
             state = SettingsTabState(),
             sendMessage = {}
         )

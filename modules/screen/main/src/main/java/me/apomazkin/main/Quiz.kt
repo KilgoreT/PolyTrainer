@@ -11,11 +11,11 @@ private const val QUIZ_ROUTE_ARG = "quizType"
 
 fun NavGraphBuilder.quiz(
     navController: NavHostController,
-    mainUiDeps: MainUiDeps,
+    compositionRoot: CompositionRoot,
     openDictionaryCreate: () -> Unit,
 ) {
     composable(TabPoint.QUIZ.route) {
-        mainUiDeps.QuizTabScreenDep(
+        compositionRoot.QuizTabScreenDep(
             openDictionaryCreate = openDictionaryCreate,
             openChatQuiz = { navController.goToQuiz(it) },
         )
@@ -31,7 +31,7 @@ fun NavGraphBuilder.quiz(
         val quizType: String =
             navBackStackEntry.arguments?.getString(QUIZ_ROUTE_ARG)
                 ?: throw IllegalArgumentException("Unknown quizType")
-        mainUiDeps.ChatQuizScreenDep(
+        compositionRoot.ChatQuizScreenDep(
             onBackPress = { navController.backPress() }
         )
     }
@@ -39,7 +39,9 @@ fun NavGraphBuilder.quiz(
 }
 
 private fun NavHostController.goToQuiz(quizType: String) {
-    navigate(route = "$QUIZ_ROUTE/$quizType")
+    navigate(route = "$QUIZ_ROUTE/$quizType") {
+        launchSingleTop = true
+    }
 }
 
 private fun NavHostController.backPress() {

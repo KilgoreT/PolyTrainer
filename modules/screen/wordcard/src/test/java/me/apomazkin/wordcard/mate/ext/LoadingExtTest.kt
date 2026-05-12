@@ -27,7 +27,6 @@ class LoadingExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = true, // Already loading
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -53,11 +52,6 @@ class LoadingExtTest {
             resultState.addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should not mutate on showLoading() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
-        )
-        assertEquals(
             "wordState should not mutate on showLoading() - violates immutability",
             initialState.wordState,
             resultState.wordState
@@ -81,7 +75,6 @@ class LoadingExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false, // Not loading
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -105,11 +98,6 @@ class LoadingExtTest {
             "addLexemeBottomState should not mutate on showLoading() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on showLoading() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "wordState should not mutate on showLoading() - violates immutability",
@@ -154,7 +142,6 @@ class LoadingExtTest {
                 isTranslationCheck = true,
                 isDefinitionCheck = false
             ),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(
                 id = 456L,
@@ -187,11 +174,6 @@ class LoadingExtTest {
             resultState.addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should not mutate on showLoading() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
-        )
-        assertEquals(
             "wordState should not mutate on showLoading() - violates immutability",
             initialState.wordState,
             resultState.wordState
@@ -215,7 +197,6 @@ class LoadingExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false, // Already not loading
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -241,11 +222,6 @@ class LoadingExtTest {
             resultState.addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should not mutate on hideLoading() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
-        )
-        assertEquals(
             "wordState should not mutate on hideLoading() - violates immutability",
             initialState.wordState,
             resultState.wordState
@@ -269,7 +245,6 @@ class LoadingExtTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = true, // Currently loading
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -293,11 +268,6 @@ class LoadingExtTest {
             "addLexemeBottomState should not mutate on hideLoading() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on hideLoading() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "wordState should not mutate on hideLoading() - violates immutability",
@@ -342,7 +312,6 @@ class LoadingExtTest {
                 isTranslationCheck = false,
                 isDefinitionCheck = true
             ),
-            closeScreen = true,
             isLoading = true,
             wordState = WordState(
                 id = 789L,
@@ -373,11 +342,6 @@ class LoadingExtTest {
             "addLexemeBottomState should not mutate on hideLoading() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on hideLoading() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "wordState should not mutate on hideLoading() - violates immutability",

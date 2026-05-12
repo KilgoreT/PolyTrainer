@@ -85,11 +85,6 @@ class WordExtTest {
             resultState.addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should not mutate on setWordId() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
-        )
-        assertEquals(
             "isLoading should not mutate on setWordId() - violates immutability",
             initialState.isLoading,
             resultState.isLoading
@@ -399,11 +394,6 @@ class WordExtTest {
             "addLexemeBottomState should not mutate on setTerm() - violates immutability",
             initialState.addLexemeBottomState,
             resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should not mutate on setTerm() - violates immutability",
-            initialState.closeScreen,
-            resultState.closeScreen
         )
         assertEquals(
             "isLoading should not mutate on setTerm() - violates immutability",

@@ -36,7 +36,7 @@ internal sealed interface UiMsg : Msg {
 | Категория | Источник | Примеры |
 |-----------|----------|---------|
 | Действия пользователя | UI клик/ввод | `ShowMenu`, `UserTextChange`, `UserAttempt` |
-| Навигация | UI действие | `CloseScreen`, `Exit` |
+| Навигация | UI действие или системная back | `RequestBack`, `OpenWordCard(id)`, `OpenNewDictionary` |
 | Результаты данных | DatasourceEffectHandler | `TermLoaded`, `QuizLoaded`, `LexemeUpdate` |
 | UI обратная связь | UiEffectHandler | `UiMsg.Snackbar` |
 | Переключатели | UI switch/checkbox | `EarliestOn`, `EarliestOff`, `DebugOn` |
@@ -46,11 +46,33 @@ internal sealed interface UiMsg : Msg {
 
 ### Действия пользователя
 Императивный глагол, описывающий намерение:
-- `Show*` / `Hide*` — переключение видимости
-- `Open*` / `Close*` — вход/выход из режима
+- `Show*` / `Hide*` — переключение видимости UI-элемента (меню, диалог)
+- `Open*` — намерение открыть другой экран (`OpenWordCard(id)`, `OpenNewDictionary`). Reducer возвращает соответствующий `NavigationEffect`
+- `Close*` — закрыть локальный UI-элемент (диалог, bottom sheet). НЕ для закрытия экрана — используется `RequestBack`
+- `RequestBack` — намерение вернуться назад. Reducer решает: обычный `NavigationEffect.Back` или per-screen `ExitApp` (зависит от state)
 - `Add*` / `Delete*` — CRUD
 - `Save*` — сохранение изменений
 - `*TextChange` — изменение ввода
+
+### Навигационные сообщения
+Навигация на другой экран и системная back-кнопка идут через Msg, не через прямые callback. UI отправляет Msg → Reducer возвращает `NavigationEffect` → NavigationEffectHandler дёргает `Navigator`.
+
+```kotlin
+// Composable
+BackHandler { viewModel.accept(Msg.RequestBack) }
+
+onClick = { viewModel.accept(Msg.OpenWordCard(wordId = item.id)) }
+
+// Reducer
+is Msg.RequestBack -> if (state.dictionaries.isEmpty()) {
+    state to setOf(ListNavigationEffect.ExitApp)
+} else {
+    state to setOf(NavigationEffect.Back)
+}
+is Msg.OpenWordCard -> state to setOf(VocabularyNavigationEffect.OpenWordCard(message.wordId))
+```
+
+State навигационные Msg **не модифицируют** — только порождают эффект.
 
 ### Результаты эффектов
 Прошедшее время или существительное:
@@ -97,10 +119,7 @@ data class UserAttempt(val value: String) : Msg
 data object Empty : Msg
 ```
 
-Используется хендлерами, когда тип эффекта не совпадает:
-```kotlin
-null -> Msg.Empty
-```
+Используется handlers для "своих" эффектов без полезного результата (например, после успешного сохранения, когда state не меняется). Для чужих эффектов consumer не вызывается вообще — фильтрация в `MateTypedEffectHandler.filter()`.
 
 В редьюсере:
 ```kotlin

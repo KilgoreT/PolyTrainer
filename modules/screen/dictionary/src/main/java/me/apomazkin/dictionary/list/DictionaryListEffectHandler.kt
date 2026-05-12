@@ -4,29 +4,30 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateEffectHandler
+import me.apomazkin.mate.MateTypedEffectHandler
+import javax.inject.Inject
 
 sealed interface DictionaryListEffect : Effect {
     data class DeleteDictionary(val id: Long) : DictionaryListEffect
 }
 
-class DictionaryListEffectHandler(
+class DictionaryListEffectHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
-) : MateEffectHandler<DictionaryListMsg, Effect> {
+) : MateTypedEffectHandler<DictionaryListMsg, DictionaryListEffect>() {
 
-    override suspend fun runEffect(
-        effect: Effect,
-        consumer: (DictionaryListMsg) -> Unit
+    override fun filter(effect: Effect): DictionaryListEffect? = effect as? DictionaryListEffect
+
+    override suspend fun onEffect(
+        effect: DictionaryListEffect,
+        consumer: (DictionaryListMsg) -> Unit,
     ) {
-        val msg = when (val e = effect as? DictionaryListEffect) {
+        val msg = when (effect) {
             is DictionaryListEffect.DeleteDictionary -> {
                 withContext(Dispatchers.IO) {
-                    dictionaryUseCase.deleteDictionary(e.id)
+                    dictionaryUseCase.deleteDictionary(effect.id)
                 }
                 DictionaryListMsg.DictionaryDeleted
             }
-
-            null -> DictionaryListMsg.Empty
         }
         consumer(msg)
     }

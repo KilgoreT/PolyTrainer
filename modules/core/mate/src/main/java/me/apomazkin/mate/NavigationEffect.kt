@@ -7,6 +7,4 @@ package me.apomazkin.mate
 interface NavigationEffect : Effect {
     /** Navigate back (close current screen) */
     data object Back : NavigationEffect
-    /** Exit application (Activity.finish()) */
-    data object ExitApp : NavigationEffect
 }

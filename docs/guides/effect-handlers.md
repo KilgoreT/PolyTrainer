@@ -31,101 +31,158 @@ internal sealed interface UiEffect : Effect {
 
 ## Паттерн DatasourceEffectHandler
 
+Все handlers создаются через Dagger — `@Inject constructor` берёт UseCase'ы из графа. Наследуются от `MateTypedEffectHandler<Msg, E>` — фильтрация чужих эффектов в базовом классе.
+
 ```kotlin
-internal class DatasourceEffectHandler(
+class DatasourceEffectHandler @Inject constructor(
     private val useCase: WordCardUseCase,
-) : MateEffectHandler<Msg, Effect> {
+) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
 
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
-        when (val eff = effect as? DatasourceEffect) {
-            is DatasourceEffect.LoadWord -> {
-                withContext(Dispatchers.IO) {
-                    useCase.getTermById(eff.wordId).let { term ->
-                        term?.let { Msg.TermLoaded(it) }
-                            ?: Msg.TermNotLoaded
-                    }
-                }
-            }
-            is DatasourceEffect.DeleteWord -> {
-                withContext(Dispatchers.IO) {
-                    useCase.deleteWord(eff.wordId).let {
-                        Msg.CloseScreen
-                    }
-                }
-            }
-            null -> Msg.Empty   // Эффект не для этого хендлера
-        }.let(consumer)         // Отправить результат обратно
-    }
-}
-```
+    override fun filter(effect: Effect): DatasourceEffect? = effect as? DatasourceEffect
 
-**Единый паттерн runEffect:**
-
-```kotlin
-override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
-    val msg = when (val e = effect as? MyEffect) {
-        is MyEffect.DoSomething -> {
-            // выполнить
-            Msg.Result
-        }
-        null -> Msg.Empty   // не наш эффект
-    }
-    consumer(msg)
-}
-```
-
-- **Всегда** `val msg = when { ... }` → `consumer(msg)`. Без `return` из when-веток
-- Каждая ветка возвращает Msg. Для эффектов не требующих результата — `Msg.Empty`
-- `effect as? MyEffect` — safe cast, `null` для чужих эффектов
-- `withContext(Dispatchers.IO)` — для блокирующих операций
-
-## Паттерн UiEffectHandler
-
-Минимальный хендлер, трансформирующий эффекты в сообщения:
-
-```kotlin
-internal class UiEffectHandler :
-    MateEffectHandler<Msg, Effect> {
-
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
-        return when (val eff = effect as? UiEffect) {
-            is UiEffect.ShowSnackbar -> UiMsg.Snackbar(text = eff.title, show = true)
-            null -> Msg.Empty
-        }.let(consumer)
-    }
-}
-```
-
-## Паттерн NavigationEffectHandler (навигация через effect)
-
-Для закрытия экрана по результату действия (сохранение, удаление). Навигация — side-effect, не флаг в State.
-
-```kotlin
-internal class NavigationEffectHandler(
-    private val onBack: () -> Unit,
-) : MateEffectHandler<Msg, Effect> {
-
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
+    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
         val msg = when (effect) {
-            is NavigationEffect.Back -> {
-                onBack()
-                Msg.Empty
+            is DatasourceEffect.LoadWord -> withContext(Dispatchers.IO) {
+                useCase.getTermById(effect.wordId)
+                    ?.let { Msg.TermLoaded(it) }
+                    ?: Msg.TermNotLoaded
             }
-            else -> Msg.Empty
+            is DatasourceEffect.DeleteWord -> withContext(Dispatchers.IO) {
+                useCase.deleteWord(effect.wordId)
+                Msg.CloseScreen
+            }
         }
         consumer(msg)
     }
 }
 ```
 
-**Зачем:** убирает навигационные флаги (`needClose`, `closeScreen`) из State. ВСЯ навигация идёт через reducer → effect → handler. State не содержит навигационных полей.
+- `filter()` — `as?` cast в одну строку. Чужие эффекты → `null` → handler выходит без вызова `consumer`
+- `onEffect(effect: E)` — параметр типизирован, `when` exhaustive по sealed без `else -> Empty`
+- `withContext(Dispatchers.IO)` — для блокирующих операций
+- `@Inject constructor` — UseCase'ы из DI графа
 
-**Правило:** UI не вызывает навигационные callback'и напрямую. Любая навигация — через Msg → Reducer → `NavigationEffect.Back` → NavigationEffectHandler:
-- Пользователь нажал "назад" → `Msg.Back` → Reducer → `NavigationEffect.Back` → handler вызывает `onBack()`
-- Сохранение завершено → `Msg.DictionarySaved` → Reducer → `NavigationEffect.Back` → handler вызывает `onBack()`
-- Системная кнопка "назад" → `BackHandler { viewModel.accept(Msg.Back) }`
+## Паттерн UiEffectHandler
 
-Один эффект `NavigationEffect.Back` для любого закрытия экрана. Reducer контролирует логику — может решить не закрывать (показать диалог).
+Тот же шаблон, без зависимостей:
+
+```kotlin
+class UiEffectHandler @Inject constructor() :
+    MateTypedEffectHandler<Msg, UiEffect>() {
+
+    override fun filter(effect: Effect): UiEffect? = effect as? UiEffect
+
+    override suspend fun onEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
+        val msg = when (effect) {
+            is UiEffect.ShowSnackbar -> UiMsg.Snackbar(text = effect.title, show = true)
+        }
+        consumer(msg)
+    }
+}
+```
+
+## Паттерн NavigationEffectHandler (навигация через effect)
+
+Навигация — side-effect, не флаг в State. Базовый `MateNavigationEffectHandler` обрабатывает `NavigationEffect.Back` через `Navigator`. Per-screen handler наследует базовый, обрабатывает свои навигационные эффекты в `onScreenEffect`.
+
+### Per-screen Navigator + sealed effect
+
+```kotlin
+// Navigator интерфейс (в screen модуле, чистый Kotlin)
+interface ListNavigator : Navigator {     // back наследуется
+    fun exit()                            // root экран — может закрыть приложение
+    fun openEdit(id: Long)
+}
+
+// Per-screen sealed NavigationEffect
+sealed interface ListNavigationEffect : NavigationEffect {
+    data object ExitApp : ListNavigationEffect
+    data class OpenEdit(val id: Long) : ListNavigationEffect
+}
+
+// Handler — наследует базовый, обрабатывает только свои эффекты через onScreenEffect
+class ListNavigationEffectHandler @AssistedInject constructor(
+    @Assisted private val listNavigator: ListNavigator,
+) : MateNavigationEffectHandler<DictionaryListMsg>(listNavigator) {
+
+    override suspend fun onScreenEffect(effect: NavigationEffect) {
+        when (effect) {
+            is ListNavigationEffect.ExitApp -> listNavigator.exit()
+            is ListNavigationEffect.OpenEdit -> listNavigator.openEdit(effect.id)
+        }
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(navigator: ListNavigator): ListNavigationEffectHandler
+    }
+}
+```
+
+`Back` обрабатывается один раз в базовом `MateNavigationEffectHandler` — дочерний не пишет про него. `@AssistedInject` потому что `Navigator` — runtime параметр (захватывает `NavController` через NavigatorImpl в app).
+
+### NavigatorImpl
+
+`NavigatorImpl` живёт в `app/.../navigator/` — он знает про `NavController` и Compose Navigation. Screen модули его не видят.
+
+```kotlin
+class ListNavigatorImpl(
+    private val navController: NavController,
+    private val onExit: () -> Unit,
+) : ListNavigator {
+    override fun back() {
+        navController.popBackStack()
+    }
+    override fun exit() = onExit()
+    override fun openEdit(id: Long) {
+        navController.navigate("DICTIONARY_CREATE?editId=$id") {
+            launchSingleTop = true
+        }
+    }
+}
+```
+
+### Правило
+
+UI не вызывает навигационные callback'и напрямую. Любая навигация — через Msg → Reducer → screen-specific NavigationEffect → handler → Navigator:
+
+- Пользователь нажал "назад" → `Msg.RequestBack` → Reducer → `NavigationEffect.Back` → `navigator.back()`
+- Сохранение завершено → `Msg.Saved` → Reducer → `NavigationEffect.Back` → `navigator.back()`
+- Открытие нового экрана → `Msg.OpenEdit(id)` → Reducer → `ListNavigationEffect.OpenEdit(id)` → `navigator.openEdit(id)`
+- Системная кнопка "назад" → `BackHandler { viewModel.accept(Msg.RequestBack) }`
+
+Reducer контролирует логику — может решить не закрывать (показать диалог) или conditional навигацию:
+
+```kotlin
+is Msg.RequestBack -> if (state.dictionaries.isEmpty()) {
+    state to setOf(ListNavigationEffect.ExitApp)
+} else {
+    state to setOf(NavigationEffect.Back)
+}
+```
+
+### Cross-graph (tab → root)
+
+Tab экран может навигировать на двух уровнях:
+- Внутри своего таба (внутри `tabsNavController`) — NavigatorImpl дёргает `tabsNavController.navigate(...)`
+- На root уровень (открыть DictionaryCreate) — NavigatorImpl получает callback от RootRouter
+
+```kotlin
+class VocabularyNavigatorImpl(
+    private val tabsNavController: NavController,
+    private val onOpenDictionaryCreate: () -> Unit,   // callback от RootRouter
+) : VocabularyNavigator {
+    override fun back() = tabsNavController.popBackStack()
+    override fun openDictionaryCreate() = onOpenDictionaryCreate()
+    override fun openWordCard(id: Long) {
+        tabsNavController.navigate("wordCard/$id") {
+            launchSingleTop = true
+        }
+    }
+}
+```
+
+MainScreen инкапсулирован — не знает про `rootNavController`, только callbacks.
 
 ## Паттерн FlowHandler (долгоживущие подписки)
 
@@ -413,9 +470,130 @@ Room DAO автоматически эмитит новый список при 
 
 1. **Sealed interface** для каждой категории эффектов, расширяющий `Effect`.
 2. **Эффект + хендлер в одном файле** для DatasourceEffect и UiEffect соответственно.
-3. **`null -> Msg.Empty`** фоллбэк в каждом хендлере.
+3. **Consumer вызывается только при полезном msg.** Для чужих эффектов — `return` без вызова consumer. Для своих эффектов без результата (навигация) — тоже не вызывать. Контракт `MateEffectHandler.runEffect` не обязывает вызывать `consumer`. Лишний `consumer(Empty)` = бесполезный reducer.reduce.
 4. **Всегда `withContext(Dispatchers.IO)`** для операций с данными.
 5. **FlowHandler для подписок**, обычный хендлер для одноразовых эффектов.
-6. **Consumer отправляет результат сразу** — без пост-обработки, без кеширования.
-7. **Internal visibility** — эффекты и хендлеры `internal` для feature-модуля.
-8. **Без сложной логики в хендлерах** — они выполняют эффект и конвертируют результат в сообщение. Принятие решений остаётся в редьюсере.
+6. **Видимость** — handler и его sealed effect `public` (Dagger требует public для @Inject в графе и для assisted параметров ViewModel из других модулей). Внутренние типы (Msg, State) остаются `internal`.
+7. **Без сложной логики в хендлерах** — они выполняют эффект и конвертируют результат в сообщение. Принятие решений остаётся в редьюсере.
+
+---
+
+## Typed base паттерн: MateTypedEffectHandler
+
+Mate вызывает `runEffect()` на КАЖДОМ handler с КАЖДЫМ эффектом. Чтобы handler не обрабатывал чужие эффекты, есть базовый класс который автоматически фильтрует.
+
+### Базовый класс (core/mate)
+
+```kotlin
+abstract class MateTypedEffectHandler<Msg, E : Effect> : MateEffectHandler<Msg, Effect> {
+
+    final override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
+        val typed = filter(effect) ?: return
+        onEffect(typed, consumer)
+    }
+
+    protected abstract fun filter(effect: Effect): E?
+    protected abstract suspend fun onEffect(effect: E, consumer: (Msg) -> Unit)
+}
+```
+
+- `filter(effect)` — приводит `Effect` к нужному типу через `as?`. Возвращает `null` для чужих
+- При `null` handler выходит — `consumer` НЕ вызывается, reducer не дёргается
+- `onEffect(effect: E)` — типизированный метод, дочерний реализует только свою логику
+- `runEffect` — `final`, дочерний класс не может его переопределить
+
+### Что должно быть для применения паттерна
+
+1. **Sealed interface для эффектов handler'а:**
+   ```kotlin
+   internal sealed interface DatasourceEffect : Effect {
+       data class LoadX(...) : DatasourceEffect
+       data class SaveX(...) : DatasourceEffect
+   }
+   ```
+   Если эффектов нет — handler не нужен, удалить.
+
+2. **Handler — наследует `MateTypedEffectHandler<Msg, EffectType>`:**
+   - `filter()` — однострочный override через `as?`
+   - `onEffect()` — обработка эффектов через `when`, без `else -> Empty` ветки (компилятор требует exhaustive, sealed гарантирует)
+
+3. **Reducer** — без изменений. Возвращает эффекты в `Set<Effect>` как раньше.
+
+4. **Msg** — `Empty` всё ещё нужен для эффектов которые не меняют state (например после `SaveDictionary` нет смысла менять state).
+
+### Пример: DatasourceEffectHandler для WordCard
+
+#### Эффекты
+
+```kotlin
+internal sealed interface DatasourceEffect : Effect {
+    data class LoadWord(val wordId: Long) : DatasourceEffect
+    data class DeleteWord(val wordId: Long) : DatasourceEffect
+    data class SaveWord(val wordId: Long, val value: String) : DatasourceEffect
+}
+```
+
+#### Handler
+
+```kotlin
+internal class DatasourceEffectHandler @Inject constructor(
+    private val useCase: WordCardUseCase,
+) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
+
+    override fun filter(effect: Effect): DatasourceEffect? = effect as? DatasourceEffect
+
+    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
+        val msg = withContext(Dispatchers.IO) {
+            when (effect) {
+                is DatasourceEffect.LoadWord -> {
+                    useCase.getTermById(effect.wordId)
+                        ?.let { Msg.TermLoaded(it) }
+                        ?: Msg.TermNotLoaded
+                }
+                is DatasourceEffect.DeleteWord -> {
+                    useCase.deleteWord(effect.wordId)
+                    Msg.CloseScreen
+                }
+                is DatasourceEffect.SaveWord -> {
+                    useCase.saveWord(effect.wordId, effect.value)
+                    Msg.Empty
+                }
+            }
+        }
+        consumer(msg)
+    }
+}
+```
+
+Сравни с старым паттерном:
+- Нет `as? DatasourceEffect` в начале `when` (он в `filter`)
+- Нет `null -> Msg.Empty` ветки (фильтр в базовом классе)
+- Нет `else -> Msg.Empty` (sealed гарантирует exhaustive)
+- `when` типизирован — IDE подсказывает только `DatasourceEffect` варианты
+
+#### Reducer (без изменений)
+
+```kotlin
+class WordCardReducer : MateReducer<State, Msg, Effect> {
+    override fun reduce(state: State, msg: Msg): ReducerResult<State, Effect> = when (msg) {
+        is Msg.DeleteRequest -> state to setOf(DatasourceEffect.DeleteWord(msg.id))
+        // ...
+    }
+}
+```
+
+### NavigationEffectHandler — частный случай
+
+Базовый `MateNavigationEffectHandler` наследует тот же паттерн. Фильтрует `NavigationEffect`, обрабатывает базовый `Back` через `Navigator.back()`, делегирует специфичное в `onScreenEffect`. `ExitApp` — НЕ в базовом эффекте: не все экраны могут закрыть приложение. Per-screen экран добавляет `ExitApp` в свой sealed (Splash, DictionaryList) и `exit()` в свой Navigator. Подробнее — секция "Паттерн NavigationEffectHandler" выше.
+
+### Когда НЕ применим
+
+- **FlowHandler с пустым `runEffect`** — обрабатывает только подписки через `subscribe()`. Typed-фильтр не нужен. Наследует обычный `MateFlowHandler`, `runEffect` остаётся пустым (Mate всё равно дёргает его, но handler ничего не делает)
+- **Handler без sealed interface** — если эффекты приходят из чужого sealed (как FlagFilterFlowHandler ловит `DictionaryFormEffect.FilterFlags`) — конфликт с другим handler'ом. Нужно вынести в свой sealed interface
+
+### Преимущества
+
+- **Нет boilerplate** — `filter` это одна строка, `when` не требует `else -> Empty`
+- **Типизация** — `onEffect(effect: E)` параметр, компилятор гарантирует тип
+- **Нет лишних reducer вызовов** — чужие эффекты не доходят до consumer
+- **Единый паттерн** — все handlers выглядят одинаково

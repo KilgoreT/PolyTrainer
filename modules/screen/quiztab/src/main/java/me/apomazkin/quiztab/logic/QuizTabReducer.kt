@@ -3,10 +3,11 @@ package me.apomazkin.quiztab.logic
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
+import me.apomazkin.quiztab.QuizTabNavigationEffect
 import me.apomazkin.quiztab.logic.processor.processUiMessage
 import me.apomazkin.logger.LexemeLogger
 
-internal class QuizTabReducer(
+class QuizTabReducer(
     private val logger: LexemeLogger,
 ) : MateReducer<QuizTabState, Msg, Effect> {
     override fun reduce(
@@ -17,6 +18,7 @@ internal class QuizTabReducer(
         logger.log(message = "Reduce ---message---: $message ")
         return when (message) {
             is UiMsg -> processUiMessage(state, message)
+            is Msg.OpenChat -> state to setOf(QuizTabNavigationEffect.OpenChat(message.quizType))
             Msg.Empty -> state to emptySet()
         }.also {
             logger.log(message = "Reduce --newState--: ${it.first} ")

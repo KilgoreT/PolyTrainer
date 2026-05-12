@@ -30,7 +30,6 @@ class ShowNotificationTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -69,11 +68,6 @@ class ShowNotificationTest {
             result.state().addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
-        )
-        assertEquals(
             "isLoading should remain unchanged",
             initialState.isLoading,
             result.state().isLoading
@@ -99,7 +93,6 @@ class ShowNotificationTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -317,7 +310,6 @@ class ShowNotificationTest {
                 isTranslationCheck = true,
                 isDefinitionCheck = false
             ),
-            closeScreen = false,
             isLoading = true,
             wordState = WordState(
                 id = 456L,
@@ -360,11 +352,6 @@ class ShowNotificationTest {
             "addLexemeBottomState should remain unchanged",
             initialState.addLexemeBottomState,
             result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
         )
         assertEquals(
             "isLoading should remain unchanged",

@@ -52,7 +52,11 @@ NavHost(
 ```kotlin
 // MainScreen.kt
 @Composable
-fun MainScreen(mainUiDeps: MainUiDeps, openAddDict: () -> Unit) {
+fun MainScreen(
+    compositionRoot: CompositionRoot,
+    openDictionaryCreate: () -> Unit,
+    openDictionaryList: () -> Unit,
+) {
     val navController = rememberNavController()
     Column(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -60,10 +64,12 @@ fun MainScreen(mainUiDeps: MainUiDeps, openAddDict: () -> Unit) {
             navController = navController,
             startDestination = TabPoint.VOCABULARY.route,
         ) {
-            vocabulary(mainUiDeps, navController, openAddDict)
-            quiz(mainUiDeps, navController, openAddDict)
-            composable(TabPoint.STATS.route) { ... }
-            settings(mainUiDeps, navController)
+            vocabulary(navController, compositionRoot, openDictionaryCreate)
+            quiz(navController, compositionRoot, openDictionaryCreate)
+            composable(TabPoint.STATS.route) {
+                compositionRoot.StatisticTabScreenDep(openDictionaryCreate)
+            }
+            settings(navController, compositionRoot, openDictionaryList)
         }
         BottomBarWidget(navController = navController)
     }
@@ -90,13 +96,13 @@ enum class TabPoint(val route: String) {
 ```kotlin
 // Vocabulary.kt
 fun NavGraphBuilder.vocabulary(
-    mainUiDeps: MainUiDeps,
+    compositionRoot: CompositionRoot,
     navController: NavController,
-    openAddDict: () -> Unit,
+    openDictionaryCreate: () -> Unit,
 ) {
     composable(TabPoint.VOCABULARY.route) {
-        mainUiDeps.VocabularyTabDep(
-            openAddDict = openAddDict,
+        compositionRoot.VocabularyTabDep(
+            openDictionaryCreate = openDictionaryCreate,
             openWordCard = { wordId -> navController.goToWordCard(wordId) }
         )
     }
@@ -105,7 +111,7 @@ fun NavGraphBuilder.vocabulary(
         arguments = listOf(navArgument("wordId") { type = NavType.LongType })
     ) { backStackEntry ->
         val wordId = backStackEntry.arguments?.getLong("wordId") ?: return@composable
-        mainUiDeps.WordCardScreenDep(
+        compositionRoot.WordCardScreenDep(
             wordId = wordId,
             onBackPress = { navController.popBackStack() }
         )
@@ -113,16 +119,20 @@ fun NavGraphBuilder.vocabulary(
 }
 
 private fun NavController.goToWordCard(wordId: Long) {
-    navigate("wordCard/$wordId")
+    navigate("wordCard/$wordId") {
+        launchSingleTop = true
+    }
 }
 ```
 
-## Передача зависимостей через MainUiDeps
+`CompositionRoot` хост (см. `CompositionRootImpl` в app модуле) принимает callbacks и оборачивает их в `XxxNavigatorImpl`, который передаётся в `XxxScreen` параметром `navigator`. Сам screen уже не видит callbacks — только Navigator.
 
-Интерфейс `MainUiDeps` предоставляет composable-провайдеры для каждого экрана:
+## Передача зависимостей через CompositionRoot
+
+Интерфейс `CompositionRoot` предоставляет composable-провайдеры для каждого экрана:
 
 ```kotlin
-interface MainUiDeps {
+interface CompositionRoot {
     @Composable fun VocabularyTabDep(openAddDict: () -> Unit, openWordCard: (Long) -> Unit)
     @Composable fun WordCardScreenDep(wordId: Long, onBackPress: () -> Unit)
     @Composable fun QuizTabScreenDep(openAddDict: () -> Unit, openChatQuiz: (String) -> Unit)
@@ -131,7 +141,7 @@ interface MainUiDeps {
 }
 ```
 
-Реализация в `MainRouter` получает зависимости из `appComponent` и пробрасывает в `MainUiDeps`.
+Реализация в `MainRouter` получает зависимости из `appComponent` и пробрасывает в `CompositionRoot`.
 
 ## Управление back stack при переключении табов
 
@@ -188,34 +198,120 @@ openDictionaryList: () -> Unit,    // настройки → экран спис
 
 ## Выход из приложения
 
-Нет явного `Activity.finish()`. Выход через очистку back stack:
+`ExitApp` — НЕ в базовом `NavigationEffect`. Не все экраны могут закрыть приложение. Per-screen экран (Splash, DictionaryList) добавляет `ExitApp` в свой sealed effect и `exit()` в свой Navigator.
+
+`NavigatorImpl` принимает `onExit: () -> Unit` callback, который дёргает `activity.finish()` (берётся из `LocalActivity.current` в navigation graph):
 
 ```kotlin
-onExit = {
-    navController.popBackStack(RootPoint.SPLASH.route, inclusive = true)
+class ListNavigatorImpl(
+    private val navController: NavController,
+    private val onExit: () -> Unit,
+) : ListNavigator {
+    override fun exit() = onExit()
+    // ...
 }
 ```
 
-При пустом стеке Android закрывает Activity. Используется когда пользователь удалил все данные и возвращаться некуда.
-
-В composable — `BackHandler` для перехвата системной кнопки "назад":
+Conditional навигация — в reducer, а не в composable. Reducer проверяет state и решает, какой effect эмитить:
 
 ```kotlin
-BackHandler {
-    if (state.dictionaries.isEmpty()) {
-        onExit()
-    } else {
-        onBackPress?.invoke()
+is Msg.RequestBack -> if (state.dictionaries.isEmpty()) {
+    state to setOf(ListNavigationEffect.ExitApp)
+} else {
+    state to setOf(NavigationEffect.Back)
+}
+```
+
+`BackHandler` в composable отправляет один `Msg.RequestBack` — без логики:
+
+```kotlin
+BackHandler { viewModel.accept(DictionaryListMsg.RequestBack) }
+```
+
+## Navigator паттерн
+
+Screen модуль не получает navigation callbacks напрямую. Видит интерфейс `XxxNavigator : Navigator`, реализацию (`XxxNavigatorImpl`) создаёт `app/.../navigator/`.
+
+```kotlin
+// modules/screen/dictionary/list/ListNavigator.kt
+interface ListNavigator : Navigator {
+    fun exit()
+    fun openEdit(id: Long)
+    fun openCreate()
+}
+
+// app/.../navigator/ListNavigatorImpl.kt
+class ListNavigatorImpl(
+    private val navController: NavController,
+    private val onExit: () -> Unit,
+) : ListNavigator {
+    override fun back() = navController.popBackStack().let {}
+    override fun exit() = onExit()
+    override fun openEdit(id: Long) {
+        navController.navigate("DICTIONARY_CREATE?editId=$id") {
+            launchSingleTop = true
+        }
+    }
+    override fun openCreate() {
+        navController.navigate("DICTIONARY_CREATE") {
+            launchSingleTop = true
+        }
     }
 }
 ```
+
+В composable Navigator создаётся через `remember(navController)`:
+
+```kotlin
+composable(RootPoint.DICTIONARY_LIST.route) {
+    val listNavigator = remember(navController) {
+        ListNavigatorImpl(navController, onExit = onExitApp)
+    }
+    DictionaryListScreen(
+        factory = appComponent.getDictionaryListViewModelFactory(),
+        navigator = listNavigator,
+    )
+}
+```
+
+`remember(navController)` обязателен — без него NavigatorImpl пересоздаётся при каждой рекомпозиции, что делает параметр screen-а нестабильным.
+
+Подробнее — `docs/features-spec/navigation.md` и `docs/guides/effect-handlers.md`.
+
+## Cross-graph навигация (Tab → Root)
+
+Tab экран может навигировать на двух уровнях:
+- Внутри своего таба — `tabsNavController.navigate(...)` через NavigatorImpl
+- На root уровень — callback от RootRouter (`onOpenDictionaryCreate`, `onOpenDictionaryList`)
+
+```kotlin
+class VocabularyNavigatorImpl(
+    private val tabsNavController: NavController,
+    private val onOpenDictionaryCreate: () -> Unit,
+) : VocabularyNavigator {
+    override fun back() = tabsNavController.popBackStack().let {}
+    override fun openDictionaryCreate() = onOpenDictionaryCreate()
+    override fun openWordCard(id: Long) {
+        tabsNavController.navigate("wordCard/$id") {
+            launchSingleTop = true
+        }
+    }
+}
+```
+
+MainScreen инкапсулирован — не знает про rootNavController, только callbacks (как раньше).
+
+### Shared widget Navigator
+
+`DictionaryAppBar` используется в 3 табах с идентичной навигацией. Один `DictionaryAppBarNavigator` на все табы — создаётся в `VocabularyTabDep` / `QuizTabScreenDep` / `StatisticTabScreenDep` каждый раз с одним и тем же `onOpenDictionaryCreate` callback.
 
 ## Конвенции
 
 1. **Route-строки** — UPPER_CASE для root routes (`DICTIONARY_CREATE`), lowercase для tab routes (`vocabulary`).
 2. **Аргументы** — через `navArgument` с явным типом: `NavType.LongType`, `NavType.StringType`. Не `NavType.BoolType`.
 3. **Навигационные функции** — private extensions на `NavController`: `goToWordCard()`, `backPress()`.
-4. **Зависимости** — через `MainUiDeps`, не напрямую из `appComponent` в composable.
+4. **Зависимости** — через `CompositionRoot`, не напрямую из `appComponent` в composable.
 5. **popBackStack()** — для возврата назад, не `navigateUp()`.
-6. **Nullable `onBackPress`** — `null` = без AppBar (onboarding), не null = с AppBar.
-7. **Один контекст = один route.** Разное поведение → разные route, не параметры.
+6. **`launchSingleTop = true`** во всех `navigate()` — фиксит баг двойного тапа.
+7. **`remember(navController)`** при создании NavigatorImpl — стабильность для Compose.
+8. **Один контекст = один route.** Разное поведение → разные route, не параметры.

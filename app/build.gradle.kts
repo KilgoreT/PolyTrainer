@@ -12,6 +12,7 @@ plugins {
     id("com.google.devtools.ksp") version "2.2.0-2.0.2"
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
+    id("org.jetbrains.kotlinx.kover")
 }
 
 android {
@@ -129,6 +130,8 @@ dependencies {
 
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":core:core-db"))
+    implementation(project("path" to ":modules:core:di"))
+    implementation(project("path" to ":modules:core:mate"))
 
     implementation(androidLibs.splashscreen)
 

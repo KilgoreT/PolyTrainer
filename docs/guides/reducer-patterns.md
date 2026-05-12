@@ -92,25 +92,46 @@ is Msg.QuizLoaded -> {
 
 ```kotlin
 is Msg.UserAction -> {
-    val effects = when (message.action) {
+    val effects: Set<Effect> = when (message.action) {
         UserAction.CONTINUE -> setOf(DatasourceEffect.LoadQuiz)
         UserAction.SUMMARY -> setOf(DatasourceEffect.Summary)
-        UserAction.EXIT -> emptySet()
+        UserAction.EXIT -> setOf(NavigationEffect.Back)
     }
 
     val newState = when (message.action) {
         UserAction.CONTINUE -> state
         UserAction.SUMMARY -> state.userMessage(...)
-        UserAction.EXIT -> state.exit()
+        UserAction.EXIT -> state            // навигация не меняет state
     }
 
     newState to effects
 }
 ```
 
-## Паттерн 6: Private методы (старый стиль)
+EXIT возвращает `NavigationEffect.Back` — навигация выражается эффектом, state не получает флага вроде `exit = true`.
 
-WordCardReducer делегирует в private методы. Это **старый паттерн**, который будет мигрирован на цепочки расширений:
+## Паттерн 6: Conditional навигация (ExitApp vs Back)
+
+Для root-экранов выбор между закрытием приложения и обычным back делается **в reducer** на основе state, не в composable:
+
+```kotlin
+is Msg.RequestBack -> {
+    val effect: Effect = if (state.dictionaries.isEmpty()) {
+        ListNavigationEffect.ExitApp
+    } else {
+        NavigationEffect.Back
+    }
+    state to setOf(effect)
+}
+```
+
+`NavigationEffect.Back` — базовый из `core/mate`, обрабатывается `MateNavigationEffectHandler` единообразно. `ExitApp` — per-screen sealed (`ListNavigationEffect.ExitApp`), только в root-экранах. Reducer контролирует переключение.
+
+В composable — простой `BackHandler { viewModel.accept(Msg.RequestBack) }`, без if-условий.
+
+## Паттерн 7: Private методы (старый стиль)
+
+WordCardReducer делегирует в private методы. Это **старый паттерн**, постепенно мигрирует на цепочки расширений:
 
 ```kotlin
 override fun reduce(state: WordCardState, message: Msg): ReducerResult<WordCardState, Effect> {
@@ -124,6 +145,8 @@ override fun reduce(state: WordCardState, message: Msg): ReducerResult<WordCardS
 private fun onTermLoading(state: WordCardState): ReducerResult<WordCardState, Effect> =
     state.copy(isLoading = true) to setOf(DatasourceEffect.LoadWord(state.wordState.id))
 ```
+
+(`closeScreen` поле из state удалено — навигация назад теперь через `Msg.NavigateBack` → `NavigationEffect.Back`.)
 
 ## Предпочитаемый стиль (ChatReducer)
 

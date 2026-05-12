@@ -1,11 +1,12 @@
 package me.apomazkin.dictionaryappbar.mate
 
+import me.apomazkin.dictionaryappbar.DictionaryAppBarNavigationEffect
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
 import me.apomazkin.logger.LexemeLogger
 
-internal class DictionaryAppBarReducer(
+class DictionaryAppBarReducer(
     private val logger: LexemeLogger,
 ) : MateReducer<DictionaryAppBarState, Msg, Effect> {
     override fun reduce(
@@ -30,6 +31,10 @@ internal class DictionaryAppBarReducer(
 
             is Msg.DictMenuOn -> state
                     .dictMenuOn() to setOf()
+
+            is Msg.OpenDictionaryCreate -> state to setOf(
+                DictionaryAppBarNavigationEffect.OpenDictionaryCreate
+            )
 
             is Msg.Empty -> state to setOf()
         }.also {

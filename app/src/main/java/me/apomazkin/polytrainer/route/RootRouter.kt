@@ -8,9 +8,13 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.compose.runtime.remember
 import me.apomazkin.dictionary.form.DictionaryFormScreen
 import me.apomazkin.dictionary.list.DictionaryListScreen
 import me.apomazkin.polytrainer.appComponent
+import me.apomazkin.polytrainer.navigator.FormNavigatorImpl
+import me.apomazkin.polytrainer.navigator.ListNavigatorImpl
+import me.apomazkin.polytrainer.navigator.SplashNavigatorImpl
 import me.apomazkin.splash.SplashScreen
 
 enum class RootPoint(
@@ -42,20 +46,22 @@ fun RootRouter(
         startDestination = RootRouter.START_DESTINATION.route
     ) {
         composable(RootPoint.SPLASH.route) {
-            SplashScreen(
-                splashUseCase = context.appComponent.getSplashUseCase()
-            ) { isInitLaunch ->
-                if (isInitLaunch) {
-                    navigator?.openDictionarySetup()
-                } else {
-                    navigator?.openMainScreen()
-                }
+            val splashNavigator = remember {
+                SplashNavigatorImpl(
+                    onOpenDictionarySetup = { navigator?.openDictionarySetup() },
+                    onOpenMainScreen = { navigator?.openMainScreen() },
+                )
             }
+            SplashScreen(
+                factory = context.appComponent.getSplashViewModelFactory(),
+                navigator = splashNavigator,
+            )
         }
         composable(RootPoint.DICTIONARY_SETUP.route) {
+            val formNavigator = remember { FormNavigatorImpl(onBack = { navigator?.openMainScreen() }) }
             DictionaryFormScreen(
-                dictionaryUseCase = context.appComponent.getDictionaryUseCase(),
-                onBack = { navigator?.openMainScreen() },
+                factory = context.appComponent.getDictionaryFormViewModelFactory(),
+                navigator = formNavigator,
                 showAppBar = false,
             )
         }
@@ -69,45 +75,52 @@ fun RootRouter(
             ),
         ) { backStackEntry ->
             val editId = backStackEntry.arguments?.getLong("editId", -1L) ?: -1L
+            val formNavigator = remember(navController) {
+                FormNavigatorImpl(onBack = { navController.popBackStack() })
+            }
             DictionaryFormScreen(
-                dictionaryUseCase = context.appComponent.getDictionaryUseCase(),
+                factory = context.appComponent.getDictionaryFormViewModelFactory(),
+                navigator = formNavigator,
                 editingDictionaryId = if (editId != -1L) editId else null,
-                onBack = { navController.popBackStack() },
             )
         }
         composable(RootPoint.DICTIONARY_LIST.route) {
+            val listNavigator = remember(navController) {
+                ListNavigatorImpl(
+                    navController = navController,
+                    onExit = onExitApp,
+                )
+            }
             DictionaryListScreen(
-                dictionaryUseCase = context.appComponent.getDictionaryUseCase(),
-                onBackPress = { navController.popBackStack() },
-                onExit = onExitApp,
-                onOpenForm = { id ->
-                    val route = if (id != null) {
-                        "DICTIONARY_CREATE?editId=$id"
-                    } else {
-                        "DICTIONARY_CREATE"
-                    }
-                    navController.navigate(route)
-                },
+                factory = context.appComponent.getDictionaryListViewModelFactory(),
+                navigator = listNavigator,
             )
         }
         mainRouter(
             route = RootPoint.MAIN_ROUTER.route,
             openDictionaryCreate = {
-                navController.navigate("DICTIONARY_CREATE")
+                navController.navigate("DICTIONARY_CREATE") {
+                    launchSingleTop = true
+                }
             },
             openDictionaryList = {
-                navController.navigate(RootPoint.DICTIONARY_LIST.route)
+                navController.navigate(RootPoint.DICTIONARY_LIST.route) {
+                    launchSingleTop = true
+                }
             }
         )
     }
 
     navigator = object : RootRouterNavigation {
         override fun openSplashScreen() {
-            navController.navigate(RootPoint.SPLASH.route)
+            navController.navigate(RootPoint.SPLASH.route) {
+                launchSingleTop = true
+            }
         }
 
         override fun openDictionarySetup() {
             navController.navigate(RootPoint.DICTIONARY_SETUP.route) {
+                launchSingleTop = true
                 popUpTo(RootPoint.SPLASH.route) { inclusive = true }
             }
         }

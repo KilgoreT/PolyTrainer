@@ -63,6 +63,39 @@ interface MateEffectHandler<Message, out Effect> {
 }
 ```
 
+В проекте handlers обычно наследуют один из базовых классов вместо прямой реализации `MateEffectHandler`:
+
+### MateTypedEffectHandler
+
+Базовый класс для DataSource/UI handlers. Автоматически фильтрует чужие эффекты через `filter()`, дочерний реализует только типизированный `onEffect()`.
+
+```kotlin
+abstract class MateTypedEffectHandler<Msg, E : Effect> : MateEffectHandler<Msg, Effect> {
+    final override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
+        val typed = filter(effect) ?: return
+        onEffect(typed, consumer)
+    }
+    protected abstract fun filter(effect: Effect): E?
+    protected abstract suspend fun onEffect(effect: E, consumer: (Msg) -> Unit)
+}
+```
+
+### Navigator + MateNavigationEffectHandler
+
+`Navigator` — абстракция над `NavController` для screen модуля. Реализация (`XxxNavigatorImpl`) живёт в `app/.../navigator/`.
+
+```kotlin
+interface Navigator {
+    fun back()
+}
+```
+
+`MateNavigationEffectHandler` наследует `MateTypedEffectHandler<Msg, NavigationEffect>`, обрабатывает базовый `NavigationEffect.Back` через `navigator.back()`, делегирует специфичные эффекты в `onScreenEffect()`.
+
+Per-screen паттерн: `XxxNavigator : Navigator` + `sealed XxxNavigationEffect : NavigationEffect` + `XxxNavigationEffectHandler @AssistedInject(@Assisted navigator)`.
+
+Подробнее — `docs/guides/effect-handlers.md`, `docs/features-spec/navigation.md`.
+
 ### MateFlowHandler
 
 Для долгоживущих подписок (наблюдение за Flow). Расширяет `MateEffectHandler`.
@@ -140,11 +173,13 @@ feature/
 ## Пример подключения (reference: ChatQuiz)
 
 ```kotlin
-class ChatViewModel(
-    quizChatUseCase: QuizChatUseCase,
+class ChatViewModel @AssistedInject constructor(
+    @Assisted navigator: ChatNavigator,
     resourceManager: ResourceManager,
-    prefsProvider: PrefsProvider,
     logger: LexemeLogger,
+    datasourceHandler: DatasourceEffectHandler,
+    appBarFlowHandler: AppBarFlowHandler,
+    navHandlerFactory: ChatNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<ChatScreenState, Msg> {
 
     private val stateHolder = Mate(
@@ -153,8 +188,9 @@ class ChatViewModel(
         coroutineScope = viewModelScope,
         reducer = ChatReducer(logger, resourceManager),
         effectHandlerSet = setOf(
-            DatasourceEffectHandler(quizGame, prefsProvider),
-            AppBarFlowHandler(prefsProvider)       // долгоживущий Flow
+            datasourceHandler,
+            appBarFlowHandler,
+            navHandlerFactory.create(navigator),
         )
     )
 
@@ -162,15 +198,23 @@ class ChatViewModel(
         get() = stateHolder.state
 
     override fun accept(message: Msg) = stateHolder.accept(message)
+
+    @AssistedFactory
+    interface Factory {
+        fun create(navigator: ChatNavigator): ChatViewModel
+    }
 }
 ```
+
+DataSource/UI handlers инжектятся через `@Inject` и приходят готовыми. NavigationHandler — через `AssistedFactory`, так как Navigator runtime параметр.
 
 ## Конвенции
 
 1. **Редьюсер всегда чистый.** Без `suspend`, без `withContext`, без сайд-эффектов.
-2. **Эффекты — sealed interfaces** расширяющие `Effect`. Две категории: `DatasourceEffect` и `UiEffect`.
-3. **Эффект-хендлеры** работают на `Dispatchers.IO` для операций с данными.
+2. **Эффекты — sealed interfaces** расширяющие `Effect`. Три категории: `DatasourceEffect`, `UiEffect`, `NavigationEffect` (базовый `Back` + per-screen sealed: `XxxNavigationEffect.OpenYyy`, `XxxNavigationEffect.ExitApp` для root).
+3. **Эффект-хендлеры** работают на `Dispatchers.IO` для операций с данными. Наследуют `MateTypedEffectHandler<Msg, E>` (фильтрация чужих эффектов в базе).
 4. **Сообщения** — единый sealed interface `Msg`. Внутренние сообщения (от хендлеров) — вложенные sealed interfaces (например, `UiMsg : Msg`).
 5. **initEffects** запускают первую загрузку данных при создании экрана.
 6. **FlowHandler'ы** автоматически подписываются при инициализации Mate и отписываются при dispose.
-7. **Empty message** (`Msg.Empty`) — no-op фоллбэк когда эффект-хендлер не обрабатывает тип эффекта.
+7. **Empty message** (`Msg.Empty`) — для "своих" эффектов без полезного результата. Для чужих эффектов consumer вообще не вызывается — фильтрация в `filter()` базового класса.
+8. **`@AssistedInject` для ViewModel** — Navigator и runtime аргументы через `@Assisted`, остальные зависимости через обычный constructor injection.

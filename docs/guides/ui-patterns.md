@@ -6,37 +6,43 @@
 
 ### 1. Публичная точка входа (Dependency Injection)
 
-Создаёт ViewModel, собирает стейт, делегирует внутренней composable.
+Принимает `factory: XxxViewModel.Factory` + `navigator: XxxNavigator`, создаёт ViewModel через `viewModelFactory { factory.create(navigator, ...) }`, делегирует внутренней composable.
 
 ```kotlin
 @Composable
 fun WordCardScreen(
     wordId: Long,
-    wordCardUseCase: WordCardUseCase,
-    onBackPress: () -> Unit,
+    factory: WordCardViewModel.Factory,
+    navigator: WordCardNavigator,
     viewModel: WordCardViewModel = viewModel(
-        factory = WordCardViewModel.Factory(wordId, wordCardUseCase)
+        key = "wordCard_$wordId",
+        factory = viewModelFactory { factory.create(wordId, navigator) },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     WordCardScreen(
         state = state,
-        onBackPress = onBackPress,
-    ) { viewModel.accept(it) }
+        sendMessage = { viewModel.accept(it) },
+    )
 }
 ```
 
+- `factory` — `@AssistedFactory` от Dagger, экспонируется через `AppComponent.getXxxViewModelFactory()`.
+- `navigator` — runtime параметр, создаётся в `CompositionRootImpl` / навигационном graph через `remember(navController)`.
+- `viewModelFactory { ... }` — helper из `core/di`.
+- `key = ...` — нужен только если экран принимает аргумент-идентификатор и должен пересоздаваться при его смене.
+
 ### 2. Внутренняя stateless composable (чистый рендеринг)
 
-Получает стейт и callback. Без ссылки на ViewModel. Без сайд-эффектов в теле.
+Получает стейт и callback. Без ссылки на ViewModel. Без сайд-эффектов в теле. Без навигационных callback'ов — все события идут через `sendMessage`.
 
 ```kotlin
 @Composable
 internal fun WordCardScreen(
     state: WordCardState,
-    onBackPress: () -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
+    BackHandler { sendMessage(Msg.RequestBack) }
     Scaffold(
         topBar = { TopBarWidget(state, sendMessage) },
         floatingActionButton = { ... },
@@ -62,8 +68,8 @@ private fun Preview() {
     AppTheme {
         WordCardScreen(
             state = WordCardState(isLoading = false),
-            onBackPress = {},
-        ) {}
+            sendMessage = {},
+        )
     }
 }
 ```
@@ -90,22 +96,31 @@ IconButton(
 
 ## Сайд-эффекты в composable
 
-`LaunchedEffect` для одноразовых или state-triggered эффектов:
+`LaunchedEffect` — для state-triggered UI-эффектов (snackbar, фокус, анимации). **Не для навигации** — навигация выражается через `NavigationEffect` в reducer, обрабатывается NavigationEffectHandler через `Navigator`.
 
 ```kotlin
-// Закрытие экрана
-LaunchedEffect(state.closeScreen) {
-    if (state.closeScreen) onBackPress()
-}
-
-// Показ snackbar
+// Показ snackbar (UI-эффект через флаг в state — допустимо для toast/snackbar)
 LaunchedEffect(state.snackbarState.show) {
     if (state.snackbarState.show) {
         snackbarHostState.showSnackbar(state.snackbarState.title)
         sendMessage(UiMsg.Snackbar(text = "", show = false))
     }
 }
+
+// Системная back-кнопка — через Msg, не через LaunchedEffect(closeScreen)
+BackHandler { sendMessage(Msg.RequestBack) }
 ```
+
+Антипаттерн (удалён в IS471):
+
+```kotlin
+// Так делать НЕЛЬЗЯ:
+LaunchedEffect(state.closeScreen) {
+    if (state.closeScreen) onBackPress()
+}
+```
+
+Закрытие экрана — это эффект, не state. Reducer возвращает `NavigationEffect.Back` → `Navigator.back()` → `navController.popBackStack()`.
 
 ## Когда выносить composable в отдельный файл
 
@@ -160,7 +175,7 @@ topBar = {
 | Только назад + заголовок | `AboutAppBar(onBackPress)` | `onBackPress: () -> Unit` |
 | Без навигации | `SettingsAppBar()` | нет |
 | С состоянием (меню, действия) | `TopBarWidget(state, onBackPress, sendMsg)` | state + callbacks |
-| Через DI (MainUiDeps) | `uiDeps.AppBar(titleResId)` | `@StringRes titleResId` |
+| Через DI (CompositionRoot) | `uiDeps.AppBar(titleResId)` | `@StringRes titleResId` |
 
 Если экран условно показывает AppBar (например, onboarding без AppBar, management с AppBar) — `onBackPress: (() -> Unit)? = null`:
 

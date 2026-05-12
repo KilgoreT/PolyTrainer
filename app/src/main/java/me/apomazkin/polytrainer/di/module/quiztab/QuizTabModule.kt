@@ -6,7 +6,7 @@ import me.apomazkin.quiztab.deps.QuizTabUseCase
 
 @Module
 interface QuizTabModule {
-    
+
     @Binds
     fun bindQuizTabUseCase(impl: QuizTabUseCaseImpl): QuizTabUseCase
 }

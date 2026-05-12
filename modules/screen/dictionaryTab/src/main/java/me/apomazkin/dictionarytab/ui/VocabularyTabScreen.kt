@@ -25,11 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.lifecycle.viewmodel.compose.viewModel
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.dictionarytab.R
 import me.apomazkin.dictionarytab.deps.DictionaryTabUiDeps
-import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.logic.DictionaryTabState
 import me.apomazkin.dictionarytab.logic.Msg
 import me.apomazkin.dictionarytab.logic.UiMsg
@@ -44,18 +44,16 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.btn.PrimaryFabWidget
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
-import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun DictionaryTabScreen(
-        dictionaryTabUseCase: DictionaryTabUseCase,
+        factory: DictionaryTabViewModel.Factory,
+        navigator: VocabularyNavigator,
         dictionaryTabUiDeps: DictionaryTabUiDeps,
-        logger: LexemeLogger,
         viewModel: DictionaryTabViewModel = viewModel(
-                factory = DictionaryTabViewModel.Factory(dictionaryTabUseCase, logger)
+                factory = viewModelFactory { factory.create(navigator) },
         ),
-        openWordCard: (wordId: Long) -> Unit,
 ) {
     LifecycleEventHandler(action = {
         viewModel.accept(UiMsg.LifecycleEvent(it.toMateEvent()))
@@ -64,7 +62,6 @@ fun DictionaryTabScreen(
     DictionaryTabScreen(
             state = state,
             dictionaryTabUiDeps = dictionaryTabUiDeps,
-            openWordCard = openWordCard,
     ) { viewModel.accept(it) }
 }
 
@@ -73,7 +70,6 @@ fun DictionaryTabScreen(
 internal fun DictionaryTabScreen(
         state: DictionaryTabState,
         dictionaryTabUiDeps: DictionaryTabUiDeps,
-        openWordCard: (wordId: Long) -> Unit,
         sendMessage: (Msg) -> Unit,
 ) {
 
@@ -161,7 +157,7 @@ internal fun DictionaryTabScreen(
                                 if (state.topBarState.isActionMode) {
                                     sendMessage(Msg.ToggleSelection(targetWord = word))
                                 } else {
-                                    openWordCard.invoke(word.id)
+                                    sendMessage(Msg.OpenWordCard(wordId = word.id))
                                 }
                             },
                             sendMessage = sendMessage,
@@ -194,7 +190,6 @@ private fun PreviewLoading() {
                     @Composable
                     override fun AppBar(@StringRes titleResId: Int) {}
                 },
-                openWordCard = {},
         ) {}
     }
 }
@@ -209,7 +204,6 @@ private fun PreviewEmpty() {
                     @Composable
                     override fun AppBar(@StringRes titleResId: Int) {}
                 },
-                openWordCard = {},
         ) {}
     }
 }
@@ -224,7 +218,6 @@ private fun PreviewLoaded() {
                     @Composable
                     override fun AppBar(@StringRes titleResId: Int) {}
                 },
-                openWordCard = {},
         ) {}
     }
 }

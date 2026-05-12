@@ -16,7 +16,6 @@
 data class WordCardState(
     val topBarState: TopBarState = TopBarState(),
     val addLexemeBottomState: AddLexemeBottomState = AddLexemeBottomState(),
-    val closeScreen: Boolean = false,
     val isLoading: Boolean = true,
     val wordState: WordState = WordState(),
     val lexemeList: List<LexemeState> = listOf(),
@@ -71,9 +70,9 @@ fun ChatScreenState.enableUserInput() = copy(
 fun ChatScreenState.clearUserInput() = copy(
     chat = chat.copy(inputState = EMPTY_STRING)
 )
-
-fun ChatScreenState.exit() = copy(exit = true)
 ```
+
+**Не существуют:** `exit()`, `closeScreen()` и подобные навигационные расширения — навигация выражается через `NavigationEffect`, а не через флаги в state. Если приходит `Msg.RequestBack`, reducer возвращает state БЕЗ изменений + `setOf(NavigationEffect.Back)`.
 
 ### Параметризованные расширения
 

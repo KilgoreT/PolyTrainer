@@ -21,7 +21,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -35,7 +34,7 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewScreen
-import me.apomazkin.wordcard.deps.WordCardUseCase
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.wordcard.mate.LexemeState
 import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.TextValueState
@@ -54,27 +53,24 @@ import java.util.Date
 @Composable
 fun WordCardScreen(
     wordId: Long,
-    wordCardUseCase: WordCardUseCase,
-    onBackPress: () -> Unit,
+    factory: WordCardViewModel.Factory,
+    navigator: WordCardNavigator,
     viewModel: WordCardViewModel = viewModel(
-        factory = WordCardViewModel.Factory(
-            wordId = wordId,
-            wordCardUseCase = wordCardUseCase,
-        )
+        key = "wordCard_$wordId",
+        factory = viewModelFactory { factory.create(wordId, navigator) }
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     WordCardScreen(
         state = state,
-        onBackPress = onBackPress
-    ) { viewModel.accept(it) }
+        sendMessage = { viewModel.accept(it) },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun WordCardScreen(
     state: WordCardState,
-    onBackPress: () -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
 
@@ -85,10 +81,6 @@ internal fun WordCardScreen(
         onResetState = { sendMessage(UiMsg.ShowNotification(text = EMPTY_STRING, show = false)) }
     )
 
-    LaunchedEffect(state.closeScreen) {
-        if (state.closeScreen) onBackPress.invoke()
-    }
-
     SystemBarsWidget(
         color = whiteColor,
     )
@@ -97,7 +89,7 @@ internal fun WordCardScreen(
         topBar = {
             TopBarWidget(
                 topBarState = state.topBarState,
-                onBackPress = onBackPress,
+                onBackPress = { sendMessage(Msg.NavigateBack) },
                 sendMessage = sendMessage,
             )
         },
@@ -178,7 +170,6 @@ private fun Preview() {
                     added = Date(),
                 )
             ),
-            onBackPress = {},
             sendMessage = {}
         )
     }
@@ -206,7 +197,6 @@ private fun PreviewWithLexeme() {
                     )
                 )
             ),
-            onBackPress = {},
             sendMessage = {}
         )
     }

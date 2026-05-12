@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import me.apomazkin.dictionary.DictionaryUseCase
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.dictionary.R
 import me.apomazkin.dictionary.list.widget.ConfirmDeleteDictionaryWidget
 import me.apomazkin.dictionary.list.widget.DictionaryListItemWidget
@@ -34,49 +34,35 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun DictionaryListScreen(
-    dictionaryUseCase: DictionaryUseCase,
+    factory: DictionaryListViewModel.Factory,
+    navigator: ListNavigator,
     viewModel: DictionaryListViewModel = viewModel(
-        factory = DictionaryListViewModel.Factory(dictionaryUseCase)
+        factory = viewModelFactory { factory.create(navigator) },
     ),
-    onBackPress: (() -> Unit)? = null,
-    onExit: () -> Unit = {},
-    onOpenForm: (id: Long?) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val effectiveBackPress: (() -> Unit)? = if (state.dictionaries.isEmpty()) {
-        { onExit() }
-    } else {
-        onBackPress
-    }
     DictionaryListScreen(
         state = state,
-        onBackPress = effectiveBackPress,
-        onExit = onExit,
-        onOpenForm = onOpenForm,
-    ) { viewModel.accept(it) }
+        sendMsg = { viewModel.accept(it) },
+    )
 }
 
 @Composable
 internal fun DictionaryListScreen(
     state: DictionaryListScreenState,
-    onBackPress: (() -> Unit)? = null,
-    onExit: () -> Unit = {},
-    onOpenForm: (id: Long?) -> Unit,
     sendMsg: (DictionaryListMsg) -> Unit,
 ) {
     BackHandler {
-        if (state.dictionaries.isEmpty()) {
-            onExit()
-        } else {
-            onBackPress?.invoke()
-        }
+        sendMsg(DictionaryListMsg.RequestBack)
     }
     SystemBarsWidget(
         color = whiteColor,
     )
     Scaffold(
         topBar = {
-            onBackPress?.let { DictionaryAppBar(onBackPress = it) }
+            if (state.dictionaries.isNotEmpty()) {
+                DictionaryAppBar(onBackPress = { sendMsg(DictionaryListMsg.RequestBack) })
+            }
         }
     ) { paddings ->
         Box(
@@ -92,7 +78,6 @@ internal fun DictionaryListScreen(
             } else {
                 DictionaryListContent(
                     state = state,
-                    onOpenForm = onOpenForm,
                     sendMsg = sendMsg,
                 )
             }
@@ -111,7 +96,6 @@ internal fun DictionaryListScreen(
 @Composable
 private fun DictionaryListContent(
     state: DictionaryListScreenState,
-    onOpenForm: (id: Long?) -> Unit,
     sendMsg: (DictionaryListMsg) -> Unit,
 ) {
     val dictionaries = state.dictionaries
@@ -124,7 +108,7 @@ private fun DictionaryListContent(
             PrimaryFullButtonWidget(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 titleRes = R.string.dictionary_new,
-                onClick = { onOpenForm(null) },
+                onClick = { sendMsg(DictionaryListMsg.OpenNewDictionary) },
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -136,7 +120,7 @@ private fun DictionaryListContent(
                 items(dictionaries) { item ->
                     DictionaryListItemWidget(
                         item = item,
-                        onItemClick = { onOpenForm(item.id) },
+                        onItemClick = { sendMsg(DictionaryListMsg.EditDictionary(item.id)) },
                         onDeleteClick = {
                             sendMsg(DictionaryListMsg.RequestDelete(item.id, item.name))
                         },
@@ -146,7 +130,7 @@ private fun DictionaryListContent(
             PrimaryFullButtonWidget(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 titleRes = R.string.dictionary_new,
-                onClick = { onOpenForm(null) },
+                onClick = { sendMsg(DictionaryListMsg.OpenNewDictionary) },
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -159,7 +143,7 @@ private fun PreviewList() {
     AppTheme {
         DictionaryListScreen(
             state = DictionaryListScreenState(isLoading = false),
-            onOpenForm = {},
-        ) {}
+            sendMsg = {},
+        )
     }
 }
