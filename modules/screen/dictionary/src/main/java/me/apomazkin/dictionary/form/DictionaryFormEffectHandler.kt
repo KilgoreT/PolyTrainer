@@ -4,10 +4,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateEffectHandler
+import me.apomazkin.mate.MateTypedEffectHandler
+import javax.inject.Inject
 
 sealed interface DictionaryFormEffect : Effect {
-    data class FilterFlags(val query: String) : DictionaryFormEffect
     data class LoadDictionary(val id: Long) : DictionaryFormEffect
     data class SaveDictionary(val name: String, val numericCode: Int?) : DictionaryFormEffect
     data class UpdateDictionary(
@@ -17,18 +17,17 @@ sealed interface DictionaryFormEffect : Effect {
     ) : DictionaryFormEffect
 }
 
-class DictionaryFormEffectHandler(
+class DictionaryFormEffectHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
-) : MateEffectHandler<DictionaryFormMsg, Effect> {
+) : MateTypedEffectHandler<DictionaryFormMsg, DictionaryFormEffect>() {
 
-    override suspend fun runEffect(
-        effect: Effect,
-        consumer: (DictionaryFormMsg) -> Unit
-    ) {
-        val msg = when (val e = effect as? DictionaryFormEffect) {
+    override fun filter(effect: Effect): DictionaryFormEffect? = effect as? DictionaryFormEffect
+
+    override suspend fun onEffect(effect: DictionaryFormEffect, consumer: (DictionaryFormMsg) -> Unit) {
+        val msg = when (effect) {
             is DictionaryFormEffect.LoadDictionary -> {
                 val item = withContext(Dispatchers.IO) {
-                    dictionaryUseCase.getDictionary(e.id)
+                    dictionaryUseCase.getDictionary(effect.id)
                 }
                 val flag = item.numericCode?.let { dictionaryUseCase.findFlag(it) }
                 DictionaryFormMsg.DictionaryLoaded(item.name, flag)
@@ -36,21 +35,17 @@ class DictionaryFormEffectHandler(
 
             is DictionaryFormEffect.SaveDictionary -> {
                 withContext(Dispatchers.IO) {
-                    dictionaryUseCase.addDictionary(e.name, e.numericCode)
+                    dictionaryUseCase.addDictionary(effect.name, effect.numericCode)
                 }
                 DictionaryFormMsg.DictionarySaved
             }
 
             is DictionaryFormEffect.UpdateDictionary -> {
                 withContext(Dispatchers.IO) {
-                    dictionaryUseCase.updateDictionary(e.id, e.name, e.numericCode)
+                    dictionaryUseCase.updateDictionary(effect.id, effect.name, effect.numericCode)
                 }
                 DictionaryFormMsg.DictionarySaved
             }
-
-            is DictionaryFormEffect.FilterFlags -> DictionaryFormMsg.Empty
-
-            null -> DictionaryFormMsg.Empty
         }
         consumer(msg)
     }

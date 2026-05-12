@@ -7,8 +7,9 @@ import kotlinx.coroutines.launch
 import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateFlowHandler
+import javax.inject.Inject
 
-class FlagFilterFlowHandler(
+class FlagFilterFlowHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
 ) : MateFlowHandler<DictionaryFormMsg, Effect> {
 
@@ -26,13 +27,9 @@ class FlagFilterFlowHandler(
         effect: Effect,
         consumer: (DictionaryFormMsg) -> Unit,
     ) {
-        val msg = when (effect) {
-            is DictionaryFormEffect.FilterFlags -> {
-                dictionaryUseCase.updateFilter(effect.query)
-                DictionaryFormMsg.Empty
-            }
-            else -> DictionaryFormMsg.Empty
+        val filtered = effect as? FlagFilterEffect ?: return
+        when (filtered) {
+            is FlagFilterEffect.FilterFlags -> dictionaryUseCase.updateFilter(filtered.query)
         }
-        consumer(msg)
     }
 }

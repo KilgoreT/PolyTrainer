@@ -31,7 +31,6 @@ class CloseTopBarMenuTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = true), // Currently open
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -55,11 +54,6 @@ class CloseTopBarMenuTest {
             "AddLexemeBottomState should remain unchanged",
             initialState.addLexemeBottomState,
             result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "CloseScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
         )
         assertEquals(
             "Loading state should remain unchanged",
@@ -94,7 +88,6 @@ class CloseTopBarMenuTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false), // Already closed
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -118,11 +111,6 @@ class CloseTopBarMenuTest {
             "AddLexemeBottomState should remain unchanged",
             initialState.addLexemeBottomState,
             result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "CloseScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
         )
         assertEquals(
             "Loading state should remain unchanged",
@@ -157,7 +145,6 @@ class CloseTopBarMenuTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = true),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = true, // Loading state
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -199,7 +186,6 @@ class CloseTopBarMenuTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = true),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(
                 id = 123L, 
@@ -246,7 +232,6 @@ class CloseTopBarMenuTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = true),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = lexemeList,
@@ -299,7 +284,6 @@ class CloseTopBarMenuTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = true),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(
                 id = 123L, 
@@ -351,7 +335,6 @@ class CloseTopBarMenuTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = true),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),

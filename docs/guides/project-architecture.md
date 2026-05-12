@@ -31,7 +31,6 @@ app (application)
  +-- core/core-db               -- DB API интерфейсы (legacy)
  +-- core/core-db-api           -- DB API контракты
  +-- core/core-db-impl          -- Room реализация
- +-- core/core-interactor       -- Доменные интеракторы
  +-- core/core-resources        -- Общие ресурсы
 ```
 
@@ -41,22 +40,25 @@ app (application)
 2. **Core модули не зависят друг от друга** (кроме: `ui` зависит от `theme`).
 3. **Screen модули не зависят от других screen модулей.** Связь через навигацию.
 4. **Widget модули** могут иметь собственные Mate инстансы (например, `dictionaryappbar`).
-5. **Legacy core модули** (`core/core-*`) постепенно заменяются.
+5. **Screen модули не зависят от Compose Navigation.** Видят интерфейс `XxxNavigator : Navigator` из `core/mate`, реализация `XxxNavigatorImpl` живёт в `app/.../navigator/`.
+6. **Legacy core модули** (`core/core-*`) постепенно заменяются.
 
 ## Слои
 
 ```
-UI Layer (Screen.kt)
-    |
-    | collectAsStateWithLifecycle()
-    | accept(Msg)
-    v
-State Management Layer (ViewModel + Mate + Reducer)
-    |
-    | Effects
-    v
-Effect Layer (EffectHandlers)
-    |
+UI Layer (Screen.kt)                                    Navigator (XxxNavigator)
+    |                                                       ^
+    | collectAsStateWithLifecycle()                         |
+    | accept(Msg)                                           |
+    v                                                       |
+State Management Layer (ViewModel + Mate + Reducer)         |
+    |                                                       |
+    | Effects (DatasourceEffect / UiEffect /                |
+    |          NavigationEffect)                            |
+    v                                                       |
+Effect Layer (handlers)                                     |
+    |  MateTypedEffectHandler / MateFlowHandler  --------> NavigatorImpl (app/.../navigator/)
+    |  MateNavigationEffectHandler ----------------------> NavController
     | UseCase вызовы
     v
 Domain Layer (UseCase интерфейсы)
@@ -65,6 +67,11 @@ Domain Layer (UseCase интерфейсы)
     v
 Data Layer (Room, DataStore, Prefs)
 ```
+
+Базовые классы handlers в `core/mate`:
+- `MateTypedEffectHandler<Msg, E>` — автоматическая фильтрация чужих эффектов через `filter()`.
+- `MateNavigationEffectHandler<Msg>(navigator)` — наследует typed handler, обрабатывает `NavigationEffect.Back` через `Navigator.back()`, делегирует специфичные в `onScreenEffect()`.
+- `MateFlowHandler` — для долгоживущих подписок на Flow.
 
 ## Dependency Injection
 
@@ -76,38 +83,49 @@ Data Layer (Room, DataStore, Prefs)
 @Singleton
 @Component(
     dependencies = [CoreDbProvider::class],
-    modules = [
-        SplashModule::class,
-        CreateDictionaryModule::class,
-        VocabularyModule::class,
-        WordCardModule::class,
-        QuizTabModule::class,
-        QuizChatModule::class,
-        StatisticModule::class,
-        SettingsModule::class,
-        DictionaryAppBarModule::class,
-    ]
+    modules = [AppModule::class],
 )
 interface AppComponent {
     fun getSplashUseCase(): SplashUseCase
-    fun getWordCardUseCase(): WordCardUseCase
-    fun getQuizChatUseCase(): QuizChatUseCase
-    fun getResourceManager(): ResourceManager
-    fun getPrefsProvider(): PrefsProvider
+    fun getDictionaryUseCase(): DictionaryUseCase
+
+    // Factory каждой ViewModel — Dagger генерирует из @AssistedFactory
+    fun getDictionaryFormViewModelFactory(): DictionaryFormViewModel.Factory
+    fun getDictionaryListViewModelFactory(): DictionaryListViewModel.Factory
+    fun getWordCardViewModelFactory(): WordCardViewModel.Factory
+    fun getChatViewModelFactory(): ChatViewModel.Factory
+    fun getDictionaryAppBarViewModelFactory(): DictionaryAppBarViewModel.Factory
+    fun getDictionaryTabViewModelFactory(): DictionaryTabViewModel.Factory
+    fun getQuizTabViewModelFactory(): QuizTabViewModel.Factory
+    fun getStatisticViewModelFactory(): StatisticViewModel.Factory
+    fun getSettingsTabViewModelFactory(): SettingsTabViewModel.Factory
+
     fun getLogger(): LexemeLogger
 }
 ```
 
-### Доступ из composable
+### Composition root для UI
+
+`CompositionRootImpl` (в app модуле) — единственное место, где Factory из AppComponent встречаются с навигационными callbacks из RootRouter:
 
 ```kotlin
-// Extension-функция
-fun Context.appComponent: AppComponent =
-    (applicationContext as App).appComponent
-
-// В параметрах экрана
-val useCase = context.appComponent.getWordCardUseCase()
+class CompositionRootImpl(
+    private val wordCardViewModelFactory: WordCardViewModel.Factory,
+    // ... остальные Factory + envParams + logger
+) : CompositionRoot {
+    @Composable
+    override fun WordCardScreenDep(wordId: Long, onBackPress: () -> Unit) {
+        val navigator = remember(onBackPress) { WordCardNavigatorImpl(onBackPress) }
+        WordCardScreen(
+            wordId = wordId,
+            factory = wordCardViewModelFactory,
+            navigator = navigator,
+        )
+    }
+}
 ```
+
+Composable получает `factory + navigator` параметрами — никогда не лезет в `appComponent` напрямую.
 
 ### DI модуль фичи
 
@@ -119,25 +137,27 @@ interface QuizChatModule {
 }
 ```
 
-### ViewModel Factory
+ViewModel биндинга в модуле фичи **нет** — `@AssistedInject` + `@AssistedFactory` создаёт Factory автоматически, getter на AppComponent её экспонирует.
+
+### ViewModel — @AssistedInject
 
 ```kotlin
-class WordCardViewModel(
-    wordId: Long,
-    wordCardUseCase: WordCardUseCase,
+class WordCardViewModel @AssistedInject constructor(
+    @Assisted wordId: Long,
+    @Assisted navigator: WordCardNavigator,
+    datasourceHandler: DatasourceEffectHandler,
+    uiHandler: UiEffectHandler,
+    navHandlerFactory: WordCardNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<WordCardState, Msg> {
 
-    class Factory(
-        private val wordId: Long,
-        private val wordCardUseCase: WordCardUseCase,
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return WordCardViewModel(wordId, wordCardUseCase) as T
-        }
+    @AssistedFactory
+    interface Factory {
+        fun create(wordId: Long, navigator: WordCardNavigator): WordCardViewModel
     }
 }
 ```
+
+`@Assisted` для runtime аргументов (Navigator, id), остальные зависимости — обычный constructor injection через Dagger.
 
 ## Сборка
 
@@ -154,5 +174,7 @@ class WordCardViewModel(
 | Dagger 2 vs Hilt | Проект старше Hilt, миграция не приоритетна |
 | Модуль на каждый экран | Чёткая изоляция, независимая компиляция |
 | @Stable vs @Immutable | Более гибко для вложенных ссылок |
-| Factory для ViewModels | Позволяет constructor injection без Hilt |
+| `@AssistedInject` + `@AssistedFactory` для всех ViewModel | Constructor injection без Hilt, Navigator/runtime аргументы через `@Assisted` |
 | Sealed interface для Msg | Exhaustive when, явный каталог сообщений |
+| Navigator интерфейс в screen, Impl в app | Screen не зависит от Compose Navigation, легко мокать в тестах |
+| `CompositionRoot` / `CompositionRootImpl` | Единая точка связки Dagger → Compose: фабрики ViewModel встречаются с навигационными callbacks |

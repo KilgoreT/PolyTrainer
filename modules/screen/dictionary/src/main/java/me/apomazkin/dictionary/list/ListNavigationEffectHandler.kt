@@ -1,34 +1,25 @@
 package me.apomazkin.dictionary.list
 
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateEffectHandler
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import me.apomazkin.mate.MateNavigationEffectHandler
 import me.apomazkin.mate.NavigationEffect
 
-class ListNavigationEffectHandler(
-    private val onBackPress: (() -> Unit)?,
-    private val onExit: (() -> Unit)?,
-    private val onEditDictionary: (Long) -> Unit,
-) : MateEffectHandler<DictionaryListMsg, Effect> {
+class ListNavigationEffectHandler @AssistedInject constructor(
+    @Assisted private val listNavigator: ListNavigator,
+) : MateNavigationEffectHandler<DictionaryListMsg>(listNavigator) {
 
-    override suspend fun runEffect(
-        effect: Effect,
-        consumer: (DictionaryListMsg) -> Unit,
-    ) {
-        val msg = when (effect) {
-            is ListNavigationEffect.OpenEdit -> {
-                onEditDictionary(effect.id)
-                DictionaryListMsg.Empty
-            }
-            is NavigationEffect.Back -> {
-                onBackPress?.invoke()
-                DictionaryListMsg.Empty
-            }
-            is NavigationEffect.ExitApp -> {
-                onExit?.invoke()
-                DictionaryListMsg.Empty
-            }
-            else -> DictionaryListMsg.Empty
+    override suspend fun onScreenEffect(effect: NavigationEffect) {
+        when (effect) {
+            is ListNavigationEffect.ExitApp -> listNavigator.exit()
+            is ListNavigationEffect.OpenCreate -> listNavigator.openCreate()
+            is ListNavigationEffect.OpenEdit -> listNavigator.openEdit(effect.id)
         }
-        consumer(msg)
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(navigator: ListNavigator): ListNavigationEffectHandler
     }
 }

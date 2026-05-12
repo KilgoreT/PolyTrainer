@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -19,38 +18,27 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import me.apomazkin.prefs.PrefsProvider
-import me.apomazkin.quiz.chat.deps.QuizChatUseCase
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.quiz.chat.logic.ChatScreenState
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.widget.appbar.AppBarWidget
 import me.apomazkin.quiz.chat.widget.state.ChatWidget
 import me.apomazkin.quiz.chat.widget.state.InitQuizWidget
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.ui.preview.PreviewScreen
-import me.apomazkin.ui.resource.ResourceManager
 
 @Composable
 fun ChatScreen(
-        quizChatUseCase: QuizChatUseCase,
-        resourceManager: ResourceManager,
-        prefsProvider: PrefsProvider,
-        logger: LexemeLogger,
+        factory: ChatViewModel.Factory,
+        navigator: ChatNavigator,
         viewModel: ChatViewModel = viewModel(
-                factory = ChatViewModel.Factory(
-                        quizChatUseCase,
-                        resourceManager,
-                        prefsProvider,
-                        logger
-                )
+                factory = viewModelFactory { factory.create(navigator) },
         ),
-        onBackPress: () -> Unit,
 ) {
     val state: ChatScreenState by viewModel.state.collectAsStateWithLifecycle()
     ChatScreen(
             state = state,
-            onBackPress = onBackPress,
+            onBackPress = { viewModel.accept(Msg.UserAction(me.apomazkin.quiz.chat.logic.ChatMessage.Companion.UserAction.EXIT)) },
     ) { viewModel.accept(it) }
 }
 
@@ -60,12 +48,6 @@ internal fun ChatScreen(
         onBackPress: () -> Unit,
         sendMessage: (Msg) -> Unit,
 ) {
-
-    LaunchedEffect(state.exit) {
-        if (state.exit) {
-            onBackPress()
-        }
-    }
 
     Scaffold(
             topBar = {

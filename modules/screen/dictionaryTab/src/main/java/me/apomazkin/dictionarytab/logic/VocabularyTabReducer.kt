@@ -5,12 +5,13 @@ import me.apomazkin.dictionarytab.logic.DatasourceEffect.LoadTermFlow
 import me.apomazkin.dictionarytab.logic.DatasourceEffect.RemoveWords
 import me.apomazkin.dictionarytab.logic.DatasourceEffect.UpdateWord
 import me.apomazkin.dictionarytab.logic.processor.processUiMessage
+import me.apomazkin.dictionarytab.ui.VocabularyNavigationEffect
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
 import me.apomazkin.logger.LexemeLogger
 
-internal class VocabularyTabReducer(
+class VocabularyTabReducer(
     val logger: LexemeLogger,
 ) : MateReducer<DictionaryTabState, Msg, Effect> {
     override fun reduce(
@@ -20,6 +21,10 @@ internal class VocabularyTabReducer(
         logger.log(message = "Reduce --prevState--: $state ")
         logger.log(message = "Reduce ---message---: $message ")
         return when (message) {
+
+            is Msg.OpenWordCard -> state to setOf(
+                VocabularyNavigationEffect.OpenWordCard(message.wordId)
+            )
 
             is Msg.SelectDictionary -> state to setOf(LoadTermFlow())
 

@@ -1,5 +1,5 @@
 overlay: docs/forgeflow-overlay
 commands:
-  lint: "./gradlew :app:lintDebug --console=plain >| /tmp/ff_lint.log 2>&1; echo EXIT:$?"
-  test: "./gradlew testDebugUnitTest --console=plain >| /tmp/ff_test.log 2>&1; echo EXIT:$?"
-  build: "./gradlew assembleDebug --console=plain >| /tmp/ff_build.log 2>&1; echo EXIT:$?"
+  lint: "./gradlew :app:lintDebug --console=plain"
+  test: "./gradlew testDebugUnitTest --console=plain"
+  build: "./gradlew assembleDebug --console=plain"

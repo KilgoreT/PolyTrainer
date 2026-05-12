@@ -3,11 +3,12 @@ package me.apomazkin.settingstab.logic
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.ReducerResult
+import me.apomazkin.settingstab.SettingsNavigationEffect
 import me.apomazkin.settingstab.logic.DatasourceEffect.ExportData
 import me.apomazkin.settingstab.logic.DatasourceEffect.ImportData
 import me.apomazkin.logger.LexemeLogger
 
-internal class SettingsTabReducer(
+class SettingsTabReducer(
     private val logger: LexemeLogger,
 ) : MateReducer<SettingsTabState, Msg, Effect> {
     override fun reduce(
@@ -17,7 +18,19 @@ internal class SettingsTabReducer(
         logger.log(message = "Reduce --prevState--: $state ")
         logger.log(message = "Reduce ---message---: $message ")
         return when (message) {
-            
+
+            is Msg.OpenLangManagement -> state to setOf(
+                SettingsNavigationEffect.OpenLangManagement
+            )
+
+            is Msg.OpenAboutApp -> state to setOf(
+                SettingsNavigationEffect.OpenAboutApp
+            )
+
+            is Msg.OpenWebView -> state to setOf(
+                SettingsNavigationEffect.OpenWebView(message.pageKey)
+            )
+
             is Msg.ExportData -> state
                 .showExporting() to setOf(ExportData(uri = message.uri))
             

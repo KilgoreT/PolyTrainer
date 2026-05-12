@@ -46,9 +46,6 @@
   Нет доменного слоя. ApiEntity (core-db-api) де-факто выполняет роль доменной сущности. UI модели (UiItem, CountryFlagItem) содержат и бизнес-поля и UI-поля. Суффиксы непоследовательны (ApiEntity, UiItem, UiEntity, Item, Info).
   Нужно: определить конвенцию слоёв entity, решить нужен ли отдельный domain layer или ApiEntity = доменная (с переименованием). Описать в гайде.
 
-- **[NavigationEffect в модуле mate].**
-  Навигация через Effect вместо boolean флагов в State (needClose, closeScreen, exit). NavigationEffect как sealed interface в core/mate. NavigationEffectHandler принимает callback'и (onClose, onBackPress, onExit). Убирает навигационные флаги из State, LaunchedEffect из Screen. Базовая иерархия в mate: Close (popBackStack), ExitApp (finish()). Переходы вперёд — конкретные Effect'ы в модулях, не generic Navigate(route). Миграция постепенная — начать с DictionaryForm, потом WordCard, ChatScreen.
-
 - **[DictionaryUseCase.getDictionaryList() — кандидат на удаление].**
   suspend-версия не вызывается — используется только flowDictionaryList(). CoreDbApi.getDictionaryList() нужен другим UseCase'ам, но в DictionaryUseCase — мёртвый код.
 
@@ -68,34 +65,26 @@
   9 реализаций в `app/di/module/`. App знает про ВСЕ реализации, фичи не независимы.
   Нужно: перенести UseCaseImpl в соответствующие feature-модули.
 
-- **[MainUiDeps — god-object].**
-  Интерфейс с 7 `@Composable` методами, реализация с 11 параметрами.
-  Нужно: разбить на per-tab интерфейсы или передавать UseCase напрямую.
+- **[CompositionRoot — god-object].**
+  Интерфейс `CompositionRoot` — 8 `@Composable` методов, `CompositionRootImpl` — 9 параметров (7 Factory + envParams + logger). Растёт с каждым экраном.
+  Нужно: разбить на per-tab интерфейсы (`VocabularyDeps`, `QuizDeps`, etc.) или вынести AppBar-обёртки в widget-модуль и оставить только screen-фабрики.
 
 - **[Монолитный WordDao — 40+ методов].**
   Languages, Words, Lexemes, Quiz, Statistics — всё в одном DAO.
   Нужно: разбить на `LanguageDao`, `WordDao`, `LexemeDao`, `QuizDao`, `StatisticDao`.
 
 - **[O(n*m) в Mate — эффекты через все хендлеры].**
-  Каждый эффект прогоняется через ВСЕ хендлеры. 10 из 15 вызовов — `null -> Msg.Empty`.
-  Нужно: dispatch map или фильтрация по типу эффекта перед вызовом.
+  Каждый эффект всё ещё прогоняется через ВСЕ хендлеры. После IS471 фильтрация через `MateTypedEffectHandler.filter()` убрала лишние reducer.reduce(state, Empty), но сам прогон через handler-список остался.
+  Нужно: dispatch map по типу эффекта на стороне Mate перед вызовом handlers.
 
 - **[@UnsafeVariance в MateEffectHandler].**
   Ломает type safety. Компилятор не проверяет тип эффекта для хендлера.
   Нужно: пересмотреть generic-дизайн интерфейса без `@UnsafeVariance`.
 
-- **[ViewModelFactory boilerplate].**
-  Каждый ViewModel — идентичный inner class Factory с `@Suppress("UNCHECKED_CAST")`.
-  Нужно: Hilt `@HiltViewModel` или generic Factory.
-
 - **[Int/Long мисматч в TermApi и других API].**
   `TermApi.getTermList(dictionaryId: Int)`, `searchTermsPaging(dictionaryId: Int)` принимают Int, но dictionary id теперь Long.
   `.toInt()` в DictionaryTabUseCaseImpl и StatisticUseCaseImpl — потенциальное переполнение.
   Нужно: перевести все API методы на Long для dictionaryId.
-
-- **[Двойной тап на навигационных кнопках].**
-  `navController.navigate()` без `launchSingleTop = true`. Быстрый двойной тап создаёт два экрана в стеке.
-  Нужно: добавить `launchSingleTop = true` во все navigate вызовы.
 
 ---
 

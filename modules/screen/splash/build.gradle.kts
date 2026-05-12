@@ -2,6 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -26,10 +27,15 @@ android {
 dependencies {
     implementation(project("path" to ":modules:core:theme"))
     implementation(project("path" to ":modules:core:ui"))
+    implementation(project("path" to ":modules:core:di"))
+    implementation(project("path" to ":modules:core:mate"))
     implementation(project("path" to ":core:core-resources"))
 
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)
+
+    implementation(diLibs.dagger)
+    ksp(diLibs.daggerCompiler)
     
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

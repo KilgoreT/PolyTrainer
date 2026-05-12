@@ -6,7 +6,7 @@ import me.apomazkin.settingstab.deps.SettingsTabUseCase
 
 @Module
 interface SettingsModule {
-    
+
     @Binds
     fun bindSettingsTabUseCase(impl: SettingsTabUseCaseImpl): SettingsTabUseCase
 }

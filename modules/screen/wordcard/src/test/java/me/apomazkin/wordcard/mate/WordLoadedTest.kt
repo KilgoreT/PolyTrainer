@@ -40,7 +40,6 @@ class WordLoadedTest {
             .modify { it.copy(isLoading = true) }
             .modify { it.copy(topBarState = TopBarState(isMenuOpen = false)) }
             .modify { it.copy(addLexemeBottomState = AddLexemeBottomState(show = false)) }
-            .modify { it.copy(closeScreen = false) }
             .modify { it.copy(wordState = WordState()) }
             .modify { it.copy(lexemeList = listOf()) }
             .modify { it.copy(snackbarState = SnackbarState()) }
@@ -88,11 +87,6 @@ class WordLoadedTest {
             "AddLexemeBottomState should remain unchanged",
             initialState.addLexemeBottomState,
             result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "CloseScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
         )
         assertEquals(
             "SnackbarState should remain unchanged",
@@ -419,11 +413,6 @@ class WordLoadedTest {
             "AddLexemeBottomState should remain unchanged",
             initialState.addLexemeBottomState,
             result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "CloseScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
         )
         assertEquals(
             "SnackbarState should remain unchanged",

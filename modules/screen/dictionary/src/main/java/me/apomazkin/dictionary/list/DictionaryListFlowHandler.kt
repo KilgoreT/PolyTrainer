@@ -7,8 +7,9 @@ import kotlinx.coroutines.launch
 import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateFlowHandler
+import javax.inject.Inject
 
-class DictionaryListFlowHandler(
+class DictionaryListFlowHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
 ) : MateFlowHandler<DictionaryListMsg, Effect> {
 

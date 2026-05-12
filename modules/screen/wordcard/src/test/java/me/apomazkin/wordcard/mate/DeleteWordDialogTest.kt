@@ -29,7 +29,6 @@ class DeleteWordDialogTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(
                 id = 123L,
@@ -94,11 +93,6 @@ class DeleteWordDialogTest {
             result.state().addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
-        )
-        assertEquals(
             "isLoading should remain unchanged",
             initialState.isLoading,
             result.state().isLoading
@@ -152,7 +146,6 @@ class DeleteWordDialogTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(
                 id = 123L,
@@ -217,11 +210,6 @@ class DeleteWordDialogTest {
             result.state().addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
-        )
-        assertEquals(
             "isLoading should remain unchanged",
             initialState.isLoading,
             result.state().isLoading
@@ -276,7 +264,6 @@ class DeleteWordDialogTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = wordId, value = "test"),
             lexemeList = listOf(),

@@ -6,18 +6,16 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateEffectHandler
+import me.apomazkin.mate.MateTypedEffectHandler
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.quiz.QuizGame
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
+import javax.inject.Inject
 import kotlin.random.Random
 
-/**
- * Effect
- */
-internal sealed interface DatasourceEffect : Effect {
+sealed interface DatasourceEffect : Effect {
 
     data object PrepareToStart : DatasourceEffect
     data object EarliestOn : DatasourceEffect
@@ -34,146 +32,83 @@ internal sealed interface DatasourceEffect : Effect {
     data object Summary : DatasourceEffect
 }
 
-/**
- * EffectHandler for datastore calls.
- */
-internal class DatasourceEffectHandler(
-        private val quizGame: QuizGame,
-        private val prefsProvider: PrefsProvider,
-        private val logger: LexemeLogger,
-) : MateEffectHandler<Msg, Effect> {
+class DatasourceEffectHandler @Inject constructor(
+    private val quizGame: QuizGame,
+    private val prefsProvider: PrefsProvider,
+    private val logger: LexemeLogger,
+) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
 
-    override suspend fun runEffect(
-            effect: Effect,
-            consumer: (Msg) -> Unit,
-    ) {
+    override fun filter(effect: Effect): DatasourceEffect? = effect as? DatasourceEffect
+
+    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
-        val eff = effect as DatasourceEffect
-        return when (eff) {
-            is DatasourceEffect.PrepareToStart -> {
-                withContext(Dispatchers.IO) {
-                    Msg.PrepareToStart
+        val msg: Msg = when (effect) {
+            is DatasourceEffect.PrepareToStart -> withContext(Dispatchers.IO) {
+                Msg.PrepareToStart
+            }
+            is DatasourceEffect.EarliestOn -> withContext(Dispatchers.IO) {
+                prefsProvider.setBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN, true)
+                Msg.Empty
+            }
+            is DatasourceEffect.EarliestOff -> withContext(Dispatchers.IO) {
+                prefsProvider.setBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN, false)
+                Msg.Empty
+            }
+            is DatasourceEffect.FrequentMistakesOn -> withContext(Dispatchers.IO) {
+                prefsProvider.setBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN, true)
+                Msg.Empty
+            }
+            is DatasourceEffect.FrequentMistakesOff -> withContext(Dispatchers.IO) {
+                prefsProvider.setBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN, false)
+                Msg.Empty
+            }
+            is DatasourceEffect.DebugOn -> withContext(Dispatchers.IO) {
+                prefsProvider.setBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN, true)
+                Msg.Empty
+            }
+            is DatasourceEffect.DebugOff -> withContext(Dispatchers.IO) {
+                prefsProvider.setBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN, false)
+                Msg.Empty
+            }
+            is DatasourceEffect.LoadQuiz -> withContext(Dispatchers.IO) {
+                async { quizGame.loadData() }.await()
+                Msg.QuizLoaded(content = quizGame.getStat())
+            }
+            is DatasourceEffect.NextQuestion -> withContext(Dispatchers.IO) {
+                if (quizGame.hasNextQuestion()) {
+                    val quiz = quizGame.nextQuestion()
+                    delay(Random.nextLong(100, 400))
+                    Msg.NextQuestion(content = MessageContent.create(text = quiz))
+                } else {
+                    async { quizGame.saveSession() }.await()
+                    Msg.SessionOver(MessageContent.create(text = quizGame.summaryGeneral()))
                 }
             }
-
-            is DatasourceEffect.EarliestOn -> {
-                withContext(Dispatchers.IO) {
-                    prefsProvider.setBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN, true)
-                    Msg.Empty
-                }
-            }
-
-            is DatasourceEffect.EarliestOff -> {
-                withContext(Dispatchers.IO) {
-                    prefsProvider.setBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN, false)
-                    Msg.Empty
-                }
-            }
-
-            is DatasourceEffect.FrequentMistakesOn -> {
-                withContext(Dispatchers.IO) {
-                    prefsProvider.setBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN, true)
-                    Msg.Empty
-                }
-            }
-
-            is DatasourceEffect.FrequentMistakesOff -> {
-                withContext(Dispatchers.IO) {
-                    prefsProvider.setBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN, false)
-                    Msg.Empty
-                }
-            }
-
-            is DatasourceEffect.DebugOn -> {
-                withContext(Dispatchers.IO) {
-                    prefsProvider.setBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN, true)
-                    Msg.Empty
-                }
-            }
-
-            is DatasourceEffect.DebugOff -> {
-                withContext(Dispatchers.IO) {
-                    prefsProvider.setBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN, false)
-                    Msg.Empty
-                }
-            }
-
-            is DatasourceEffect.LoadQuiz -> {
-                withContext(Dispatchers.IO) {
-                    async { quizGame.loadData() }.await()
-                    Msg.QuizLoaded(content = quizGame.getStat())
-                }
-            }
-
-            is DatasourceEffect.NextQuestion -> {
-                withContext(Dispatchers.IO) {
-                    if (quizGame.hasNextQuestion()) {
-                        val quiz = quizGame.nextQuestion()
-                        delay(Random.nextLong(100, 400))
-                        Msg.NextQuestion(
-                                content = MessageContent.create(
-                                        text = quiz,
-                                )
-                        )
-                    } else {
-                        async {
-                            quizGame.saveSession()
-                        }.await()
-                        Msg.SessionOver(
-                                MessageContent.create(
-                                        text = quizGame.summaryGeneral()
-                                )
-                        )
-                    }
-                }
-            }
-
             is DatasourceEffect.Skip -> {
                 quizGame.skip()
                 Msg.Skipped
             }
-
             is DatasourceEffect.GetAnswer -> {
                 val answer = quizGame.skipAndGetAnswer()
-                Msg.ShowAnswer(
-                        value = MessageContent.create(
-                                text = answer,
-                        )
-                )
+                Msg.ShowAnswer(value = MessageContent.create(text = answer))
             }
-
-            is DatasourceEffect.CheckAnswer -> {
-                withContext(Dispatchers.IO) {
-                    val userAttempt = eff.answer.trim()
-                    val assessment = quizGame.makeAssessment(userAttempt)
-                    delay(Random.nextLong(100, 400))
-                    Msg.Assessment(
-                            value = MessageContent.create(
-                                    text = assessment,
-                            )
-                    )
-                }
+            is DatasourceEffect.CheckAnswer -> withContext(Dispatchers.IO) {
+                val userAttempt = effect.answer.trim()
+                val assessment = quizGame.makeAssessment(userAttempt)
+                delay(Random.nextLong(100, 400))
+                Msg.Assessment(value = MessageContent.create(text = assessment))
             }
-
-            is DatasourceEffect.Summary -> {
-                sendSummary()
-            }
-        }.let(consumer)
+            is DatasourceEffect.Summary -> sendSummary()
+        }
+        consumer(msg)
     }
 
     private fun sendSummary(): Msg.Summary {
         val summary: List<AnnotatedString> = listOf(quizGame.summaryDetail())
-//        delay(Random.nextLong(100, 400))
         return Msg.Summary(
-                value = buildList {
-                    addAll(
-                            summary.map {
-                                MessageContent.create(
-                                        text = it.text,
-                                )
-                            }
-                    )
-                }
+            value = buildList {
+                addAll(summary.map { MessageContent.create(text = it.text) })
+            }
         )
     }
 }

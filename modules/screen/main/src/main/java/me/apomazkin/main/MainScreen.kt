@@ -20,7 +20,7 @@ enum class TabPoint(val route: String) {
 
 @Composable
 fun MainScreen(
-    mainUiDeps: MainUiDeps,
+    compositionRoot: CompositionRoot,
     openDictionaryCreate: () -> Unit,
     openDictionaryList: () -> Unit,
 ) {
@@ -41,21 +41,21 @@ fun MainScreen(
         ) {
             vocabulary(
                 navController = navController,
-                mainUiDeps = mainUiDeps,
+                compositionRoot = compositionRoot,
                 openDictionaryCreate = openDictionaryCreate,
             )
             quiz(
                 navController = navController,
-                mainUiDeps = mainUiDeps,
+                compositionRoot = compositionRoot,
                 openDictionaryCreate = openDictionaryCreate,
             )
             composable(TabPoint.STATS.route) {
-                mainUiDeps.StatisticTabScreenDep(openDictionaryCreate = openDictionaryCreate)
+                compositionRoot.StatisticTabScreenDep(openDictionaryCreate = openDictionaryCreate)
             }
 
             settings(
                 navController = navController,
-                mainUiDeps = mainUiDeps,
+                compositionRoot = compositionRoot,
                 openDictionaryList = openDictionaryList,
             )
         }

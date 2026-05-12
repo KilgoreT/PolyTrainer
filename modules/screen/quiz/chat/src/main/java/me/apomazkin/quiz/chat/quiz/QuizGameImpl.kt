@@ -25,15 +25,15 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.max
 
-class QuizGameImpl(
+class QuizGameImpl @javax.inject.Inject constructor(
         private val quizChatUseCase: QuizChatUseCase,
         private val resourceManager: ResourceManager,
         private val prefsProvider: PrefsProvider,
         private val logger: LexemeLogger,
-        private val maxStepInSession: Int = 10,
-        private val maxGrade: Int = 3,
-        private val maxScoreInGrade: Int = 5,
 ) : QuizGame {
+        private val maxStepInSession: Int = 10
+        private val maxGrade: Int = 3
+        private val maxScoreInGrade: Int = 5
 
     private var currentStep: Step = Step.Pending
     private val userAnswers = mutableMapOf<Step, Answer>()

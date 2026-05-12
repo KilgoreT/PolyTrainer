@@ -4,7 +4,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
@@ -13,24 +12,18 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateFlowHandler
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
+import javax.inject.Inject
 
-/**
- * Effect
- */
-internal sealed interface DatasourceEffect : Effect {
+sealed interface DatasourceEffect : Effect {
     data class ChangeDict(val dict: DictUiEntity) : DatasourceEffect
 }
 
-/**
- * EffectHandler for datastore calls.
- */
-internal class DatasourceEffectHandler(
+class DatasourceEffectHandler @Inject constructor(
         private val useCase: DictionaryAppBarUseCase,
         private val logger: LexemeLogger,
 ) : MateFlowHandler<Msg, Effect> {
 
     override var job: Job? = null
-
 
     override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
         job = scope.launch {
@@ -50,16 +43,15 @@ internal class DatasourceEffectHandler(
             consumer: (Msg) -> Unit,
     ) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
-        return when (val eff = effect as? DatasourceEffect) {
+        val msg = when (val eff = effect as? DatasourceEffect) {
             is DatasourceEffect.ChangeDict -> {
                 withContext(Dispatchers.IO) {
-                    useCase
-                            .changeDict(id = eff.dict.id)
-                    Msg.Empty
+                    useCase.changeDict(id = eff.dict.id)
                 }
+                Msg.Empty
             }
-
-            null -> Msg.Empty
-        }.let(consumer)
+            null -> return
+        }
+        consumer(msg)
     }
 }

@@ -4,14 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeColor
 import me.apomazkin.ui.SystemBarsWidget
@@ -21,29 +17,22 @@ private val colorBackground = LexemeColor.primary
 
 @Composable
 fun SplashScreen(
-    splashUseCase: SplashUseCase,
+    factory: SplashViewModel.Factory,
+    navigator: SplashNavigator,
+    @Suppress("UNUSED_PARAMETER")
     viewModel: SplashViewModel = viewModel(
-        factory = SplashViewModel.Factory(splashUseCase)
+        factory = viewModelFactory { factory.create(navigator) },
     ),
-    onExit: (isInitLaunch: Boolean) -> Unit
 ) {
-
-    val checkIfNeedInitDict by viewModel.checkIfNeedAddDictionary.collectAsStateWithLifecycle()
-    LaunchedEffect(checkIfNeedInitDict) {
-        checkIfNeedInitDict?.let {
-            onExit.invoke(it)
-        }
-    }
-
     SystemBarsWidget(
         color = colorBackground,
         statusBarDarkIcon = false,
     )
     Box(
-            modifier = Modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(colorBackground),
-            contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center,
     ) {
 //        ImageTitledWidget(
 //            imageRes = R.drawable.ic_logo,
@@ -58,10 +47,11 @@ fun SplashScreen(
 @PreviewWidget
 private fun Preview() {
     AppTheme {
-        SplashScreen(
-            splashUseCase = object : SplashUseCase {
-                override fun checkIfNeedAddDictionary(): Flow<Boolean> = flowOf(false)
-            }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorBackground),
+            contentAlignment = Alignment.Center,
         ) {}
     }
 }

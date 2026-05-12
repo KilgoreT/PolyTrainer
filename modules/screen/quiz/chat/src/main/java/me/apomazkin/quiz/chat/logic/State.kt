@@ -16,7 +16,6 @@ private const val DEFAULT_LOAD_DELAY = 0L
 @Immutable
 data class ChatScreenState(
         val loading: Boolean = true,
-        val exit: Boolean = false,
         val loadDelay: Long = DEFAULT_LOAD_DELAY,
         val appBarState: AppBarState = AppBarState(),
         val chat: ChatState = ChatState(),
@@ -272,6 +271,3 @@ fun ChatState.addSystemMessage(
         )
 )
 
-fun ChatScreenState.exit() = copy(
-        exit = true
-)

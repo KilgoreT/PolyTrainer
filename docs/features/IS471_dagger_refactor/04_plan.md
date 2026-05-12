@@ -252,6 +252,26 @@ MainRouter НЕ трогаем. AppComponent НЕ трогаем.
 
 ---
 
+## Шаг 4: Переименовать MainUiDeps → CompositionRoot
+
+**Файлы:**
+
+| Файл | Изменение |
+|------|-----------|
+| `modules/screen/main/.../MainUiDeps.kt` | Переименовать интерфейс → `CompositionRoot`, файл → `CompositionRoot.kt` |
+| `app/.../uiDeps/MainUiDepsProvider.kt` | Переименовать класс → `CompositionRootImpl`, файл → `CompositionRootImpl.kt` |
+| `modules/screen/main/.../MainScreen.kt` | `mainUiDeps` → `compositionRoot` |
+| `modules/screen/main/.../Vocabulary.kt` | `mainUiDeps` → `compositionRoot` |
+| `modules/screen/main/.../Quiz.kt` | `mainUiDeps` → `compositionRoot` |
+| `modules/screen/main/.../Settings.kt` | `mainUiDeps` → `compositionRoot` |
+| `app/.../route/MainRouter.kt` | `mainUiDeps` → `compositionRoot` |
+
+Механическое переименование. Отражает архитектурную роль — это composition root, не просто "UI dependencies".
+
+**Риск:** нет. Rename refactoring, компилятор поймает все пропущенные места.
+
+---
+
 ## Бэклог (отдельные задачи)
 
 ### Сегрегация CoreDbProvider

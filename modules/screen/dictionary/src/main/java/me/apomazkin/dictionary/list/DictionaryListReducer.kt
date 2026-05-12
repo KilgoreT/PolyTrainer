@@ -2,6 +2,7 @@ package me.apomazkin.dictionary.list
 
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
+import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.ReducerResult
 
 class DictionaryListReducer : MateReducer<DictionaryListScreenState, DictionaryListMsg, Effect> {
@@ -10,6 +11,19 @@ class DictionaryListReducer : MateReducer<DictionaryListScreenState, DictionaryL
         message: DictionaryListMsg
     ): ReducerResult<DictionaryListScreenState, Effect> {
         return when (message) {
+            is DictionaryListMsg.RequestBack -> {
+                val effect: Effect = if (state.dictionaries.isEmpty()) {
+                    ListNavigationEffect.ExitApp
+                } else {
+                    NavigationEffect.Back
+                }
+                state to setOf(effect)
+            }
+
+            is DictionaryListMsg.OpenNewDictionary -> state to setOf(
+                ListNavigationEffect.OpenCreate
+            )
+
             is DictionaryListMsg.RequestDelete -> state
                 .showDeleteDialog(message.id, message.name) to emptySet()
 

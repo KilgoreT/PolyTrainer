@@ -2,6 +2,7 @@ package me.apomazkin.wordcard.mate
 
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
+import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.ReducerResult
 import me.apomazkin.wordcard.mate.DatasourceEffect.LoadWord
 
@@ -159,8 +160,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 DatasourceEffect.RemoveDefinition(message.lexemeId)
             )
 
-            is Msg.NavigateBack -> state
-                .closeScreen() to setOf()
+            is Msg.NavigateBack -> state to setOf(NavigationEffect.Back)
 
             is UiMsg.ShowNotification -> if (message.show) {
                 state.showSnackbar(title = message.text) to setOf()

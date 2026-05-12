@@ -11,11 +11,11 @@ private const val WORD_ID_ARG = "wordId"
 
 fun NavGraphBuilder.vocabulary(
     navController: NavHostController,
-    mainUiDeps: MainUiDeps,
+    compositionRoot: CompositionRoot,
     openDictionaryCreate: () -> Unit,
 ) {
     composable(TabPoint.VOCABULARY.route) {
-        mainUiDeps.VocabularyTabDep(
+        compositionRoot.VocabularyTabDep(
             openDictionaryCreate = openDictionaryCreate,
             openWordCard = { navController.goToWordCard(it) },
         )
@@ -27,7 +27,7 @@ fun NavGraphBuilder.vocabulary(
     ) { navBackStackEntry ->
         val wordId: Long = navBackStackEntry.arguments?.getLong(WORD_ID_ARG)
             ?: throw IllegalArgumentException("Unknown WordId")
-        mainUiDeps.WordCardScreenDep(
+        compositionRoot.WordCardScreenDep(
             wordId = wordId,
         ) {
             navController.backPress()
@@ -37,7 +37,9 @@ fun NavGraphBuilder.vocabulary(
 }
 
 private fun NavHostController.goToWordCard(wordId: Long) {
-    navigate(route = "$WORD_CARD_ROUTE/$wordId")
+    navigate(route = "$WORD_CARD_ROUTE/$wordId") {
+        launchSingleTop = true
+    }
 }
 
 private fun NavHostController.backPress() {

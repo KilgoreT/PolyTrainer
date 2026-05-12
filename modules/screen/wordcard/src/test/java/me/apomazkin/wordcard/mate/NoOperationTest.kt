@@ -24,7 +24,6 @@ class NoOperationTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -57,11 +56,6 @@ class NoOperationTest {
             "addLexemeBottomState should remain unchanged",
             initialState.addLexemeBottomState,
             result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
         )
         assertEquals(
             "isLoading should remain unchanged",
@@ -112,7 +106,6 @@ class NoOperationTest {
                 isTranslationCheck = true,
                 isDefinitionCheck = false
             ),
-            closeScreen = false,
             isLoading = true,
             wordState = WordState(
                 id = 456L,
@@ -153,11 +146,6 @@ class NoOperationTest {
             result.state().addLexemeBottomState
         )
         assertEquals(
-            "closeScreen should remain unchanged",
-            initialState.closeScreen,
-            result.state().closeScreen
-        )
-        assertEquals(
             "isLoading should remain unchanged",
             initialState.isLoading,
             result.state().isLoading
@@ -187,7 +175,6 @@ class NoOperationTest {
         val initialState = WordCardState(
             topBarState = TopBarState(isMenuOpen = false),
             addLexemeBottomState = AddLexemeBottomState(show = false),
-            closeScreen = false,
             isLoading = true, // Currently loading
             wordState = WordState(id = 123L, value = "test"),
             lexemeList = listOf(),
@@ -229,7 +216,6 @@ class NoOperationTest {
                 isTranslationCheck = true,
                 isDefinitionCheck = false
             ),
-            closeScreen = false,
             isLoading = false,
             wordState = WordState(
                 id = 123L,

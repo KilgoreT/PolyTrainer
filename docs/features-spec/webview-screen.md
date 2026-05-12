@@ -20,7 +20,7 @@
 
 Route: `webview/{pageKey}`
 
-`pageKey` — строковый ключ. URL и title резолвятся в `app` модуле (MainUiDepsProvider) по ключу.
+`pageKey` — строковый ключ. URL и title резолвятся в `app` модуле (CompositionRootImpl) по ключу.
 
 Пример: тап PrivacyPolicyWidget в Settings → navigate("webview/privacy_policy") → WebViewScreen → Back → popBackStack() → Settings.
 
@@ -39,5 +39,5 @@ Route: `webview/{pageKey}`
 ## Модули
 
 - `settingstab` — WebViewScreen.kt, WebViewAppBar.kt, PrivacyPolicyWidget
-- `main` — route в Settings.kt, WebViewScreenDep в MainUiDeps
-- `app` — MainUiDepsProvider, WebPage enum с URL и titleRes
+- `main` — route в Settings.kt, WebViewScreenDep в CompositionRoot
+- `app` — CompositionRootImpl, WebPage enum с URL и titleRes

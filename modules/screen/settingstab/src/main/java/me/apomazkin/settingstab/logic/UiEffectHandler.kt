@@ -1,32 +1,24 @@
 package me.apomazkin.settingstab.logic
 
 import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateEffectHandler
+import me.apomazkin.mate.MateTypedEffectHandler
+import javax.inject.Inject
 
-/**
- * Effect
- */
-internal sealed interface UiEffect : Effect {
+sealed interface UiEffect : Effect {
     data class ShowSnackbar(val title: String) : UiEffect
 }
 
-/**
- * EffectHandler
- */
-internal class UiEffectHandler :
-        MateEffectHandler<Msg, Effect> {
-    
-    override suspend fun runEffect(
-        effect: Effect,
-        consumer: (Msg) -> Unit
-    ) {
-        return when (val eff = effect as? UiEffect) {
+class UiEffectHandler @Inject constructor() : MateTypedEffectHandler<Msg, UiEffect>() {
+
+    override fun filter(effect: Effect): UiEffect? = effect as? UiEffect
+
+    override suspend fun onEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
+        val msg = when (effect) {
             is UiEffect.ShowSnackbar -> UiMsg.Snackbar(
-                message = eff.title,
-                show = true
+                message = effect.title,
+                show = true,
             )
-            
-            null -> Msg.Empty
-        }.let(consumer)
+        }
+        consumer(msg)
     }
 }

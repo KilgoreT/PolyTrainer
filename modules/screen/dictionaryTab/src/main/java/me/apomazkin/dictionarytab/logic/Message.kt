@@ -10,6 +10,11 @@ import me.apomazkin.dictionarytab.entity.WordInfo
 sealed interface Msg {
 
     /**
+     * Message to open WordCard screen for given word id.
+     */
+    data class OpenWordCard(val wordId: Long) : Msg
+
+    /**
      * Message to select and activate a dictionary for word operations.
      * @param current The dictionary entity to be selected as active.
      */

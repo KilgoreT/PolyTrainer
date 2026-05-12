@@ -14,7 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import me.apomazkin.dictionary.DictionaryUseCase
+import me.apomazkin.di.viewModelFactory
 import me.apomazkin.dictionary.form.widget.DictionaryFormWidget
 import me.apomazkin.dictionary.widget.DictionaryAppBar
 import me.apomazkin.theme.AppTheme
@@ -24,16 +24,13 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun DictionaryFormScreen(
-    dictionaryUseCase: DictionaryUseCase,
+    factory: DictionaryFormViewModel.Factory,
+    navigator: FormNavigator,
     editingDictionaryId: Long? = null,
-    onBack: () -> Unit,
     showAppBar: Boolean = true,
     viewModel: DictionaryFormViewModel = viewModel(
-        factory = DictionaryFormViewModel.Factory(
-            dictionaryUseCase,
-            editingDictionaryId,
-            onBack,
-        )
+        key = "dictionaryForm_${editingDictionaryId ?: "new"}",
+        factory = viewModelFactory { factory.create(editingDictionaryId, navigator) },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()

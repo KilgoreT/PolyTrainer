@@ -11,12 +11,12 @@ private const val WEBVIEW_ROUTE = "webview/{pageKey}"
 
 fun NavGraphBuilder.settings(
     navController: NavHostController,
-    mainUiDeps: MainUiDeps,
+    compositionRoot: CompositionRoot,
     openDictionaryList: () -> Unit,
 ) {
 
     composable(TabPoint.SETTINGS.route) {
-        mainUiDeps.SettingsTabScreenDep(
+        compositionRoot.SettingsTabScreenDep(
             onLangManagementClick = openDictionaryList,
             onAboutAppClick = { navController.goToAboutApp() },
             onPrivacyPolicyClick = { navController.goToWebView("privacy_policy") }
@@ -26,7 +26,7 @@ fun NavGraphBuilder.settings(
     composable(
         route = ABOUT_APP_ROUTE,
     ) {
-        mainUiDeps.AboutAppScreenDep(
+        compositionRoot.AboutAppScreenDep(
             onBackPress = { navController.backPress() }
         )
     }
@@ -38,7 +38,7 @@ fun NavGraphBuilder.settings(
         val pageKey = backStackEntry.arguments?.getString("pageKey") ?: run {
             return@composable
         }
-        mainUiDeps.WebViewScreenDep(
+        compositionRoot.WebViewScreenDep(
             pageKey = pageKey,
             onBackPress = { navController.backPress() }
         )
@@ -47,11 +47,15 @@ fun NavGraphBuilder.settings(
 }
 
 private fun NavHostController.goToAboutApp() {
-    navigate(route = ABOUT_APP_ROUTE)
+    navigate(route = ABOUT_APP_ROUTE) {
+        launchSingleTop = true
+    }
 }
 
 private fun NavHostController.goToWebView(pageKey: String) {
-    navigate(route = "webview/$pageKey")
+    navigate(route = "webview/$pageKey") {
+        launchSingleTop = true
+    }
 }
 
 private fun NavHostController.backPress() {

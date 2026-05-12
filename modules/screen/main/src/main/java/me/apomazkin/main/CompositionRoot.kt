@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 
 @Stable
-interface MainUiDeps {
+interface CompositionRoot {
     @Composable
     fun VocabularyTabDep(
             openDictionaryCreate: () -> Unit,

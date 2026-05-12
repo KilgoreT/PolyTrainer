@@ -3,63 +3,71 @@ package me.apomazkin.polytrainer.uiDeps
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.dictionaryappbar.DictionaryAppBar
-import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
+import me.apomazkin.dictionaryappbar.DictionaryAppBarViewModel
 import me.apomazkin.dictionarytab.deps.DictionaryTabUiDeps
-import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
 import me.apomazkin.dictionarytab.ui.DictionaryTabScreen
-import me.apomazkin.main.MainUiDeps
+import me.apomazkin.dictionarytab.ui.DictionaryTabViewModel
+import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.main.CompositionRoot
+import me.apomazkin.polytrainer.LogTags
 import me.apomazkin.polytrainer.env.EnvParams
-import me.apomazkin.prefs.PrefsProvider
+import me.apomazkin.polytrainer.navigator.ChatNavigatorImpl
+import me.apomazkin.polytrainer.navigator.DictionaryAppBarNavigatorImpl
+import me.apomazkin.polytrainer.navigator.QuizTabNavigatorImpl
+import me.apomazkin.polytrainer.navigator.SettingsNavigatorImpl
+import me.apomazkin.polytrainer.navigator.StatisticNavigatorImpl
+import me.apomazkin.polytrainer.navigator.VocabularyNavigatorImpl
+import me.apomazkin.polytrainer.navigator.WordCardNavigatorImpl
 import me.apomazkin.quiz.chat.ChatScreen
-import me.apomazkin.quiz.chat.deps.QuizChatUseCase
+import me.apomazkin.quiz.chat.ChatViewModel
 import me.apomazkin.quiztab.QuizTabScreen
+import me.apomazkin.quiztab.QuizTabViewModel
 import me.apomazkin.quiztab.deps.QuizTabUiDeps
-import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.settingstab.AboutAppScreen
 import me.apomazkin.settingstab.SettingsTabScreen
+import me.apomazkin.settingstab.SettingsTabViewModel
 import me.apomazkin.settingstab.WebViewScreen
-import me.apomazkin.settingstab.deps.SettingsTabUseCase
 import me.apomazkin.stattab.StatisticTabScreen
+import me.apomazkin.stattab.StatisticViewModel
 import me.apomazkin.stattab.deps.StatisticUiDeps
-import me.apomazkin.stattab.deps.StatisticUseCase
-import me.apomazkin.polytrainer.LogTags
-import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.ui.resource.ResourceManager
 import me.apomazkin.wordcard.WordCardScreen
-import me.apomazkin.wordcard.deps.WordCardUseCase
+import me.apomazkin.wordcard.WordCardViewModel
 
 @Stable
-class MainUiDepsProvider(
-    private val dictionaryTabUseCase: DictionaryTabUseCase,
-    private val wordCardUseCase: WordCardUseCase,
-    private val quizTabUseCase: QuizTabUseCase,
-    private val quizChatUseCase: QuizChatUseCase,
-    private val statisticUseCase: StatisticUseCase,
-    private val dictionaryAppBarUseCase: DictionaryAppBarUseCase,
-    private val settingsTabUseCase: SettingsTabUseCase,
-    private val resourceManager: ResourceManager,
-    private val prefsProvider: PrefsProvider,
+class CompositionRootImpl(
+    private val wordCardViewModelFactory: WordCardViewModel.Factory,
+    private val chatViewModelFactory: ChatViewModel.Factory,
+    private val appBarViewModelFactory: DictionaryAppBarViewModel.Factory,
+    private val dictionaryTabViewModelFactory: DictionaryTabViewModel.Factory,
+    private val quizTabViewModelFactory: QuizTabViewModel.Factory,
+    private val statisticViewModelFactory: StatisticViewModel.Factory,
+    private val settingsTabViewModelFactory: SettingsTabViewModel.Factory,
     private val envParams: EnvParams,
     private val logger: LexemeLogger,
-) : MainUiDeps {
+) : CompositionRoot {
     @Composable
     override fun VocabularyTabDep(
         openDictionaryCreate: () -> Unit,
         openWordCard: (wordId: Long) -> Unit,
     ) {
+        val appBarNavigator = remember(openDictionaryCreate) {
+            DictionaryAppBarNavigatorImpl(onOpenDictionaryCreate = openDictionaryCreate)
+        }
+        val vocabularyNavigator = remember(openWordCard) {
+            VocabularyNavigatorImpl(onOpenWordCard = openWordCard)
+        }
         DictionaryTabScreen(
-            dictionaryTabUseCase = dictionaryTabUseCase,
-            logger = logger,
-            openWordCard = openWordCard,
+            factory = dictionaryTabViewModelFactory,
+            navigator = vocabularyNavigator,
             dictionaryTabUiDeps = object : DictionaryTabUiDeps {
                 @Composable
                 override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
                     titleResId = titleResId,
-                    logger = logger,
-                    dictionaryAppBarUseCase = dictionaryAppBarUseCase,
-                    openDictionaryCreate = openDictionaryCreate,
+                    factory = appBarViewModelFactory,
+                    navigator = appBarNavigator,
                 )
             },
         )
@@ -70,10 +78,11 @@ class MainUiDepsProvider(
         wordId: Long,
         onBackPress: () -> Unit,
     ) {
+        val navigator = remember(onBackPress) { WordCardNavigatorImpl(onBack = onBackPress) }
         WordCardScreen(
             wordId = wordId,
-            wordCardUseCase = wordCardUseCase,
-            onBackPress = onBackPress,
+            factory = wordCardViewModelFactory,
+            navigator = navigator,
         )
     }
 
@@ -82,17 +91,21 @@ class MainUiDepsProvider(
         openDictionaryCreate: () -> Unit,
         openChatQuiz: (quizType: String) -> Unit,
     ) {
+        val appBarNavigator = remember(openDictionaryCreate) {
+            DictionaryAppBarNavigatorImpl(onOpenDictionaryCreate = openDictionaryCreate)
+        }
+        val quizTabNavigator = remember(openChatQuiz) {
+            QuizTabNavigatorImpl(onOpenChat = openChatQuiz)
+        }
         QuizTabScreen(
-            quizTabUseCase = quizTabUseCase,
-            logger = logger,
-            openQuiz = openChatQuiz,
+            factory = quizTabViewModelFactory,
+            navigator = quizTabNavigator,
             quizTabUiDeps = object : QuizTabUiDeps {
                 @Composable
                 override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
                     titleResId = titleResId,
-                    logger = logger,
-                    dictionaryAppBarUseCase = dictionaryAppBarUseCase,
-                    openDictionaryCreate = openDictionaryCreate,
+                    factory = appBarViewModelFactory,
+                    navigator = appBarNavigator,
                 )
             },
         )
@@ -102,12 +115,10 @@ class MainUiDepsProvider(
     override fun ChatQuizScreenDep(
         onBackPress: () -> Unit,
     ) {
+        val navigator = remember(onBackPress) { ChatNavigatorImpl(onBack = onBackPress) }
         ChatScreen(
-            quizChatUseCase = quizChatUseCase,
-            resourceManager = resourceManager,
-            prefsProvider = prefsProvider,
-            logger = logger,
-            onBackPress = onBackPress,
+            factory = chatViewModelFactory,
+            navigator = navigator,
         )
     }
 
@@ -115,18 +126,21 @@ class MainUiDepsProvider(
     override fun StatisticTabScreenDep(
         openDictionaryCreate: () -> Unit,
     ) {
+        val appBarNavigator = remember(openDictionaryCreate) {
+            DictionaryAppBarNavigatorImpl(onOpenDictionaryCreate = openDictionaryCreate)
+        }
+        val statisticNavigator = remember { StatisticNavigatorImpl() }
         StatisticTabScreen(
-            statisticUseCase = statisticUseCase,
+            factory = statisticViewModelFactory,
+            navigator = statisticNavigator,
             statisticUiDeps = object : StatisticUiDeps {
                 @Composable
                 override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
                     titleResId = titleResId,
-                    logger = logger,
-                    dictionaryAppBarUseCase = dictionaryAppBarUseCase,
-                    openDictionaryCreate = openDictionaryCreate,
+                    factory = appBarViewModelFactory,
+                    navigator = appBarNavigator,
                 )
             },
-            logger = logger,
         )
     }
 
@@ -136,15 +150,19 @@ class MainUiDepsProvider(
         onAboutAppClick: () -> Unit,
         onPrivacyPolicyClick: () -> Unit,
     ) {
+        val navigator = remember(onLangManagementClick, onAboutAppClick, onPrivacyPolicyClick) {
+            SettingsNavigatorImpl(
+                onOpenLangManagement = onLangManagementClick,
+                onOpenAboutApp = onAboutAppClick,
+                onOpenWebView = { pageKey ->
+                    logger.log(tag = me.apomazkin.settingstab.LogTags.SETTINGS, message = "navigate: $pageKey")
+                    onPrivacyPolicyClick()
+                },
+            )
+        }
         SettingsTabScreen(
-            onLangManagementClick = onLangManagementClick,
-            onAboutAppClick = onAboutAppClick,
-            onPrivacyPolicyClick = {
-                logger.log(tag = me.apomazkin.settingstab.LogTags.SETTINGS, message = "navigate: privacy_policy")
-                onPrivacyPolicyClick()
-            },
-            settingsTabUseCase = settingsTabUseCase,
-            logger = logger,
+            factory = settingsTabViewModelFactory,
+            navigator = navigator,
         )
     }
 

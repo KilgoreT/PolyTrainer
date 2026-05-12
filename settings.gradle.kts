@@ -35,6 +35,7 @@ include(":modules:core:mate")
 include(":modules:core:theme")
 include(":modules:core:ui")
 include(":modules:core:logger")
+include(":modules:core:di")
 include(":modules:core:tools")
 
 //Features

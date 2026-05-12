@@ -13,7 +13,6 @@ const val NOT_IN_DB = -1L
 data class WordCardState(
     val topBarState: TopBarState = TopBarState(),
     val addLexemeBottomState: AddLexemeBottomState = AddLexemeBottomState(),
-    val closeScreen: Boolean = false,
     val isLoading: Boolean = true,
     val wordState: WordState = WordState(),
     val lexemeList: List<LexemeState> = listOf(),
@@ -271,12 +270,6 @@ fun WordCardState.hideSnackbar(): WordCardState =
             show = false
         )
     )
-
-/**
- * ###### SCREEN NAVIGATION ######
- */
-fun WordCardState.closeScreen(): WordCardState =
-    this.copy(closeScreen = true)
 
 /**
  * ###### ENTITY MAPPING ######

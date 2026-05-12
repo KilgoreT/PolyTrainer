@@ -2,6 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -28,6 +29,7 @@ android {
 }
 
 dependencies {
+    implementation(project("path" to ":modules:core:di"))
     implementation(project("path" to ":modules:core:mate"))
     implementation(project("path" to ":modules:core:theme"))
     implementation(project("path" to ":modules:core:ui"))
@@ -38,6 +40,9 @@ dependencies {
     //TODO kilg 29.06.2025 21:33 завести слой доменных сущностей, и избавиться от сущностей ui
     implementation(project("path" to ":modules:widget:dictionarypicker"))
 
+    implementation(diLibs.dagger)
+    ksp(diLibs.daggerCompiler)
+    implementation("javax.inject:javax.inject:1")
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)
     implementation(composeLibs.activityCompose)

@@ -1,16 +1,16 @@
-# ViewModel и DI подключение
+# Подключение ViewModel
 
-## Структура ViewModel
+ViewModel в проекте инжектятся через `@AssistedInject` + `@AssistedFactory`. Это единственный паттерн — даже если runtime аргументов нет, `Navigator` приходит через `@Assisted`.
 
-Каждый TEA-экран имеет ViewModel который:
-1. Реализует `MateStateHolder<State, Msg>`
-2. Создаёт и хранит инстанс `Mate`
-3. Предоставляет `Factory` для инстанцирования
+## ViewModel
 
 ```kotlin
-class WordCardViewModel(
-    wordId: Long,
-    wordCardUseCase: WordCardUseCase,
+class WordCardViewModel @AssistedInject constructor(
+    @Assisted wordId: Long,
+    @Assisted navigator: WordCardNavigator,
+    datasourceHandler: DatasourceEffectHandler,
+    uiHandler: UiEffectHandler,
+    navHandlerFactory: WordCardNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<WordCardState, Msg> {
 
     private val stateHolder = Mate(
@@ -19,212 +19,185 @@ class WordCardViewModel(
         coroutineScope = viewModelScope,
         reducer = WordCardReducer(),
         effectHandlerSet = setOf(
-            DatasourceEffectHandler(wordCardUseCase = wordCardUseCase),
-            UiEffectHandler()
+            datasourceHandler,
+            uiHandler,
+            navHandlerFactory.create(navigator),
         )
     )
 
-    override val state: StateFlow<WordCardState>
-        get() = stateHolder.state
-
+    override val state: StateFlow<WordCardState> = stateHolder.state
     override fun accept(message: Msg) = stateHolder.accept(message)
 
-    class Factory(
-        private val wordId: Long,
-        private val wordCardUseCase: WordCardUseCase,
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return WordCardViewModel(wordId, wordCardUseCase) as T
-        }
+    @AssistedFactory
+    interface Factory {
+        fun create(wordId: Long, navigator: WordCardNavigator): WordCardViewModel
     }
 }
 ```
 
-## Чеклист инициализации Mate
+- `@Assisted` — для runtime аргументов: Navigator, id экрана, edit-режим. Передаются в `Factory.create(...)`.
+- Обычные параметры конструктора — приходят из Dagger графа.
+- `navHandlerFactory.create(navigator)` — `MateNavigationEffectHandler` тоже AssistedInject, потому что принимает Navigator. Composable передаёт Navigator один раз — в Factory создания ViewModel.
 
-| Параметр | Описание | Пример |
-|----------|----------|--------|
-| `initState` | Дефолтный стейт | `WordCardState()` |
-| `initEffects` | Эффекты сразу при запуске | `setOf(DatasourceEffect.LoadWord(id))` |
-| `coroutineScope` | Scope жизненного цикла | `viewModelScope` |
-| `reducer` | Чистый трансформер стейта | `WordCardReducer()` |
-| `effectHandlerSet` | Все эффект-хендлеры | `setOf(DatasourceEH, UiEH)` |
+## Handlers
 
-## Создание ViewModel в Composable
+DataSource / UI / Flow handlers — `@Inject constructor` (обычная инъекция, без `@Assisted`):
+
+```kotlin
+class DatasourceEffectHandler @Inject constructor(
+    private val useCase: WordCardUseCase,
+) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
+    override fun filter(effect: Effect): DatasourceEffect? = effect as? DatasourceEffect
+    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) { /* ... */ }
+}
+```
+
+NavigationEffectHandler — `@AssistedInject`, потому что принимает Navigator:
+
+```kotlin
+class WordCardNavigationEffectHandler @AssistedInject constructor(
+    @Assisted navigator: WordCardNavigator,
+) : MateNavigationEffectHandler<Msg>(navigator) {
+    override suspend fun onScreenEffect(effect: NavigationEffect) { /* ... */ }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(navigator: WordCardNavigator): WordCardNavigationEffectHandler
+    }
+}
+```
+
+## AppComponent
+
+Каждая ViewModel экспонирует свою Factory через явный getter:
+
+```kotlin
+interface AppComponent {
+    fun getWordCardViewModelFactory(): WordCardViewModel.Factory
+    fun getChatViewModelFactory(): ChatViewModel.Factory
+    // ...
+}
+```
+
+Биндинга в feature модуле для ViewModel **не нужно** — `@AssistedInject` + `@AssistedFactory` создаёт всё автоматически.
+
+## DI модуль фичи
+
+Только UseCase биндинг:
+
+```kotlin
+@Module
+interface WordCardModule {
+    @Binds
+    fun bindUseCase(impl: WordCardUseCaseImpl): WordCardUseCase
+}
+```
+
+## Composable
+
+Принимает `factory: XxxViewModel.Factory` + `navigator: XxxNavigator` параметрами. ViewModel создаётся через `viewModelFactory { ... }` helper из `core/di`:
 
 ```kotlin
 @Composable
 fun WordCardScreen(
     wordId: Long,
-    wordCardUseCase: WordCardUseCase,
-    onBackPress: () -> Unit,
+    factory: WordCardViewModel.Factory,
+    navigator: WordCardNavigator,
     viewModel: WordCardViewModel = viewModel(
-        factory = WordCardViewModel.Factory(wordId, wordCardUseCase)
+        key = "wordCard_$wordId",
+        factory = viewModelFactory { factory.create(wordId, navigator) },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    WordCardScreen(state, onBackPress) { viewModel.accept(it) }
-}
-```
-
-## Поток зависимостей
-
-```
-AppComponent (Dagger)
-    |
-    | предоставляет UseCase, ResourceManager, PrefsProvider, Logger
-    v
-Navigation (MainRouter/RootRouter)
-    |
-    | передаёт зависимости как параметры composable
-    v
-Screen Composable (публичная точка входа)
-    |
-    | создаёт ViewModelFactory с зависимостями
-    v
-ViewModel
-    |
-    | передаёт зависимости в Mate, Reducer, EffectHandlers
-    v
-Mate (TEA цикл запущен)
-```
-
-## Полный пример: добавление нового экрана
-
-### Шаг 1: Определить State, Messages, Effects
-
-```kotlin
-// logic/State.kt
-@Stable
-data class NewFeatureState(
-    val isLoading: Boolean = true,
-    val data: String = "",
-    val snackbarState: SnackbarState = SnackbarState(),
-)
-
-fun NewFeatureState.stopLoading() = copy(isLoading = false)
-fun NewFeatureState.setData(value: String) = copy(data = value, isLoading = false)
-```
-
-```kotlin
-// logic/Message.kt
-sealed interface Msg {
-    data object LoadData : Msg
-    data class DataLoaded(val data: String) : Msg
-    data object Empty : Msg
-}
-```
-
-### Шаг 2: Реализовать Reducer
-
-```kotlin
-// logic/Reducer.kt
-class NewFeatureReducer : MateReducer<NewFeatureState, Msg, Effect> {
-    override fun reduce(state: NewFeatureState, message: Msg): ReducerResult<NewFeatureState, Effect> {
-        return when (message) {
-            is Msg.LoadData -> state to setOf(DatasourceEffect.FetchData)
-            is Msg.DataLoaded -> state.setData(message.data) to setOf()
-            is Msg.Empty -> state to emptySet()
-        }
-    }
-}
-```
-
-### Шаг 3: Реализовать эффект-хендлеры
-
-```kotlin
-// logic/DatasourceEffectHandler.kt
-internal sealed interface DatasourceEffect : Effect {
-    data object FetchData : DatasourceEffect
-}
-
-internal class DatasourceEffectHandler(
-    private val useCase: NewFeatureUseCase,
-) : MateEffectHandler<Msg, Effect> {
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
-        when (val eff = effect as? DatasourceEffect) {
-            is DatasourceEffect.FetchData -> {
-                withContext(Dispatchers.IO) {
-                    useCase.getData().let { Msg.DataLoaded(it) }
-                }
-            }
-            null -> Msg.Empty
-        }.let(consumer)
-    }
-}
-```
-
-### Шаг 4: Создать ViewModel
-
-```kotlin
-// NewFeatureViewModel.kt
-class NewFeatureViewModel(
-    useCase: NewFeatureUseCase,
-) : ViewModel(), MateStateHolder<NewFeatureState, Msg> {
-
-    private val stateHolder = Mate(
-        initState = NewFeatureState(),
-        initEffects = setOf(DatasourceEffect.FetchData),
-        coroutineScope = viewModelScope,
-        reducer = NewFeatureReducer(),
-        effectHandlerSet = setOf(DatasourceEffectHandler(useCase))
+    WordCardScreen(
+        state = state,
+        sendMessage = { viewModel.accept(it) },
     )
+}
+```
 
-    override val state = stateHolder.state
-    override fun accept(message: Msg) = stateHolder.accept(message)
+- `key = ...` нужен только если экран принимает id-аргумент и должен пересоздаваться при его смене.
+- `viewModelFactory { ... }` — helper в `me.apomazkin.di`.
+- Composable НЕ принимает `onBackPress` callback. Системная back — через `BackHandler { sendMessage(Msg.RequestBack) }` во внутреннем composable.
 
-    class Factory(private val useCase: NewFeatureUseCase) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            NewFeatureViewModel(useCase) as T
+## CompositionRootImpl
+
+Единственное место, где Factory из Dagger встречается с навигационными callbacks из RootRouter:
+
+```kotlin
+class CompositionRootImpl(
+    private val wordCardViewModelFactory: WordCardViewModel.Factory,
+    // ... остальные Factory
+) : CompositionRoot {
+    @Composable
+    override fun WordCardScreenDep(wordId: Long, onBackPress: () -> Unit) {
+        val navigator = remember(onBackPress) { WordCardNavigatorImpl(onBackPress) }
+        WordCardScreen(
+            wordId = wordId,
+            factory = wordCardViewModelFactory,
+            navigator = navigator,
+        )
     }
 }
 ```
 
-### Шаг 5: Создать Screen Composable
+`remember(onBackPress)` обязателен — без него NavigatorImpl пересоздаётся на каждой рекомпозиции, ломая стабильность параметра `navigator`.
+
+## MainRouter / RootRouter
+
+Composable в navigation graph достаёт Factory из `appComponent` и передаёт в CompositionRootImpl или прямо в screen:
 
 ```kotlin
-// NewFeatureScreen.kt
-@Composable
-fun NewFeatureScreen(
-    useCase: NewFeatureUseCase,
-    viewModel: NewFeatureViewModel = viewModel(
-        factory = NewFeatureViewModel.Factory(useCase)
-    ),
-) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    NewFeatureScreen(state) { viewModel.accept(it) }
-}
-
-@Composable
-internal fun NewFeatureScreen(
-    state: NewFeatureState,
-    sendMessage: (Msg) -> Unit,
-) {
-    // Чистый UI
+composable(RootPoint.DICTIONARY_LIST.route) {
+    val listNavigator = remember(navController) {
+        ListNavigatorImpl(navController, onExit = onExitApp)
+    }
+    DictionaryListScreen(
+        factory = context.appComponent.getDictionaryListViewModelFactory(),
+        navigator = listNavigator,
+    )
 }
 ```
 
-### Шаг 6: Зарегистрировать в DI
+## Добавление нового экрана: чек-лист
 
-```kotlin
-// di/NewFeatureModule.kt
-@Module
-interface NewFeatureModule {
-    @Binds
-    fun bindUseCase(impl: NewFeatureUseCaseImpl): NewFeatureUseCase
-}
-```
+1. **Создать UseCase** (если нужен) — интерфейс в screen модуле, реализация в app, `@Binds` в feature модуле.
 
-Добавить в `AppComponent`:
-```kotlin
-@Component(modules = [..., NewFeatureModule::class])
-interface AppComponent {
-    fun getNewFeatureUseCase(): NewFeatureUseCase
-}
-```
+2. **Создать Navigator** — `interface XxxNavigator : Navigator { fun openYyy(...) }` в screen модуле.
 
-### Шаг 7: Добавить навигационный маршрут
+3. **Создать sealed `XxxNavigationEffect : NavigationEffect`** (если есть свои навигационные эффекты помимо `Back`).
 
-В соответствующем роутере добавить composable destination с зависимостями из `appComponent`.
+4. **Создать handlers:**
+   - `DatasourceEffectHandler @Inject constructor` extends `MateTypedEffectHandler<Msg, EffectType>`
+   - `XxxNavigationEffectHandler @AssistedInject constructor(@Assisted navigator)` extends `MateNavigationEffectHandler<Msg>(navigator)` + `@AssistedFactory`
+
+5. **ViewModel:**
+   - `@AssistedInject constructor(@Assisted navigator, ..., navHandlerFactory: XxxNavigationEffectHandler.Factory)`
+   - `@AssistedFactory interface Factory { fun create(navigator: XxxNavigator): XxxViewModel }`
+
+6. **Composable:**
+   - Параметры: `factory: XxxViewModel.Factory, navigator: XxxNavigator`
+   - `viewModel(factory = viewModelFactory { factory.create(navigator) })`
+   - `BackHandler { sendMessage(Msg.RequestBack) }` во внутреннем composable
+
+7. **NavigatorImpl** в `app/.../navigator/`:
+   - `class XxxNavigatorImpl(navController, callbacks): XxxNavigator`
+   - `navController.navigate(...) { launchSingleTop = true }`
+
+8. **DI:**
+   - `@Binds` UseCase в feature module (если есть)
+   - `fun getXxxViewModelFactory(): XxxViewModel.Factory` на AppComponent
+   - Добавить параметр в `CompositionRootImpl` (если экран в табе) и `MainRouter` (или использовать напрямую в `RootRouter`)
+   - В `CompositionRootImpl`: создать Navigator через `remember(...)` и передать в Screen
+
+9. **Тесты:**
+   - Reducer: проверять `NavigationEffect.Back` / `XxxNavigationEffect.OpenYyy` через `assertSingleEffect`
+   - Handlers: Navigator интерфейс легко мокается
+
+## Что НЕ делать
+
+- **Не создавать ручной `ViewModelProvider.Factory`** — только AssistedFactory от Dagger.
+- **Не использовать `@IntoMap @ViewModelKey`** — устаревший паттерн, удалён из проекта.
+- **Не принимать `onBackPress: () -> Unit` в screen composable** — навигация через `BackHandler` + `Msg.RequestBack` → reducer → `NavigationEffect.Back`.
+- **Не достать `appComponent` внутри screen composable** — Factory приходит параметром через CompositionRoot.
+- **Не хранить `closeScreen: Boolean` в state** — навигация это эффект, не флаг.

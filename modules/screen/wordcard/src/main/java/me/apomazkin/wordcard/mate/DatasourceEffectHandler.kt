@@ -3,11 +3,12 @@ package me.apomazkin.wordcard.mate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateEffectHandler
+import me.apomazkin.mate.MateTypedEffectHandler
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import me.apomazkin.wordcard.entity.Lexeme
+import javax.inject.Inject
 
-internal sealed interface DatasourceEffect : Effect {
+sealed interface DatasourceEffect : Effect {
 
     data class LoadWord(
         val wordId: Long
@@ -51,98 +52,62 @@ internal sealed interface DatasourceEffect : Effect {
     ) : DatasourceEffect
 }
 
-internal class DatasourceEffectHandler(
+class DatasourceEffectHandler @Inject constructor(
     private val wordCardUseCase: WordCardUseCase,
-) : MateEffectHandler<Msg, Effect> {
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
-        when (val eff = effect as? DatasourceEffect) {
-            is DatasourceEffect.LoadWord -> {
-                withContext(Dispatchers.IO) {
-                    wordCardUseCase.getTermById(eff.wordId).let { term ->
-                        term?.let {
-                            Msg.WordLoaded(it)
-                        } ?: Msg.WordNotFound
-                    }
-                }
-            }
-            is DatasourceEffect.RemoveWord -> {
-                withContext(Dispatchers.IO) {
-                    wordCardUseCase.deleteWord(eff.wordId).let {
-                        Msg.NavigateBack
-                    }
-                }
-            }
-            is DatasourceEffect.UpdateWord -> {
-                withContext(Dispatchers.IO) {
-                    wordCardUseCase.updateWord(eff.wordId, eff.value).let {
-                        Msg.LoadingWord
-                    }
-                }
-            }
-            is DatasourceEffect.CreateLexeme -> {
-                withContext(Dispatchers.IO) {
-                    wordCardUseCase.addLexeme(eff.wordId).let { lexeme: Lexeme? ->
-                        lexeme
-                            ?.let { Msg.RefreshLexeme(it) }
-                            ?: throw IllegalStateException("Lexeme not found")
-                    }
-                }
-            }
+) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
 
-            is DatasourceEffect.UpdateLexemeTranslation -> {
-                withContext(Dispatchers.IO) {
-                    val lexemeId = if (eff.lexemeId > -1) eff.lexemeId else null
-                    wordCardUseCase.addLexemeTranslation(
-                        wordId = eff.wordId,
-                        lexemeId = lexemeId,
-                        translation = eff.translation
-                    ).let { lexeme: Lexeme? ->
-                        lexeme
-                            ?.let { Msg.RefreshTranslation(it) }
-                            ?: throw IllegalStateException("Lexeme not found")
-                    }
-                }
-            }
+    override fun filter(effect: Effect): DatasourceEffect? = effect as? DatasourceEffect
 
-            is DatasourceEffect.UpdateLexemeDefinition -> {
-                withContext(Dispatchers.IO) {
-                    val lexemeId = if (eff.lexemeId > -1) eff.lexemeId else null
-                    wordCardUseCase.addLexemeDefinition(
-                        wordId = eff.wordId,
-                        lexemeId = lexemeId,
-                        definition = eff.definition
-                    ).let { lexeme: Lexeme? ->
-                        lexeme
-                            ?.let { Msg.RefreshDefinition(it) }
-                            ?: throw IllegalStateException("Lexeme not found")
-                    }
-                }
+    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
+        val msg: Msg = when (effect) {
+            is DatasourceEffect.LoadWord -> withContext(Dispatchers.IO) {
+                wordCardUseCase.getTermById(effect.wordId)?.let { Msg.WordLoaded(it) }
+                    ?: Msg.WordNotFound
             }
-
-            is DatasourceEffect.RemoveTranslation -> {
-                withContext(Dispatchers.IO) {
-                    wordCardUseCase.deleteLexemeTranslation(eff.lexemeId).let {
-                        Msg.LoadingWord
-                    }
-                }
+            is DatasourceEffect.RemoveWord -> withContext(Dispatchers.IO) {
+                wordCardUseCase.deleteWord(effect.wordId)
+                Msg.NavigateBack
             }
-
-            is DatasourceEffect.RemoveDefinition -> {
-                withContext(Dispatchers.IO) {
-                    wordCardUseCase.deleteLexemeDefinition(eff.lexemeId).let {
-                        Msg.LoadingWord
-                    }
-                }
+            is DatasourceEffect.UpdateWord -> withContext(Dispatchers.IO) {
+                wordCardUseCase.updateWord(effect.wordId, effect.value)
+                Msg.LoadingWord
             }
-
-            is DatasourceEffect.RemoveLexeme -> {
-                withContext(Dispatchers.IO) {
-                    wordCardUseCase.deleteLexeme(eff.lexemeId).let {
-                        Msg.LoadingWord
-                    }
-                }
+            is DatasourceEffect.CreateLexeme -> withContext(Dispatchers.IO) {
+                wordCardUseCase.addLexeme(effect.wordId)
+                    ?.let { Msg.RefreshLexeme(it) }
+                    ?: throw IllegalStateException("Lexeme not found")
             }
-            null -> Msg.NoOperation
-        }.let(consumer)
+            is DatasourceEffect.UpdateLexemeTranslation -> withContext(Dispatchers.IO) {
+                val lexemeId = if (effect.lexemeId > -1) effect.lexemeId else null
+                wordCardUseCase.addLexemeTranslation(
+                    wordId = effect.wordId,
+                    lexemeId = lexemeId,
+                    translation = effect.translation,
+                )?.let { Msg.RefreshTranslation(it) }
+                    ?: throw IllegalStateException("Lexeme not found")
+            }
+            is DatasourceEffect.UpdateLexemeDefinition -> withContext(Dispatchers.IO) {
+                val lexemeId = if (effect.lexemeId > -1) effect.lexemeId else null
+                wordCardUseCase.addLexemeDefinition(
+                    wordId = effect.wordId,
+                    lexemeId = lexemeId,
+                    definition = effect.definition,
+                )?.let { Msg.RefreshDefinition(it) }
+                    ?: throw IllegalStateException("Lexeme not found")
+            }
+            is DatasourceEffect.RemoveTranslation -> withContext(Dispatchers.IO) {
+                wordCardUseCase.deleteLexemeTranslation(effect.lexemeId)
+                Msg.LoadingWord
+            }
+            is DatasourceEffect.RemoveDefinition -> withContext(Dispatchers.IO) {
+                wordCardUseCase.deleteLexemeDefinition(effect.lexemeId)
+                Msg.LoadingWord
+            }
+            is DatasourceEffect.RemoveLexeme -> withContext(Dispatchers.IO) {
+                wordCardUseCase.deleteLexeme(effect.lexemeId)
+                Msg.LoadingWord
+            }
+        }
+        consumer(msg)
     }
 }

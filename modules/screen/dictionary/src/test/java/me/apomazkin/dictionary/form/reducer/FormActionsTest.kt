@@ -1,6 +1,7 @@
 package me.apomazkin.dictionary.form.reducer
 
 import me.apomazkin.dictionary.form.DictionaryFormEffect
+import me.apomazkin.dictionary.form.FlagFilterEffect
 import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.dictionary.form.DictionaryFormMsg
 import me.apomazkin.dictionary.form.DictionaryFormReducer
@@ -109,8 +110,8 @@ class FormActionsTest {
         )
 
         assertEquals("flagFilter should be empty", "", result.state().flagFilter)
-        result.assertSingleEffect<DictionaryFormEffect.FilterFlags>()
-        val effect = result.effects().first() as DictionaryFormEffect.FilterFlags
+        result.assertSingleEffect<FlagFilterEffect.FilterFlags>()
+        val effect = result.effects().first() as FlagFilterEffect.FilterFlags
         assertEquals("effect query should be empty", "", effect.query)
     }
 
@@ -122,8 +123,8 @@ class FormActionsTest {
         )
 
         assertEquals("flagFilter should be spa", "spa", result.state().flagFilter)
-        result.assertSingleEffect<DictionaryFormEffect.FilterFlags>()
-        val effect = result.effects().first() as DictionaryFormEffect.FilterFlags
+        result.assertSingleEffect<FlagFilterEffect.FilterFlags>()
+        val effect = result.effects().first() as FlagFilterEffect.FilterFlags
         assertEquals("effect query should be spa", "spa", effect.query)
     }
 

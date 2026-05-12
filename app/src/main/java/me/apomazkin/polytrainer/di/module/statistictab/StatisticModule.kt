@@ -6,7 +6,7 @@ import me.apomazkin.stattab.deps.StatisticUseCase
 
 @Module
 interface StatisticModule {
-    
+
     @Binds
     fun bindStatisticTabUseCase(impl: StatisticUseCaseImpl): StatisticUseCase
 }

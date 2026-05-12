@@ -5,6 +5,13 @@
 
 ---
 
+## Общие
+
+- Доменная модель (entity, Room, API контракты)
+- [Навигация](navigation.md)
+- [DI — принципы графа](dagger-di-principles.md)
+- [Логирование](logger.md)
+
 ## По экранам
 
 - Словари
@@ -24,9 +31,3 @@
 
 - [DictionaryAppBar](dictionary-appbar.md)
 - [FlagPlaceholderWidget](flag-placeholder-widget.md)
-
-## Общие
-
-- Доменная модель (entity, Room, API контракты)
-- Навигация
-- DI

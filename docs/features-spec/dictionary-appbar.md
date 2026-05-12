@@ -1,6 +1,6 @@
 # Dictionary AppBar — Спецификация
 
-Виджет выбора текущего словаря, встраивается в AppBar вкладок (quiz tab, dictionary tab).
+Виджет выбора текущего словаря, встраивается в AppBar вкладок (vocabulary tab, quiz tab, statistic tab).
 
 ---
 
@@ -32,7 +32,7 @@
 
 ### Список словарей
 
-`flowAvailableDict()` — Room Flow на таблицу словарей. Авт��матически обновляется при любых CRUD-операциях со словарями.
+`flowAvailableDict()` — Room Flow на таблицу словарей. Автоматически обновляется при любых CRUD-операциях со словарями.
 
 ### Текущий словарь
 
@@ -49,7 +49,7 @@
 - Тап на иконку → раскрытие меню
 - Элементы: список словарей (флаг + название, выделение текущего)
 - Разделитель
-- "Создать словарь" → навигация к DICTIONARY_CREATE route
+- "Создать словарь" → эмитит `Msg.OpenDictionaryCreate` → `DictionaryAppBarNavigationEffect.OpenDictionaryCreate` → `Navigator.openDictionaryCreate()`
 - Выбор словаря → переключение текущего → меню закрывается
 
 ---
@@ -59,10 +59,12 @@
 | Message | Действие |
 |---------|----------|
 | `AvailableDict(list)` | Обновить список словарей, скрыть loading |
-| `CurrentDict(current)` | Обновить текущий слова��ь |
+| `CurrentDict(current)` | Обновить текущий словарь |
 | `ChangeDict(dict)` | Закрыть меню, отправить эффект смены словаря |
 | `DictMenuOn` | Открыть dropdown |
 | `DictMenuOff` | Закрыть dropdown |
+| `OpenDictionaryCreate` | Эмитить навигационный эффект на экран создания |
+| `Empty` | No-op |
 
 ---
 
@@ -70,13 +72,31 @@
 
 | Effect | Действие |
 |--------|----------|
-| `ChangeDict(dict)` | Записать новый ID в SharedPreferences |
+| `DatasourceEffect.ChangeDict(dict)` | Записать новый ID в SharedPreferences |
+| `DictionaryAppBarNavigationEffect.OpenDictionaryCreate` | Дёрнуть `DictionaryAppBarNavigator.openDictionaryCreate()` |
+| `NavigationEffect.Back` | Базовый — для shared widget no-op |
 
 ---
 
-## Зав��симости
+## Navigator
+
+Widget — shared между 3 табами с одинаковой навигацией. Один интерфейс на все табы:
+
+```kotlin
+interface DictionaryAppBarNavigator : Navigator {
+    fun openDictionaryCreate()
+}
+```
+
+`back()` для shared widget — no-op (управление back-кнопкой делает хост-экран). Реализация `DictionaryAppBarNavigatorImpl` в `app/.../navigator/` — получает `onOpenDictionaryCreate: () -> Unit` callback от RootRouter и дёргает его в `openDictionaryCreate()`. В `CompositionRootImpl` навигатор создаётся для каждого таба отдельно через `remember(openDictionaryCreate)`.
+
+---
+
+## Зависимости
 
 - `DictionaryAppBarUseCase` — интерфейс доступа к данным
+- `DictionaryAppBarNavigator` — навигация (через `@Assisted` в ViewModel)
+- `LexemeLogger` — логирование
 - `CountryProvider` — резолв `numericCode → flagRes`
 - `PrefsProvider` — хранение ID текущего словаря
 - `CoreDbApi.DictionaryApi` — доступ к словарям (Room)
