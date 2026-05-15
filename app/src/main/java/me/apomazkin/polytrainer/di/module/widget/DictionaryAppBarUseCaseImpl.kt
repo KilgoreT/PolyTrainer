@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
-import me.apomazkin.dictionarytab.deps.DictionaryNotFoundException
 import me.apomazkin.flags.CountryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
@@ -29,11 +28,12 @@ class DictionaryAppBarUseCaseImpl @Inject constructor(
                 }
             }
 
-    override fun flowCurrentDict(): Flow<DictUiEntity> {
+    override fun flowCurrentDict(): Flow<DictUiEntity?> {
         return combine(
                 prefsProvider.getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG),
                 dictionaryApi.flowDictionaryList()
         ) { id, list ->
+            // null если list пуст — валидное доменное состояние (IS476)
             (list.find { it.id == id } ?: list.firstOrNull())
                     ?.let { dict ->
                         DictUiEntity(
@@ -43,7 +43,6 @@ class DictionaryAppBarUseCaseImpl @Inject constructor(
                                 numericCode = dict.numericCode ?: 0,
                         )
                     }
-                    ?: throw DictionaryNotFoundException()
         }
     }
 

@@ -26,7 +26,16 @@ class VocabularyTabReducer(
                 VocabularyNavigationEffect.OpenWordCard(message.wordId)
             )
 
-            is Msg.SelectDictionary -> state to setOf(LoadTermFlow())
+            is Msg.SelectDictionary -> if (message.current == null) {
+                // IS476: словарь отсутствует — переходим в пустое состояние таба.
+                // Не запускаем LoadTermFlow (внутри был бы NPE на .id.toInt()).
+                state.markNoDictionary() to emptySet()
+            } else {
+                // IS476: словарь появился (новый или переход null → non-null).
+                // showLoading() перед LoadTermFlow — симметрично hideLoading() в Msg.TermsLoaded,
+                // чтобы UI не моргал пустым WordListWidget с устаревшим termList.
+                state.markDictionaryPresent().showLoading() to setOf(LoadTermFlow())
+            }
 
             is Msg.TermsLoaded -> state
                 .hideLoading()

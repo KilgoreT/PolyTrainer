@@ -37,6 +37,8 @@ import java.util.Date
  * 15. Standard case: UI сообщения (LifeCycle)
  * 16. Standard case: полный сценарий добавления слова
  * 17. Standard case: полный сценарий изменения слова
+ * 19. Boundary case: SelectDictionary(null) → hasNoDictionary=true, no effects (IS476)
+ * 20. Standard case: SelectDictionary(non-null) после null → markDictionaryPresent + showLoading + LoadTermFlow (IS476)
  */
 class VocabularyTabReducerKtTest {
 
@@ -152,23 +154,71 @@ class VocabularyTabReducerKtTest {
      */
     @Test
     fun `should trigger term flow load when ChangeDict is received`() {
-        // Test case 2: Standard case - смена словаря
+        // Test case 2: Standard case - смена словаря (non-null)
+        // IS476: при non-null словаре reducer вызывает markDictionaryPresent()
+        // и showLoading() перед LoadTermFlow — UI должен видеть прогресс,
+        // а не пустой WordListWidget с устаревшим termList.
         // Given
-        val initialState = createTestState()
-        
+        val initialState = createTestState(isLoading = false)
+
         // When
         val result = reducer.testReduce(initialState, Msg.SelectDictionary(current = testDictEntity))
-        
+
         // Then
         // Main functionality check
         result.assertEffectsCount(1, "Should have exactly 1 effect")
         result.assertSingleEffect<DatasourceEffect.LoadTermFlow>("Should have LoadTermFlow effect")
-        
-        // Immutability checks - state should remain unchanged
-        assertEquals(
-            "State should remain unchanged",
-            initialState,
-            result.state()
+
+        // hasNoDictionary должен быть сброшен (markDictionaryPresent)
+        assertFalse("hasNoDictionary should be false", result.state().hasNoDictionary)
+        // isLoading=true → симметрично hideLoading() в Msg.TermsLoaded
+        assertTrue("isLoading should be true before LoadTermFlow", result.state().isLoading)
+    }
+
+    // ==================== СЦЕНАРИЙ 19/20: IS476 — nullable SelectDictionary ====================
+
+    /**
+     * Сценарий 19: SelectDictionary(null) — удалили все словари.
+     * Reducer не запускает LoadTermFlow (внутри был бы NPE на .id.toInt()).
+     * Выставляется флаг hasNoDictionary, isLoading сбрасывается.
+     */
+    @Test
+    fun `should mark hasNoDictionary and emit no effects when SelectDictionary with null received`() {
+        // Test case 19: Boundary - реактивно получили null от flowCurrentDict
+        // Given
+        val initialState = createTestState(isLoading = true)
+
+        // When
+        val result = reducer.testReduce(initialState, Msg.SelectDictionary(current = null))
+
+        // Then
+        assertTrue("hasNoDictionary should be true", result.state().hasNoDictionary)
+        assertFalse("isLoading should be cleared", result.state().isLoading)
+        result.assertNoEffects("No effects — LoadTermFlow must NOT be triggered for null dict")
+    }
+
+    /**
+     * Сценарий 20: SelectDictionary(non-null) после null — пользователь создал
+     * новый словарь после удаления всех. Reducer должен:
+     *  - сбросить hasNoDictionary,
+     *  - явно поставить isLoading=true (showLoading) перед LoadTermFlow,
+     *  - запустить LoadTermFlow.
+     * См. 06_design_tree.md, узел #14, Minor 1.
+     */
+    @Test
+    fun `should clear hasNoDictionary, set isLoading and emit LoadTermFlow when SelectDictionary with dict received after null`() {
+        // Test case 20: Standard - переход null → non-null без UI-моргания
+        // Given: state как после удаления всех словарей
+        val initialState = createTestState(isLoading = false).copy(hasNoDictionary = true)
+
+        // When: словарь появился (новый или восстановлен)
+        val result = reducer.testReduce(initialState, Msg.SelectDictionary(current = testDictEntity))
+
+        // Then
+        assertFalse("hasNoDictionary should be cleared", result.state().hasNoDictionary)
+        assertTrue("isLoading should be set true before LoadTermFlow", result.state().isLoading)
+        result.assertSingleEffect<DatasourceEffect.LoadTermFlow>(
+            "LoadTermFlow effect expected when transitioning from null to non-null"
         )
     }
 

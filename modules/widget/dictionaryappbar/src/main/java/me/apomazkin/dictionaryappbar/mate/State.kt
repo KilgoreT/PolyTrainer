@@ -26,7 +26,7 @@ fun DictionaryAppBarState.availableDictList(list: List<DictUiEntity>) = this.cop
         availableDictList = list,
 )
 
-fun DictionaryAppBarState.currentDict(current: DictUiEntity) = this.copy(
+fun DictionaryAppBarState.currentDict(current: DictUiEntity?) = this.copy(
         currentDict = current,
 )
 

@@ -40,8 +40,10 @@ class DatasourceEffectHandler @Inject constructor(
     override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
         pagingScope = scope
         scope.launch {
-            dictionaryTabUseCase.flowCurrentDict().collectLatest {
-                send(Msg.SelectDictionary(current = it))
+            // IS476: flowCurrentDict() теперь Flow<DictUiEntity?> — null проходит
+            // как валидное доменное состояние, reducer обработает в Msg.SelectDictionary.
+            dictionaryTabUseCase.flowCurrentDict().collectLatest { dict ->
+                send(Msg.SelectDictionary(current = dict))
             }
         }
     }
@@ -53,18 +55,24 @@ class DatasourceEffectHandler @Inject constructor(
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         val msg = when (val eff = effect as? DatasourceEffect) {
             is DatasourceEffect.LoadTermFlow -> withContext(Dispatchers.IO) {
-                val dictionaryId = dictionaryTabUseCase.getCurrentDict().id.toInt()
-                val pagingFlow = dictionaryTabUseCase.searchTerms(
-                        pattern = eff.pattern,
-                        dictionaryId = dictionaryId,
-                ).let { flow ->
-                    val scope = pagingScope
-                    if (eff.pattern.isEmpty() && scope != null) flow.cachedIn(scope) else flow
+                // IS476: getCurrentDict() теперь nullable — страхуемся на случай race,
+                // когда reducer уже отфильтровал null, но эффект мог быть "в пути".
+                val dictionaryId = dictionaryTabUseCase.getCurrentDict()?.id?.toInt()
+                if (dictionaryId == null) {
+                    Msg.NoOperation
+                } else {
+                    val pagingFlow = dictionaryTabUseCase.searchTerms(
+                            pattern = eff.pattern,
+                            dictionaryId = dictionaryId,
+                    ).let { flow ->
+                        val scope = pagingScope
+                        if (eff.pattern.isEmpty() && scope != null) flow.cachedIn(scope) else flow
+                    }
+                    Msg.TermsLoaded(
+                            pattern = eff.pattern,
+                            termList = pagingFlow,
+                    )
                 }
-                Msg.TermsLoaded(
-                        pattern = eff.pattern,
-                        termList = pagingFlow,
-                )
             }
 
             is DatasourceEffect.CreateWord -> withContext(Dispatchers.IO) {

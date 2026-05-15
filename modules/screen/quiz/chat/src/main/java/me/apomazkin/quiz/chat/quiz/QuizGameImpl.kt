@@ -172,6 +172,13 @@ class QuizGameImpl @javax.inject.Inject constructor(
 
     private suspend fun fetchData(): List<QuizItem> {
         val dictionaryId = quizChatUseCase.getCurrentDictionaryId()
+        if (dictionaryId == null) {
+            // IS476: словарь отсутствует — возвращаем пустой список квизов.
+            // Дальше loadData → hasNextQuestion → false (IS461: пустой quizList
+            // не крашит, сразу заканчивает сессию).
+            logger.w(tag = LogTags.CHAT, message = "fetchData: no current dictionary (null id)")
+            return emptyList()
+        }
         return quizChatUseCase.getRandomWriteQuizList(
                 dictionaryId = dictionaryId,
                 limit = maxStepInSession,

@@ -62,7 +62,14 @@ class DictionaryUseCaseImpl @Inject constructor(
         val currentId = prefsProvider.getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG)
         if (currentId == id) {
             val remaining = dictionaryApi.getDictionaryList().firstOrNull()
-            remaining?.let { setCurrentDictionary(it.id) }
+            if (remaining != null) {
+                setCurrentDictionary(remaining.id)
+            } else {
+                // IS476: нет оставшихся словарей — чистим orphaned pref,
+                // иначе следующие читатели CURRENT_DICTIONARY_ID_LONG получат
+                // ссылку на удалённый id и упадут на fallback'ах.
+                prefsProvider.setLong(PrefKey.CURRENT_DICTIONARY_ID_LONG, null)
+            }
         }
     }
 
