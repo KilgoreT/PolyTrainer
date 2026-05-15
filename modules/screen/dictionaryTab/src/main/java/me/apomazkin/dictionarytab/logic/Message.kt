@@ -16,9 +16,10 @@ sealed interface Msg {
 
     /**
      * Message to select and activate a dictionary for word operations.
-     * @param current The dictionary entity to be selected as active.
+     * IS476: nullable — null = реактивно получили "нет словаря".
+     * @param current The dictionary entity to be selected as active, or null if no dictionaries.
      */
-    data class SelectDictionary(val current: DictUiEntity) : Msg
+    data class SelectDictionary(val current: DictUiEntity?) : Msg
 
     /**
      * Message indicating that terms data has been loaded from the repository.

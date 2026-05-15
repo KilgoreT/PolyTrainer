@@ -17,6 +17,7 @@ import me.apomazkin.mate.EMPTY_STRING
 @Immutable
 data class DictionaryTabState(
         val isLoading: Boolean = true,
+        val hasNoDictionary: Boolean = false,
         val topBarState: TopBarState = TopBarState(),
         val termList: TermsSource = TermsSource(pattern = ""),
         val termListMap: Map<String, Flow<PagingData<TermUiItem>>> = emptyMap(),
@@ -82,6 +83,20 @@ fun DictionaryTabState.showLoading(): DictionaryTabState =
 
 fun DictionaryTabState.hideLoading(): DictionaryTabState =
         this.copy(isLoading = false)
+
+/**
+ * IS476: словарь отсутствует — пустое состояние таба.
+ * Выставляем флаг и гасим прогресс-индикатор, чтобы UI не висел в Loading.
+ */
+fun DictionaryTabState.markNoDictionary(): DictionaryTabState =
+        this.copy(hasNoDictionary = true, isLoading = false)
+
+/**
+ * IS476: словарь снова появился — сбрасываем флаг "нет словаря".
+ * Возврат isLoading отдельным вызовом showLoading() (см. VocabularyTabReducer).
+ */
+fun DictionaryTabState.markDictionaryPresent(): DictionaryTabState =
+        this.copy(hasNoDictionary = false)
 
 /**
  * ###### UPDATE TERMS FLOW ######

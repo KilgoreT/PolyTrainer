@@ -41,9 +41,14 @@ class PrefsProvider(
         return context.dataStore.data.firstOrNull()?.get(longPreferencesKey(prefKey.value))
     }
 
-    suspend fun setLong(prefKey: PrefKey, value: Long) {
+    suspend fun setLong(prefKey: PrefKey, value: Long?) {
         context.dataStore.edit {
-            it[longPreferencesKey(prefKey.value)] = value
+            val key = longPreferencesKey(prefKey.value)
+            if (value == null) {
+                it.remove(key)
+            } else {
+                it[key] = value
+            }
         }
     }
 

@@ -8,7 +8,7 @@
 
 - Открывается из списка словарей (тап на элемент = редактирование, "Новый словарь" = создание)
 - Или напрямую через route DICTIONARY_CREATE (из dropdown AppBar)
-- Также через `DICTIONARY_SETUP` route — первое создание словаря после splash, без AppBar (`showAppBar = false`)
+- Также через `DICTIONARY_SETUP` route — создание словаря после splash, без AppBar (`showAppBar = false`). Этот режим активируется при любом запуске, когда в БД нет ни одного словаря — как при самом первом запуске, так и после того, как пользователь удалил все словари и закрыл приложение (см. `dictionary-list.md`, user-journey пустого списка). С точки зрения пользователя такой запуск — онбординг создания первого словаря.
 - Route с параметром `editId` — optional, если есть = редактирование
 - Вся навигация через `NavigationEffect.Back` → `FormNavigationEffectHandler` (наследует `MateNavigationEffectHandler`) → `FormNavigator.back()` → `FormNavigatorImpl` в `app/.../navigator/`. Для SETUP-флоу `FormNavigatorImpl` дёргает `openMainScreen()`; для CREATE — `popBackStack()`
 

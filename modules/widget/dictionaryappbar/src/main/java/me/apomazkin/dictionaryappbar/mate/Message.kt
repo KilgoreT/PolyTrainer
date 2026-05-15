@@ -13,8 +13,9 @@ sealed interface Msg {
 
     /**
      * Message to setup current dictionary.
+     * IS476: nullable — null = словаря нет (все удалены).
      */
-    data class CurrentDict(val current: DictUiEntity) : Msg
+    data class CurrentDict(val current: DictUiEntity?) : Msg
 
     /**
      * Message to change current dictionary.

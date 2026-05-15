@@ -11,11 +11,11 @@ import kotlinx.coroutines.test.runTest
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
-import me.apomazkin.dictionarytab.deps.DictionaryNotFoundException
 import me.apomazkin.flags.CountryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import java.util.Date
@@ -28,7 +28,7 @@ import java.util.Date
  * 2. Standard: emits updated dict when dictionary data changes (flag change) without ID change
  * 3. Standard: emits new dict when prefs ID changes
  * 4. Fallback: emits first dict from list when prefs ID not found in list
- * 5. Error: throws DictionaryNotFoundException when list is empty
+ * 5. Boundary: emits null when list is empty (IS476 — no throw)
  * 6. Standard: maps numericCode to flagRes via CountryProvider
  * 7. Standard: flagRes=0 when numericCode is null
  *
@@ -80,23 +80,23 @@ class DictionaryAppBarUseCaseImplTest {
     fun `flowCurrentDict emits current dict matching prefs ID`() = runTest {
         val result = useCase.flowCurrentDict().first()
 
-        assertEquals(1L, result.id)
-        assertEquals("English", result.title)
-        assertEquals(100, result.flagRes)
-        assertEquals(826, result.numericCode)
+        assertEquals(1L, result?.id)
+        assertEquals("English", result?.title)
+        assertEquals(100, result?.flagRes)
+        assertEquals(826, result?.numericCode)
     }
 
     @Test
     fun `flowCurrentDict emits updated dict when dictionary data changes without ID change`() =
         runTest {
-            val results = mutableListOf<DictUiEntity>()
+            val results = mutableListOf<DictUiEntity?>()
             val job = launch(UnconfinedTestDispatcher(testScheduler)) {
                 useCase.flowCurrentDict().collect { results.add(it) }
             }
 
             // Initial emission
             assertEquals(1, results.size)
-            assertEquals(100, results[0].flagRes)
+            assertEquals(100, results[0]?.flagRes)
 
             // Simulate flag change: English dict gets new numericCode (flag changed)
             val updatedEn = dictEn.copy(numericCode = 276) // Germany
@@ -105,30 +105,30 @@ class DictionaryAppBarUseCaseImplTest {
 
             // Should emit again with updated flag
             assertEquals(2, results.size)
-            assertEquals(300, results[1].flagRes)
-            assertEquals(276, results[1].numericCode)
+            assertEquals(300, results[1]?.flagRes)
+            assertEquals(276, results[1]?.numericCode)
 
             job.cancel()
         }
 
     @Test
     fun `flowCurrentDict emits new dict when prefs ID changes`() = runTest {
-        val results = mutableListOf<DictUiEntity>()
+        val results = mutableListOf<DictUiEntity?>()
         val job = launch(UnconfinedTestDispatcher(testScheduler)) {
             useCase.flowCurrentDict().collect { results.add(it) }
         }
 
         // Initial
         assertEquals(1, results.size)
-        assertEquals(1L, results[0].id)
+        assertEquals(1L, results[0]?.id)
 
         // Switch to Spanish
         prefsFlow.value = 2L
 
         assertEquals(2, results.size)
-        assertEquals(2L, results[1].id)
-        assertEquals("Spanish", results[1].title)
-        assertEquals(200, results[1].flagRes)
+        assertEquals(2L, results[1]?.id)
+        assertEquals("Spanish", results[1]?.title)
+        assertEquals(200, results[1]?.flagRes)
 
         job.cancel()
     }
@@ -139,16 +139,19 @@ class DictionaryAppBarUseCaseImplTest {
 
         val result = useCase.flowCurrentDict().first()
 
-        assertEquals(dictEn.id, result.id)
-        assertEquals("English", result.title)
+        assertEquals(dictEn.id, result?.id)
+        assertEquals("English", result?.title)
     }
 
-    @Test(expected = DictionaryNotFoundException::class)
-    fun `flowCurrentDict throws DictionaryNotFoundException when list is empty`() = runTest {
+    @Test
+    fun `flowCurrentDict emits null when list is empty`() = runTest {
+        // IS476: пустой список — валидное доменное состояние, эмит null а не throw.
         dictListFlow.value = emptyList()
         prefsFlow.value = 1L
 
-        useCase.flowCurrentDict().first()
+        val result: DictUiEntity? = useCase.flowCurrentDict().first()
+
+        assertNull("Expected null emission for empty dictionary list", result)
     }
 
     @Test
@@ -157,8 +160,8 @@ class DictionaryAppBarUseCaseImplTest {
 
         val result = useCase.flowCurrentDict().first()
 
-        assertEquals(200, result.flagRes)
-        assertEquals(724, result.numericCode)
+        assertEquals(200, result?.flagRes)
+        assertEquals(724, result?.numericCode)
     }
 
     @Test
@@ -168,8 +171,8 @@ class DictionaryAppBarUseCaseImplTest {
 
         val result = useCase.flowCurrentDict().first()
 
-        assertEquals(0, result.flagRes)
-        assertEquals(0, result.numericCode)
+        assertEquals(0, result?.flagRes)
+        assertEquals(0, result?.numericCode)
     }
 
     // === flowAvailableDict ===
@@ -204,7 +207,7 @@ class DictionaryAppBarUseCaseImplTest {
 
         val result = useCase.flowCurrentDict().first()
 
-        assertEquals(dictEn.id, result.id)
-        assertEquals("English", result.title)
+        assertEquals(dictEn.id, result?.id)
+        assertEquals("English", result?.title)
     }
 }

@@ -36,6 +36,7 @@ import me.apomazkin.dictionarytab.logic.UiMsg
 import me.apomazkin.dictionarytab.logic.processor.toMateEvent
 import me.apomazkin.dictionarytab.tools.DataHelper
 import me.apomazkin.dictionarytab.ui.widget.ConfirmDeleteWordWidget
+import me.apomazkin.dictionarytab.ui.widget.EmptyWidget
 import me.apomazkin.dictionarytab.ui.widget.WordListWidget
 import me.apomazkin.dictionarytab.ui.widget.addWordBottom.AddWordBottomSheetWidget
 import me.apomazkin.dictionarytab.ui.widget.topBar.ActionTopBarWidget
@@ -144,11 +145,14 @@ internal fun DictionaryTabScreen(
                     )
                 }
 
-//                state.isEmpty() -> {
-//                    EmptyWidget()
-//                }
+                state.hasNoDictionary -> {
+                    // IS476: защитная ветка — этот state по дизайну unreachable
+                    // для пользователя (DICTIONARY_LIST — root route, после exit
+                    // приложение перезапускается в SETUP). Защита нужна на случай
+                    // фоновой подписки таба в back stack при удалении всех словарей.
+                    EmptyWidget()
+                }
 
-//                !state.isEmpty() -> {
                 else -> {
                     WordListWidget(
                             modifier = Modifier.padding(top = 20.dp),

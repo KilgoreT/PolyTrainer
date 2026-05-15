@@ -37,7 +37,7 @@ import java.util.Date
  * === deleteDictionary ===
  * 9. Standard: deletes and does not switch current if different dict
  * 10. Standard: deletes current → switches to first remaining
- * 11. Edge: deletes current, no remaining → does not crash
+ * 11. Edge: deletes current, no remaining → clears orphaned pref to null (IS476)
  * 12. Edge: currentId is null in prefs → does not crash
  *
  * === setCurrentDictionary ===
@@ -196,15 +196,16 @@ class DictionaryUseCaseImplTest {
     }
 
     @Test
-    fun `should not crash when current deleted and no remaining`() = runTest {
-        // Test case 11
+    fun `should clear orphaned pref when current deleted and no remaining`() = runTest {
+        // Test case 11: IS476 — после удаления последнего словаря pref не должен
+        // оставаться с orphaned id; setLong(null) явно очищает запись.
         coEvery { prefsProvider.getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG) } returns 5L
         coEvery { dictionaryApi.getDictionaryList() } returns emptyList()
 
         useCase.deleteDictionary(5L)
 
         coVerify { dictionaryApi.deleteDictionary(5L) }
-        coVerify(exactly = 0) { prefsProvider.setLong(any(), any()) }
+        coVerify { prefsProvider.setLong(PrefKey.CURRENT_DICTIONARY_ID_LONG, null) }
     }
 
     @Test

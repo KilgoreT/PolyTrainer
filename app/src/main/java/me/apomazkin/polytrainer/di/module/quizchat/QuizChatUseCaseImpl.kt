@@ -23,7 +23,7 @@ class QuizChatUseCaseImpl @Inject constructor(
     private val prefsProvider: PrefsProvider,
 ) : QuizChatUseCase {
     
-    override suspend fun getCurrentDictionaryId(): Long {
+    override suspend fun getCurrentDictionaryId(): Long? {
         prefsProvider.getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG)
             ?.let { id ->
                 dictionaryApi.getDictionaryById(id)
@@ -39,7 +39,8 @@ class QuizChatUseCaseImpl @Inject constructor(
                     return it.id
                 }
 
-        throw IllegalStateException("Dictionary not found")
+        // IS476: словарь отсутствует — null вместо throw
+        return null
     }
     
     override suspend fun updateWriteQuiz(entity: List<WriteQuizUpsertEntity>): Int {

@@ -1,0 +1,163 @@
+flow: lexeme_bugfix
+started: 2026-05-13T00:01:28Z
+dir: docs/features/IS476_delete_all_dictionaries_crash/
+
+context:
+  ticket: IS476
+  feature_name: delete_all_dictionaries_crash
+  branch: IS476-delete-all-dictionaries-crash
+  mode: manual
+  overlay: docs/forgeflow-overlay
+  workspace:
+    dir_template: "docs/features/{ticket}_{name}/"
+    spec_dir: "docs/features-spec/"
+  needs_spec_update: true
+
+steps:
+  task:
+    status: done
+    model: opus
+    output: 00_task.md
+    finished: 2026-05-13T00:17:57Z
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  triage:
+    status: done
+    model: opus
+    input: [task.output]
+    output: 01_triage.md
+    sets: [needs_spec_update]
+    finished: 2026-05-13T00:35:32Z
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  research:
+    status: done
+    model: opus
+    input: [triage.output]
+    output: 02_research.md
+    finished: 2026-05-13T01:42:43Z
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  update_spec:
+    status: done
+    model: opus
+    input: [research.output, triage.output, task.output]
+    output: 03_update_spec.md
+    if: needs_spec_update
+    finished: 2026-05-13T01:50:31Z
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  solutions:
+    status: done
+    model: opus
+    input: [research.output, triage.output, update_spec.output]
+    output: 04_solutions.md
+    finished: 2026-05-13T01:56:18Z
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  impact_analysis:
+    status: done
+    model: opus
+    input: [solutions.output, research.output, triage.output, update_spec.output]
+    output: 05_impact_analysis.md
+    finished: 2026-05-13T02:03:50Z
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  design_tree:
+    status: done
+    model: opus
+    input: [research.output, solutions.output, impact_analysis.output, update_spec.output]
+    output: 06_design_tree.md
+    if: needs_spec_update
+    finished: 2026-05-13T03:01:08Z
+    review:
+      agents: [architect]
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  test:
+    status: done
+    model: opus
+    input: [solutions.output, impact_analysis.output, research.output, update_spec.output, design_tree.output]
+    output: 07_test.md
+    finished: 2026-05-13T03:32:47Z
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  implement:
+    status: done
+    model: opus
+    input: [test.output, solutions.output, impact_analysis.output, research.output, update_spec.output, design_tree.output]
+    output: 08_implement.md
+    finished: 2026-05-13T06:12:26Z
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  publish_spec:
+    status: done
+    model: opus
+    input: [update_spec.output, implement.output]
+    output: 09_publish_spec.md
+    if: needs_spec_update
+    finished: 2026-05-13T06:16:51Z
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  check:
+    status: done
+    model: opus
+    output: 10_check.md
+    finished: 2026-05-13T06:22:58Z
+    pause: true
+    with:
+      checks: [lint, test, build]
+      logging:
+        phases:
+          - "finalize:after"

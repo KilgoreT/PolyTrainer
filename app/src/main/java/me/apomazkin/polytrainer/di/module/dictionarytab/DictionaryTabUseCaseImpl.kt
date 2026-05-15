@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
-import me.apomazkin.dictionarytab.deps.DictionaryNotFoundException
 import me.apomazkin.dictionarytab.entity.DefinitionUiEntity
 import me.apomazkin.dictionarytab.entity.LexemeUiItem
 import me.apomazkin.dictionarytab.entity.TermUiItem
@@ -25,7 +24,7 @@ class DictionaryTabUseCaseImpl @Inject constructor(
     private val countryProvider: CountryProvider,
 ) : DictionaryTabUseCase {
 
-    override suspend fun getCurrentDict(): DictUiEntity {
+    override suspend fun getCurrentDict(): DictUiEntity? {
         prefsProvider
             .getLong(PrefKey.CURRENT_DICTIONARY_ID_LONG)?.let { id ->
                 dictionaryApi.getDictionaryById(id)?.let {
@@ -50,13 +49,15 @@ class DictionaryTabUseCaseImpl @Inject constructor(
                     numericCode = it.numericCode ?: 0,
                 )
             }
-        throw DictionaryNotFoundException()
+        // IS476: нет ни prefs, ни словарей — null вместо throw
+        return null
     }
 
-    override fun flowCurrentDict(): Flow<DictUiEntity> = prefsProvider
+    override fun flowCurrentDict(): Flow<DictUiEntity?> = prefsProvider
         .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
         .map { id: Long? ->
-            val dict = (id?.let { dictionaryApi.getDictionaryById(it) }
+            // IS476: null если ни по id, ни fallback ничего не нашли — валидное состояние
+            (id?.let { dictionaryApi.getDictionaryById(it) }
                 ?: dictionaryApi.getDictionaryList().firstOrNull())
                 ?.let { dict ->
                     DictUiEntity(
@@ -66,7 +67,6 @@ class DictionaryTabUseCaseImpl @Inject constructor(
                         numericCode = dict.numericCode ?: 0,
                     )
                 }
-            dict ?: throw DictionaryNotFoundException()
         }
 
     // TODO: Убрать нулеабельность в Dictionary: id и name
