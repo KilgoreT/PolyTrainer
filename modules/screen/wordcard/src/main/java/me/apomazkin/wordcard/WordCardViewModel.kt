@@ -8,6 +8,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.mate.Mate
 import me.apomazkin.mate.MateStateHolder
+import me.apomazkin.wordcard.deps.UiHost
 import me.apomazkin.wordcard.mate.DatasourceEffect
 import me.apomazkin.wordcard.mate.DatasourceEffectHandler
 import me.apomazkin.wordcard.mate.Msg
@@ -18,9 +19,10 @@ import me.apomazkin.wordcard.mate.WordCardState
 class WordCardViewModel @AssistedInject constructor(
     @Assisted wordId: Long,
     @Assisted navigator: WordCardNavigator,
+    @Assisted uiHost: UiHost,
     datasourceHandler: DatasourceEffectHandler,
-    uiHandler: UiEffectHandler,
     navHandlerFactory: WordCardNavigationEffectHandler.Factory,
+    uiEffectHandlerFactory: UiEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<WordCardState, Msg> {
 
     private val stateHolder = Mate(
@@ -30,8 +32,8 @@ class WordCardViewModel @AssistedInject constructor(
         reducer = WordCardReducer(),
         effectHandlerSet = setOf(
             datasourceHandler,
-            uiHandler,
             navHandlerFactory.create(navigator),
+            uiEffectHandlerFactory.create(uiHost),
         )
     )
 
@@ -42,6 +44,10 @@ class WordCardViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(wordId: Long, navigator: WordCardNavigator): WordCardViewModel
+        fun create(
+            wordId: Long,
+            navigator: WordCardNavigator,
+            uiHost: UiHost,
+        ): WordCardViewModel
     }
 }

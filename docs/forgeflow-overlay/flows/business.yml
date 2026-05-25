@@ -1,0 +1,195 @@
+name: business
+description: "Business logic sub-flow Lexeme — TEA-логика, UseCase контракты+impl, доменные сущности, specs"
+
+modules:
+  - logging
+  - review
+  - guides
+
+steps:
+  - step: contract_state
+    pause: true
+    input:
+      - parent.scope_analysis.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - analyst
+
+  - step: contract_ui_msg
+    pause: true
+    input:
+      - parent.scope_analysis.output
+      - contract_state.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - analyst
+
+  - step: contract_io
+    pause: true
+    input:
+      - parent.scope_analysis.output
+      - contract_state.output
+      - contract_ui_msg.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - analyst
+
+  - step: contract_usecase
+    pause: true
+    input:
+      - contract_io.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  - step: contract_spec
+    input:
+      - parent.scope_analysis.output
+      - contract_state.output
+      - contract_ui_msg.output
+      - contract_io.output
+      - contract_usecase.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  - step: design_tree
+    pause: true
+    input:
+      - contract_spec.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  - step: test
+    pause: true
+    input:
+      - contract_spec.output
+      - design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  - step: implement
+    pause: true
+    input:
+      - contract_spec.output
+      - design_tree.output
+      - test.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+
+  - step: publish_spec
+    pause: true
+    input:
+      - contract_spec.output
+      - implement.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      review:
+        agents:
+          - architect
+
+  - step: summary
+    pause: true
+    input:
+      - design_tree.output
+      - test.output
+      - implement.output
+      - publish_spec.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"

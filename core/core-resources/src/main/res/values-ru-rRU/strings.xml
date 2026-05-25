@@ -84,6 +84,8 @@
     <string name="word_card_save_title">Сохранить</string>
     <string name="word_card_add_lexeme">Добавить значение</string>
     <string name="word_card_delete_word_subheading">Все связанные данные будут также удалены</string>
+    <string name="word_card_delete_lexeme">Удалить значение?</string>
+    <string name="word_card_delete_lexeme_subheading">Всё содержимое значения будет удалено</string>
     <string name="word_card_bottom_title">Значение слова</string>
     <string name="word_card_bottom_translation">Перевод</string>
     <string name="word_card_bottom_definition">Определение</string>
@@ -92,6 +94,20 @@
     <string name="word_card_lexeme_delete">Удалить значение</string>
     <string name="word_card_lexeme_add_translation">Добавить перевод</string>
     <string name="word_card_lexeme_add_definition">Добавить определение</string>
+    <string name="word_card_lexeme_remove">Удалить</string>
+    <string name="word_card_snackbar_translation_deleted">Перевод удалён</string>
+    <string name="word_card_snackbar_definition_deleted">Определение удалено</string>
+    <string name="word_card_snackbar_lexeme_deleted">Значение удалено</string>
+    <string name="word_card_snackbar_undo">Отменить</string>
+    <string name="word_card_error_remove_word">Не удалось удалить слово</string>
+    <string name="word_card_error_save_word">Не удалось сохранить</string>
+    <string name="word_card_error_refresh_word">Не удалось получить обновлённое слово</string>
+    <string name="word_card_error_remove_lexeme">Не удалось удалить значение</string>
+    <string name="word_card_error_save_translation">Не удалось сохранить перевод</string>
+    <string name="word_card_error_remove_translation">Не удалось удалить перевод</string>
+    <string name="word_card_error_save_definition">Не удалось сохранить определение</string>
+    <string name="word_card_error_remove_definition">Не удалось удалить определение</string>
+    <string name="word_card_error_restore_lexeme">Не удалось восстановить значение</string>
 
     <!--Quiz-->
     <string name="quiz_tab_title">Квизы</string>

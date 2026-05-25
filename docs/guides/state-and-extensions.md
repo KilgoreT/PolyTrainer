@@ -7,7 +7,39 @@
 3. **Дефолтные значения** для всех полей — безопасное создание через конструктор без аргументов.
 4. **Extension-функции** для всех мутаций стейта — редьюсер никогда не вызывает `.copy()` напрямую на сложном стейте.
 5. **State = только отображаемое.** Никаких навигационных флагов (needClose, closeScreen) — навигация через Effect + NavigationEffectHandler. Никаких кэшей данных для вычислений (allFlags) — если данные нужны только UseCase для фильтрации/обогащения, хранить в UseCase.
-6. **Явные поля для каждого UI-элемента.** Если кнопка может быть enabled/disabled — в стейте должно быть поле `buttonEnabled: Boolean`, даже если его значение вычисляется из других полей. Вычисление происходит в редьюсере, а не в composable. Это даёт очевидное соответствие стейта вёрстке: каждый элемент UI — поле в стейте, каждое поле — элемент в UI. В сложном стейте неявные зависимости вроде `if (selectedItem != null)` в composable превращаются в неотслеживаемый хаос.
+6. **Computed properties для derived полей.** Если значение поля выводится из других полей State (`buttonEnabled` из `name.isNotEmpty() && !isLoading`, `hasNoDictionary` из `currentDict == null`) — оформлять как extension `val` с custom getter, **не хранить** в data class. Reducer обновляет только источники, derived вычисляется при чтении. Принцип «каждый UI-элемент = явное поле на state» сохраняется — composable читает `state.buttonEnabled` как обычное поле, не зная что оно computed.
+
+   ```kotlin
+   data class FormState(
+       val name: String = "",
+       val isLoading: Boolean = false,
+   )
+
+   // Computed property — НЕ часть data class, derived from State
+   val FormState.canSubmit: Boolean
+       get() = name.isNotEmpty() && !isLoading
+
+   // Composable читает как обычное поле
+   Button(enabled = state.canSubmit, ...)
+   ```
+
+   **Где живёт computed property — единое место для всего проекта:**
+   - В файле `State.kt` модуля фичи, **рядом с data class** который она расширяет
+   - Той же конвенцией что и extension-функции мутации state (см. [Конвенция 2](#конвенции))
+   - Помещать **после** объявления data class и его nested-моделей, но **до** extension-функций мутации (`show*`, `hide*`, `update*`)
+   - Группировать секцией-комментарием `// region Computed` / `// endregion` если computed свойств больше 3 — для навигации
+   - **НЕ выносить** computed в отдельный файл (`StateComputed.kt`, `Selectors.kt`) — разнесение по файлам затрудняет поиск derived свойств данного state
+
+   Цель — единая точка просмотра State.kt где видно всё: shape (data class), derived (computed val), transitions (extension fun). Любой разработчик открыв State.kt видит полную картину.
+
+   **Почему computed, а не хранимое поле:**
+   - **Нет рассинхрона.** Если хранить `canSubmit: Boolean` в State, reducer должен пересчитать его в **каждом** Msg который меняет `name` или `isLoading`. Один забытый Msg — баг. Computed property исключает это by construction.
+   - **Нет дублирования.** Source of truth — только исходные поля. Derived — это VIEW (см. [Моделирование State §12](state-modeling.md#12-selectors)).
+   - **Не плодит boilerplate** в extension-функциях типа `recomputeFlags()`.
+
+   **В composable категорически не вычислять:** `if (state.selectedItem != null) ...` в Composable — антипаттерн. Если derived значение нужно — оно должно жить как computed property на State.
+
+   **Performance.** Computed property вызывается при каждом чтении. Для тривиальных проверок (`field == null`, `list.isEmpty()`, конъюнкции) — стоимость незаметна, Compose всё равно скипает recomposition для `@Immutable` state по reference equality. Для **тяжёлых** вычислений (filter+map+sumOf по большим коллекциям с несколькими читателями) — выносить в селектор с кэшированием по reference equality, см. [Моделирование State §13](state-modeling.md#13-производительность).
 
 ## Паттерн иерархии стейта
 
@@ -136,7 +168,7 @@ fun ChatState.addSystemMessage(message: MessageContent) = copy(
 ## Конвенции
 
 1. **Одна задача на расширение.** `showActionMenu()` делает ровно одну вещь.
-2. **Расширения живут в State.kt**, рядом с дата-классами которые они расширяют.
+2. **Расширения живут в State.kt**, рядом с дата-классами которые они расширяют. Это касается **и** extension-функций мутации (`show*`, `hide*`, `update*`), **и** computed properties (extension `val` с getter, см. [Принцип 6](#принципы-стейта)). Порядок внутри файла: data class и nested-модели → computed properties → extension-функции мутации.
 3. **Нейминг:** глагол в начале — `show`, `hide`, `enable`, `disable`, `clear`, `update`, `add`, `remove`.
 4. **Без бизнес-логики.** Расширения только модифицируют стейт. Сложные решения — в редьюсере.
 5. **Чистые функции.** Один и тот же вход → один и тот же выход. Без сайд-эффектов.

@@ -1,0 +1,116 @@
+name: adaptive
+conductor_model: opus
+
+modules:
+  - logging
+  - review
+  - guides
+
+steps:
+  - step: task
+    pause: true
+    output: 00_task.md
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  - step: figma_dump
+    pause: false
+    input: task.output
+    output: figma_dump.json
+    sets:
+      - feature_has_figma
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  - step: scope_analysis
+    pause: true
+    input:
+      - task.output
+      - figma_dump.output?
+    output: 02_scope.md
+    sets:
+      - infra_touched
+      - business_touched
+      - ui_touched
+      - data_touched
+      - needs_tests
+      - needs_migration_tests
+      - feature_has_ui_contract
+      - spec_filename
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - analyst
+
+  - subflow: infra
+    flow: flows/infra.yml
+    if: infra_touched
+    input:
+      - scope_analysis.output
+      - figma_dump.output?
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  - subflow: business
+    flow: flows/business.yml
+    if: business_touched
+    input:
+      - scope_analysis.output
+      - infra.output?
+      - figma_dump.output?
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  - parallel:
+      - subflow: ui
+        flow: flows/ui.yml
+        if: ui_touched
+        input:
+          - scope_analysis.output
+          - business.output?
+          - figma_dump.output?
+        with:
+          logging:
+            phases:
+              - "finalize:after"
+
+      - subflow: data
+        flow: flows/data.yml
+        if: data_touched
+        input:
+          - scope_analysis.output
+          - business.output?
+          - figma_dump.output?
+        with:
+          logging:
+            phases:
+              - "finalize:after"
+
+  - step: check
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checks:
+        - lint
+        - test
+        - build

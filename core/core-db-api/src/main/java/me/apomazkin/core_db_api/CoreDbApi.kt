@@ -87,6 +87,25 @@ interface CoreDbApi {
             definition: DefinitionApiEntity,
         ): Long
 
+        /**
+         * Atomic INSERT лексемы с заполненным translation + write-quiz записи в одной Room-транзакции.
+         * Закрывает domain-инвариант «у каждой лексемы есть write-quiz».
+         */
+        suspend fun addLexemeWithTranslation(
+            wordId: Long,
+            dictionaryId: Long,
+            translation: TranslationApiEntity,
+        ): Long
+
+        /**
+         * Симметрично `addLexemeWithTranslation` — атомарный INSERT лексемы с definition + write-quiz.
+         */
+        suspend fun addLexemeWithDefinition(
+            wordId: Long,
+            dictionaryId: Long,
+            definition: DefinitionApiEntity,
+        ): Long
+
         suspend fun updateLexemeTranslation(
             id: Long,
             translation: TranslationApiEntity?,

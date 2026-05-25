@@ -215,6 +215,13 @@ DataSource/UI handlers инжектятся через `@Inject` и приход
 3. **Эффект-хендлеры** работают на `Dispatchers.IO` для операций с данными. Наследуют `MateTypedEffectHandler<Msg, E>` (фильтрация чужих эффектов в базе).
 4. **Сообщения** — единый sealed interface `Msg`. Внутренние сообщения (от хендлеров) — вложенные sealed interfaces (например, `UiMsg : Msg`).
 5. **initEffects** запускают первую загрузку данных при создании экрана.
+
+   **Антипаттерн: `LaunchedEffect → Msg.LoadingWord`** (или аналог) для инициирующей загрузки. Так делать **нельзя**:
+   - Triggers side-effect живёт в UI-слое — нарушает single-direction (`UI → Msg → Reducer → Effect → Msg`). UI должен быть read-only от state, инициация загрузки — обязанность Mate.
+   - Recompose-гонки: `LaunchedEffect(Unit)` может стрельнуть повторно при пересоздании composable; в reducer'е появляется guard-костыль для компенсации UI-бага.
+   - В Msg sealed interface появляется «мёртвый» вариант (`LoadingWord`), который реально только UI шлёт через LaunchedEffect — попытка повторно вызвать его из тестов / других мест приводит к багу (например, шлёт `LoadWord(state.wordState.id)` когда id ещё `NOT_IN_DB`).
+
+   **Правильно:** `initEffects = setOf(DatasourceEffect.LoadWord(wordId))` в конструкторе `Mate` через ViewModel. Аргументы навигации (`wordId`) идут в ViewModel через `@AssistedInject`, оттуда в `initEffects`. `Msg.LoadingWord` не нужен.
 6. **FlowHandler'ы** автоматически подписываются при инициализации Mate и отписываются при dispose.
 7. **Empty message** (`Msg.Empty`) — для "своих" эффектов без полезного результата. Для чужих эффектов consumer вообще не вызывается — фильтрация в `filter()` базового класса.
 8. **`@AssistedInject` для ViewModel** — Navigator и runtime аргументы через `@Assisted`, остальные зависимости через обычный constructor injection.

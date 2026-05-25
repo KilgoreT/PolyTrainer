@@ -1,0 +1,267 @@
+flow: business
+started: 2026-05-19T01:42:57-0600
+dir: docs/features/IS479_wordcard_lexeme_inline/business/
+parent: docs/features/IS479_wordcard_lexeme_inline/plan.yml
+
+context:
+  ticket: IS479
+  feature_name: wordcard_lexeme_inline
+  branch: IS479_wordcard_lexeme_inline
+  mode: manual
+  depth: 1
+  feedback_iteration: 0
+  feedback_restart: false
+  overlay: docs/forgeflow-overlay
+  workspace:
+    spec_dir: docs/features-spec/
+
+steps:
+  contract_state:
+    status: done
+    started: 2026-05-19T05:30:22-0600
+    finished: 2026-05-19T20:50:00-0600
+    iteration: 6
+    output: contract_state.md
+    review_output: contract_state_review.md
+    pause: true
+    input:
+      - parent.scope_analysis.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - analyst
+
+  contract_ui_msg:
+    status: done
+    started: 2026-05-19T15:10:00-0600
+    finished: 2026-05-19T21:00:00-0600
+    iteration: 7
+    output: contract_ui_msg.md
+    review_output: contract_ui_msg_review.md
+    injected_inputs: []
+    pause: true
+    input:
+      - parent.scope_analysis.output
+      - contract_state.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - analyst
+
+  contract_io:
+    status: done
+    started: 2026-05-19T17:35:00-0600
+    finished: 2026-05-19T21:30:00-0600
+    iteration: 7
+    output: contract_io.md
+    review_output: contract_io_review.md
+    injected_inputs:
+      - docs/features/IS479_wordcard_lexeme_inline/business/contract_io.md
+      - docs/features/IS479_wordcard_lexeme_inline/business/contract_io_approved.md
+    pause: true
+    input:
+      - parent.scope_analysis.output
+      - contract_state.output
+      - contract_ui_msg.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - analyst
+
+  contract_usecase:
+    status: done
+    started: 2026-05-19T21:35:00-0600
+    finished: 2026-05-19T21:50:00-0600
+    iteration: 1
+    output: contract_usecase.md
+    review_output: contract_usecase_review.md
+    pause: true
+    input:
+      - contract_io.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  contract_spec:
+    status: done
+    started: 2026-05-19T21:55:00-0600
+    finished: 2026-05-19T22:05:00-0600
+    iteration: 1
+    output: contract_spec.md
+    review_output: contract_spec_review.md
+    input:
+      - parent.scope_analysis.output
+      - contract_state.output
+      - contract_ui_msg.output
+      - contract_io.output
+      - contract_usecase.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  design_tree:
+    status: done
+    started: 2026-05-19T22:10:00-0600
+    finished: 2026-05-19T22:30:00-0600
+    iteration: 2
+    output: design_tree.md
+    review_output: design_tree_review.md
+    pause: true
+    input:
+      - contract_spec.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  test:
+    status: done
+    started: 2026-05-19T22:35:00-0600
+    finished: 2026-05-19T22:55:00-0600
+    iteration: 1
+    output: test.md
+    review_output: test_review.md
+    pause: true
+    input:
+      - contract_spec.output
+      - design_tree.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  implement:
+    status: done
+    started: 2026-05-19T23:00:00-0600
+    finished: 2026-05-19T23:30:00-0600
+    iteration: 2
+    output: impl.md
+    review_output: impl_review.md
+    pause: true
+    input:
+      - contract_spec.output
+      - design_tree.output
+      - test.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+
+  publish_spec:
+    status: done
+    started: 2026-05-19T23:35:00-0600
+    finished: 2026-05-19T23:50:00-0600
+    iteration: 1
+    output: publish_spec.md
+    review_output: publish_spec_review.md
+    pause: true
+    input:
+      - contract_spec.output
+      - implement.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      review:
+        agents:
+          - architect
+
+  summary:
+    status: done
+    started: 2026-05-19T23:55:00-0600
+    finished: 2026-05-20T00:00:00-0600
+    iteration: 1
+    output: summary.md
+    pause: true
+    input:
+      - design_tree.output
+      - test.output
+      - implement.output
+      - publish_spec.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"

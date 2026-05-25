@@ -1,0 +1,82 @@
+name: data
+description: "Data sub-flow Lexeme — DB (api+impl+миграции+schemas), Prefs, Library-обёртки"
+
+modules:
+  - logging
+  - review
+  - guides
+
+steps:
+  - step: design_tree
+    pause: true
+    input:
+      - parent.scope_analysis.output
+      - parent.infra.output?
+      - parent.business.output?
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  - step: migration_test
+    if: needs_migration_tests
+    pause: true
+    input:
+      - parent.scope_analysis.output
+      - design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  - step: implement
+    pause: true
+    input:
+      - parent.scope_analysis.output
+      - parent.business.output?
+      - design_tree.output
+      - migration_test.output?
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+
+  - step: summary
+    pause: true
+    input:
+      - design_tree.output
+      - migration_test.output?
+      - implement.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"

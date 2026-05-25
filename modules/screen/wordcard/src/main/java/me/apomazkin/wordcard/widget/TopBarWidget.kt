@@ -11,14 +11,15 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.enableIconColor
 import me.apomazkin.ui.IconBoxed
 import me.apomazkin.ui.preview.PreviewWidget
-import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.TopBarState
 
 @Composable
 internal fun TopBarWidget(
     topBarState: TopBarState,
     onBackPress: () -> Unit,
-    sendMessage: (Msg) -> Unit,
+    onOpenMenu: () -> Unit,
+    onCloseMenu: () -> Unit,
+    onDeleteWord: () -> Unit,
 ) {
     TopAppBar(
         navigationIcon = {
@@ -34,13 +35,10 @@ internal fun TopBarWidget(
         actions = {
             IconDropdownWidget(
                 isDropDownOpen = topBarState.isMenuOpen,
-                onClickDropDown = { sendMessage(Msg.OpenTopBarMenu) },
-                onDismissRequest = { sendMessage(Msg.CloseTopBarMenu) },
+                onClickDropDown = onOpenMenu,
+                onDismissRequest = onCloseMenu,
             ) {
-                DeleteWordMenuItem {
-                    sendMessage(Msg.CloseTopBarMenu)
-                    sendMessage(Msg.OpenDeleteWordDialog)
-                }
+                DeleteWordMenuItem(onDeleteClick = onDeleteWord)
             }
         }
     )
@@ -53,7 +51,9 @@ private fun Preview() {
         TopBarWidget(
             topBarState = TopBarState(),
             onBackPress = {},
-            sendMessage = {},
+            onOpenMenu = {},
+            onCloseMenu = {},
+            onDeleteWord = {},
         )
     }
 }

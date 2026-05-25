@@ -4,95 +4,55 @@ import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertSingleEffect
 import me.apomazkin.mate.test.testReduce
-import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
+import java.util.Date
 
 /**
+ * Reducer tests for NavigateBack (shared UI/handler-confirm ветка).
+ *
  * Test cases:
- * 1. NavigateBack emits NavigationEffect.Back, state unchanged
- * 2. NavigateBack with complex state — only effect emitted, state preserved
- * 3. NavigateBack while loading — emits Back, isLoading preserved
- * 4. NavigateBack with active dialogs — emits Back, dialogs preserved
+ * - NavigateBack emits NavigationEffect.Back.
+ * - NavigateBack clears isPendingDbOp (handler-confirm после RemoveWord).
+ * - NavigateBack works regardless of WordState variant.
  */
 class NavigateBackTest {
 
     @Test
-    fun `NavigateBack emits Back effect without state change`() {
+    fun `NavigateBack emits Back effect`() {
         val reducer = WordCardReducer()
-        val initialState = WordCardState(
-            topBarState = TopBarState(isMenuOpen = false),
-            addLexemeBottomState = AddLexemeBottomState(show = false),
+        val initial = WordCardState(
             isLoading = false,
-            wordState = WordState(id = 123L, value = "test"),
-            lexemeList = listOf(),
-            snackbarState = SnackbarState(),
+            wordState = WordState.Loaded(id = 1L, added = Date(0L), value = "w"),
         )
 
-        val result = reducer.testReduce(initialState, Msg.NavigateBack)
+        val result = reducer.testReduce(initial, Msg.NavigateBack)
 
         result.assertSingleEffect<NavigationEffect.Back>()
-        assertEquals("state should remain unchanged", initialState, result.state())
     }
 
     @Test
-    fun `NavigateBack with complex state preserves all fields`() {
+    fun `NavigateBack clears isPendingDbOp`() {
         val reducer = WordCardReducer()
-        val initialState = WordCardState(
-            topBarState = TopBarState(isMenuOpen = true),
-            addLexemeBottomState = AddLexemeBottomState(
-                show = true,
-                isTranslationCheck = true,
-                isDefinitionCheck = false,
-            ),
-            isLoading = true,
-            wordState = WordState(
-                id = 456L,
-                value = "complex word",
-                isEditMode = true,
-                edited = "edited complex word",
-                showWarningDialog = true,
-            ),
-            lexemeList = listOf(
-                LexemeState(
-                    id = 1L,
-                    translation = TextValueState(origin = "translation", isEdit = false),
-                    definition = TextValueState(origin = "definition", isEdit = true),
-                    isMenuOpen = true,
-                ),
-            ),
-            snackbarState = SnackbarState(title = "Test message", show = true),
+        val initial = WordCardState(
+            isLoading = false,
+            isPendingDbOp = true,
+            wordState = WordState.Loaded(id = 1L, added = Date(0L), value = "w"),
         )
 
-        val result = reducer.testReduce(initialState, Msg.NavigateBack)
+        val result = reducer.testReduce(initial, Msg.NavigateBack)
 
+        assertFalse(result.state().isPendingDbOp)
         result.assertSingleEffect<NavigationEffect.Back>()
-        assertEquals(initialState, result.state())
     }
 
     @Test
-    fun `NavigateBack while loading preserves isLoading`() {
+    fun `NavigateBack works under NotLoaded too`() {
         val reducer = WordCardReducer()
-        val initialState = WordCardState(isLoading = true)
+        val initial = WordCardState(isLoading = true, wordState = WordState.NotLoaded)
 
-        val result = reducer.testReduce(initialState, Msg.NavigateBack)
+        val result = reducer.testReduce(initial, Msg.NavigateBack)
 
         result.assertSingleEffect<NavigationEffect.Back>()
-        assertEquals(true, result.state().isLoading)
-    }
-
-    @Test
-    fun `NavigateBack preserves active dialogs`() {
-        val reducer = WordCardReducer()
-        val initialState = WordCardState(
-            topBarState = TopBarState(isMenuOpen = true),
-            addLexemeBottomState = AddLexemeBottomState(show = true),
-            wordState = WordState(showWarningDialog = true),
-            snackbarState = SnackbarState(title = "Active", show = true),
-        )
-
-        val result = reducer.testReduce(initialState, Msg.NavigateBack)
-
-        result.assertSingleEffect<NavigationEffect.Back>()
-        assertEquals(initialState, result.state())
     }
 }

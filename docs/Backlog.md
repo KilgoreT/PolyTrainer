@@ -2,6 +2,72 @@
 
 ---
 
+## Срочное
+
+- **[Миграция существующих спек в `docs/features-spec/` под новый формат contract_spec].**
+
+  **Контекст.** В рамках декомпозиции шага `contract` Business sub-flow (см. `docs/features/FORGEFLOW_contract_design.md`) выход контрактного блока теперь = спека в `docs/features-spec/<feature>.md`. Структура новой спеки:
+  ```
+  # <Feature Name>
+
+  ## Бизнес-описание
+  ## User Stories
+  ## State
+  ## UI Messages
+  ## IO
+    ### Effects (Datasource / Navigation / Ui)
+    ### Subscribers
+  ## UseCase
+  ## Тестовые сценарии (если применимо)
+  ```
+
+  **Что есть сейчас.** Существующие спеки в `docs/features-spec/` (по `README.md` директории — `dictionary-list.md`, `dictionary-create.md`, `dictionary-appbar.md`, `wordcard.md`, и др.) в **старом формате**: «срез текущего состояния, констатация бизнес-логики и кейсов, БЕЗ разбивки по TEA-слоям».
+
+  **Расхождение.** Старый формат описывает фичу единым текстом (бизнес-логика + UI-кейсы вперемешку), без явной структуры State / Msg / Effect / Subscriber / UseCase. Новый формат — структурированный по TEA-слоям, явно показывает контракт каждого слоя.
+
+  **Решение.** Миграция всех существующих спек **единоразово** под новый формат. Не lazy (option b) и не гибрид (option c) — full migration сейчас.
+
+  **Зачем сейчас, а не lazy:**
+  - Lazy миграция (по мере касания фич) создаёт **долгий период coexistence** двух форматов в одной директории. Разработчики и агенты не понимают «чему доверять» когда находят спеку в старом формате.
+  - Lazy не покрывает фичи которые редко меняются — они навсегда останутся в старом формате.
+  - Документация-as-contract работает только если **все** спеки консистентны. Mix — не контракт.
+
+  **Алгоритм миграции (для каждой существующей спеки):**
+
+  1. Прочитать существующую спеку
+  2. Прочитать соответствующий код (State.kt, Message.kt, Reducer.kt, EffectHandler.kt, UseCase.kt)
+  3. Извлечь из кода:
+     - `## State` — текущая структура data class + extensions + computed (если есть)
+     - `## UI Messages` — sealed interface Msg + варианты + reducer-логика per Msg
+     - `## IO`:
+       - `### Effects` — все sealed Effect-интерфейсы (Datasource / Navigation / Ui) + variants
+       - `### Subscribers` — все FlowHandler-подписки
+     - `## UseCase` — interface методы
+  4. Из существующей спеки забрать:
+     - `## Бизнес-описание` — найти текст про «что фича делает», переформулировать кратко
+     - `## User Stories` — если есть в старой спеке, перенести; если нет — выписать из бизнес-описания
+     - `## Тестовые сценарии` — если в старой спеке есть кейсы тестирования, перенести
+  5. Если в коде обнаружены **расхождения** с текущей спекой (старая описывает поведение которого уже нет в коде или наоборот) — спека пишется по **коду** (источник истины), расхождение фиксируется в `tech debt` секции миграционного отчёта
+  6. Перезаписать файл целиком в новом формате
+
+  **Список спек для миграции** (на момент записи в backlog):
+  - `dictionary-list.md`
+  - `dictionary-create.md`
+  - `dictionary-appbar.md`
+  - `wordcard.md`
+  - и др. — полный список взять из `docs/features-spec/README.md`
+
+  **Когда:**
+  - **После** того как создан step file `contract_spec.md` в `docs/forgeflow-overlay/steps/` и первый прогон новой decomposition прошёл на новой фиче (validation формата)
+  - **До** запуска адаптивного flow на существующих фичах (иначе первый запуск столкнётся с разнобоем форматов)
+
+  **Подход к выполнению:**
+  - Не делать одним PR — миграция спек 1-к-1 за итерацию (один PR на спеку)
+  - Каждый PR содержит: миграция спеки + (если обнаружены расхождения кода/спеки) issue в `Tech Debt`
+  - В commit message ссылка на это backlog-задание
+
+---
+
 ## Critical Bugs
 
 - **[disableUserInput() инвертирован].**
@@ -41,6 +107,55 @@
 ---
 
 ## Архитектура
+
+- **[Snackbar queue: undo первого snackbar теряется при быстром втором].**
+
+  **Контекст.** В IS479 (wordcard inline lexeme editing) реализован snackbar+undo для удалений (translation/definition/lexeme/cascade). Канон через `UiHost`/`UiEffect.ShowSnackbarWithUndo`:
+  ```
+  Msg.TranslationDeleted/DefinitionDeleted/LexemeRemoved/LexemeCascadeRemovedWithUndo
+    → reducer эмитит UiEffect.ShowSnackbarWithUndo(messageRes, actionLabelRes, undoMsg)
+    → UiEffectHandler делает uiHost.showSnackbarWithAction(...)
+    → если пользователь нажал Action → consumer(undoMsg) → reducer обработает undo
+  ```
+  Реализация `UiHostImpl.showSnackbarWithAction` использует `snackbarHostState.showSnackbar(message, actionLabel, duration = SnackbarDuration.Short)`.
+
+  **Проблема.** Material 3 `SnackbarHostState.showSnackbar` использует `MutatorMutex` — **новый вызов отменяет coroutine текущего snackbar'а**. Отменённая coroutine получает `CancellationException`, suspend возвращается **не** с `SnackbarResult.ActionPerformed` → `showSnackbarWithAction` возвращает `false` → `undoMsg` первого удаления **никогда не отправляется**.
+
+  **Сценарий воспроизведения:**
+  1. Пользователь удалил translation у lexeme A → snackbar "Перевод удалён (Отменить)".
+  2. До таймаута первого snackbar'а удалил translation у lexeme B → второй snackbar того же типа.
+  3. Mutator отменил первый. Первый undoMsg потерян. Пользователь больше **не может отменить** первое удаление, оно стало необратимым после короткого окна.
+
+  **Файлы:**
+  - `modules/screen/wordcard/src/main/java/me/apomazkin/wordcard/widget/internal/UiHostImpl.kt` — `showSnackbarWithAction` (строки 22-34).
+  - `modules/screen/wordcard/src/main/java/me/apomazkin/wordcard/mate/UiEffectHandler.kt` — обработка `UiEffect.ShowSnackbarWithUndo` (строки 19-29).
+  - `modules/screen/wordcard/src/main/java/me/apomazkin/wordcard/deps/UiHost.kt` — interface.
+
+  **Возможные подходы:**
+
+  - **Вариант A — queue в UiEffectHandler.** Внутри handler'а держать `Channel<UiEffect>` или `Mutex` — pop'ать следующий snackbar только после завершения предыдущего. Минусы: пользователь ждёт пока пройдут все накопленные snackbar'ы; при таймауте 4с × N — долго. Очередь нужно ограничивать и/или сливать однотипные сообщения.
+
+  - **Вариант B — auto-apply pending action при cancellation.** Если первый snackbar отменён mutator'ом (а не пользовательским Dismiss / Timeout), всё равно эмитить undoMsg первого. Минусы: меняет UX — пользователь явно не нажал отмену, но undo сработал. Нелогично.
+
+  - **Вариант C — отличать CancellationException от Dismissed.** Сейчас `showSnackbarWithAction` возвращает Boolean (`ActionPerformed`/`Dismissed`). Расширить API: вернуть sealed `SnackbarOutcome { ActionPerformed, Dismissed, Cancelled }`. Над `Cancelled` — выбрать стратегию (по умолчанию игнорировать как сейчас, но логировать).
+
+  - **Вариант D — UX-дизайн: блокировать второе удаление пока активен snackbar первого.** Радикально, но защищает инвариант "одно удаление с undo за раз". Минусы: лишний фрустрейт пользователя.
+
+  **Рекомендация:** Вариант A (queue) с лимитом 3-5 и dedup однотипных сообщений. Это canonical Material design pattern для "transient action".
+
+  **Дополнительный риск.** Та же проблема для будущих error-snackbar'ов после миграции IS479 ошибок на UiHost (см. соседнюю backlog-задачу про legacy snackbar). Решение queue должно покрывать оба пути (snackbar с action и без).
+
+  **Тестируемость.** Юнит-тест: эмулятор `SnackbarHostState`/`UiHost` с быстрой последовательностью `showSnackbarWithAction` → проверить что undoMsg обоих доставляются. Возможно потребуется обёртка над `SnackbarHostState` для контроля времени.
+
+- **[Прогнать trim текстовых полей по остальным UseCaseImpl].**
+  В IS479 правило зафиксировано в `docs/guides/data-layer.md` (раздел "Нормализация текстового ввода (trim)") и применено в `WordCardUseCaseImpl` (4 точки: updateWord, addLexemeTranslation, addLexemeDefinition, restoreLexeme).
+  Нужно: пройтись по остальным `*UseCaseImpl` в `app/src/main/java/me/apomazkin/polytrainer/di/module/` и добавить `.trim()` перед передачей строки в `CoreDbApi` (или в сеть, если появится). Затронуты: `DictionaryUseCaseImpl`, `DictionaryTabUseCaseImpl`, `SettingsTabUseCaseImpl`, `QuizTabUseCaseImpl`, `QuizChatUseCaseImpl`, `SplashUseCaseImpl`, `StatisticUseCaseImpl`, `DictionaryAppBarUseCaseImpl` — пересмотреть write-методы со String на входе.
+  Если для конкретного поля trim семантически вреден — задокументировать исключение комментарием у метода.
+
+- **[Прогнать правило "виджеты получают callbacks, не sendMessage" по остальным модулям].**
+  В IS479 правило зафиксировано в `docs/guides/ui-patterns.md` (раздел "Виджеты получают callbacks, не `sendMessage`") и применено в `modules/screen/wordcard/`. Виджеты wordcard переписаны на плоские callbacks (5 виджетов, включая декомпозицию `LexemeItemWidget` на 12 параметров).
+  Нужно: пройтись по всем `modules/screen/*/widget/` и `modules/widget/*/`, найти composable-функции принимающие `sendMessage: (Msg) -> Unit` / `sendMsg`, переписать на плоские callbacks. Параметры, нужные только для построения Msg (id, loaded), убрать — id уезжает наверх через callback-builder. Если callbacks > 5-7 — декомпозировать виджет.
+  Предварительно затронуты: dictionary, dictionarytab, quiztab, settingstab, main, splash, stattab + всё в `modules/widget/`.
 
 - **[Разобраться в слоях entity].**
   Нет доменного слоя. ApiEntity (core-db-api) де-факто выполняет роль доменной сущности. UI модели (UiItem, CountryFlagItem) содержат и бизнес-поля и UI-поля. Суффиксы непоследовательны (ApiEntity, UiItem, UiEntity, Item, Info).
@@ -85,6 +200,107 @@
   `TermApi.getTermList(dictionaryId: Int)`, `searchTermsPaging(dictionaryId: Int)` принимают Int, но dictionary id теперь Long.
   `.toInt()` в DictionaryTabUseCaseImpl и StatisticUseCaseImpl — потенциальное переполнение.
   Нужно: перевести все API методы на Long для dictionaryId.
+
+- **[Извлечь бизнес-логику из Reducer'ов в UseCase].**
+  Концепт: Reducer должен отражать преимущественно UI-логику (что показать, как реагировать на тап), а бизнес-правила (валидации, инварианты домена, последовательности операций) — жить в UseCase.
+  Сейчас Reducer часто содержит и то, и другое — границы размыты.
+  Нужно: проанализировать все Reducer'ы (dictionaryTab, dictionaryappbar, dictionary/form, quiz/chat, wordcard, settingstab, splash, stattab, quiztab), выделить куски бизнес-логики, вынести в соответствующие UseCase. Описать критерий «UI-логика vs бизнес-логика» в гайде `mate-framework.md` / `reducer-patterns.md`.
+
+- **[UiEffect: убрать круг Effect → Msg → State, показывать snackbar/toast напрямую через UiHost].**
+
+  **Текущее состояние.** `UiEffect` (например `ShowNotification`) обрабатывается через раунд:
+  ```
+  Reducer возвращает UiEffect.ShowNotification("text")
+    → UiEffectHandler.onEffect()
+    → consumer(UiMsg.ShowNotification(message, show = true))
+    → Reducer обрабатывает UiMsg.ShowNotification
+    → State.snackbarState.show = true, .title = "text"
+    → Composable наблюдает State, показывает Snackbar
+  ```
+  То есть Effect → Handler → Msg → State change. State содержит `snackbarState` чисто как канал для one-shot уведомления.
+
+  **Проблема.** State захламлён транзитивным UI-фидбеком (snackbar, future toast/vibration), которые по природе one-shot и не должны быть частью data state. Лишние Msg в шине. `MateTypedEffectHandler` контракт требует return Msg даже когда побочка fire-and-forget — приходится возвращать `Msg.NoOperation`.
+
+  **Концепт.** Симметричный паттерн с Navigation: handler получает абстракцию-host через `@AssistedInject`, реализация живёт на стороне Composable (где есть `SnackbarHostState`, `Context`, `NavController`).
+
+  ```kotlin
+  interface UiHost {
+      suspend fun showSnackbar(message: String)
+      fun showToast(message: String)
+      // future: vibration, system UI, etc.
+  }
+
+  class UiEffectHandler @AssistedInject constructor(
+      @Assisted private val uiHost: UiHost,
+  ) : MateTypedEffectHandler<Msg, UiEffect>() {
+
+      override suspend fun onEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
+          when (effect) {
+              is UiEffect.ShowNotification -> uiHost.showSnackbar(effect.message)
+          }
+          consumer(Msg.NoOperation)
+      }
+
+      @AssistedFactory
+      interface Factory {
+          fun create(uiHost: UiHost): UiEffectHandler
+      }
+  }
+  ```
+
+  Реализация на стороне Compose:
+  ```kotlin
+  class UiHostImpl(
+      private val snackbarHostState: SnackbarHostState,
+      private val context: Context,
+  ) : UiHost {
+      override suspend fun showSnackbar(message: String) {
+          snackbarHostState.showSnackbar(message)
+      }
+      override fun showToast(message: String) {
+          Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+      }
+  }
+
+  // В Composable экрана:
+  val snackbarHostState = remember { SnackbarHostState() }
+  val context = LocalContext.current
+  val uiHost = remember { UiHostImpl(snackbarHostState, context) }
+  val handler = remember { factory.create(uiHost) }
+  ```
+
+  Поток после рефакторинга:
+  ```
+  Reducer возвращает UiEffect.ShowNotification("text")
+    → UiEffectHandler.uiHost.showSnackbar("text")
+    → snackbarHostState.showSnackbar() напрямую
+    → Snackbar появился, State не тронут
+  ```
+
+  **Что упрощается:**
+  - `State.snackbarState` уходит для one-shot (можно оставить если кто-то хочет долгоживущий)
+  - `UiMsg.ShowNotification` уходит — handler не возвращает в шину
+  - Reducer остаётся чистым: знает «нужно показать text», не знает про `SnackbarHostState`/Compose
+  - Полная симметрия с Navigation: `NavigationEffect.X → Navigator.x()` и `UiEffect.X → UiHost.x()`
+  - Решает централизованно «Snackbar pattern fragile» (см. State Management section)
+
+  **Возражение / цена:**
+  - Side-channel обходит TEA single-source-of-truth для transient UI-событий. State перестаёт быть полным описанием экрана. Это **осознанная цена** для one-shot фидбека.
+  - **Lifecycle:** реализация UiHost держит ссылку на `SnackbarHostState` который recreates на config change / process death. При process death snackbar не восстановится — у Channel/SharedFlow та же проблема. Для «удалено / сохранено» норм. Для критичных уведомлений (например «нельзя удалить — обязательная зависимость») — оставлять в State.
+  - AssistedInject уже работает для Navigator, тот же паттерн → инфраструктура есть.
+
+  **Скоуп:**
+  - Создать `UiHost` interface в `core/mate`
+  - Создать базовую `UiHostImpl` или per-screen реализации
+  - Переписать `UiEffectHandler` под `@AssistedInject` (один файл в `dictionaryTab`, проверить другие модули с UiEffect)
+  - Удалить `UiMsg.ShowNotification` (если не используется иначе) — проверить все экраны
+  - Решить судьбу `State.snackbarState` per-screen (можно удалить если только для one-shot)
+  - Обновить Composable экранов: `remember { factory.create(uiHost) }`
+  - Описать паттерн в гайде `mate-framework.md`
+
+  **Связано:**
+  - State Management → «Snackbar pattern fragile» (закрывается этим)
+  - Critical Bugs → «Централизованная система ошибок и снекбаров» (UiHost становится тем самым централизованным API)
 
 ---
 
@@ -201,3 +417,57 @@
   После обновления Room с 2.6.1 до 2.8.4 — проверить запросы с RANDOM() + LIMIT + @Relation.
   Ранее Room 2.7.1 давал IllegalStateException (https://issuetracker.google.com/issues/413924560).
   Нужно: прогнать квиз-выборку и убедиться что рандомные запросы работают корректно.
+
+- **[ForgeFlow: добавить шаг `business_walkthrough` между `scope_analysis` и `contract_state`].**
+  В фиче IS479 пришлось 3 раза переписывать `contract_io` (ит.1 выдуманный subscriber, ит.5 всплыл cascade-delete, ит.6 концептуальный пересмотр на NOT_IN_DB). Причина — `contract_state` пишется без sanity-check бизнес-семантики существующего data-слоя. Cascade в `WordCardUseCaseImpl.deleteLexemeTranslation/Definition`, поведение `addLexeme()` (создаёт пустую лексему в БД), nullable lexemeId в `addLexemeTranslation` — всё это **бизнес-семантика data-слоя**, которая всплыла поздно. Также суб-агенты execute пишут артефакты без обязательной сверки с реальным кодом — на ит.1 contract_io выдумал subscriber `observeLexemesByWordId`, которого нет в `WordCardUseCase`. Review строго локальный — architect/analyst ревьюят артефакт без понимания «что в коде уже работает», поэтому 70% findings — теоретические race и стилистика, реальные архитектурные gap'ы (cascade) всплывают только когда conductor лично грепнет существующий код.
+  Нужно: добавить шаг `business_walkthrough` (или расширить `scope_analysis`) — суб-агент проходит каждый user-flow из scope глядя в реальный код, выписывает: data-операции с побочными эффектами (cascade, atomicity, side-effects), inline-уровень-инварианты (`NOT_IN_DB`, временные локальные сущности), existing API ограничения (nullable params, transactional boundaries). После — `contract_state` обязан сослаться на business_walkthrough. Subagent execute каждого шага должен обязательно грепнуть relevant код перед написанием. Review должен включать обязательный пункт «согласованность с существующим кодом».
+
+- **[WordCard F074: data-loss `NOT_IN_DB`-буфера при `RemoveLexeme` через menu другой лексемы].**
+  Пользователь создал NOT_IN_DB лексему, ввёл text в `translation.edited`, не закоммитил. Открыл menu другой реальной лексемы → Delete. После `RemoveLexemeEffect → RefreshLexemeList` merge выкидывает `NOT_IN_DB` целиком вместе с typed text без подтверждения.
+  Нужно: добавить guard «`isCreatingLexeme=true ⇒ блокировать RemoveLexeme других лексем» или ConfirmDialog при `RemoveLexeme(NOT_IN_DB)`. UX-тикет.
+
+- **[WordCard F054: undefined ordering Room `@Relation`].**
+  `termApi.getTermById(wordId).lexemeList` возвращает лексемы через Room `@Relation` без `ORDER BY` — порядок Room-determined, нестабилен. После `RemoveLexeme` оставшиеся лексемы могут визуально переупорядочиться.
+  Нужно: добавить явный `@Query getLexemesByTermId ORDER BY addDate ASC` в `LexemeDao` либо в API. Data-слой, отдельный тикет.
+
+- **[WordCard F049: diagnostic-бедность snackbar при failure операциях].**
+  `Msg.ShowNotification(text)` несёт только локализованный текст («Не удалось сохранить перевод» / «Не удалось создать лексему»), без structured reason — `IllegalStateException("Dictionary not found")` и реальный БД-сбой неразличимы. UI не может предложить retry с правильной семантикой.
+  Нужно: переработать `ShowNotification` в sealed result с reason-полем + UX-обогащение (retry, copy stack trace). Отдельная error-handling фича.
+
+- **[WordCard: lens-extract Translation/Definition reducer-веток].**
+  10 пар почти зеркальных функций (`CommitTranslationEdit`/`CommitDefinitionEdit`, `RefreshTranslation`/`RefreshDefinition`, `CreateTranslation`/`CreateDefinition`, `EnterTranslationEditMode`/`EnterDefinitionEditMode`, `CancelTranslationEdit`/`CancelDefinitionEdit`, `RemoveTranslation`/`RemoveDefinition`). Различаются только полем `LexemeState.translation` vs `LexemeState.definition`. Зеркальный код дублирован ~50 LOC на пару.
+  Нужно: lens-pattern `LexemeLens<TextValueState?>` либо переименовать Msg в `UpsertLexeme*(lexemeId, kind: SubentityKind, ...)`. Большой архитектурный refactor контракта Msg, отдельный тикет.
+
+- **[WordCard UI: cancel-trigger для word edit отсутствует].**
+  `Msg.ExitWordEditMode` в контракте жив (UX «тап Отмена / back-кнопка внутри edit-mode»), но `LexemeEditableText` имеет только `onCloseEditMode` → `CommitWordChanges`. Cancel-кнопки нет, back закрывает экран целиком.
+  Нужно: добавить cancel-control в `LexemeEditableText` либо обоснованно зафиксировать отсутствие cancel UX. Точечный UX-тикет.
+
+- **[WordCard UI: loading overlay при `isLoading=true`].**
+  При cold load (`isLoading=true && wordState is NotLoaded`) UI рендерит пустой Scaffold без `CircularProgressIndicator`. Figma `9154-82509` явно показывает spinner-state. Сейчас пользователь видит чистый экран на ~100-300ms.
+  Нужно: добавить `CircularProgressIndicator`-overlay при `state.isLoading && wordState is NotLoaded`. Точечный UX-тикет.
+
+- **[Auto-format Kotlin: vertical multi-параметровые вызовы].**
+
+  **Цель.** При `Cmd+Option+L` (Reformat Code) Android Studio должна приводить multi-параметровые вызовы / функции к vertical-формату:
+  ```
+  PaddingValues(
+      start = 12.dp,
+      top = 6.dp,
+      end = 6.dp,
+      bottom = 6.dp,
+  )
+  ```
+  Inline `PaddingValues(start = 12.dp, top = 6.dp, end = 6.dp, bottom = 6.dp)` не приемлем.
+
+  **Что пробовали (не сработало):**
+  1. `.editorconfig` в корне проекта с `ij_kotlin_call_parameters_wrap = on_every_item`, `*_new_line_after_left_paren = true`, `*_right_paren_on_new_line = true`. После рестарта Studio reformat не сработал.
+  2. `.idea/codeStyles/Project.xml` — прописаны опции `CALL_PARAMETERS_WRAP = 5` (затем `6`) + `LPAREN_ON_NEXT_LINE = true` + `RPAREN_ON_NEXT_LINE = true` в `JetCodeStyleSettings` и `codeStyleSettings language="kotlin"`. Reformat всё равно не приводит к vertical.
+  3. Убран `CODE_STYLE_DEFAULTS = KOTLIN_OFFICIAL` — не помогло.
+
+  **Гипотезы что проверить:**
+  - Settings UI → Editor → Code Style → Kotlin → Wrapping and Braces → Function call arguments — посмотреть какое значение реально стоит (если `Wrap if long` — Project.xml не активирован → проверить scheme).
+  - Возможно нужен `ktlint` plugin (gradle) — он форматирует через свои правила, IDE через тот же scheme.
+  - Возможна проблема с тем что **`Cmd+Option+L`** в Studio не запускает full kotlin formatter, а только мелкие правки. Тогда нужен **right-click → Reformat Code...** с опциями.
+  - Проверить — может быть в Studio есть отдельная категория "Compose / Kotlin DSL" где другой override.
+
+  **Артефакты:** `.editorconfig` и `.idea/codeStyles/Project.xml` — текущее состояние правок, не работает. Удалить или дополнить под рабочее решение.
