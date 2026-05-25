@@ -17,6 +17,7 @@
 ## Mate (TEA State Management)
 
 - [Mate Framework](mate-framework.md) — типы, цикл, подключение, конвенции
+- [Моделирование State](state-modeling.md) — UDF-подход, ADT, sum/product, State как БД, selectors, Dependency Rule (конспект доклада М. Левченко)
 - [Стейт и расширения](state-and-extensions.md) — иерархия стейта, extension-функции, использование в редьюсере
 - [Сообщения](messages.md) — sealed interface, именование, категории
 - [Паттерны редьюсера](reducer-patterns.md) — inline chains, условия, динамические эффекты, логирование

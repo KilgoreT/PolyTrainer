@@ -1,9 +1,12 @@
 package me.apomazkin.wordcard.mate.ext
 
-import me.apomazkin.wordcard.entity.Term
-import me.apomazkin.wordcard.entity.Word
-import me.apomazkin.wordcard.entity.WordId
-import me.apomazkin.wordcard.mate.*
+import me.apomazkin.wordcard.mate.WordCardState
+import me.apomazkin.wordcard.mate.WordState
+import me.apomazkin.wordcard.mate.disableWordEdit
+import me.apomazkin.wordcard.mate.enableWordEdit
+import me.apomazkin.wordcard.mate.hideWordWarningDialog
+import me.apomazkin.wordcard.mate.showWordWarningDialog
+import me.apomazkin.wordcard.mate.updateWordEdited
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,404 +14,91 @@ import org.junit.Test
 import java.util.Date
 
 /**
- * Tests for extensions related to word state management
- * 
- * Test cases:
- * 1. Standard case: setWordId sets word ID
- * 2. Standard case: setWordAdded sets word added date
- * 3. Standard case: setWordValue sets word value
- * 4. Boundary case: enableWordEdit enables edit mode when not editing
- * 5. Boundary case: enableWordEdit enables edit mode when already editing
- * 6. Boundary case: disableWordEdit disables edit mode when editing
- * 7. Boundary case: disableWordEdit disables edit mode when not editing
- * 8. Standard case: updateWordEdited updates edited text
- * 9. Boundary case: showWordWarningDialog shows dialog when hidden
- * 10. Boundary case: showWordWarningDialog shows dialog when already shown
- * 11. Boundary case: hideWordWarningDialog hides dialog when shown
- * 12. Boundary case: hideWordWarningDialog hides dialog when already hidden
- * 13. Standard case: setTerm sets complete term data
+ * Tests for extensions on Word edit/warning state under sealed WordState.
+ * Surviving extensions: enableWordEdit, disableWordEdit, updateWordEdited,
+ * showWordWarningDialog, hideWordWarningDialog.
+ *
+ * Удалённые extensions (setWordId / setWordAdded / setWordValue / setTerm) тестов не требуют —
+ * мэппинг term делается в reducer-ветке WordLoaded.
  */
 class WordExtTest {
 
+    private fun loaded(
+        value: String = "word",
+        isEditMode: Boolean = false,
+        edited: String = "",
+        showWarningDialog: Boolean = false,
+    ): WordCardState = WordCardState(
+        isLoading = false,
+        wordState = WordState.Loaded(
+            id = 1L,
+            added = Date(0L),
+            value = value,
+            isEditMode = isEditMode,
+            edited = edited,
+            showWarningDialog = showWarningDialog,
+        ),
+    )
+
     @Test
-    fun `should set word ID when setWordId is called`() {
-        // Test case 1: Standard case - setWordId sets word ID
-        // Given
-        val newWordId = 456L
-        val initialState = WordCardState(
-            wordState = WordState(id = 123L, value = "test")
-        )
-        
-        // When
-        val resultState = initialState.setWordId(newWordId)
-        
-        // Then
-        // Main functionality check
-        assertEquals("Word ID should be updated", newWordId, resultState.wordState.id)
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            resultState.wordState.value
-        )
-        assertEquals(
-            "Word added date should remain unchanged",
-            initialState.wordState.added,
-            resultState.wordState.added
-        )
-        assertEquals(
-            "Word edit mode should remain unchanged",
-            initialState.wordState.isEditMode,
-            resultState.wordState.isEditMode
-        )
-        assertEquals(
-            "Word edited text should remain unchanged",
-            initialState.wordState.edited,
-            resultState.wordState.edited
-        )
-        assertEquals(
-            "Word warning dialog should remain unchanged",
-            initialState.wordState.showWarningDialog,
-            resultState.wordState.showWarningDialog
-        )
-        
-        // Other state properties should remain unchanged
-        assertEquals(
-            "topBarState should not mutate on setWordId() - violates immutability",
-            initialState.topBarState,
-            resultState.topBarState
-        )
-        assertEquals(
-            "addLexemeBottomState should not mutate on setWordId() - violates immutability",
-            initialState.addLexemeBottomState,
-            resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "isLoading should not mutate on setWordId() - violates immutability",
-            initialState.isLoading,
-            resultState.isLoading
-        )
-        assertEquals(
-            "lexemeList should not mutate on setWordId() - violates immutability",
-            initialState.lexemeList,
-            resultState.lexemeList
-        )
-        assertEquals(
-            "snackbarState should not mutate on setWordId() - violates immutability",
-            initialState.snackbarState,
-            resultState.snackbarState
-        )
+    fun `enableWordEdit on Loaded sets isEditMode true and edited to value`() {
+        val initial = loaded(value = "abc")
+
+        val result = initial.enableWordEdit()
+
+        val w = result.wordState as WordState.Loaded
+        assertTrue(w.isEditMode)
+        assertEquals("abc", w.edited)
     }
 
     @Test
-    fun `should set word added date when setWordAdded is called`() {
-        // Test case 2: Standard case - setWordAdded sets word added date
-        // Given
-        val newDate = Date(5000L)
-        val initialState = WordCardState(
-            wordState = WordState(id = 123L, value = "test", added = Date(1000L))
-        )
-        
-        // When
-        val resultState = initialState.setWordAdded(newDate)
-        
-        // Then
-        // Main functionality check
-        assertEquals("Word added date should be updated", newDate, resultState.wordState.added)
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            resultState.wordState.id
-        )
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            resultState.wordState.value
-        )
+    fun `disableWordEdit on Loaded resets isEditMode and edited`() {
+        val initial = loaded(isEditMode = true, edited = "abc")
+
+        val result = initial.disableWordEdit()
+
+        val w = result.wordState as WordState.Loaded
+        assertFalse(w.isEditMode)
+        assertEquals("", w.edited)
     }
 
     @Test
-    fun `should enable word edit mode when enableWordEdit is called`() {
-        // Test case 4: Boundary case - enableWordEdit enables edit mode when not editing
-        // Given
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "original text",
-                isEditMode = false,
-                edited = ""
-            )
-        )
-        
-        // When
-        val resultState = initialState.enableWordEdit()
-        
-        // Then
-        // Main functionality check
-        assertTrue("Edit mode should be enabled", resultState.wordState.isEditMode)
-        assertEquals(
-            "Edited text should be set to current value",
-            initialState.wordState.value,
-            resultState.wordState.edited
-        )
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            resultState.wordState.id
-        )
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            resultState.wordState.value
-        )
-        assertEquals(
-            "Word added date should remain unchanged",
-            initialState.wordState.added,
-            resultState.wordState.added
-        )
+    fun `updateWordEdited on Loaded updates edited only`() {
+        val initial = loaded(value = "original", isEditMode = true, edited = "old")
+
+        val result = initial.updateWordEdited("new")
+
+        val w = result.wordState as WordState.Loaded
+        assertEquals("new", w.edited)
+        assertEquals("original", w.value)
     }
 
     @Test
-    fun `should enable word edit mode when already editing`() {
-        // Test case 5: Boundary case - enableWordEdit enables edit mode when already editing
-        // Given
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "original text",
-                isEditMode = true,
-                edited = "previously edited"
-            )
-        )
-        
-        // When
-        val resultState = initialState.enableWordEdit()
-        
-        // Then
-        // Main functionality check
-        assertTrue("Edit mode should remain enabled", resultState.wordState.isEditMode)
-        assertEquals(
-            "Edited text should be reset to current value",
-            initialState.wordState.value,
-            resultState.wordState.edited
-        )
+    fun `showWordWarningDialog on Loaded sets showWarningDialog true`() {
+        val initial = loaded()
+
+        val result = initial.showWordWarningDialog()
+
+        val w = result.wordState as WordState.Loaded
+        assertTrue(w.showWarningDialog)
     }
 
     @Test
-    fun `should disable word edit mode when disableWordEdit is called`() {
-        // Test case 6: Boundary case - disableWordEdit disables edit mode when editing
-        // Given
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "original text",
-                isEditMode = true,
-                edited = "edited text"
-            )
-        )
-        
-        // When
-        val resultState = initialState.disableWordEdit()
-        
-        // Then
-        // Main functionality check
-        assertFalse("Edit mode should be disabled", resultState.wordState.isEditMode)
-        assertEquals("Edited text should be cleared", "", resultState.wordState.edited)
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            resultState.wordState.id
-        )
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            resultState.wordState.value
-        )
+    fun `hideWordWarningDialog on Loaded sets showWarningDialog false`() {
+        val initial = loaded(showWarningDialog = true)
+
+        val result = initial.hideWordWarningDialog()
+
+        val w = result.wordState as WordState.Loaded
+        assertFalse(w.showWarningDialog)
     }
 
     @Test
-    fun `should update word edited text when updateWordEdited is called`() {
-        // Test case 8: Standard case - updateWordEdited updates edited text
-        // Given
-        val newEditedText = "newly edited text"
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "original text",
-                isEditMode = true,
-                edited = "old edited text"
-            )
-        )
-        
-        // When
-        val resultState = initialState.updateWordEdited(newEditedText)
-        
-        // Then
-        // Main functionality check
-        assertEquals("Edited text should be updated", newEditedText, resultState.wordState.edited)
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            resultState.wordState.id
-        )
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            resultState.wordState.value
-        )
-        assertEquals(
-            "Edit mode should remain unchanged",
-            initialState.wordState.isEditMode,
-            resultState.wordState.isEditMode
-        )
-    }
+    fun `enableWordEdit on NotLoaded is no-op (guard)`() {
+        val initial = WordCardState(isLoading = false, wordState = WordState.NotLoaded)
 
-    @Test
-    fun `should show warning dialog when showWordWarningDialog is called`() {
-        // Test case 9: Boundary case - showWordWarningDialog shows dialog when hidden
-        // Given
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "test",
-                showWarningDialog = false
-            )
-        )
-        
-        // When
-        val resultState = initialState.showWordWarningDialog()
-        
-        // Then
-        // Main functionality check
-        assertTrue("Warning dialog should be shown", resultState.wordState.showWarningDialog)
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            resultState.wordState.id
-        )
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            resultState.wordState.value
-        )
-    }
+        val result = initial.enableWordEdit()
 
-    @Test
-    fun `should hide warning dialog when hideWordWarningDialog is called`() {
-        // Test case 11: Boundary case - hideWordWarningDialog hides dialog when shown
-        // Given
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "test",
-                showWarningDialog = true
-            )
-        )
-        
-        // When
-        val resultState = initialState.hideWordWarningDialog()
-        
-        // Then
-        // Main functionality check
-        assertFalse("Warning dialog should be hidden", resultState.wordState.showWarningDialog)
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            resultState.wordState.id
-        )
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            resultState.wordState.value
-        )
-    }
-
-
-    @Test
-    fun `should set complete term data when setTerm is called`() {
-        // Test case 13: Standard case - setTerm sets complete term data
-        // Given
-        val term = Term(
-            wordId = WordId(456L),
-            word = Word("new word"),
-            addedDate = Date(3000L),
-            changedDate = null,
-            removedDate = null,
-            lexemeList = emptyList()
-        )
-        
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "old word",
-                added = Date(1000L)
-            )
-        )
-        
-        // When
-        val resultState = initialState.setTerm(term)
-        
-        // Then
-        // Main functionality check
-        assertEquals("Word ID should be updated from term", 456L, resultState.wordState.id)
-        assertEquals("Word value should be updated from term", "new word", resultState.wordState.value)
-        assertEquals("Word added date should be updated from term", Date(3000L), resultState.wordState.added)
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Edit mode should remain unchanged",
-            initialState.wordState.isEditMode,
-            resultState.wordState.isEditMode
-        )
-        assertEquals(
-            "Edited text should remain unchanged",
-            initialState.wordState.edited,
-            resultState.wordState.edited
-        )
-        assertEquals(
-            "Warning dialog should remain unchanged",
-            initialState.wordState.showWarningDialog,
-            resultState.wordState.showWarningDialog
-        )
-        
-        // Other state properties should remain unchanged
-        assertEquals(
-            "topBarState should not mutate on setTerm() - violates immutability",
-            initialState.topBarState,
-            resultState.topBarState
-        )
-        assertEquals(
-            "addLexemeBottomState should not mutate on setTerm() - violates immutability",
-            initialState.addLexemeBottomState,
-            resultState.addLexemeBottomState
-        )
-        assertEquals(
-            "isLoading should not mutate on setTerm() - violates immutability",
-            initialState.isLoading,
-            resultState.isLoading
-        )
-        assertEquals(
-            "lexemeList should not mutate on setTerm() - violates immutability",
-            initialState.lexemeList,
-            resultState.lexemeList
-        )
-        assertEquals(
-            "snackbarState should not mutate on setTerm() - violates immutability",
-            initialState.snackbarState,
-            resultState.snackbarState
-        )
+        assertEquals(initial, result)
     }
 }

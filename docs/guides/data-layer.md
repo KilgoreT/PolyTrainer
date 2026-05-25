@@ -134,6 +134,35 @@ class WordCardUseCaseImpl @Inject constructor(
 }
 ```
 
+## Нормализация текстового ввода (trim)
+
+**Правило.** Любая строка, уходящая **в БД** или **в сеть**, нормализуется через `.trim()` непосредственно перед передачей в соответствующий API. Никаких пробелов/переводов строк по краям в хранилище не попадает.
+
+**Где делаем.** В **UseCaseImpl** — единая точка для всех write-методов. Reducer/Composable триммить не обязан (он валидирует blank для UX), но финальная нормализация — здесь.
+
+```kotlin
+override suspend fun updateWord(wordId: Long, value: String): Boolean {
+    return wordApi.updateWordSuspend(wordId, value.trim())
+}
+
+override suspend fun addLexemeTranslation(
+    wordId: Long,
+    lexemeId: Long?,
+    translation: String,
+): Lexeme? = try {
+    val trimmed = translation.trim()
+    // ... все пути используют trimmed, не translation
+}
+```
+
+**Почему не в `CoreDbApiImpl` (репозитории).** Trim — нормализация **пользовательского ввода**, бизнес-правило. Контракт `CoreDbApi`/network — "write what you give me". Если impl молча триммит — нарушается контракт: "передал `"foo "`, читаю `"foo"`". Кроме того storage-слой пишет не только пользовательский ввод (метаданные, ресурсы, миграции) — им trim вреден.
+
+**Почему не в Reducer.** Reducer должен оставаться тонким и чистым. Нормализация — operational, не state-transition. Кроме того trim, сделанный в reducer перед Effect, не виден следующему слою — будет повторяться в каждом месте.
+
+**После trim строка может стать пустой.** Это валидно на уровне UseCase — он пишет что дали. Защита от blank, если нужна, лежит **выше** — в reducer (`isNotEmpty()` / `isBlank()` guard перед эмитом Effect).
+
+**Исключения.** Если для конкретного поля trim семантически вреден (например, ввод где значимые ведущие/завершающие пробелы — нестандартный сценарий) — это **должно отдельно проговариваться** в спецификации фичи и комментарием у соответствующего UseCase-метода. По умолчанию — триммим.
+
 ## DataStore Preferences
 
 ```kotlin

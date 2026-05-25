@@ -24,7 +24,7 @@
   - Статистика (StatTab)
   - Настройки (SettingsTab)
   - [WebView](webview-screen.md)
-- Карточка слова (WordCard)
+- [Карточка слова (WordCard)](wordcard.md)
 - Квиз-чат (QuizChat)
 
 ## Виджеты

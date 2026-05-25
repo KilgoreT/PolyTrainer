@@ -44,7 +44,15 @@ internal fun WordCardScreen(
 ) {
     BackHandler { sendMessage(Msg.RequestBack) }
     Scaffold(
-        topBar = { TopBarWidget(state, sendMessage) },
+        topBar = {
+            TopBarWidget(
+                topBarState = state.topBarState,
+                onBackPress = { sendMessage(Msg.NavigateBack) },
+                onOpenMenu = { sendMessage(Msg.OpenTopBarMenu) },
+                onCloseMenu = { sendMessage(Msg.CloseTopBarMenu) },
+                onDeleteWord = { sendMessage(Msg.OpenDeleteWordDialog) },
+            )
+        },
         floatingActionButton = { ... },
         snackbarHost = { ... },
     ) { paddings ->
@@ -76,35 +84,78 @@ private fun Preview() {
 
 ## Отправка сообщений из UI
 
-UI-события диспатчатся как сообщения через callback `sendMessage`:
+`sendMessage: (Msg) -> Unit` живёт **только** на верхнем уровне — во внутренней stateless composable экрана (`internal fun WordCardScreen(state, sendMessage)`). На этом уровне `Msg` известны, callback'и для виджетов строятся inline:
 
 ```kotlin
-// Клик кнопки → Сообщение
-Button(onClick = { sendMessage(Msg.ShowDropdownMenu) })
+internal fun WordCardScreen(
+    state: WordCardState,
+    sendMessage: (Msg) -> Unit,
+) {
+    TopBarWidget(
+        topBarState = state.topBarState,
+        onBackPress = { sendMessage(Msg.NavigateBack) },
+        onOpenMenu = { sendMessage(Msg.OpenTopBarMenu) },
+        onCloseMenu = { sendMessage(Msg.CloseTopBarMenu) },
+        onDeleteWord = { sendMessage(Msg.OpenDeleteWordDialog) },
+    )
+}
+```
 
-// Изменение текста → Сообщение с значением
-TextField(
-    value = state.wordState.edited,
-    onValueChange = { sendMessage(Msg.ChangeWordValue(it)) }
-)
+## Виджеты получают callbacks, не `sendMessage`
 
-// Действие с элементом списка → Сообщение с ID
-IconButton(
-    onClick = { sendMessage(Msg.DeleteLexeme(lexemeState.id)) }
+**Правило.** Виджет (любой `internal fun *Widget(...)`) **никогда** не принимает `sendMessage: (Msg) -> Unit`. События идут наружу через плоские callback'и (`onClick`, `onValueChange`, `onConfirm` и т.п.). Заполняются callback'и на верхнем уровне экрана — там, где Msg известны.
+
+**Почему.**
+
+- Виджет, принимающий `sendMessage`, **завязан на MVI-инфраструктуру** (импорт `me.apomazkin.mate.*`, знание о существовании конкретного `Msg`). Перенести в другой экран — нельзя.
+- На сайте вызова **не видно ЧТО произойдёт** при клике. `sendMessage` — чёрный ящик; `onConfirm` — очевидное намерение.
+- Preview/screenshot-тесты ломаются: подсовывать `sendMessage = {}` можно, но виджет всё равно должен **знать** про `Msg`-тип, который к Preview отношения не имеет.
+- Логика "при клике X → отправить Msg.Y" размазана между виджетом и экраном. Через callbacks — собрана в одном месте (главный composable).
+
+**Без исключений по числу callback'ов.** Если callback'ов накапливается много (5+) — это сигнал что виджет слишком жирный, **декомпозируй** (выдели sub-section'ы), не ставь `sendMessage` как эвакуационный люк.
+
+```kotlin
+// ❌ Плохо — sendMessage внутри виджета
+@Composable
+internal fun ConfirmDeleteWordWidget(
+    loaded: WordState.Loaded,
+    sendMessage: (Msg) -> Unit,
+) {
+    AlarmDialogWidget(
+        onAlarmClick = { sendMessage(Msg.RemoveWord(loaded.id)) },
+        onDismissRequest = { sendMessage(Msg.CloseDeleteWordDialog) },
+    ) { ... }
+}
+
+// ✅ Хорошо — плоские callbacks, id уезжает наверх в WordCardScreen
+@Composable
+internal fun ConfirmDeleteWordWidget(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlarmDialogWidget(
+        onAlarmClick = onConfirm,
+        onDismissRequest = onDismiss,
+    ) { ... }
+}
+
+// Сайт вызова — WordCardScreen
+ConfirmDeleteWordWidget(
+    onConfirm = { sendMessage(Msg.RemoveWord(state.wordState.id)) },
+    onDismiss = { sendMessage(Msg.CloseDeleteWordDialog) },
 )
 ```
 
+**Не передавать "лишних" параметров для callback'ов.** Если параметр (`lexemeId`, `loaded`) используется только чтобы построить Msg — он не нужен виджету. id поедет наверх через callback-builder. Виджет остаётся чисто пресентационным.
+
 ## Сайд-эффекты в composable
 
-`LaunchedEffect` — для state-triggered UI-эффектов (snackbar, фокус, анимации). **Не для навигации** — навигация выражается через `NavigationEffect` в reducer, обрабатывается NavigationEffectHandler через `Navigator`.
+`LaunchedEffect` — для state-triggered UI-эффектов (фокус, анимации). **Не для навигации** — навигация выражается через `NavigationEffect` в reducer, обрабатывается `NavigationEffectHandler` через `Navigator`. **Не для snackbar/toast/vibration** — см. отдельный раздел «Snackbar и one-shot UI-уведомления (UiHost)» ниже.
 
 ```kotlin
-// Показ snackbar (UI-эффект через флаг в state — допустимо для toast/snackbar)
-LaunchedEffect(state.snackbarState.show) {
-    if (state.snackbarState.show) {
-        snackbarHostState.showSnackbar(state.snackbarState.title)
-        sendMessage(UiMsg.Snackbar(text = "", show = false))
-    }
+// Фокус на поле ввода при входе в edit-mode
+LaunchedEffect(state.isEditMode) {
+    if (state.isEditMode) focusRequester.requestFocus()
 }
 
 // Системная back-кнопка — через Msg, не через LaunchedEffect(closeScreen)
@@ -157,7 +208,15 @@ AppBar **никогда** не пишется inline в `Scaffold`. Каждый
 // Правильно:
 topBar = { AboutAppBar(onBackPress = onBackPress) }
 topBar = { SettingsAppBar() }
-topBar = { TopBarWidget(state = state.topBarState, onBackPress = onBackPress, sendMsg = sendMsg) }
+topBar = {
+    TopBarWidget(
+        topBarState = state.topBarState,
+        onBackPress = onBackPress,
+        onOpenMenu = { sendMessage(Msg.OpenTopBarMenu) },
+        onCloseMenu = { sendMessage(Msg.CloseTopBarMenu) },
+        onDeleteWord = { sendMessage(Msg.OpenDeleteWordDialog) },
+    )
+}
 
 // Неправильно:
 topBar = {
@@ -174,7 +233,7 @@ topBar = {
 |-----|--------|-----------|
 | Только назад + заголовок | `AboutAppBar(onBackPress)` | `onBackPress: () -> Unit` |
 | Без навигации | `SettingsAppBar()` | нет |
-| С состоянием (меню, действия) | `TopBarWidget(state, onBackPress, sendMsg)` | state + callbacks |
+| С состоянием (меню, действия) | `TopBarWidget(state, onBackPress, onOpenMenu, ...)` | state + плоские callbacks |
 | Через DI (CompositionRoot) | `uiDeps.AppBar(titleResId)` | `@StringRes titleResId` |
 
 Если экран условно показывает AppBar (например, onboarding без AppBar, management с AppBar) — `onBackPress: (() -> Unit)? = null`:
@@ -193,7 +252,15 @@ Scaffold(
 
 ```kotlin
 Scaffold(
-    topBar = { TopBarWidget(state, sendMessage) },
+    topBar = {
+        TopBarWidget(
+            topBarState = state.topBarState,
+            onBackPress = { sendMessage(Msg.NavigateBack) },
+            onOpenMenu = { sendMessage(Msg.OpenTopBarMenu) },
+            onCloseMenu = { sendMessage(Msg.CloseTopBarMenu) },
+            onDeleteWord = { sendMessage(Msg.OpenDeleteWordDialog) },
+        )
+    },
     floatingActionButton = {
         PrimaryFabWidget(iconRes = R.drawable.ic_add) { sendMessage(Msg.AddLexeme) }
     },
@@ -207,6 +274,78 @@ Scaffold(
 }
 ```
 
+## Snackbar и one-shot UI-уведомления (UiHost)
+
+Snackbar / toast / vibration — **one-shot side-effects**, не часть data state. Канон проекта — `UiHost` abstraction через `@AssistedInject`. Handler вызывает `uiHost.showSnackbar(message)` **напрямую**, без круга через Msg + State.
+
+**Почему не state-based.** Раньше snackbar хранился в `state.snackbarState: SnackbarState(title, show)`, composable наблюдал его через `LaunchedEffect` и слал `Msg.DismissNotification` для сброса. Проблемы:
+
+- State захламляется транзитивным UI-фидбеком, который по природе one-shot.
+- Лишний раунд `Effect → Handler → Msg → State change` для fire-and-forget уведомления.
+- Composable должен помнить про reset-msg, иначе snackbar дублируется при recomposition.
+- Снэкбар survive'ит config change в state — иногда нежелательно для one-shot.
+
+**Канон.**
+
+```kotlin
+// 1. Абстракция-host (в screen модуле или общая в core/ui)
+interface UiHost {
+    suspend fun showSnackbar(message: String)
+    fun showToast(message: String)
+    // future: vibration, system UI, etc.
+}
+
+// 2. Handler получает UiHost через @AssistedInject
+class UiEffectHandler @AssistedInject constructor(
+    @Assisted private val uiHost: UiHost,
+) : MateTypedEffectHandler<Msg, UiEffect>() {
+
+    override fun filter(effect: Effect): UiEffect? = effect as? UiEffect
+
+    override suspend fun onEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
+        when (effect) {
+            is UiEffect.ShowNotification -> uiHost.showSnackbar(effect.message)
+        }
+        // consumer(Msg.NoOperation) — если контракт MateTypedEffectHandler требует return Msg.
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(uiHost: UiHost): UiEffectHandler
+    }
+}
+
+// 3. Реализация UiHost на стороне Composable
+class UiHostImpl(
+    private val snackbarHostState: SnackbarHostState,
+    private val context: Context,
+) : UiHost {
+    override suspend fun showSnackbar(message: String) {
+        snackbarHostState.showSnackbar(message)
+    }
+    override fun showToast(message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+}
+
+// 4. В корневом Composable
+val snackbarHostState = remember { SnackbarHostState() }
+val context = LocalContext.current
+val uiHost = remember(snackbarHostState, context) { UiHostImpl(snackbarHostState, context) }
+val viewModel: WordCardViewModel = hiltViewModel { factory ->
+    factory.create(uiHost) // через AssistedInject viewmodel-factory
+}
+
+Scaffold(
+    snackbarHost = { SnackbarHost(snackbarHostState) },
+    // ...
+)
+```
+
+**Симметрия с Navigation.** Handler `NavigationEffect` получает `Navigator` тем же путём (`@AssistedInject`); реализация `NavigatorImpl` живёт на стороне Composable. UiHost — точная аналогия для UI-фидбека.
+
+**Legacy state-based snackbar** (`SnackbarState(title, show)` в state + `LaunchedEffect(state.snackbarState.show)` + `Msg.DismissNotification` reset) — встречается в существующем коде, постепенно мигрируется. Не добавлять новый код по legacy-паттерну. Если фича уже использует state-based — миграция отдельной задачей (см. `docs/Backlog.md` → «UiEffect: убрать круг Effect → Msg → State, показывать snackbar/toast напрямую через UiHost» + «Централизованная система ошибок и снекбаров»).
+
 ## Условные оверлеи
 
 Диалоги и bottom sheet по флагам стейта:
@@ -215,14 +354,15 @@ Scaffold(
 if (state.wordState.showWarningDialog) {
     ConfirmDeleteWordWidget(
         onConfirm = { sendMessage(Msg.DeleteWord(state.wordState.id)) },
-        onDismiss = { sendMessage(Msg.HideDeleteWordDialog) }
+        onDismiss = { sendMessage(Msg.HideDeleteWordDialog) },
     )
 }
 
 if (state.addLexemeBottomState.show) {
     AddLexemeBottomWidget(
         state = state.addLexemeBottomState,
-        sendMessage = sendMessage
+        onAddLexeme = { sendMessage(Msg.AddLexeme(it)) },
+        onDismiss = { sendMessage(Msg.HideAddLexemeBottom) },
     )
 }
 ```
@@ -236,7 +376,9 @@ state.lexemeList.forEach { lexemeState ->
     key(lexemeState.id) {
         LexemeItemWidget(
             state = lexemeState,
-            sendMessage = sendMessage,
+            enabled = !state.isPendingDbOp,
+            onRemove = { sendMessage(Msg.OpenDeleteLexemeDialog(lexemeState.id)) },
+            // ... остальные callbacks с захватом lexemeState.id
         )
     }
 }

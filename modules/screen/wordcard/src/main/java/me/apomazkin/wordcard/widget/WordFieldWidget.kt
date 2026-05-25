@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import me.apomazkin.core_resources.R
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.blackColor
@@ -23,17 +24,24 @@ import me.apomazkin.theme.grayTextColor
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.ui.text.base.LexemeEditableText
-import me.apomazkin.wordcard.R
-import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.WordState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Поле слова с inline-редактированием.
+ *
+ * @param loaded данные загруженного слова.
+ * @param enabled false → ввод и переход в edit-mode заблокированы.
+ */
 @Composable
 internal fun WordFieldWidget(
-    wordState: WordState,
-    sendMessage: (Msg) -> Unit,
+    loaded: WordState.Loaded,
+    enabled: Boolean,
+    onValueChange: (String) -> Unit,
+    onOpenEditMode: () -> Unit,
+    onCommit: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -50,37 +58,32 @@ internal fun WordFieldWidget(
                     .fillMaxWidth(),
             ) {
                 LexemeEditableText(
-                    originValue = wordState.value,
-                    changedValue = wordState.edited,
-                    isEditMode = wordState.isEditMode,
+                    originValue = loaded.value,
+                    changedValue = loaded.edited,
+                    isEditMode = loaded.isEditMode,
                     textColor = blackColor,
                     textStyle = LexemeStyle.H5,
-                    onTextChange = { sendMessage(Msg.UpdateWordInput(it)) },
-                    onOpenEditMode = { sendMessage(Msg.EnterWordEditMode) },
-                    onCloseEditMode = {
-                        sendMessage(Msg.ExitWordEditMode)
-                        sendMessage(Msg.CommitWordChanges)
-                    },
+                    onTextChange = { if (enabled) onValueChange(it) },
+                    onOpenEditMode = { if (enabled) onOpenEditMode() },
+                    onFocusLost = { onCommit() },
                 )
-                wordState.added?.let { date ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.word_card_added_field),
-                            style = LexemeStyle.BodyM,
-                            color = grayTextColor,
-                        )
-                        Text(
-                            text = getDate(date = date),
-                            style = LexemeStyle.BodyMBold,
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
-                    }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.word_card_added_field),
+                        style = LexemeStyle.BodyM,
+                        color = grayTextColor,
+                    )
+                    Text(
+                        text = getDate(date = loaded.added),
+                        style = LexemeStyle.BodyMBold,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
                 }
             }
             ImageFlagWidget(
@@ -92,8 +95,7 @@ internal fun WordFieldWidget(
     }
 }
 
-@Composable
-fun getDate(date: Date): String {
+private fun getDate(date: Date): String {
     val dateFormat = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
     return dateFormat.format(date)
 }
@@ -108,11 +110,16 @@ private fun Preview() {
                 .padding(12.dp)
         ) {
             WordFieldWidget(
-                wordState = WordState(
-                    value = "apple",
+                loaded = WordState.Loaded(
+                    id = 1L,
                     added = Date(),
+                    value = "apple",
                 ),
-            ) {}
+                enabled = true,
+                onValueChange = {},
+                onOpenEditMode = {},
+                onCommit = {},
+            )
         }
     }
 }

@@ -94,6 +94,8 @@
     <string name="word_card_save_title">Save</string>
     <string name="word_card_add_lexeme">Add meaning</string>
     <string name="word_card_delete_word_subheading">All associated data will also be deleted</string>
+    <string name="word_card_delete_lexeme">Delete value?</string>
+    <string name="word_card_delete_lexeme_subheading">All content of this value will be deleted</string>
     <string name="word_card_bottom_title">Word meaning</string>
     <string name="word_card_bottom_translation">Translation</string>
     <string name="word_card_bottom_definition">Definition</string>
@@ -102,6 +104,20 @@
     <string name="word_card_lexeme_delete">Delete value</string>
     <string name="word_card_lexeme_add_translation">Add translation</string>
     <string name="word_card_lexeme_add_definition">Add definition</string>
+    <string name="word_card_lexeme_remove">Remove</string>
+    <string name="word_card_snackbar_translation_deleted">Translation deleted</string>
+    <string name="word_card_snackbar_definition_deleted">Definition deleted</string>
+    <string name="word_card_snackbar_lexeme_deleted">Value deleted</string>
+    <string name="word_card_snackbar_undo">Undo</string>
+    <string name="word_card_error_remove_word">Failed to delete word</string>
+    <string name="word_card_error_save_word">Failed to save</string>
+    <string name="word_card_error_refresh_word">Failed to refresh word</string>
+    <string name="word_card_error_remove_lexeme">Failed to delete value</string>
+    <string name="word_card_error_save_translation">Failed to save translation</string>
+    <string name="word_card_error_remove_translation">Failed to delete translation</string>
+    <string name="word_card_error_save_definition">Failed to save definition</string>
+    <string name="word_card_error_remove_definition">Failed to delete definition</string>
+    <string name="word_card_error_restore_lexeme">Failed to restore value</string>
 
     <!--Quiz-->
     <string name="quiz_tab_title">Quizzes</string>

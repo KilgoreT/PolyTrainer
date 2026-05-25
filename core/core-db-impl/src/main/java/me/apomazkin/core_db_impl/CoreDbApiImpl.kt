@@ -241,6 +241,38 @@ class CoreDbApiImpl @Inject constructor(
             )
         }
 
+        override suspend fun addLexemeWithTranslation(
+            wordId: Long,
+            dictionaryId: Long,
+            translation: TranslationApiEntity,
+        ): Long {
+            val date = Date(System.currentTimeMillis())
+            return wordDao.addLexemeWithQuiz(
+                lexemeDb = LexemeDb(
+                    wordId = wordId,
+                    translation = translation.value,
+                    addDate = date,
+                ),
+                dictionaryId = dictionaryId,
+            )
+        }
+
+        override suspend fun addLexemeWithDefinition(
+            wordId: Long,
+            dictionaryId: Long,
+            definition: DefinitionApiEntity,
+        ): Long {
+            val date = Date(System.currentTimeMillis())
+            return wordDao.addLexemeWithQuiz(
+                lexemeDb = LexemeDb(
+                    wordId = wordId,
+                    definition = definition.value,
+                    addDate = date,
+                ),
+                dictionaryId = dictionaryId,
+            )
+        }
+
         override suspend fun updateLexemeTranslation(
             id: Long,
             translation: TranslationApiEntity?,

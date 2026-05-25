@@ -1,10 +1,10 @@
 package me.apomazkin.wordcard.mate
 
+import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertNoEffects
-import me.apomazkin.mate.test.assertState
+import me.apomazkin.mate.test.assertSingleEffect
 import me.apomazkin.mate.test.testReduce
-import me.apomazkin.mate.test.toBuilder
 import me.apomazkin.wordcard.entity.Definition
 import me.apomazkin.wordcard.entity.Lexeme
 import me.apomazkin.wordcard.entity.LexemeId
@@ -19,405 +19,137 @@ import org.junit.Test
 import java.util.Date
 
 /**
+ * Reducer tests for WordLoaded / WordNotFound — first scenarios in contract_spec § "Тестовые сценарии".
+ *
  * Test cases:
- * 1. Boundary case: WordLoaded with empty lexeme list - should update word state and create empty lexeme list
- * 2. Standard case: WordLoaded with single lexeme containing both translation and definition
- * 3. Standard case: WordLoaded with multiple lexemes with mixed translation/definition presence
- * 4. Edge case: WordLoaded with lexeme having only translation (no definition)
- * 5. Edge case: WordLoaded with lexeme having only definition (no translation)
- * 6. Edge case: WordLoaded with lexeme having neither translation nor definition
- * 7. Boundary case: WordLoaded with null dates - should handle gracefully
+ * 1. WordLoaded атомарность: (NotLoaded, isLoading=true) → WordLoaded(term) → Loaded(...), isLoading=false,
+ *    isPendingDbOp=false, lexemeList = term.lexemeList.map { toLexemeState() }.
+ * 2. WordLoaded — empty lexeme list.
+ * 3. WordLoaded — multiple lexemes mapped через toLexemeState (translation/definition origin сохранены, edited="", isEdit=false).
+ * 4. WordNotFound silent exit: (NotLoaded, isLoading=true) → NavigationEffect.Back; snackbar НЕ устанавливается.
  */
 class WordLoadedTest {
 
     @Test
-    fun `should handle WordLoaded message with empty lexeme list`() {
-        // Test case 1: Boundary case - WordLoaded with empty lexeme list should update word state and create empty lexeme list
-        // Given
+    fun `given NotLoaded with isLoading when WordLoaded then atomically transitions to Loaded with mapped lexemes and clears pending`() {
+        // Test case 1: атомарность WordLoaded.
         val reducer = WordCardReducer()
-        val initialState = WordCardState()
-            .toBuilder()
-            .modify { it.copy(isLoading = true) }
-            .modify { it.copy(topBarState = TopBarState(isMenuOpen = false)) }
-            .modify { it.copy(addLexemeBottomState = AddLexemeBottomState(show = false)) }
-            .modify { it.copy(wordState = WordState()) }
-            .modify { it.copy(lexemeList = listOf()) }
-            .modify { it.copy(snackbarState = SnackbarState()) }
-            .build()
-        
-        val term = Term(
-            wordId = WordId(123L),
-            word = Word("test"),
-            addedDate = Date(1000L),
-            changedDate = null,
-            removedDate = null,
-            lexemeList = emptyList()
+        val initialState = WordCardState(
+            isLoading = true,
+            isPendingDbOp = false,
+            wordState = WordState.NotLoaded,
+            lexemeList = emptyList(),
         )
-        
-        val message = Msg.WordLoaded(term)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        val expectedState = initialState
-            .toBuilder()
-            .modify { it.copy(isLoading = false) }
-            .modify { it.copy(wordState = WordState(id = 123L, value = "test", added = Date(1000L))) }
-            .modify { it.copy(lexemeList = emptyList()) }
-            .build()
-        
-        result.assertState(expectedState, "State should be updated with word data and empty lexeme list")
-        
-        // Check specific state changes
-        assertFalse("Loading should be disabled", result.state().isLoading)
-        assertEquals("Word ID should be set", 123L, result.state().wordState.id)
-        assertEquals("Word value should be set", "test", result.state().wordState.value)
-        assertEquals("Word added date should be set", Date(1000L), result.state().wordState.added)
-        assertTrue("Lexeme list should be empty", result.state().lexemeList.isEmpty())
-        
-        // Immutability checks - ALL other properties must remain unchanged
-        assertEquals(
-            "TopBarState should remain unchanged",
-            initialState.topBarState,
-            result.state().topBarState
-        )
-        assertEquals(
-            "AddLexemeBottomState should remain unchanged",
-            initialState.addLexemeBottomState,
-            result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "SnackbarState should remain unchanged",
-            initialState.snackbarState,
-            result.state().snackbarState
-        )
-        
-        // Effects check using mate helper
-        result.assertNoEffects("Should have no effects for WordLoaded message")
-    }
-
-    @Test
-    fun `should handle WordLoaded message with single lexeme containing both translation and definition`() {
-        // Test case 2: Standard case - WordLoaded with single lexeme containing both translation and definition
-        // Given
-        val reducer = WordCardReducer()
-        val initialState = WordCardState()
-        
         val lexeme = Lexeme(
-            lexemeId = LexemeId(456L),
-            translation = Translation("перевод"),
-            definition = Definition("определение"),
-            category = "noun",
+            lexemeId = LexemeId(10L),
+            translation = Translation("hello"),
+            definition = Definition("greeting"),
+            category = null,
             addDate = Date(2000L),
-            changeDate = null
+            changeDate = null,
         )
-        
         val term = Term(
             wordId = WordId(123L),
             word = Word("test"),
             addedDate = Date(1000L),
             changedDate = null,
             removedDate = null,
-            lexemeList = listOf(lexeme)
+            lexemeList = listOf(lexeme),
         )
-        
-        val message = Msg.WordLoaded(term)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertEquals("Should have one lexeme", 1, result.state().lexemeList.size)
-        
-        val resultLexeme = result.state().lexemeList.first()
-        assertEquals("Lexeme ID should match", 456L, resultLexeme.id)
-        assertEquals("Translation should be set", "перевод", resultLexeme.translation?.origin)
-        assertFalse("Translation should not be in edit mode", resultLexeme.translation?.isEdit ?: true)
-        assertEquals("Definition should be set", "определение", resultLexeme.definition?.origin)
-        assertFalse("Definition should not be in edit mode", resultLexeme.definition?.isEdit ?: true)
-        assertFalse("Lexeme menu should be closed", resultLexeme.isMenuOpen)
-        
-        // Immutability checks
-        assertFalse("Loading should be disabled", result.state().isLoading)
-        assertEquals("Word ID should be set", 123L, result.state().wordState.id)
-        assertEquals("Word value should be set", "test", result.state().wordState.value)
-        assertEquals("Word added date should be set", Date(1000L), result.state().wordState.added)
+
+        val result = reducer.testReduce(initialState, Msg.WordLoaded(term))
+
+        val state = result.state()
+        assertFalse("isLoading should be false", state.isLoading)
+        assertFalse("isPendingDbOp should be false", state.isPendingDbOp)
+        assertTrue("wordState should be Loaded", state.wordState is WordState.Loaded)
+        val loaded = state.wordState as WordState.Loaded
+        assertEquals("id should match term", 123L, loaded.id)
+        assertEquals("value should match term", "test", loaded.value)
+        assertEquals("added should match term", Date(1000L), loaded.added)
+        assertFalse("isEditMode default false", loaded.isEditMode)
+        assertEquals("edited default empty", "", loaded.edited)
+        assertFalse("showWarningDialog default false", loaded.showWarningDialog)
+
+        assertEquals("lexemeList size", 1, state.lexemeList.size)
+        val lex = state.lexemeList.first()
+        assertEquals("lexeme id", 10L, lex.id)
+        assertEquals("translation origin", "hello", lex.translation?.origin)
+        assertEquals("translation edited empty (per mapper)", "", lex.translation?.edited)
+        assertFalse("translation isEdit false", lex.translation?.isEdit ?: true)
+        assertEquals("definition origin", "greeting", lex.definition?.origin)
+        assertEquals("definition edited empty (per mapper)", "", lex.definition?.edited)
+        assertFalse("definition isEdit false", lex.definition?.isEdit ?: true)
+
+        result.assertNoEffects("WordLoaded should not produce effects")
     }
 
     @Test
-    fun `should handle WordLoaded message with lexeme having only translation`() {
-        // Test case 4: Edge case - WordLoaded with lexeme having only translation (no definition)
-        // Given
+    fun `given NotLoaded when WordLoaded with empty lexeme list then lexemeList is empty`() {
         val reducer = WordCardReducer()
-        val initialState = WordCardState()
-        
-        val lexeme = Lexeme(
-            lexemeId = LexemeId(456L),
-            translation = Translation("перевод"),
-            definition = null,
-            category = "verb",
-            addDate = Date(2000L),
-            changeDate = null
+        val initialState = WordCardState(
+            isLoading = true,
+            wordState = WordState.NotLoaded,
         )
-        
         val term = Term(
-            wordId = WordId(123L),
-            word = Word("test"),
-            addedDate = Date(1000L),
+            wordId = WordId(1L),
+            word = Word("w"),
+            addedDate = Date(1L),
             changedDate = null,
             removedDate = null,
-            lexemeList = listOf(lexeme)
+            lexemeList = emptyList(),
         )
-        
-        val message = Msg.WordLoaded(term)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        val resultLexeme = result.state().lexemeList.first()
-        assertTrue("Translation should be present", resultLexeme.translation != null)
-        assertTrue("Definition should be null", resultLexeme.definition == null)
-        assertEquals("Translation value should match", "перевод", resultLexeme.translation?.origin)
-        assertFalse("Translation should not be in edit mode", resultLexeme.translation?.isEdit ?: true)
-        
-        // Immutability checks
-        assertEquals(
-            "Loading state should be set to false",
-            false,
-            result.state().isLoading
-        )
-        assertEquals(
-            "Word ID should be set from term",
-            123L,
-            result.state().wordState.id
-        )
-        assertEquals(
-            "Word value should be set from term",
-            "test",
-            result.state().wordState.value
-        )
+
+        val result = reducer.testReduce(initialState, Msg.WordLoaded(term))
+
+        assertTrue(result.state().lexemeList.isEmpty())
+        assertTrue(result.state().wordState is WordState.Loaded)
     }
 
     @Test
-    fun `should handle WordLoaded message with lexeme having only definition`() {
-        // Test case 5: Edge case - WordLoaded with lexeme having only definition (no translation)
-        // Given
+    fun `given multiple lexemes when WordLoaded then all are mapped to LexemeState with empty edited`() {
         val reducer = WordCardReducer()
-        val initialState = WordCardState()
-        
-        val lexeme = Lexeme(
-            lexemeId = LexemeId(456L),
-            translation = null,
-            definition = Definition("определение"),
-            category = "adjective",
-            addDate = Date(2000L),
-            changeDate = null
+        val initialState = WordCardState(isLoading = true, wordState = WordState.NotLoaded)
+        val lexemes = listOf(
+            Lexeme(LexemeId(1L), Translation("a"), null, null, Date(0)),
+            Lexeme(LexemeId(2L), null, Definition("b"), null, Date(0)),
+            Lexeme(LexemeId(3L), Translation("c"), Definition("d"), null, Date(0)),
         )
-        
         val term = Term(
-            wordId = WordId(123L),
-            word = Word("test"),
-            addedDate = Date(1000L),
+            wordId = WordId(99L),
+            word = Word("w"),
+            addedDate = Date(0L),
             changedDate = null,
             removedDate = null,
-            lexemeList = listOf(lexeme)
+            lexemeList = lexemes,
         )
-        
-        val message = Msg.WordLoaded(term)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        val resultLexeme = result.state().lexemeList.first()
-        assertTrue("Translation should be null", resultLexeme.translation == null)
-        assertTrue("Definition should be present", resultLexeme.definition != null)
-        assertEquals("Definition value should match", "определение", resultLexeme.definition?.origin)
-        assertFalse("Definition should not be in edit mode", resultLexeme.definition?.isEdit ?: true)
-        
-        // Immutability checks
-        assertEquals(
-            "Lexeme ID should be set correctly",
-            456L,
-            resultLexeme.id
-        )
-        assertFalse("Lexeme menu should be closed", resultLexeme.isMenuOpen)
+
+        val result = reducer.testReduce(initialState, Msg.WordLoaded(term))
+
+        val list = result.state().lexemeList
+        assertEquals(3, list.size)
+        assertEquals("", list[0].translation?.edited)
+        assertEquals("a", list[0].translation?.origin)
+        assertEquals(null, list[1].translation)
+        assertEquals("b", list[1].definition?.origin)
+        assertEquals("c", list[2].translation?.origin)
+        assertEquals("d", list[2].definition?.origin)
     }
 
     @Test
-    fun `should handle WordLoaded message with lexeme having neither translation nor definition`() {
-        // Test case 6: Edge case - WordLoaded with lexeme having neither translation nor definition
-        // Given
+    fun `given NotLoaded when WordNotFound then emits NavigationEffect Back and clears pending`() {
         val reducer = WordCardReducer()
-        val initialState = WordCardState()
-        
-        val lexeme = Lexeme(
-            lexemeId = LexemeId(456L),
-            translation = null,
-            definition = null,
-            category = "interjection",
-            addDate = Date(2000L),
-            changeDate = null
+        val initialState = WordCardState(
+            isLoading = true,
+            isPendingDbOp = true,
+            wordState = WordState.NotLoaded,
         )
-        
-        val term = Term(
-            wordId = WordId(123L),
-            word = Word("test"),
-            addedDate = Date(1000L),
-            changedDate = null,
-            removedDate = null,
-            lexemeList = listOf(lexeme)
-        )
-        
-        val message = Msg.WordLoaded(term)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        val resultLexeme = result.state().lexemeList.first()
-        assertTrue("Translation should be null", resultLexeme.translation == null)
-        assertTrue("Definition should be null", resultLexeme.definition == null)
-        assertEquals("Lexeme ID should be set correctly", 456L, resultLexeme.id)
-        assertFalse("Lexeme menu should be closed", resultLexeme.isMenuOpen)
-        
-        // Immutability checks
-        assertEquals(
-            "Word state should be updated correctly",
-            123L,
-            result.state().wordState.id
-        )
-        assertEquals(
-            "Word value should be updated correctly",
-            "test",
-            result.state().wordState.value
-        )
-    }
 
-    @Test
-    fun `should handle WordLoaded message with multiple lexemes with mixed properties`() {
-        // Test case 3: Standard case - WordLoaded with multiple lexemes with mixed translation/definition presence
-        // Given
-        val reducer = WordCardReducer()
-        val initialState = WordCardState()
-        
-        val lexeme1 = Lexeme(
-            lexemeId = LexemeId(1L),
-            translation = Translation("первый перевод"),
-            definition = Definition("первое определение"),
-            category = "noun",
-            addDate = Date(1000L),
-            changeDate = null
-        )
-        
-        val lexeme2 = Lexeme(
-            lexemeId = LexemeId(2L),
-            translation = Translation("второй перевод"),
-            definition = null,
-            category = "verb",
-            addDate = Date(2000L),
-            changeDate = null
-        )
-        
-        val lexeme3 = Lexeme(
-            lexemeId = LexemeId(3L),
-            translation = null,
-            definition = Definition("третье определение"),
-            category = "adjective",
-            addDate = Date(3000L),
-            changeDate = null
-        )
-        
-        val term = Term(
-            wordId = WordId(123L),
-            word = Word("test"),
-            addedDate = Date(1000L),
-            changedDate = null,
-            removedDate = null,
-            lexemeList = listOf(lexeme1, lexeme2, lexeme3)
-        )
-        
-        val message = Msg.WordLoaded(term)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertEquals("Should have three lexemes", 3, result.state().lexemeList.size)
-        
-        val resultLexeme1 = result.state().lexemeList[0]
-        assertEquals("First lexeme ID should match", 1L, resultLexeme1.id)
-        assertEquals("First lexeme translation should be set", "первый перевод", resultLexeme1.translation?.origin)
-        assertEquals("First lexeme definition should be set", "первое определение", resultLexeme1.definition?.origin)
-        
-        val resultLexeme2 = result.state().lexemeList[1]
-        assertEquals("Second lexeme ID should match", 2L, resultLexeme2.id)
-        assertEquals("Second lexeme translation should be set", "второй перевод", resultLexeme2.translation?.origin)
-        assertTrue("Second lexeme definition should be null", resultLexeme2.definition == null)
-        
-        val resultLexeme3 = result.state().lexemeList[2]
-        assertEquals("Third lexeme ID should match", 3L, resultLexeme3.id)
-        assertTrue("Third lexeme translation should be null", resultLexeme3.translation == null)
-        assertEquals("Third lexeme definition should be set", "третье определение", resultLexeme3.definition?.origin)
-        
-        // Immutability checks
-        assertFalse("Loading should be disabled", result.state().isLoading)
-        assertEquals("Word ID should be set", 123L, result.state().wordState.id)
-        assertEquals("Word value should be set", "test", result.state().wordState.value)
-        assertEquals("Word added date should be set", Date(1000L), result.state().wordState.added)
-    }
+        val result = reducer.testReduce(initialState, Msg.WordNotFound)
 
-    @Test
-    fun `should handle WordLoaded message with null dates gracefully`() {
-        // Test case 7: Boundary case - WordLoaded with null dates should handle gracefully
-        // Given
-        val reducer = WordCardReducer()
-        val initialState = WordCardState()
-        
-        val term = Term(
-            wordId = WordId(123L),
-            word = Word("test"),
-            addedDate = Date(1000L),
-            changedDate = null,
-            removedDate = null,
-            lexemeList = emptyList()
-        )
-        
-        val message = Msg.WordLoaded(term)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertEquals("Word added date should be set", Date(1000L), result.state().wordState.added)
-        assertFalse("Loading should be disabled", result.state().isLoading)
-        assertEquals("Word ID should be set", 123L, result.state().wordState.id)
-        assertEquals("Word value should be set", "test", result.state().wordState.value)
-        
-        // Immutability checks
-        assertEquals(
-            "TopBarState should remain unchanged",
-            initialState.topBarState,
-            result.state().topBarState
-        )
-        assertEquals(
-            "AddLexemeBottomState should remain unchanged",
-            initialState.addLexemeBottomState,
-            result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "SnackbarState should remain unchanged",
-            initialState.snackbarState,
-            result.state().snackbarState
-        )
+        val state = result.state()
+        assertFalse("isLoading should be false", state.isLoading)
+        assertFalse("isPendingDbOp should be false", state.isPendingDbOp)
+        result.assertSingleEffect<NavigationEffect.Back>()
     }
 }

@@ -82,6 +82,9 @@ android {
 
     buildTypes {
         getByName("debug") {
+            // Отдельный applicationId — позволяет держать release и debug рядом на одном устройстве.
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
             signingConfig = signingConfigs.getByName("signForRelease")
             isMinifyEnabled = false
             val logLevel = project.findProperty("LOG_LEVEL")?.toString() ?: "DEBUG"

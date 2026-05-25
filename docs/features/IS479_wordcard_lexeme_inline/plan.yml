@@ -1,0 +1,152 @@
+flow: adaptive
+started: 2026-05-18T13:46:58-0600
+dir: docs/features/IS479_wordcard_lexeme_inline/
+parent: null
+
+context:
+  ticket: IS479
+  feature_name: wordcard_lexeme_inline
+  branch: IS479_wordcard_lexeme_inline
+  mode: manual
+  depth: 0
+  feedback_iteration: 0
+  feedback_restart: false
+  overlay: docs/forgeflow-overlay
+  workspace:
+    spec_dir: docs/features-spec/
+  infra_touched: false
+  business_touched: true
+  ui_touched: true
+  data_touched: false
+  needs_tests: true
+  needs_migration_tests: false
+  feature_has_ui_contract: true
+  spec_filename: null
+steps:
+  task:
+    status: done
+    pause: true
+    output: 00_task.md
+    finished: 2026-05-18T13:48:28-0600
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  scope_analysis:
+    status: done
+    pause: true
+    input: task.output
+    output: 02_scope.md
+    review_output: 02_scope_review.md
+    finished: 2026-05-18T14:16:32-0600
+    sets:
+      - infra_touched
+      - business_touched
+      - ui_touched
+      - data_touched
+      - needs_tests
+      - needs_migration_tests
+      - feature_has_ui_contract
+      - spec_filename
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - analyst
+
+  infra:
+    type: subflow
+    flow: flows/infra.yml
+    workspace: infra/
+    if: infra_touched
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+    status: skipped
+
+  business:
+    type: subflow
+    flow: flows/business.yml
+    workspace: business/
+    if: business_touched
+    input:
+      - scope_analysis.output
+      - infra.output?
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+    status: done
+    child_plan_path: docs/features/IS479_wordcard_lexeme_inline/business/plan.yml
+    started: 2026-05-19T01:42:57-0600
+    finished: 2026-05-20T00:00:00-0600
+
+  parallel_ui_data:
+    type: parallel
+    status: done
+    started: 2026-05-22T10:00:00-0600
+    finished: 2026-05-23T14:42:29-0600
+    rerun_note: "run 1 closed 2026-05-20T01:10:00-0600 — артефакты в ui/.archive_run1/; rerun_run3 closed 2026-05-23T14:39:44-0600 — ui_layout по example + Figma source, тесты 113/113"
+    steps:
+      ui:
+        type: subflow
+        flow: flows/ui.yml
+        workspace: ui/
+        if: ui_touched
+        input:
+          - scope_analysis.output
+          - business.output?
+        with:
+          logging:
+            phases:
+              - "finalize:after"
+        status: done
+        output: ui/summary.md
+        child_plan_path: docs/features/IS479_wordcard_lexeme_inline/ui/plan.yml
+        started: 2026-05-22T10:00:00-0600
+        finished: 2026-05-23T14:39:44-0600
+      data:
+        type: subflow
+        flow: flows/data.yml
+        workspace: data/
+        if: data_touched
+        input:
+          - scope_analysis.output
+          - business.output?
+        with:
+          logging:
+            phases:
+              - "finalize:after"
+        status: skipped
+
+  check:
+    status: done
+    started: 2026-05-23T14:42:29-0600
+    finished: 2026-05-23T14:47:40-0600
+    rerun_note: "предыдущий run закрыт 2026-05-20T01:25:00-0600 (testDebugUnitTest 113/113, lintDebug PASS, assembleDebug 31MB) — перезапущен после rerun_run3 UI sub-flow"
+    results:
+      lint: "PASS (./gradlew :app:lintDebug, exit 0)"
+      test: "PASS (./gradlew testDebugUnitTest, exit 0)"
+      build: "PASS (./gradlew assembleDebug, exit 0, app-debug.apk 31MB)"
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checks:
+        - lint
+        - test
+        - build

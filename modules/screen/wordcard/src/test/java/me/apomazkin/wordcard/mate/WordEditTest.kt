@@ -4,465 +4,174 @@ import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertEffects
 import me.apomazkin.mate.test.assertNoEffects
 import me.apomazkin.mate.test.testReduce
+import me.apomazkin.wordcard.entity.Term
+import me.apomazkin.wordcard.entity.Word
+import me.apomazkin.wordcard.entity.WordId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Date
 
 /**
+ * Reducer tests for Word inline edit under sealed WordState.
+ *
  * Test cases:
- * 1. Standard case: EnterWordEditMode enables edit mode and sets edited text
- * 2. Boundary case: EnterWordEditMode when already in edit mode
- * 3. Standard case: UpdateWordInput updates edited text
- * 4. Standard case: UpdateWordInput with empty text
- * 5. Standard case: UpdateWordInput with long text
- * 6. Standard case: ExitWordEditMode disables edit mode
- * 7. Boundary case: ExitWordEditMode when not in edit mode
- * 8. Standard case: CommitWordChanges saves edited text and triggers UpdateWord effect
- * 9. Standard case: CommitWordChanges with empty edited text
- * 10. Standard case: CommitWordChanges with same text as original
+ * - EnterWordEditMode: guard wordState !is Loaded.
+ * - EnterWordEditMode under Loaded: isEditMode=true, edited=value.
+ * - EnterWordEditMode with active lexeme edit: closeAllEditModes closes chip first.
+ * - UpdateWordInput: локальный edited.
+ * - CommitWordChanges blank guard (инв. 10): edited="   " → state unchanged.
+ * - CommitWordChanges valid: emits UpdateWord, isPendingDbOp=true.
+ * - CommitWordChanges under isPendingDbOp=true → state unchanged.
+ * - RefreshWord: updates value, clears pending, no Effect.
  */
 class WordEditTest {
 
+    private fun loaded(
+        id: Long = 123L,
+        value: String = "word",
+        isEditMode: Boolean = false,
+        edited: String = "",
+        isPendingDbOp: Boolean = false,
+        lexemes: List<LexemeState> = emptyList(),
+    ): WordCardState = WordCardState(
+        isLoading = false,
+        isPendingDbOp = isPendingDbOp,
+        wordState = WordState.Loaded(
+            id = id,
+            added = Date(0L),
+            value = value,
+            isEditMode = isEditMode,
+            edited = edited,
+        ),
+        lexemeList = lexemes,
+    )
+
     @Test
-    fun `should enable edit mode and set edited text when EnterWordEditMode is received`() {
-        // Test case 1: Standard case - EnterWordEditMode enables edit mode and sets edited text
-        // Given
+    fun `given NotLoaded when EnterWordEditMode then state unchanged`() {
         val reducer = WordCardReducer()
-        val originalValue = "original word"
-        val initialState = WordCardState(
-            topBarState = TopBarState(isMenuOpen = false),
-            addLexemeBottomState = AddLexemeBottomState(show = false),
-            isLoading = false,
-            wordState = WordState(
-                id = 123L,
-                value = originalValue,
-                isEditMode = false, // Not in edit mode
-                edited = ""
+        val initial = WordCardState(isLoading = false, wordState = WordState.NotLoaded)
+
+        val result = reducer.testReduce(initial, Msg.EnterWordEditMode)
+
+        assertEquals(initial, result.state())
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `given Loaded when EnterWordEditMode then isEditMode true edited equals value`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(value = "hello")
+
+        val result = reducer.testReduce(initial, Msg.EnterWordEditMode)
+
+        val loaded = result.state().wordState as WordState.Loaded
+        assertTrue(loaded.isEditMode)
+        assertEquals("hello", loaded.edited)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `EnterWordEditMode commits pending lexeme edit (Bug 2 IS479)`() {
+        // Bug 2 (IS479): переключение в word-edit с активным lexeme-edit
+        // commit'ит pending translation, не отбрасывает его.
+        val reducer = WordCardReducer()
+        val initial = loaded(
+            id = 123L,
+            value = "word",
+            lexemes = listOf(
+                LexemeState(id = 1L, translation = TextValueState(origin = "a", edited = "edit", isEdit = true)),
             ),
-            lexemeList = listOf(),
-            snackbarState = SnackbarState()
         )
-        
-        val message = Msg.EnterWordEditMode
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertTrue(
-            "Edit mode should be enabled",
-            result.state().wordState.isEditMode
-        )
-        assertEquals(
-            "Edited text should be set to current value",
-            originalValue,
-            result.state().wordState.edited
-        )
-        
-        // Effects check
-        result.assertNoEffects("EnterWordEditMode should not produce any effects")
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            result.state().wordState.id
-        )
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            result.state().wordState.value
-        )
-        assertEquals(
-            "Word added date should remain unchanged",
-            initialState.wordState.added,
-            result.state().wordState.added
-        )
-        assertEquals(
-            "Warning dialog should remain unchanged",
-            initialState.wordState.showWarningDialog,
-            result.state().wordState.showWarningDialog
-        )
-        
-        // Other state properties should remain unchanged
-        assertEquals(
-            "topBarState should remain unchanged",
-            initialState.topBarState,
-            result.state().topBarState
-        )
-        assertEquals(
-            "addLexemeBottomState should remain unchanged",
-            initialState.addLexemeBottomState,
-            result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "isLoading should remain unchanged",
-            initialState.isLoading,
-            result.state().isLoading
-        )
-        assertEquals(
-            "lexemeList should remain unchanged",
-            initialState.lexemeList,
-            result.state().lexemeList
-        )
-        assertEquals(
-            "snackbarState should remain unchanged",
-            initialState.snackbarState,
-            result.state().snackbarState
-        )
-    }
 
-    @Test
-    fun `should enable edit mode when already in edit mode`() {
-        // Test case 2: Boundary case - EnterWordEditMode when already in edit mode
-        // Given
-        val reducer = WordCardReducer()
-        val originalValue = "original word"
-        val previouslyEdited = "previously edited"
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = originalValue,
-                isEditMode = true, // Already in edit mode
-                edited = previouslyEdited
-            )
-        )
-        
-        val message = Msg.EnterWordEditMode
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertTrue(
-            "Edit mode should remain enabled",
-            result.state().wordState.isEditMode
-        )
-        assertEquals(
-            "Edited text should be reset to current value",
-            originalValue,
-            result.state().wordState.edited
-        )
-        
-        // Effects check
-        result.assertNoEffects("EnterWordEditMode should not produce any effects")
-    }
+        val result = reducer.testReduce(initial, Msg.EnterWordEditMode)
 
-    @Test
-    fun `should update edited text when UpdateWordInput is received`() {
-        // Test case 3: Standard case - UpdateWordInput updates edited text
-        // Given
-        val reducer = WordCardReducer()
-        val newValue = "updated word"
-        val initialState = WordCardState(
-            topBarState = TopBarState(isMenuOpen = false),
-            addLexemeBottomState = AddLexemeBottomState(show = false),
-            isLoading = false,
-            wordState = WordState(
-                id = 123L,
-                value = "original word",
-                isEditMode = true,
-                edited = "old edited text"
+        val state = result.state()
+        val loaded = state.wordState as WordState.Loaded
+        assertTrue("word edit enabled", loaded.isEditMode)
+        val lex = state.lexemeList.first()
+        assertFalse("chip edit closed", lex.translation?.isEdit ?: true)
+        assertEquals("chip edited reset", "", lex.translation?.edited)
+        assertEquals("origin advanced to commit value", "edit", lex.translation?.origin)
+        assertTrue("pending DB op set due to commit effect", state.isPendingDbOp)
+        result.assertEffects(
+            setOf(
+                DatasourceEffect.UpdateLexemeTranslation(
+                    wordId = 123L,
+                    lexemeId = 1L,
+                    translation = "edit",
+                ),
             ),
-            lexemeList = listOf(),
-            snackbarState = SnackbarState()
-        )
-        
-        val message = Msg.UpdateWordInput(value = newValue)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertEquals(
-            "Edited text should be updated",
-            newValue,
-            result.state().wordState.edited
-        )
-        
-        // Effects check
-        result.assertNoEffects("UpdateWordInput should not produce any effects")
-        
-        // Immutability checks - other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            result.state().wordState.id
-        )
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            result.state().wordState.value
-        )
-        assertEquals(
-            "Edit mode should remain unchanged",
-            initialState.wordState.isEditMode,
-            result.state().wordState.isEditMode
-        )
-        assertEquals(
-            "Word added date should remain unchanged",
-            initialState.wordState.added,
-            result.state().wordState.added
-        )
-        
-        // Other state properties should remain unchanged
-        assertEquals(
-            "topBarState should remain unchanged",
-            initialState.topBarState,
-            result.state().topBarState
-        )
-        assertEquals(
-            "addLexemeBottomState should remain unchanged",
-            initialState.addLexemeBottomState,
-            result.state().addLexemeBottomState
-        )
-        assertEquals(
-            "isLoading should remain unchanged",
-            initialState.isLoading,
-            result.state().isLoading
-        )
-        assertEquals(
-            "lexemeList should remain unchanged",
-            initialState.lexemeList,
-            result.state().lexemeList
-        )
-        assertEquals(
-            "snackbarState should remain unchanged",
-            initialState.snackbarState,
-            result.state().snackbarState
         )
     }
 
     @Test
-    fun `should update edited text with empty text when UpdateWordInput is received`() {
-        // Test case 4: Standard case - UpdateWordInput with empty text
-        // Given
+    fun `UpdateWordInput updates edited locally`() {
         val reducer = WordCardReducer()
-        val emptyValue = ""
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "original word",
-                isEditMode = true,
-                edited = "previous text"
-            )
-        )
-        
-        val message = Msg.UpdateWordInput(value = emptyValue)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertEquals(
-            "Edited text should be empty",
-            emptyValue,
-            result.state().wordState.edited
-        )
-        
-        // Effects check
-        result.assertNoEffects("UpdateWordInput should not produce any effects")
+        val initial = loaded(isEditMode = true, edited = "x")
+
+        val result = reducer.testReduce(initial, Msg.UpdateWordInput(value = "abc"))
+
+        val loaded = result.state().wordState as WordState.Loaded
+        assertEquals("abc", loaded.edited)
+        result.assertNoEffects()
     }
 
     @Test
-    fun `should disable edit mode when ExitWordEditMode is received`() {
-        // Test case 6: Standard case - ExitWordEditMode disables edit mode
-        // Given
+    fun `CommitWordChanges with blank edited is no-op (инв 10)`() {
         val reducer = WordCardReducer()
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "original word",
-                isEditMode = true, // Currently in edit mode
-                edited = "edited text"
-            )
-        )
-        
-        val message = Msg.ExitWordEditMode
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertFalse(
-            "Edit mode should be disabled",
-            result.state().wordState.isEditMode
-        )
-        
-        // Effects check
-        result.assertNoEffects("ExitWordEditMode should not produce any effects")
-        
-        // Other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            result.state().wordState.id
-        )
-        assertEquals(
-            "Word value should remain unchanged",
-            initialState.wordState.value,
-            result.state().wordState.value
-        )
+        val initial = loaded(isEditMode = true, edited = "   ")
+
+        val result = reducer.testReduce(initial, Msg.CommitWordChanges)
+
+        assertEquals(initial, result.state())
+        result.assertNoEffects()
     }
 
     @Test
-    fun `should disable edit mode when not in edit mode`() {
-        // Test case 7: Boundary case - ExitWordEditMode when not in edit mode
-        // Given
+    fun `CommitWordChanges valid emits UpdateWord effect and sets pending`() {
         val reducer = WordCardReducer()
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = 123L,
-                value = "original word",
-                isEditMode = false, // Not in edit mode
-                edited = ""
-            )
-        )
-        
-        val message = Msg.ExitWordEditMode
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertFalse(
-            "Edit mode should remain disabled",
-            result.state().wordState.isEditMode
-        )
-        
-        // Effects check
-        result.assertNoEffects("ExitWordEditMode should not produce any effects")
+        val initial = loaded(id = 123L, value = "old", isEditMode = true, edited = "new")
+
+        val result = reducer.testReduce(initial, Msg.CommitWordChanges)
+
+        assertTrue(result.state().isPendingDbOp)
+        val loaded = result.state().wordState as WordState.Loaded
+        assertFalse("edit mode reset", loaded.isEditMode)
+        assertEquals("edited reset", "", loaded.edited)
+        result.assertEffects(setOf(DatasourceEffect.UpdateWord(wordId = 123L, value = "new")))
     }
 
     @Test
-    fun `should save edited text and trigger UpdateWord effect when CommitWordChanges is received`() {
-        // Test case 8: Standard case - CommitWordChanges saves edited text and triggers UpdateWord effect
-        // Given
+    fun `given isPendingDbOp true CommitWordChanges is no-op (global guard)`() {
         val reducer = WordCardReducer()
-        val wordId = 123L
-        val editedText = "edited word"
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = wordId,
-                value = "original word",
-                isEditMode = true,
-                edited = editedText
-            )
-        )
-        
-        val message = Msg.CommitWordChanges
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertEquals(
-            "Word value should be updated to edited text",
-            editedText,
-            result.state().wordState.value
-        )
-        
-        // Effects check - should trigger UpdateWord effect
-        result.assertEffects(
-            setOf(DatasourceEffect.UpdateWord(wordId = wordId, value = editedText)),
-            "Should trigger UpdateWord effect with correct word ID and value"
-        )
-        
-        // Other word state properties should remain unchanged
-        assertEquals(
-            "Word ID should remain unchanged",
-            initialState.wordState.id,
-            result.state().wordState.id
-        )
-        assertEquals(
-            "Edit mode should remain unchanged",
-            initialState.wordState.isEditMode,
-            result.state().wordState.isEditMode
-        )
-        assertEquals(
-            "Edited text should remain unchanged",
-            initialState.wordState.edited,
-            result.state().wordState.edited
-        )
+        val initial = loaded(isEditMode = true, edited = "new", isPendingDbOp = true)
+
+        val result = reducer.testReduce(initial, Msg.CommitWordChanges)
+
+        assertEquals(initial, result.state())
+        result.assertNoEffects()
     }
 
     @Test
-    fun `should save empty edited text when CommitWordChanges is received`() {
-        // Test case 9: Standard case - CommitWordChanges with empty edited text
-        // Given
+    fun `RefreshWord updates value and clears pending`() {
         val reducer = WordCardReducer()
-        val wordId = 456L
-        val emptyEditedText = ""
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = wordId,
-                value = "original word",
-                isEditMode = true,
-                edited = emptyEditedText
-            )
+        val initial = loaded(isPendingDbOp = true)
+        val newTerm = Term(
+            wordId = WordId(123L),
+            word = Word("renamed"),
+            addedDate = Date(0L),
+            changedDate = null,
+            removedDate = null,
+            lexemeList = emptyList(),
         )
-        
-        val message = Msg.CommitWordChanges
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertEquals(
-            "Word value should be updated to empty text",
-            emptyEditedText,
-            result.state().wordState.value
-        )
-        
-        // Effects check - should trigger UpdateWord effect with empty value
-        result.assertEffects(
-            setOf(DatasourceEffect.UpdateWord(wordId = wordId, value = emptyEditedText)),
-            "Should trigger UpdateWord effect with empty value"
-        )
-    }
 
-    @Test
-    fun `should save edited text when same as original when CommitWordChanges is received`() {
-        // Test case 10: Standard case - CommitWordChanges with same text as original
-        // Given
-        val reducer = WordCardReducer()
-        val wordId = 789L
-        val sameText = "same word"
-        val initialState = WordCardState(
-            wordState = WordState(
-                id = wordId,
-                value = sameText,
-                isEditMode = true,
-                edited = sameText // Same as original
-            )
-        )
-        
-        val message = Msg.CommitWordChanges
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertEquals(
-            "Word value should remain the same",
-            sameText,
-            result.state().wordState.value
-        )
-        
-        // Effects check - should still trigger UpdateWord effect
-        result.assertEffects(
-            setOf(DatasourceEffect.UpdateWord(wordId = wordId, value = sameText)),
-            "Should trigger UpdateWord effect even with same value"
-        )
+        val result = reducer.testReduce(initial, Msg.RefreshWord(word = newTerm))
+
+        val loaded = result.state().wordState as WordState.Loaded
+        assertEquals("renamed", loaded.value)
+        assertFalse(result.state().isPendingDbOp)
+        result.assertNoEffects()
     }
 }

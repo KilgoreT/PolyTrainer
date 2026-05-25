@@ -4,541 +4,364 @@ import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertEffects
 import me.apomazkin.mate.test.assertNoEffects
 import me.apomazkin.mate.test.testReduce
-import me.apomazkin.wordcard.entity.Lexeme
-import me.apomazkin.wordcard.entity.LexemeId
-import me.apomazkin.wordcard.entity.Translation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Date
 
 /**
- * Test cases:
- * 1. Standard case: CreateTranslation creates translation in edit mode
- * 2. Edge case: CreateTranslation with non-existent lexeme ID
- * 3. Standard case: UpdateTranslationInput updates translation text
- * 4. Standard case: UpdateTranslationInput with empty text
- * 5. Edge case: UpdateTranslationInput with non-existent lexeme ID
- * 6. Standard case: EnterTranslationEditMode enables edit mode
- * 7. Boundary case: EnterTranslationEditMode when already in edit mode
- * 8. Edge case: EnterTranslationEditMode with non-existent lexeme ID
- * 9. Standard case: ExitTranslationEditMode triggers UpdateLexemeTranslation effect
- * 10. Standard case: ExitTranslationEditMode with empty edited text
- * 11. Edge case: ExitTranslationEditMode with non-existent lexeme ID
- * 12. Standard case: RefreshTranslation updates translation and exits edit mode
- * 13. Edge case: RefreshTranslation with non-existent lexeme ID
- * 14. Standard case: RemoveTranslation triggers RemoveTranslation effect
+ * Reducer tests for Translation chip per contract_spec § "Тестовые сценарии".
+ *
+ * Test cases (CommitTranslationEdit 4 branches + Refresh + cascade):
+ * - CreateTranslation: создаёт TextValueState(origin="", edited="", isEdit=true).
+ * - UpdateTranslationInput: локальный update edited.
+ * - EnterTranslationEditMode: closeAllEditModes + isEdit=true.
+ * - CommitTranslationEdit ветвь 1a (empty-empty): локальный nullify, нет Effect.
+ * - CommitTranslationEdit ветвь 1 (pessimistic Remove): real id, edited="", origin!="" → Effect RemoveTranslation, isEdit=false, edited="".
+ * - CommitTranslationEdit ветвь 2 (no-op): edited == origin → reset isEdit/edited, нет Effect.
+ * - CommitTranslationEdit ветвь 3 (first-Commit, NOT_IN_DB): Effect UpdateLexemeTranslation(wordId, lexemeId=null, value), pending=true.
+ * - CommitTranslationEdit ветвь 3 (Update existing real id): Effect UpdateLexemeTranslation(wordId, lexemeId=realId, value), pending=true.
+ * - RefreshTranslation для existing lexemeId: обновляет origin, сохраняет активный edit (F073).
+ * - RefreshTranslation для NOT_IN_DB → real id replacement (origin=value, isEdit=false, edited="").
+ * - RefreshTranslation(translation=null) для existing lexemeId: nullify translation.
+ * - Локальная cascade: RemoveTranslation на NOT_IN_DB → если обе суб-сущности null → лексема удалена.
+ * - RemoveTranslation для real id: Effect + pending=true.
+ * - Глобальный guard isPendingDbOp на CommitTranslationEdit.
  */
 class TranslationManagementTest {
 
+    private fun loaded(
+        wordId: Long = 7L,
+        lexemes: List<LexemeState> = emptyList(),
+        isPendingDbOp: Boolean = false,
+    ): WordCardState = WordCardState(
+        isLoading = false,
+        isPendingDbOp = isPendingDbOp,
+        wordState = WordState.Loaded(id = wordId, added = Date(0L), value = "w"),
+        lexemeList = lexemes,
+    )
+
     @Test
-    fun `should create translation in edit mode when CreateTranslation is received`() {
-        // Test case 1: Standard case - CreateTranslation creates translation in edit mode
-        // Given
+    fun `given lexeme without translation when CreateTranslation then translation becomes editable empty`() {
         val reducer = WordCardReducer()
-        val lexemeId = 123L
-        val initialState = WordCardState(
-            lexemeList = listOf(
-                LexemeState(
-                    id = lexemeId,
-                    translation = null, // No translation initially
-                    definition = TextValueState(origin = "definition", isEdit = false),
-                    isMenuOpen = false
-                )
-            )
-        )
-        
-        val message = Msg.CreateTranslation(lexemeId = lexemeId)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        assertEquals(
-            "Lexeme list size should remain unchanged",
-            1,
-            result.state().lexemeList.size
-        )
-        
-        val updatedLexeme = result.state().lexemeList.first()
-        assertNotNull(
-            "Translation should be created",
-            updatedLexeme.translation
-        )
-        assertEquals(
-            "Translation origin should be empty",
-            "",
-            updatedLexeme.translation?.origin
-        )
-        assertTrue(
-            "Translation should be in edit mode",
-            updatedLexeme.translation?.isEdit ?: false
-        )
-        
-        // Other lexeme properties should remain unchanged
-        assertEquals(
-            "Lexeme ID should remain unchanged",
-            lexemeId,
-            updatedLexeme.id
-        )
-        assertEquals(
-            "Definition should remain unchanged",
-            initialState.lexemeList.first().definition,
-            updatedLexeme.definition
-        )
-        assertEquals(
-            "Menu open state should remain unchanged",
-            initialState.lexemeList.first().isMenuOpen,
-            updatedLexeme.isMenuOpen
-        )
-        
-        // Effects check
-        result.assertNoEffects("CreateTranslation should not produce any effects")
+        val initial = loaded(lexemes = listOf(
+            LexemeState(id = 1L, translation = null, definition = TextValueState(origin = "def", isEdit = false)),
+        ))
+
+        val result = reducer.testReduce(initial, Msg.CreateTranslation(lexemeId = 1L))
+
+        val lex = result.state().lexemeList.first()
+        assertNotNull("translation created", lex.translation)
+        assertEquals("origin empty", "", lex.translation?.origin)
+        assertEquals("edited empty initially", "", lex.translation?.edited)
+        assertTrue("isEdit true", lex.translation?.isEdit ?: false)
+        result.assertNoEffects()
     }
 
     @Test
-    fun `should not change state when CreateTranslation with non-existent lexeme ID is received`() {
-        // Test case 2: Edge case - CreateTranslation with non-existent lexeme ID
-        // Given
+    fun `given existing translation when CreateTranslation then state unchanged (guard)`() {
         val reducer = WordCardReducer()
-        val nonExistentLexemeId = 999L
-        val initialState = WordCardState(
-            lexemeList = listOf(
-                LexemeState(
-                    id = 123L,
-                    translation = null,
-                    definition = null,
-                    isMenuOpen = false
-                )
-            )
-        )
-        
-        val message = Msg.CreateTranslation(lexemeId = nonExistentLexemeId)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // State should remain unchanged
-        assertEquals(
-            "State should remain unchanged",
-            initialState,
-            result.state()
-        )
-        
-        // Effects check
-        result.assertNoEffects("CreateTranslation should not produce any effects")
+        val initial = loaded(lexemes = listOf(
+            LexemeState(id = 1L, translation = TextValueState(origin = "x", isEdit = false)),
+        ))
+
+        val result = reducer.testReduce(initial, Msg.CreateTranslation(lexemeId = 1L))
+
+        assertEquals(initial, result.state())
+        result.assertNoEffects()
     }
 
     @Test
-    fun `should update translation text when UpdateTranslationInput is received`() {
-        // Test case 3: Standard case - UpdateTranslationInput updates translation text
-        // Given
+    fun `when UpdateTranslationInput then edited text updated locally`() {
         val reducer = WordCardReducer()
-        val lexemeId = 123L
-        val newValue = "updated translation"
-        val initialState = WordCardState(
-            lexemeList = listOf(
-                LexemeState(
-                    id = lexemeId,
-                    translation = TextValueState(
-                        origin = "original",
-                        edited = "old edited",
-                        isEdit = true
-                    ),
-                    definition = null,
-                    isMenuOpen = false
-                )
-            )
-        )
-        
-        val message = Msg.UpdateTranslationInput(lexemeId = lexemeId, value = newValue)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        val updatedLexeme = result.state().lexemeList.first()
-        assertEquals(
-            "Translation edited text should be updated",
-            newValue,
-            updatedLexeme.translation?.edited
-        )
-        
-        // Other translation properties should remain unchanged
-        assertEquals(
-            "Translation origin should remain unchanged",
-            "original",
-            updatedLexeme.translation?.origin
-        )
-        assertTrue(
-            "Translation should remain in edit mode",
-            updatedLexeme.translation?.isEdit ?: false
-        )
-        
-        // Other lexeme properties should remain unchanged
-        assertEquals(
-            "Lexeme ID should remain unchanged",
-            lexemeId,
-            updatedLexeme.id
-        )
-        assertEquals(
-            "Definition should remain unchanged",
-            initialState.lexemeList.first().definition,
-            updatedLexeme.definition
-        )
-        
-        // Effects check
-        result.assertNoEffects("UpdateTranslationInput should not produce any effects")
+        val initial = loaded(lexemes = listOf(
+            LexemeState(id = 1L, translation = TextValueState(origin = "a", isEdit = true, edited = "")),
+        ))
+
+        val result = reducer.testReduce(initial, Msg.UpdateTranslationInput(lexemeId = 1L, value = "hi"))
+
+        assertEquals("hi", result.state().lexemeList.first().translation?.edited)
+        result.assertNoEffects()
     }
 
     @Test
-    fun `should update translation with empty text when UpdateTranslationInput is received`() {
-        // Test case 4: Standard case - UpdateTranslationInput with empty text
-        // Given
+    fun `when EnterTranslationEditMode then commits pending edits and enables this one (Bug 2 IS479)`() {
+        // Bug 2 (IS479): открытие нового edit commit'ит pending dirty edits
+        // вместо cancel-сброса.
         val reducer = WordCardReducer()
-        val lexemeId = 123L
-        val emptyValue = ""
-        val initialState = WordCardState(
-            lexemeList = listOf(
-                LexemeState(
-                    id = lexemeId,
-                    translation = TextValueState(
-                        origin = "original",
-                        edited = "previous text",
-                        isEdit = true
-                    )
-                )
-            )
-        )
-        
-        val message = Msg.UpdateTranslationInput(lexemeId = lexemeId, value = emptyValue)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        val updatedLexeme = result.state().lexemeList.first()
-        assertEquals(
-            "Translation edited text should be empty",
-            emptyValue,
-            updatedLexeme.translation?.edited
-        )
-        
-        // Effects check
-        result.assertNoEffects("UpdateTranslationInput should not produce any effects")
-    }
+        val initial = loaded(
+            wordId = 9L,
+            lexemes = listOf(
+                LexemeState(id = 1L, translation = TextValueState(origin = "a", isEdit = false)),
+                LexemeState(id = 2L, definition = TextValueState(origin = "d", isEdit = true, edited = "edit-d")),
+            ),
+        ).copy(wordState = WordState.Loaded(id = 9L, added = Date(0L), value = "w", isEditMode = true, edited = "ed"))
 
-    @Test
-    fun `should enable edit mode when EnterTranslationEditMode is received`() {
-        // Test case 6: Standard case - EnterTranslationEditMode enables edit mode
-        // Given
-        val reducer = WordCardReducer()
-        val lexemeId = 123L
-        val initialState = WordCardState(
-            lexemeList = listOf(
-                LexemeState(
-                    id = lexemeId,
-                    translation = TextValueState(
-                        origin = "original translation",
-                        edited = "",
-                        isEdit = false // Not in edit mode
-                    )
-                )
-            )
-        )
-        
-        val message = Msg.EnterTranslationEditMode(lexemeId = lexemeId)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        val updatedLexeme = result.state().lexemeList.first()
-        assertTrue(
-            "Translation should be in edit mode",
-            updatedLexeme.translation?.isEdit ?: false
-        )
-        
-        // Other translation properties should remain unchanged
-        assertEquals(
-            "Translation origin should remain unchanged",
-            "original translation",
-            updatedLexeme.translation?.origin
-        )
-        assertEquals(
-            "Translation edited should remain unchanged",
-            "",
-            updatedLexeme.translation?.edited
-        )
-        
-        // Effects check
-        result.assertNoEffects("EnterTranslationEditMode should not produce any effects")
-    }
+        val result = reducer.testReduce(initial, Msg.EnterTranslationEditMode(lexemeId = 1L))
 
-    @Test
-    fun `should remain in edit mode when EnterTranslationEditMode is received while already in edit mode`() {
-        // Test case 7: Boundary case - EnterTranslationEditMode when already in edit mode
-        // Given
-        val reducer = WordCardReducer()
-        val lexemeId = 123L
-        val initialState = WordCardState(
-            lexemeList = listOf(
-                LexemeState(
-                    id = lexemeId,
-                    translation = TextValueState(
-                        origin = "original translation",
-                        edited = "edited text",
-                        isEdit = true // Already in edit mode
-                    )
-                )
-            )
-        )
-        
-        val message = Msg.EnterTranslationEditMode(lexemeId = lexemeId)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check - should remain in edit mode
-        val updatedLexeme = result.state().lexemeList.first()
-        assertTrue(
-            "Translation should remain in edit mode",
-            updatedLexeme.translation?.isEdit ?: false
-        )
-        
-        // Effects check
-        result.assertNoEffects("EnterTranslationEditMode should not produce any effects")
-    }
-
-    @Test
-    fun `should trigger UpdateLexemeTranslation effect when ExitTranslationEditMode is received`() {
-        // Test case 9: Standard case - ExitTranslationEditMode triggers UpdateLexemeTranslation effect
-        // Given
-        val reducer = WordCardReducer()
-        val wordId = 456L
-        val lexemeId = 123L
-        val editedText = "edited translation"
-        val initialState = WordCardState(
-            wordState = WordState(id = wordId, value = "test"),
-            lexemeList = listOf(
-                LexemeState(
-                    id = lexemeId,
-                    translation = TextValueState(
-                        origin = "original",
-                        edited = editedText,
-                        isEdit = true
-                    )
-                )
-            )
-        )
-        
-        val message = Msg.ExitTranslationEditMode(lexemeId = lexemeId)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // State should remain unchanged
-        assertEquals(
-            "State should remain unchanged",
-            initialState,
-            result.state()
-        )
-        
-        // Effects check - should trigger UpdateLexemeTranslation effect
+        val state = result.state()
+        val loaded = state.wordState as WordState.Loaded
+        assertFalse("word edit closed", loaded.isEditMode)
+        assertEquals("word edited reset", "", loaded.edited)
+        assertEquals("word value advanced to commit value", "ed", loaded.value)
+        assertTrue("translation isEdit set", state.lexemeList.first { it.id == 1L }.translation?.isEdit ?: false)
+        val def = state.lexemeList.first { it.id == 2L }.definition
+        assertFalse("other definition edit closed", def?.isEdit ?: true)
+        assertEquals("other definition edited reset", "", def?.edited)
+        assertEquals("other definition origin advanced to commit value", "edit-d", def?.origin)
+        assertTrue("pending DB op set due to commit effects", state.isPendingDbOp)
         result.assertEffects(
-            setOf(DatasourceEffect.UpdateLexemeTranslation(
-                wordId = wordId,
-                lexemeId = lexemeId,
-                translation = editedText
-            )),
-            "Should trigger UpdateLexemeTranslation effect with correct parameters"
+            setOf(
+                DatasourceEffect.UpdateWord(wordId = 9L, value = "ed"),
+                DatasourceEffect.UpdateLexemeDefinition(
+                    wordId = 9L,
+                    lexemeId = 2L,
+                    definition = "edit-d",
+                ),
+            ),
         )
     }
 
     @Test
-    fun `should trigger UpdateLexemeTranslation effect with empty text when ExitTranslationEditMode is received`() {
-        // Test case 10: Standard case - ExitTranslationEditMode with empty edited text
-        // Given
+    fun `branch 1a empty-empty CommitTranslationEdit nullifies translation locally without Effect`() {
         val reducer = WordCardReducer()
-        val wordId = 456L
-        val lexemeId = 123L
-        val emptyEditedText = ""
-        val initialState = WordCardState(
-            wordState = WordState(id = wordId, value = "test"),
-            lexemeList = listOf(
+        val initial = loaded(lexemes = listOf(
+            LexemeState(
+                id = NOT_IN_DB,
+                translation = TextValueState(origin = "", edited = "  ", isEdit = true),
+                definition = TextValueState(origin = "def", isEdit = false),
+            ),
+        ))
+
+        val result = reducer.testReduce(initial, Msg.CommitTranslationEdit(lexemeId = NOT_IN_DB))
+
+        // Lexeme NOT_IN_DB остаётся (definition non-null), translation = null.
+        val lex = result.state().lexemeList.first { it.id == NOT_IN_DB }
+        assertNull("translation nullified", lex.translation)
+        assertNotNull("definition preserved", lex.definition)
+        assertFalse("no pending op", result.state().isPendingDbOp)
+        result.assertNoEffects("branch 1a is purely local")
+    }
+
+    @Test
+    fun `branch 1 pessimistic remove CommitTranslationEdit emits RemoveTranslation and resets edit flag`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(lexemes = listOf(
+            LexemeState(
+                id = 42L,
+                translation = TextValueState(origin = "x", edited = "", isEdit = true),
+            ),
+        ))
+
+        val result = reducer.testReduce(initial, Msg.CommitTranslationEdit(lexemeId = 42L))
+
+        val lex = result.state().lexemeList.first()
+        assertFalse("isEdit reset to false", lex.translation?.isEdit ?: true)
+        assertEquals("edited reset to empty", "", lex.translation?.edited)
+        assertEquals("origin preserved (not nullified yet)", "x", lex.translation?.origin)
+        assertTrue("pending set", result.state().isPendingDbOp)
+        result.assertEffects(setOf(DatasourceEffect.RemoveTranslation(lexemeId = 42L, currentValue = "x")))
+    }
+
+    @Test
+    fun `branch 2 no-op CommitTranslationEdit resets edit state without Effect`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(lexemes = listOf(
+            LexemeState(
+                id = 5L,
+                translation = TextValueState(origin = "same", edited = "same", isEdit = true),
+            ),
+        ))
+
+        val result = reducer.testReduce(initial, Msg.CommitTranslationEdit(lexemeId = 5L))
+
+        val lex = result.state().lexemeList.first()
+        assertFalse("isEdit reset", lex.translation?.isEdit ?: true)
+        assertEquals("edited reset", "", lex.translation?.edited)
+        assertEquals("origin preserved", "same", lex.translation?.origin)
+        assertFalse("no pending op", result.state().isPendingDbOp)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `branch 3 first-Commit on NOT_IN_DB emits UpdateLexemeTranslation with null lexemeId and sets pending`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(
+            wordId = 100L,
+            lexemes = listOf(
                 LexemeState(
-                    id = lexemeId,
-                    translation = TextValueState(
-                        origin = "original",
-                        edited = emptyEditedText,
-                        isEdit = true
-                    )
-                )
-            )
+                    id = NOT_IN_DB,
+                    translation = TextValueState(origin = "", edited = "hello", isEdit = true),
+                ),
+            ),
         )
-        
-        val message = Msg.ExitTranslationEditMode(lexemeId = lexemeId)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Effects check - should trigger UpdateLexemeTranslation effect with empty text
+
+        val result = reducer.testReduce(initial, Msg.CommitTranslationEdit(lexemeId = NOT_IN_DB))
+
+        assertTrue("pending set", result.state().isPendingDbOp)
         result.assertEffects(
-            setOf(DatasourceEffect.UpdateLexemeTranslation(
-                wordId = wordId,
-                lexemeId = lexemeId,
-                translation = emptyEditedText
-            )),
-            "Should trigger UpdateLexemeTranslation effect with empty translation"
+            setOf(
+                DatasourceEffect.UpdateLexemeTranslation(
+                    wordId = 100L,
+                    lexemeId = null,
+                    translation = "hello",
+                ),
+            ),
         )
     }
 
     @Test
-    fun `should update translation and exit edit mode when RefreshTranslation is received`() {
-        // Test case 12: Standard case - RefreshTranslation updates translation and exits edit mode
-        // Given
+    fun `branch 3 update existing real id emits UpdateLexemeTranslation with real lexemeId`() {
         val reducer = WordCardReducer()
-        val lexemeId = 123L
-        val newTranslationValue = "refreshed translation"
-        val lexeme = Lexeme(
-            lexemeId = LexemeId(lexemeId),
-            translation = Translation(newTranslationValue),
-            definition = null,
-            category = "noun",
-            addDate = java.util.Date(),
-            changeDate = null
-        )
-        
-        val initialState = WordCardState(
-            lexemeList = listOf(
+        val initial = loaded(
+            wordId = 100L,
+            lexemes = listOf(
                 LexemeState(
-                    id = lexemeId,
-                    translation = TextValueState(
-                        origin = "old translation",
-                        edited = "edited translation",
-                        isEdit = true // In edit mode
-                    ),
-                    definition = TextValueState(origin = "definition", isEdit = false)
-                )
-            )
+                    id = 7L,
+                    translation = TextValueState(origin = "old", edited = "new", isEdit = true),
+                ),
+            ),
         )
-        
-        val message = Msg.RefreshTranslation(lexeme = lexeme)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // Main functionality check
-        val updatedLexeme = result.state().lexemeList.first()
-        assertEquals(
-            "Translation origin should be updated",
-            newTranslationValue,
-            updatedLexeme.translation?.origin
-        )
-        assertEquals(
-            "Translation edited should remain unchanged",
-            "edited translation",
-            updatedLexeme.translation?.edited
-        )
-        assertFalse(
-            "Translation should exit edit mode",
-            updatedLexeme.translation?.isEdit ?: true
-        )
-        
-        // Other lexeme properties should remain unchanged
-        assertEquals(
-            "Definition should remain unchanged",
-            initialState.lexemeList.first().definition,
-            updatedLexeme.definition
-        )
-        
-        // Effects check
-        result.assertNoEffects("RefreshTranslation should not produce any effects")
-    }
 
-    @Test
-    fun `should not change state when RefreshTranslation with non-existent lexeme ID is received`() {
-        // Test case 13: Edge case - RefreshTranslation with non-existent lexeme ID
-        // Given
-        val reducer = WordCardReducer()
-        val nonExistentLexemeId = 999L
-        val lexeme = Lexeme(
-            lexemeId = LexemeId(nonExistentLexemeId),
-            translation = Translation("new translation"),
-            definition = null,
-            category = "noun",
-            addDate = java.util.Date(),
-            changeDate = null
-        )
-        
-        val initialState = WordCardState(
-            lexemeList = listOf(
-                LexemeState(
-                    id = 123L,
-                    translation = TextValueState(origin = "existing", isEdit = false)
-                )
-            )
-        )
-        
-        val message = Msg.RefreshTranslation(lexeme = lexeme)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // State should remain unchanged
-        assertEquals(
-            "State should remain unchanged",
-            initialState,
-            result.state()
-        )
-        
-        // Effects check
-        result.assertNoEffects("RefreshTranslation should not produce any effects")
-    }
+        val result = reducer.testReduce(initial, Msg.CommitTranslationEdit(lexemeId = 7L))
 
-    @Test
-    fun `should trigger RemoveTranslation effect when RemoveTranslation is received`() {
-        // Test case 14: Standard case - RemoveTranslation triggers RemoveTranslation effect
-        // Given
-        val reducer = WordCardReducer()
-        val lexemeId = 123L
-        val initialState = WordCardState(
-            lexemeList = listOf(
-                LexemeState(
-                    id = lexemeId,
-                    translation = TextValueState(origin = "translation", isEdit = false)
-                )
-            )
-        )
-        
-        val message = Msg.RemoveTranslation(lexemeId = lexemeId)
-        
-        // When
-        val result = reducer.testReduce(initialState, message)
-        
-        // Then
-        // State should remain unchanged
-        assertEquals(
-            "State should remain unchanged",
-            initialState,
-            result.state()
-        )
-        
-        // Effects check - should trigger RemoveTranslation effect
+        assertTrue("pending set", result.state().isPendingDbOp)
         result.assertEffects(
-            setOf(DatasourceEffect.RemoveTranslation(lexemeId)),
-            "Should trigger RemoveTranslation effect with correct lexeme ID"
+            setOf(
+                DatasourceEffect.UpdateLexemeTranslation(
+                    wordId = 100L,
+                    lexemeId = 7L,
+                    translation = "new",
+                ),
+            ),
         )
     }
+
+    @Test
+    fun `RefreshTranslation for NOT_IN_DB replaces id with real and constructs TextValueState`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(
+            isPendingDbOp = true,
+            lexemes = listOf(
+                LexemeState(
+                    id = NOT_IN_DB,
+                    translation = TextValueState(origin = "", edited = "", isEdit = false),
+                ),
+            ),
+        )
+
+        val result = reducer.testReduce(
+            initial,
+            Msg.RefreshTranslation(lexemeId = 555L, translation = "hello"),
+        )
+
+        val state = result.state()
+        assertFalse("pending cleared", state.isPendingDbOp)
+        val lex = state.lexemeList.first()
+        assertEquals("id replaced with real", 555L, lex.id)
+        assertEquals("origin set", "hello", lex.translation?.origin)
+        assertEquals("edited empty", "", lex.translation?.edited)
+        assertFalse("isEdit false", lex.translation?.isEdit ?: true)
+    }
+
+    @Test
+    fun `RefreshTranslation preserves active edit of existing lexeme F073`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(
+            isPendingDbOp = true,
+            lexemes = listOf(
+                LexemeState(
+                    id = 11L,
+                    translation = TextValueState(origin = "old", edited = "user-typed", isEdit = true),
+                ),
+            ),
+        )
+
+        val result = reducer.testReduce(
+            initial,
+            Msg.RefreshTranslation(lexemeId = 11L, translation = "new"),
+        )
+
+        val lex = result.state().lexemeList.first()
+        assertEquals("origin updated", "new", lex.translation?.origin)
+        assertTrue("isEdit preserved (user still editing)", lex.translation?.isEdit ?: false)
+        assertEquals("edited preserved", "user-typed", lex.translation?.edited)
+        assertFalse("pending cleared", result.state().isPendingDbOp)
+    }
+
+    @Test
+    fun `RefreshTranslation with null translation nullifies for existing lexeme`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(
+            isPendingDbOp = true,
+            lexemes = listOf(
+                LexemeState(
+                    id = 11L,
+                    translation = TextValueState(origin = "old", edited = "", isEdit = false),
+                    definition = TextValueState(origin = "d", isEdit = false),
+                ),
+            ),
+        )
+
+        val result = reducer.testReduce(
+            initial,
+            Msg.RefreshTranslation(lexemeId = 11L, translation = null),
+        )
+
+        val lex = result.state().lexemeList.first()
+        assertNull("translation nullified", lex.translation)
+        assertNotNull("definition preserved", lex.definition)
+        assertFalse("pending cleared", result.state().isPendingDbOp)
+    }
+
+    @Test
+    fun `RemoveTranslation for NOT_IN_DB with no definition cascade removes lexeme`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(lexemes = listOf(
+            LexemeState(
+                id = NOT_IN_DB,
+                translation = TextValueState(origin = "", isEdit = false),
+                definition = null,
+            ),
+        ))
+
+        val result = reducer.testReduce(initial, Msg.RemoveTranslation(lexemeId = NOT_IN_DB))
+
+        assertTrue("lexeme cascade-removed locally", result.state().lexemeList.isEmpty())
+        assertFalse("no pending op for local cascade", result.state().isPendingDbOp)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `RemoveTranslation for real id emits RemoveTranslation effect and sets pending`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(lexemes = listOf(
+            LexemeState(id = 42L, translation = TextValueState(origin = "x", isEdit = false)),
+        ))
+
+        val result = reducer.testReduce(initial, Msg.RemoveTranslation(lexemeId = 42L))
+
+        assertTrue("pending set", result.state().isPendingDbOp)
+        result.assertEffects(setOf(DatasourceEffect.RemoveTranslation(lexemeId = 42L, currentValue = "x")))
+    }
+
+    @Test
+    fun `given isPendingDbOp true CommitTranslationEdit is no-op (global guard)`() {
+        val reducer = WordCardReducer()
+        val initial = loaded(
+            isPendingDbOp = true,
+            lexemes = listOf(
+                LexemeState(id = 1L, translation = TextValueState(origin = "a", edited = "b", isEdit = true)),
+            ),
+        )
+
+        val result = reducer.testReduce(initial, Msg.CommitTranslationEdit(lexemeId = 1L))
+
+        assertEquals("state unchanged under pending guard", initial, result.state())
+        result.assertNoEffects()
+    }
+
 }

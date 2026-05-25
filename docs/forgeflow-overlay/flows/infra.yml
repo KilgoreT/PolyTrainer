@@ -1,0 +1,79 @@
+name: infra
+description: "Infrastructure sub-flow Lexeme — DI, mate framework, logger, Build, Manifest, CI, Guides"
+
+modules:
+  - logging
+  - review
+  - guides
+
+steps:
+  - step: design_tree
+    pause: true
+    input:
+      - parent.scope_analysis.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  - step: test
+    if: needs_tests
+    pause: true
+    input:
+      - parent.scope_analysis.output
+      - design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  - step: implement
+    pause: true
+    input:
+      - parent.scope_analysis.output
+      - design_tree.output
+      - test.output?
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+
+  - step: summary
+    pause: true
+    input:
+      - design_tree.output
+      - test.output?
+      - implement.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"

@@ -1,22 +1,38 @@
 package me.apomazkin.wordcard.mate
 
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateTypedEffectHandler
-import javax.inject.Inject
+import me.apomazkin.wordcard.deps.UiHost
 
-sealed interface UiEffect : Effect {
-    data class ShowNotification(val title: String) : UiEffect
-}
-
-class UiEffectHandler @Inject constructor() :
-    MateTypedEffectHandler<Msg, UiEffect>() {
+/**
+ * Обрабатывает [UiEffect]'ы через [UiHost].
+ */
+class UiEffectHandler @AssistedInject constructor(
+    @Assisted private val uiHost: UiHost,
+) : MateTypedEffectHandler<Msg, UiEffect>() {
 
     override fun filter(effect: Effect): UiEffect? = effect as? UiEffect
 
     override suspend fun onEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
-        val msg: Msg = when (effect) {
-            is UiEffect.ShowNotification -> UiMsg.ShowNotification(text = effect.title, show = true)
+        when (effect) {
+            is UiEffect.ShowSnackbarWithUndo -> {
+                val undoPressed = uiHost.showSnackbarWithAction(
+                    messageRes = effect.messageRes,
+                    actionLabelRes = effect.actionLabelRes,
+                )
+                if (undoPressed) consumer(effect.undoMsg)
+            }
+            is UiEffect.ShowErrorSnackbar -> {
+                uiHost.showSnackbar(effect.messageRes)
+            }
         }
-        consumer(msg)
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(uiHost: UiHost): UiEffectHandler
     }
 }

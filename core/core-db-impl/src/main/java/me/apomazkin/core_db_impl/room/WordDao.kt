@@ -157,6 +157,17 @@ interface WordDao {
     @Insert
     suspend fun addWriteQuiz(writeQuizDb: WriteQuizDb): Long
 
+    /**
+     * Atomic INSERT лексемы + write-quiz записи в одной транзакции.
+     * Гарантирует domain-инвариант «у каждой лексемы есть write-quiz».
+     */
+    @Transaction
+    suspend fun addLexemeWithQuiz(lexemeDb: LexemeDb, dictionaryId: Long): Long {
+        val newLexemeId = addLexeme(lexemeDb)
+        addWriteQuiz(WriteQuizDb.create(dictionaryId = dictionaryId, lexemeId = newLexemeId))
+        return newLexemeId
+    }
+
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: List<WriteQuizDb>): Int
 
