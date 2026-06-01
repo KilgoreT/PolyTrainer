@@ -2,23 +2,20 @@ package me.apomazkin.polytrainer.di.module.wordCard
 
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DefinitionApiEntity
-import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.TranslationApiEntity
 import me.apomazkin.core_db_api.entity.canRemoveDefinition
 import me.apomazkin.core_db_api.entity.canRemoveTranslation
+import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.polytrainer.mapper.toDomain
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.wordcard.LogTags
 import me.apomazkin.wordcard.deps.RemoveDefinitionResult
 import me.apomazkin.wordcard.deps.RemoveTranslationResult
 import me.apomazkin.wordcard.deps.WordCardUseCase
-import me.apomazkin.wordcard.entity.Definition
-import me.apomazkin.wordcard.entity.Lexeme
-import me.apomazkin.wordcard.entity.LexemeId
 import me.apomazkin.wordcard.entity.Term
-import me.apomazkin.wordcard.entity.Translation
 import me.apomazkin.wordcard.entity.Word
 import me.apomazkin.wordcard.entity.WordId
 import javax.inject.Inject
@@ -46,7 +43,7 @@ class WordCardUseCaseImpl @Inject constructor(
 
     override suspend fun deleteLexeme(wordId: Long, lexemeId: Long): List<Lexeme>? = try {
         lexemeApi.deleteLexeme(lexemeId)
-        termApi.getTermById(wordId)?.lexemes?.map { it.toDomainEntity() }
+        termApi.getTermById(wordId)?.lexemes?.map { it.toDomain() }
     } catch (e: Exception) {
         logger.e(tag = LogTags.WORDCARD, message = "deleteLexeme failed: ${e.message}")
         null
@@ -65,7 +62,7 @@ class WordCardUseCaseImpl @Inject constructor(
             lexemeApi.updateLexemeTranslation(lexemeId, TranslationApiEntity(trimmed))
             lexemeId
         }
-        lexemeApi.getLexemeById(id)?.toDomainEntity()
+        lexemeApi.getLexemeById(id)?.toDomain()
     } catch (e: Exception) {
         logger.e(tag = LogTags.WORDCARD, message = "addLexemeTranslation failed: ${e.message}")
         null
@@ -75,7 +72,7 @@ class WordCardUseCaseImpl @Inject constructor(
         val lexeme = lexemeApi.getLexemeById(lexemeId)
         if (lexeme?.canRemoveTranslation() == true) {
             lexemeApi.updateLexemeTranslation(id = lexemeId, translation = null)
-            val updated = lexemeApi.getLexemeById(lexemeId)?.toDomainEntity()
+            val updated = lexemeApi.getLexemeById(lexemeId)?.toDomain()
             updated?.let { RemoveTranslationResult.TranslationRemoved(it) }
         } else {
             lexemeApi.deleteLexeme(id = lexemeId)
@@ -98,7 +95,7 @@ class WordCardUseCaseImpl @Inject constructor(
             lexemeApi.updateLexemeDefinition(lexemeId, DefinitionApiEntity(trimmed))
             lexemeId
         }
-        lexemeApi.getLexemeById(id)?.toDomainEntity()
+        lexemeApi.getLexemeById(id)?.toDomain()
     } catch (e: Exception) {
         logger.e(tag = LogTags.WORDCARD, message = "addLexemeDefinition failed: ${e.message}")
         null
@@ -108,7 +105,7 @@ class WordCardUseCaseImpl @Inject constructor(
         val lexeme = lexemeApi.getLexemeById(lexemeId)
         if (lexeme?.canRemoveDefinition() == true) {
             lexemeApi.updateLexemeDefinition(id = lexemeId, definition = null)
-            val updated = lexemeApi.getLexemeById(lexemeId)?.toDomainEntity()
+            val updated = lexemeApi.getLexemeById(lexemeId)?.toDomain()
             updated?.let { RemoveDefinitionResult.DefinitionRemoved(it) }
         } else {
             lexemeApi.deleteLexeme(id = lexemeId)
@@ -150,7 +147,7 @@ class WordCardUseCaseImpl @Inject constructor(
                     insertLexemeWithDefinition(wordId, trimmedDefinition!!)
                 }
             }
-            termApi.getTermById(wordId)?.lexemes?.map { it.toDomainEntity() }
+            termApi.getTermById(wordId)?.lexemes?.map { it.toDomain() }
         } catch (e: Exception) {
             logger.e(tag = LogTags.WORDCARD, message = "restoreLexeme failed: ${e.message}")
             null
@@ -209,17 +206,6 @@ fun TermApiEntity.toDomainEntity(): Term {
         // Сортировка newest-first для UI-инварианта "новая лексема сверху".
         lexemeList = lexemes
             .sortedByDescending { it.addDate }
-            .map { it.toDomainEntity() }
-    )
-}
-
-fun LexemeApiEntity.toDomainEntity(): Lexeme {
-    return Lexeme(
-        lexemeId = LexemeId(id),
-        translation = translation?.let { Translation(it.value) },
-        definition = definition?.let { Definition(it.value) },
-        category = null,
-        addDate = addDate,
-        changeDate = changeDate,
+            .map { it.toDomain() }
     )
 }

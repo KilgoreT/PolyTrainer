@@ -1,18 +1,23 @@
 name: ui
-description: "UI sub-flow Lexeme — composables, layouts, виджеты экрана, ресурсы"
-
-modules:
-  - logging
-  - review
-  - guides
+description: "UI sub-flow — composables, layouts, виджеты экрана, ресурсы. Inline-разворачивается в master plan через `subflow:`. Модули и опции наследуются от master flow."
 
 steps:
+  - step: ui_walkthrough
+    pause: true
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
   - step: ui_layout
     pause: true
     input:
-      - parent.scope_analysis.output
-      - parent.business.output?
-      - parent.figma_dump.output?
+      - scope_analysis.output
+      - business_summary.output
+      - figma_dump.output
+      - ui_walkthrough.output
     repeat:
       until: review_passed
       max: 3
@@ -27,13 +32,15 @@ steps:
         agents:
           - architect
 
-  - step: design_tree
+  - name: ui_design_tree
+    step: design_tree
+    output: ui_design_tree.md
     pause: true
     input:
-      - parent.scope_analysis.output
-      - parent.infra.output?
-      - parent.business.output?
-      - parent.figma_dump.output?
+      - scope_analysis.output
+      - infra_summary.output
+      - business_summary.output
+      - figma_dump.output
       - ui_layout.output
     repeat:
       until: review_passed
@@ -49,14 +56,14 @@ steps:
         agents:
           - architect
 
-  - step: implement
+  - step: ui_implement
     pause: true
     input:
-      - parent.scope_analysis.output
-      - parent.business.output?
-      - parent.figma_dump.output?
+      - scope_analysis.output
+      - business_summary.output
+      - figma_dump.output
       - ui_layout.output
-      - design_tree.output
+      - ui_design_tree.output
     repeat:
       until: review_passed
       max: 7
@@ -76,7 +83,7 @@ steps:
     pause: true
     input:
       - ui_layout.output
-      - implement.output
+      - ui_implement.output
     repeat:
       until: review_passed
       max: 3
@@ -89,12 +96,12 @@ steps:
         agents:
           - architect
 
-  - step: summary
+  - step: ui_summary
     pause: true
     input:
       - ui_layout.output
-      - design_tree.output
-      - implement.output
+      - ui_design_tree.output
+      - ui_implement.output
       - publish_ui.output
     with:
       logging:

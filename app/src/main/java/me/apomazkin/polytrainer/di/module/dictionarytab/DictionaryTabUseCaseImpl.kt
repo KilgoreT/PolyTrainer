@@ -7,11 +7,10 @@ import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.dictionarytab.deps.DictionaryTabUseCase
-import me.apomazkin.dictionarytab.entity.DefinitionUiEntity
-import me.apomazkin.dictionarytab.entity.LexemeUiItem
 import me.apomazkin.dictionarytab.entity.TermUiItem
-import me.apomazkin.dictionarytab.entity.TranslationUiEntity
+import me.apomazkin.dictionarytab.entity.toUiItem
 import me.apomazkin.flags.CountryProvider
+import me.apomazkin.polytrainer.mapper.toDomain
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
@@ -105,20 +104,9 @@ class DictionaryTabUseCaseImpl @Inject constructor(
                                 dictionaryId = term.word.dictionaryId,
                                 addDate = term.word.addDate,
                                 changeDate = term.word.changeDate,
-                                lexemeList = term.lexemes.map { defMate ->
-                                    LexemeUiItem(
-                                        id = defMate.id,
-                                        wordId = defMate.wordId,
-                                        translation = defMate.translation?.let {
-                                            TranslationUiEntity(
-                                                it.value
-                                            )
-                                        },
-                                        definition = defMate.definition?.let { DefinitionUiEntity(it.value) },
-                                        addDate = defMate.addDate,
-                                        changeDate = defMate.changeDate,
-                                    )
-                                }
+                                lexemeList = term.lexemes
+                                    .map { it.toDomain() }
+                                    .map { it.toUiItem() }
                             )
                         }
                 } ?: throw IllegalStateException("Dictionary not found")
@@ -137,20 +125,9 @@ class DictionaryTabUseCaseImpl @Inject constructor(
                     dictionaryId = term.word.dictionaryId,
                     addDate = term.word.addDate,
                     changeDate = term.word.changeDate,
-                    lexemeList = term.lexemes.map { defMate ->
-                        LexemeUiItem(
-                            id = defMate.id,
-                            wordId = defMate.wordId,
-                            translation = defMate.translation?.let {
-                                TranslationUiEntity(
-                                    it.value
-                                )
-                            },
-                            definition = defMate.definition?.let { DefinitionUiEntity(it.value) },
-                            addDate = defMate.addDate,
-                            changeDate = defMate.changeDate,
-                        )
-                    }
+                    lexemeList = term.lexemes
+                        .map { it.toDomain() }
+                        .map { it.toUiItem() }
                 )
             }
 

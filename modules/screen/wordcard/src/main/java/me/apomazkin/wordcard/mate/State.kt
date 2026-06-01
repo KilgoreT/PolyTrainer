@@ -2,7 +2,7 @@ package me.apomazkin.wordcard.mate
 
 import androidx.compose.runtime.Stable
 import me.apomazkin.mate.Effect
-import me.apomazkin.wordcard.entity.Lexeme
+import me.apomazkin.lexeme.Lexeme
 import java.util.Date
 
 const val NOT_IN_DB = -1L

@@ -41,7 +41,7 @@ class QuizChatUseCaseImplTest {
             grade = grade,
             addDate = Date(),
         ),
-        lexemeData = LexemeApiEntity(id = id, wordId = id, addDate = Date()),
+        lexemeData = LexemeApiEntity(id = id, addDate = Date()),
         wordData = WordApiEntity(id = id, dictionaryId = dictId, value = "word_$id", addDate = Date()),
         sampleData = emptyList(),
     )

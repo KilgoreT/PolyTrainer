@@ -5,11 +5,11 @@ import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertNoEffects
 import me.apomazkin.mate.test.assertSingleEffect
 import me.apomazkin.mate.test.testReduce
-import me.apomazkin.wordcard.entity.Definition
-import me.apomazkin.wordcard.entity.Lexeme
-import me.apomazkin.wordcard.entity.LexemeId
+import me.apomazkin.lexeme.Definition
+import me.apomazkin.lexeme.Lexeme
+import me.apomazkin.lexeme.LexemeId
+import me.apomazkin.lexeme.Translation
 import me.apomazkin.wordcard.entity.Term
-import me.apomazkin.wordcard.entity.Translation
 import me.apomazkin.wordcard.entity.Word
 import me.apomazkin.wordcard.entity.WordId
 import org.junit.Assert.assertEquals
@@ -44,7 +44,6 @@ class WordLoadedTest {
             lexemeId = LexemeId(10L),
             translation = Translation("hello"),
             definition = Definition("greeting"),
-            category = null,
             addDate = Date(2000L),
             changeDate = null,
         )
@@ -111,9 +110,9 @@ class WordLoadedTest {
         val reducer = WordCardReducer()
         val initialState = WordCardState(isLoading = true, wordState = WordState.NotLoaded)
         val lexemes = listOf(
-            Lexeme(LexemeId(1L), Translation("a"), null, null, Date(0)),
-            Lexeme(LexemeId(2L), null, Definition("b"), null, Date(0)),
-            Lexeme(LexemeId(3L), Translation("c"), Definition("d"), null, Date(0)),
+            Lexeme(LexemeId(1L), Translation("a"), null, Date(0)),
+            Lexeme(LexemeId(2L), null, Definition("b"), Date(0)),
+            Lexeme(LexemeId(3L), Translation("c"), Definition("d"), Date(0)),
         )
         val term = Term(
             wordId = WordId(99L),

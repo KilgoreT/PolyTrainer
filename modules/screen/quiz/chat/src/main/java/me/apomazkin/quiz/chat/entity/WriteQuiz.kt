@@ -1,5 +1,6 @@
 package me.apomazkin.quiz.chat.entity
 
+import me.apomazkin.lexeme.Lexeme
 import java.util.Date
 
 data class WriteQuiz(

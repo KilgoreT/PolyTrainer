@@ -1,6 +1,12 @@
 name: adaptive
 conductor_model: opus
 
+context:
+  - ticket
+  - feature_name
+  - branch
+  - mode
+
 modules:
   - logging
   - review
@@ -30,7 +36,7 @@ steps:
     pause: true
     input:
       - task.output
-      - figma_dump.output?
+      - figma_dump.output
     output: 02_scope.md
     sets:
       - infra_touched
@@ -54,55 +60,23 @@ steps:
       review:
         agents:
           - architect
-          - analyst
+          - qa_engineer
 
   - subflow: infra
     flow: flows/infra.yml
     if: infra_touched
-    input:
-      - scope_analysis.output
-      - figma_dump.output?
-    with:
-      logging:
-        phases:
-          - "finalize:after"
 
   - subflow: business
     flow: flows/business.yml
     if: business_touched
-    input:
-      - scope_analysis.output
-      - infra.output?
-      - figma_dump.output?
-    with:
-      logging:
-        phases:
-          - "finalize:after"
 
-  - parallel:
-      - subflow: ui
-        flow: flows/ui.yml
-        if: ui_touched
-        input:
-          - scope_analysis.output
-          - business.output?
-          - figma_dump.output?
-        with:
-          logging:
-            phases:
-              - "finalize:after"
+  - subflow: ui
+    flow: flows/ui.yml
+    if: ui_touched
 
-      - subflow: data
-        flow: flows/data.yml
-        if: data_touched
-        input:
-          - scope_analysis.output
-          - business.output?
-          - figma_dump.output?
-        with:
-          logging:
-            phases:
-              - "finalize:after"
+  - subflow: data
+    flow: flows/data.yml
+    if: data_touched
 
   - step: check
     pause: true
@@ -114,3 +88,16 @@ steps:
         - lint
         - test
         - build
+
+  - step: global_code_review
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_summary.output?
+      - business_summary.output?
+      - ui_summary.output?
+      - data_summary.output?
+    with:
+      logging:
+        phases:
+          - "finalize:after"

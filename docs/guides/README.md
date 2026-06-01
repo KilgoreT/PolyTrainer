@@ -33,11 +33,13 @@
 ## UI
 
 - [Паттерны UI](ui-patterns.md) — двухуровневые composable, отправка сообщений, общие виджеты, превью, лейаут
+- [UI-примитивы](ui-primitives.md) — формальный словарь atoms / layouts + правила построения виджета через слоты для спецификаций (`ui_layout.md`)
 
 ## Стиль и конвенции
 
+- [Naming](naming.md) — единый гайд именования: пакеты, файлы, классы, БД (таблицы / колонки / FK), enum-значения, resources, тесты + Rules (machine-checkable)
 - [Dagger DI](dagger-di.md) — граф компонентов, модули, порядок создания, конвенции
-- [Стиль кода](code-style.md) — форматирование, именование, git-конвенции, gradle
+- [Стиль кода](code-style.md) — форматирование, git-конвенции, gradle (именование вынесено в naming.md)
 - [Логирование](logging.md) — LexemeLogger, sink-паттерн, уровни, теги, конфигурация
 - [Тема и ресурсы](theme-and-resources.md) — цвета, типографика, ResourceManager, иконки, превью
 - [Preferences](prefs-datastore.md) — DataStore, PrefsProvider, nullable Flow, ключи

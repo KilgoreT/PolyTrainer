@@ -8,6 +8,66 @@
 - Одна ответственность на функцию
 - Комментарии — только для сложной бизнес-логики
 
+## Nullability и `!!`
+
+Force-unwrap `!!` в production-коде **запрещён**. Безмолвный NPE без сообщения = плохая диагностика; в перспективе computed property / cross-module smart-cast = риск регрессии (значение между двумя `!!` может оказаться разным).
+
+**Допустимые исключения** (комментарий с обоснованием обязателен):
+- Cross-module smart-cast: компилятор не выводит non-null для public property из другого модуля, хотя null-check уже сделан.
+- Гарантия через билдер / контракт (`require`/`check` выкинул раньше).
+
+В обоих случаях — **используй локальную переменную, `?.let`, `?:` или `requireNotNull`**, не `!!`. Тесты — исключение (setup-данные контролируешь).
+
+### Антипаттерн (на реальном кейсе из QuizGameImpl)
+
+```kotlin
+when {
+    lexeme.translation != null -> {
+        append(lexeme.translation!!.value)
+        someAction(lexeme.translation!!.value.length)
+    }
+}
+```
+
+### Корректно
+
+```kotlin
+// Локальная переменная — smart-cast возвращается
+when {
+    lexeme.translation != null -> {
+        val translation = lexeme.translation
+        append(translation.value)
+        someAction(translation.value.length)
+    }
+}
+
+// Идиоматично через ?.let
+lexeme.translation?.let { translation ->
+    append(translation.value)
+    someAction(translation.value.length)
+}
+
+// Контракт через requireNotNull — кидает IllegalArgumentException с сообщением
+val translation = requireNotNull(lexeme.translation) {
+    "lexeme.translation must be present in QuizPlay state"
+}
+append(translation.value)
+```
+
+---
+
+## Rules — машинно-проверяемые правила
+
+### R-CS-001. Запрет `!!` в production-коде
+
+- **Severity:** critical.
+- **Applies to:** все production `.kt` файлы (не `src/test/`).
+- **Check:** `Grep "!!"` (или `\!\!`) по `src/main/` — не должно быть. Исключения допустимы только с комментарием рядом, объясняющим **почему именно `!!`** (cross-module smart-cast, contract-guarantee, и т.п.). Тесты `src/test/` — разрешены.
+- **Альтернативы:** локальная переменная + `?.let`/`?:`, либо `requireNotNull(x) { "explicit message" }`.
+- **Зачем:** silent NPE без сообщения = плохая диагностика; cross-module/computed property поля могут вернуть разные значения между двумя `!!` обращениями — атомарность теряется. См. § «Nullability и `!!`».
+
+---
+
 ## Минимализм API и комментарии (YAGNI)
 
 Правила направлены против раздувания кода "на будущее" и "для контекста". Применяются ко всем виджетам, классам, функциям.
@@ -59,49 +119,7 @@
 
 ## Именование
 
-### Пакеты
-
-```
-me.apomazkin.<module>
-me.apomazkin.<module>.logic    — State, Message, Reducer
-me.apomazkin.<module>.deps     — UseCase интерфейсы
-me.apomazkin.<module>.ui       — Screen, Widget
-me.apomazkin.<module>.entity   — Domain модели
-```
-
-### Файлы
-
-| Тип | Формат | Пример |
-|-----|--------|--------|
-| Экран | `*Screen.kt` | `WordCardScreen.kt` |
-| ViewModel | `*ViewModel.kt` | `ChatViewModel.kt` |
-| Виджет | `*Widget.kt` | `TopBarWidget.kt`, `LexemeItemWidget.kt` |
-| Редьюсер | `*Reducer.kt` | `ChatReducer.kt` |
-| Стейт | `State.kt` | `State.kt` (одинаково во всех модулях) |
-| Сообщения | `Message.kt` | `Message.kt` |
-| Эффект-хендлер | `*EffectHandler.kt` | `DatasourceEffectHandler.kt` |
-| UseCase | `*UseCase.kt` / `*UseCaseImpl.kt` | `WordCardUseCase.kt` |
-| Тесты | `*Test.kt` | `OpenTopBarMenuTest.kt` |
-| Тесты расширений | `*ExtTest.kt` в папке `ext/` | `TopBarExtTest.kt` |
-
-### Классы и интерфейсы
-
-- Стейт: `*State` — `WordCardState`, `TopBarState`, `ChatScreenState`
-- Сообщения: sealed interface `Msg` (всегда `Msg`)
-- Эффекты: `DatasourceEffect`, `UiEffect` (sealed interface extends `Effect`)
-- UseCases: интерфейс `*UseCase`, реализация `*UseCaseImpl`
-
-### Логирование
-
-См. отдельный гайд: [logging.md](logging.md)
-
-### Принцип именования
-
-Имена должны быть **лаконичными и понятными**. Короткое имя лучше длинного при равной ясности. Если имя можно сократить без потери смысла — сократи. При ревью всегда проверяй: можно ли переименовать короче?
-
-- `FlagsUpdated` лучше чем `FilteredFlagsLoaded`
-- `updateFlags` лучше чем `updateFilteredFlags`
-- `flags` лучше чем `filteredFlagsList`
+См. отдельный гайд: **[naming.md](naming.md)**. Там — пакеты, файлы, классы, БД (таблицы / колонки / FK), enum-значения, resources, тесты + раздел `## Rules` с machine-checkable правилами.
 
 ## Форматирование
 

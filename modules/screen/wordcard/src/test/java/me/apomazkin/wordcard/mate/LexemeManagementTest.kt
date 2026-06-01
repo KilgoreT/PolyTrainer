@@ -4,10 +4,10 @@ import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertEffects
 import me.apomazkin.mate.test.assertNoEffects
 import me.apomazkin.mate.test.testReduce
-import me.apomazkin.wordcard.entity.Definition
-import me.apomazkin.wordcard.entity.Lexeme
-import me.apomazkin.wordcard.entity.LexemeId
-import me.apomazkin.wordcard.entity.Translation
+import me.apomazkin.lexeme.Definition
+import me.apomazkin.lexeme.Lexeme
+import me.apomazkin.lexeme.LexemeId
+import me.apomazkin.lexeme.Translation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -137,8 +137,8 @@ class LexemeManagementTest {
             LexemeState(id = 1L, translation = TextValueState(origin = "a")),
         ))
         val newLexemes = listOf(
-            Lexeme(LexemeId(2L), Translation("b"), null, null, Date(0)),
-            Lexeme(LexemeId(3L), null, Definition("c"), null, Date(0)),
+            Lexeme(LexemeId(2L), Translation("b"), null, Date(0)),
+            Lexeme(LexemeId(3L), null, Definition("c"), Date(0)),
         )
 
         val result = reducer.testReduce(initial, Msg.RefreshLexemeList(lexemes = newLexemes))

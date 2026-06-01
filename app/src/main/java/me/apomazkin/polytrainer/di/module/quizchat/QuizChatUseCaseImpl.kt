@@ -1,17 +1,14 @@
 package me.apomazkin.polytrainer.di.module.quizchat
 
 import me.apomazkin.core_db_api.CoreDbApi
-import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
+import me.apomazkin.polytrainer.mapper.toDomain
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
-import me.apomazkin.quiz.chat.entity.Definition
-import me.apomazkin.quiz.chat.entity.Lexeme
 import me.apomazkin.quiz.chat.entity.QuizType
-import me.apomazkin.quiz.chat.entity.Translation
 import me.apomazkin.quiz.chat.entity.Word
 import me.apomazkin.quiz.chat.entity.WriteQuiz
 import me.apomazkin.quiz.chat.entity.WriteQuizUpsertEntity
@@ -114,14 +111,6 @@ class QuizChatUseCaseImpl @Inject constructor(
     }
 }
 
-fun LexemeApiEntity.toDomainEntity() = Lexeme(
-    id = id,
-    translation = translation?.let { Translation(it.value) },
-    definition = definition?.let { Definition(it.value) },
-    addDate = addDate,
-    changeDate = changeDate,
-)
-
 fun WordApiEntity.toDomainEntity() = Word(
     id = id,
     value = value,
@@ -135,7 +124,7 @@ fun WriteQuizComplexEntity.toDomainEntity(type: QuizType?) = WriteQuiz(
         errorCount = quizData.errorCount,
         addDate = quizData.addDate,
         lastCorrectAnswerDate = quizData.lastCorrectAnswerDate,
-        lexeme = lexemeData.toDomainEntity(),
+        lexeme = lexemeData.toDomain(),
         word = wordData.toDomainEntity(),
         type = type
 )

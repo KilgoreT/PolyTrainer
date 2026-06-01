@@ -108,6 +108,19 @@
 
 ## Архитектура
 
+- **[Repository pattern: mapper API→Domain в `core-db-impl`, `CoreDbApi` возвращает domain].**
+  Сейчас (после IS482) mapper `LexemeApiEntity.toDomain(): Lexeme` живёт в `app/.../mapper/LexemeMapper.kt` — соответствует convention `data-layer.md` § «Маппинг сущностей» («API → Domain в UseCase модуле»). По Clean Architecture / Repository pattern правильнее: mapper в **`core-db-impl`** (data adapter), а `CoreDbApi.LexemeApi.getLexemes()` возвращает сразу `Lexeme` (domain), не `LexemeApiEntity`.
+  Текущее состояние: UseCase знает про data-API (`LexemeApiEntity`) → нарушение Dependency Rule. UseCaseImpl де-факто работает как mapper.
+  Решение: `CoreDbApi.LexemeApi.*` методы меняют тип возврата на `Lexeme` (domain). Mapper переезжает из `app/.../mapper/` в `core-db-impl` (рядом с маппингом `DbEntity → ApiEntity`). `LexemeApiEntity` становится internal DTO в `core-db-impl` (или остаётся в `core-db-api` для transition period с `@Deprecated`). `core-db-api` начинает зависеть от `modules/domain/lexeme` (по Clean — нормально, data → domain).
+  Затрагивает: 7 lexeme-методов в `CoreDbApi.LexemeApi`, все 3 `UseCaseImpl` (`WordCardUseCaseImpl` / `QuizChatUseCaseImpl` / `DictionaryTabUseCaseImpl`), `LexemeMapper.kt` (удаляется/переезжает), `data-layer.md` гайд (правка convention).
+  Аналогично — Word, Term, WriteQuiz (если унификация распространится).
+  Источник: F-A5 IS482 REVIEW — поднят аспект «mapper в app/ + Dependency Rule инверсия». Решение отложено как big refactor.
+  Объём: большой (refactor data-API контракта + 3 UseCaseImpl).
+
+- **[Wordcard mate refactor: generic компоненты в Msg / State / Reducer (после IS481)].**
+  После IS481 в `CoreDbApi` / `UseCase` появляются generic-методы для компонентов (`addLexemeWithBuiltInComponent` etc.), а старые специфичные методы (`addLexemeWithTranslation` / `addLexemeWithDefinition`) остаются как `@Deprecated` обёртки. Mate-слой wordcard (`LexemeState.translation/definition` поля, `Msg.CreateTranslation/CreateDefinition` и зеркальные 20+ Msg, `DatasourceEffect.UpdateLexemeTranslation/Definition`) продолжает работать через эти обёртки.
+  Нужно: переписать wordcard mate на generic — `LexemeState.components: List<ComponentValueState>`, generic `Msg.CreateComponent(typeId)` / `Msg.UpdateComponentInput(componentId, value)` etc. Объём ~400+ строк + ~10 reducer-тестов с нуля. Тот же refactor — в quiz/chat и dictionaryTab. После — выпиливаем `@Deprecated` обёртки. Триггер: появление UI для user-defined компонентов.
+
 - **[Snackbar queue: undo первого snackbar теряется при быстром втором].**
 
   **Контекст.** В IS479 (wordcard inline lexeme editing) реализован snackbar+undo для удалений (translation/definition/lexeme/cascade). Канон через `UiHost`/`UiEffect.ShowSnackbarWithUndo`:
@@ -318,6 +331,12 @@
   `val edited: String = origin` — default parameter зависит от другого. Неочевидное поведение при copy().
   Нужно: сделать `edited: String = ""` явно.
 
+- **[TextValueState — атомарные extension'ы enableEdit / disableEdit].**
+  В IS479 reducer'ы делали ручной `state.copy(translation = translation.copy(edited = origin, isEdit = true))` — забыли копировать в одной ветке (`enableLexemeTranslationEdit` баг). Нужно: добавить extension `TextValueState.enableEdit()` (атомарно `copy(edited = origin, isEdit = true)`) и `disableEdit()`. Reducer'ы вызывают только их, ручной `copy()` запрещён (R-RP-003 в `reducer-patterns.md`). Файл: `modules/screen/wordcard/src/main/java/me/apomazkin/wordcard/mate/State.kt`.
+
+- **[SampleDb / HintDb columns — миграция на snake_case].**
+  Сейчас `samples.lexemeId` и `hints.lexemeId` — camelCase (нет `@ColumnInfo`, Room взял Kotlin-имя). `write_quiz.lexeme_id` — snake_case. Из-за этого в `LexemeDbEntity` `@Relation` смешивает `entityColumn = "lexemeId"` (samples) и `entityColumn = "lexeme_id"` (для будущих component_values). Нужно: добавить `@ColumnInfo(name = "lexeme_id")` в SampleDb / HintDb + миграция переименования колонок (в SQLite < 3.25 RENAME COLUMN не работает → recreate-таблицы). Правило R-N-002 в `docs/guides/naming.md`. Отдельная фича — не объединять с IS481.
+
 - **[Некосистентные аннотации @Stable/@Immutable].**
   WordCard — `@Stable`, Chat — `@Immutable`, CreateDictionary — без аннотаций. 9 классов без маркировки.
   Нужно: договориться на один подход (`@Immutable` для всех data class стейтов), пройти по всем модулям.
@@ -418,9 +437,9 @@
   Ранее Room 2.7.1 давал IllegalStateException (https://issuetracker.google.com/issues/413924560).
   Нужно: прогнать квиз-выборку и убедиться что рандомные запросы работают корректно.
 
-- **[ForgeFlow: добавить шаг `business_walkthrough` между `scope_analysis` и `contract_state`].**
-  В фиче IS479 пришлось 3 раза переписывать `contract_io` (ит.1 выдуманный subscriber, ит.5 всплыл cascade-delete, ит.6 концептуальный пересмотр на NOT_IN_DB). Причина — `contract_state` пишется без sanity-check бизнес-семантики существующего data-слоя. Cascade в `WordCardUseCaseImpl.deleteLexemeTranslation/Definition`, поведение `addLexeme()` (создаёт пустую лексему в БД), nullable lexemeId в `addLexemeTranslation` — всё это **бизнес-семантика data-слоя**, которая всплыла поздно. Также суб-агенты execute пишут артефакты без обязательной сверки с реальным кодом — на ит.1 contract_io выдумал subscriber `observeLexemesByWordId`, которого нет в `WordCardUseCase`. Review строго локальный — architect/analyst ревьюят артефакт без понимания «что в коде уже работает», поэтому 70% findings — теоретические race и стилистика, реальные архитектурные gap'ы (cascade) всплывают только когда conductor лично грепнет существующий код.
-  Нужно: добавить шаг `business_walkthrough` (или расширить `scope_analysis`) — суб-агент проходит каждый user-flow из scope глядя в реальный код, выписывает: data-операции с побочными эффектами (cascade, atomicity, side-effects), inline-уровень-инварианты (`NOT_IN_DB`, временные локальные сущности), existing API ограничения (nullable params, transactional boundaries). После — `contract_state` обязан сослаться на business_walkthrough. Subagent execute каждого шага должен обязательно грепнуть relevant код перед написанием. Review должен включать обязательный пункт «согласованность с существующим кодом».
+- **[ForgeFlow base: защита от зацикливания в reviewer-механике `reviews:` + `trigger_step_rerun`].**
+  В новой reviewer-механике (`reviews: <target_step>` + `changes_requested` → `trigger_step_rerun`) защиты от бесконечного rerun нет. Старый `execute_repeat` имел `max` параметр; `trigger_step_rerun` просто сбрасывает шаг в `pending` без счётчика. Теоретически пара «контракт ↔ reviewer» может крутиться неограниченно если reviewer стабильно ставит `changes_requested`.
+  Нужно: добавить в `step.feedback_iteration` верхний лимит (например `max_feedback_iterations: 7` в frontmatter промпта или дефолт в runner), при превышении — `escalate` к пользователю. Затрагивает `~/dev/forgeflow/spec/runner.md → trigger_step_rerun`.
 
 - **[WordCard F074: data-loss `NOT_IN_DB`-буфера при `RemoveLexeme` через menu другой лексемы].**
   Пользователь создал NOT_IN_DB лексему, ввёл text в `translation.edited`, не закоммитил. Открыл menu другой реальной лексемы → Delete. После `RemoveLexemeEffect → RefreshLexemeList` merge выкидывает `NOT_IN_DB` целиком вместе с typed text без подтверждения.
