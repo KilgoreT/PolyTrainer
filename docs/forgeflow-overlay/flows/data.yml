@@ -1,18 +1,25 @@
 name: data
-description: "Data sub-flow Lexeme — DB (api+impl+миграции+schemas), Prefs, Library-обёртки"
-
-modules:
-  - logging
-  - review
-  - guides
+description: "Data sub-flow — DB (api+impl+миграции+schemas), Prefs, Library-обёртки. Inline-разворачивается в master plan через `subflow:`. Модули и опции наследуются от master flow."
 
 steps:
-  - step: design_tree
+  - step: data_walkthrough
     pause: true
     input:
-      - parent.scope_analysis.output
-      - parent.infra.output?
-      - parent.business.output?
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  - name: data_design_tree
+    step: design_tree
+    output: data_design_tree.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_summary.output
+      - business_summary.output
+      - data_walkthrough.output
     repeat:
       until: review_passed
       max: 7
@@ -27,12 +34,12 @@ steps:
         agents:
           - architect
 
-  - step: migration_test
+  - step: data_migration_test
     if: needs_migration_tests
     pause: true
     input:
-      - parent.scope_analysis.output
-      - design_tree.output
+      - scope_analysis.output
+      - data_design_tree.output
     repeat:
       until: review_passed
       max: 7
@@ -48,13 +55,13 @@ steps:
           - architect
           - qa_engineer
 
-  - step: implement
+  - step: data_implement
     pause: true
     input:
-      - parent.scope_analysis.output
-      - parent.business.output?
-      - design_tree.output
-      - migration_test.output?
+      - scope_analysis.output
+      - business_summary.output
+      - data_design_tree.output
+      - data_migration_test.output
     repeat:
       until: review_passed
       max: 7
@@ -70,12 +77,12 @@ steps:
           - architect
           - senior
 
-  - step: summary
+  - step: data_summary
     pause: true
     input:
-      - design_tree.output
-      - migration_test.output?
-      - implement.output
+      - data_design_tree.output
+      - data_migration_test.output
+      - data_implement.output
     with:
       logging:
         phases:

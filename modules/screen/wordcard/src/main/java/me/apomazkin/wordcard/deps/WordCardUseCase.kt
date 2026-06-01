@@ -1,6 +1,6 @@
 package me.apomazkin.wordcard.deps
 
-import me.apomazkin.wordcard.entity.Lexeme
+import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.wordcard.entity.Term
 
 interface WordCardUseCase {

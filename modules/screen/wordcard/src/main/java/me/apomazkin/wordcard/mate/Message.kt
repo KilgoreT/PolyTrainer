@@ -1,7 +1,7 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.annotation.StringRes
-import me.apomazkin.wordcard.entity.Lexeme
+import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.wordcard.entity.Term
 
 sealed interface Msg {

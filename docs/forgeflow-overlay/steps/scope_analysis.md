@@ -21,7 +21,7 @@ context_output:
   - needs_migration_tests
   - feature_has_ui_contract
   - spec_filename
-post_finalize_hook: archive_subflows
+# post_finalize_hook: archive_subflows  # legacy child_flow механика — не нужна при inline-разворот subflow.
 ---
 
 Прочитай бриф из `00_task.md`. Глубоко проанализируй задачу — определи какие архитектурные слои затронуты. На основе этого master flow решит какие sub-flow запускать.

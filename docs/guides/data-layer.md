@@ -213,3 +213,7 @@ class AppBarFlowHandler(private val prefsProvider: PrefsProvider) : MateFlowHand
 5. **Все DB-операции** через `withContext(Dispatchers.IO)`.
 6. **Пагинация** через `PagingData` + Room Paging (pageSize=50).
 7. **Foreign keys** с CASCADE delete на всех связях.
+
+## Naming
+
+Имена таблиц / колонок / FK / enum-значений / sealed → TEXT через TypeConverter — см. **[naming.md → § Database](naming.md#database)** и раздел [Rules R-N-001 … R-N-009](naming.md#rules--машинно-проверяемые-правила).

@@ -10,7 +10,6 @@ value class DefinitionApiEntity(val value: String)
 
 data class LexemeApiEntity(
     val id: Long,
-    val wordId: Long,
     val translation: TranslationApiEntity? = null,
     val definition: DefinitionApiEntity? = null,
     val wordClass: String? = null,

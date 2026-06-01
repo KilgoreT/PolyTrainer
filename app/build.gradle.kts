@@ -131,6 +131,8 @@ dependencies {
     implementation(project("path" to ":modules:library:flags"))
     implementation(project("path" to ":modules:datasource:prefs"))
 
+    implementation(project("path" to ":modules:domain:lexeme"))
+
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":core:core-db"))
     implementation(project("path" to ":modules:core:di"))

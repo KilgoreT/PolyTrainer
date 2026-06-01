@@ -21,14 +21,12 @@ object DataHelper {
                 lexemeList = listOf(
                     LexemeUiItem(
                         id = 0,
-                        wordId = 0,
                         translation = TranslationUiEntity("одын"),
                         definition = DefinitionUiEntity(" одын одын одын одын одын одын"),
                         addDate = Date(0),
                     ),
                     LexemeUiItem(
                         id = 1,
-                        wordId = 0,
                         translation = TranslationUiEntity("единица"),
                         definition = DefinitionUiEntity("раз-раз раз-раз раз-раз раз-раз"),
                         addDate = Date(0),
@@ -44,7 +42,6 @@ object DataHelper {
                 lexemeList = listOf(
                     LexemeUiItem(
                         id = 2,
-                        wordId = 1,
                         translation = null,
                         definition = DefinitionUiEntity("два два два два дваааа дваааа два двааааааа"),
                         addDate = Date(0),

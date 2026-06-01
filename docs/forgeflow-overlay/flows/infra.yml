@@ -1,16 +1,23 @@
 name: infra
-description: "Infrastructure sub-flow Lexeme — DI, mate framework, logger, Build, Manifest, CI, Guides"
-
-modules:
-  - logging
-  - review
-  - guides
+description: "Infrastructure sub-flow — DI, mate framework, logger, Build, Manifest, CI, Guides. Inline-разворачивается в master plan через `subflow:`. Модули и опции наследуются от master flow."
 
 steps:
-  - step: design_tree
+  - step: infra_walkthrough
     pause: true
     input:
-      - parent.scope_analysis.output
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  - name: infra_design_tree
+    step: design_tree
+    output: infra_design_tree.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_walkthrough.output
     repeat:
       until: review_passed
       max: 7
@@ -25,12 +32,12 @@ steps:
         agents:
           - architect
 
-  - step: test
+  - step: infra_test
     if: needs_tests
     pause: true
     input:
-      - parent.scope_analysis.output
-      - design_tree.output
+      - scope_analysis.output
+      - infra_design_tree.output
     repeat:
       until: review_passed
       max: 7
@@ -46,12 +53,12 @@ steps:
           - architect
           - qa_engineer
 
-  - step: implement
+  - step: infra_implement
     pause: true
     input:
-      - parent.scope_analysis.output
-      - design_tree.output
-      - test.output?
+      - scope_analysis.output
+      - infra_design_tree.output
+      - infra_test.output
     repeat:
       until: review_passed
       max: 7
@@ -67,12 +74,12 @@ steps:
           - architect
           - senior
 
-  - step: summary
+  - step: infra_summary
     pause: true
     input:
-      - design_tree.output
-      - test.output?
-      - implement.output
+      - infra_design_tree.output
+      - infra_test.output
+      - infra_implement.output
     with:
       logging:
         phases:

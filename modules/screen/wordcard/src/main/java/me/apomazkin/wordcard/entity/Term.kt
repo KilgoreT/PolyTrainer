@@ -1,5 +1,6 @@
 package me.apomazkin.wordcard.entity
 
+import me.apomazkin.lexeme.Lexeme
 import java.util.Date
 
 @JvmInline

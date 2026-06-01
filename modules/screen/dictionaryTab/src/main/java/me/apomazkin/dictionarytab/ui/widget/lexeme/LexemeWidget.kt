@@ -51,7 +51,6 @@ private fun Preview() {
             LexemeWidget(
                 lexeme = LexemeUiItem(
                     id = 1,
-                    wordId = 1,
                     translation = TranslationUiEntity("translation"),
                     definition = DefinitionUiEntity("definition definition definition definition definition"),
                     addDate = Date(),

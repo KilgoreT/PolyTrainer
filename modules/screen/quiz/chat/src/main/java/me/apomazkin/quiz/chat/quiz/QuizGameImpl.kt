@@ -436,10 +436,12 @@ fun WriteQuiz.toQuizItem(
     } else {
         "none"
     }
+    val translation = lexeme.translation
+    val definition = lexeme.definition
     return QuizItem(
             answer = word.value,
             fullQuestion = when {
-                lexeme.translation != null -> buildAnnotatedString {
+                translation != null -> buildAnnotatedString {
                     if (isDebugOn) {
                         withStyle(
                                 style = LexemeStyle.BodySBold.copy(
@@ -460,12 +462,12 @@ fun WriteQuiz.toQuizItem(
                     append("\n")
                     withStyle(style = LexemeStyle.BodyMBold.toSpanStyle()) {
                         append(
-                                lexeme.translation.value
+                                translation.value
                         )
                     }
                 }
 
-                lexeme.definition != null -> buildAnnotatedString {
+                definition != null -> buildAnnotatedString {
                     if (isDebugOn) {
                         withStyle(
                                 style = LexemeStyle.BodySBold
@@ -489,7 +491,7 @@ fun WriteQuiz.toQuizItem(
                     append("\n")
                     withStyle(style = LexemeStyle.BodyMBold.toSpanStyle()) {
                         append(
-                                lexeme.definition.value
+                                definition.value
                         )
                     }
                 }
@@ -497,10 +499,10 @@ fun WriteQuiz.toQuizItem(
                 else -> throw IllegalArgumentException("No translation or definition")
             },
             question = buildAnnotatedString {
-                if (lexeme.translation != null)
-                    append(lexeme.translation.value)
-                else if (lexeme.definition != null) {
-                    append(lexeme.definition.value)
+                if (translation != null)
+                    append(translation.value)
+                else if (definition != null) {
+                    append(definition.value)
                 } else {
                     append("No translation or definition")
                 }
@@ -508,7 +510,7 @@ fun WriteQuiz.toQuizItem(
             info = QuizItem.QuizInfo(
                     id = id,
                     dictionaryId = dictionaryId,
-                    lexemeId = lexeme.id,
+                    lexemeId = lexeme.lexemeId.id,
                     grade = grade,
                     score = score,
                     errorCount = errorCount,

@@ -33,6 +33,7 @@ dependencies {
     implementation(project("path" to ":modules:core:ui"))
     implementation(project("path" to ":modules:core:tools"))
     implementation(project("path" to ":modules:core:logger"))
+    implementation(project("path" to ":modules:domain:lexeme"))
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":modules:widget:iconDropDowned"))
 

@@ -17,7 +17,6 @@ data class LexemeDbEntity(
 
 fun LexemeDbEntity.toApiEntity() = LexemeApiEntity(
     id = lexemeDb.id,
-    wordId = lexemeDb.wordId,
     translation = lexemeDb.translation?.let { TranslationApiEntity(it) },
     definition = lexemeDb.definition?.let { DefinitionApiEntity(it) },
     wordClass = lexemeDb.wordClass,

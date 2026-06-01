@@ -6,11 +6,11 @@ import me.apomazkin.logger.LogLevel
 import me.apomazkin.wordcard.deps.RemoveDefinitionResult
 import me.apomazkin.wordcard.deps.RemoveTranslationResult
 import me.apomazkin.wordcard.deps.WordCardUseCase
-import me.apomazkin.wordcard.entity.Definition
-import me.apomazkin.wordcard.entity.Lexeme
-import me.apomazkin.wordcard.entity.LexemeId
+import me.apomazkin.lexeme.Definition
+import me.apomazkin.lexeme.Lexeme
+import me.apomazkin.lexeme.LexemeId
+import me.apomazkin.lexeme.Translation
 import me.apomazkin.wordcard.entity.Term
-import me.apomazkin.wordcard.entity.Translation
 import me.apomazkin.wordcard.entity.Word
 import me.apomazkin.wordcard.entity.WordId
 import org.junit.Assert.assertEquals
@@ -121,7 +121,6 @@ class DatasourceEffectHandlerTest {
             lexemeId = LexemeId(555L),
             translation = Translation("hello"),
             definition = null,
-            category = null,
             addDate = Date(0L),
         )
         val uc = FakeUseCase(
@@ -209,7 +208,6 @@ class DatasourceEffectHandlerTest {
             lexemeId = LexemeId(42L),
             translation = null,
             definition = Definition("d"),
-            category = null,
             addDate = Date(0L),
         )
         val uc = FakeUseCase(

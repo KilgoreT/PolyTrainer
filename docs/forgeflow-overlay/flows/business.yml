@@ -1,76 +1,44 @@
 name: business
-description: "Business logic sub-flow Lexeme — TEA-логика, UseCase контракты+impl, доменные сущности, specs"
-
-modules:
-  - logging
-  - review
-  - guides
+description: "Business sub-flow — TEA-логика, UseCase контракты+impl, доменные сущности, specs. Inline-разворачивается в master plan через `subflow:`. Модули и опции наследуются от master flow."
 
 steps:
-  - step: contract_state
+  - step: business_walkthrough
     pause: true
     input:
-      - parent.scope_analysis.output
-    repeat:
-      until: review_passed
-      max: 7
-      on_max: escalate
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  - step: business_contract
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_walkthrough.output
     with:
       logging:
         phases:
           - "finalize:after"
       guides:
         enabled: true
-      review:
-        agents:
-          - architect
-          - analyst
 
-  - step: contract_ui_msg
-    pause: true
+  - step: business_contract_review
     input:
-      - parent.scope_analysis.output
-      - contract_state.output
-    repeat:
-      until: review_passed
-      max: 7
-      on_max: escalate
+      - business_walkthrough.output
+      - business_contract.output
     with:
       logging:
         phases:
           - "finalize:after"
       guides:
         enabled: true
-      review:
-        agents:
-          - architect
-          - analyst
 
-  - step: contract_io
+  - step: business_contract_spec
     pause: true
     input:
-      - parent.scope_analysis.output
-      - contract_state.output
-      - contract_ui_msg.output
-    repeat:
-      until: review_passed
-      max: 7
-      on_max: escalate
-    with:
-      logging:
-        phases:
-          - "finalize:after"
-      guides:
-        enabled: true
-      review:
-        agents:
-          - architect
-          - analyst
-
-  - step: contract_usecase
-    pause: true
-    input:
-      - contract_io.output
+      - scope_analysis.output
+      - business_contract.output
     repeat:
       until: review_passed
       max: 7
@@ -85,13 +53,13 @@ steps:
         agents:
           - architect
 
-  - step: contract_spec
+  - name: business_design_tree
+    step: design_tree
+    output: business_design_tree.md
+    pause: true
     input:
-      - parent.scope_analysis.output
-      - contract_state.output
-      - contract_ui_msg.output
-      - contract_io.output
-      - contract_usecase.output
+      - business_contract.output
+      - business_contract_spec.output
     repeat:
       until: review_passed
       max: 7
@@ -106,29 +74,11 @@ steps:
         agents:
           - architect
 
-  - step: design_tree
+  - step: business_test
     pause: true
     input:
-      - contract_spec.output
-    repeat:
-      until: review_passed
-      max: 7
-      on_max: escalate
-    with:
-      logging:
-        phases:
-          - "finalize:after"
-      guides:
-        enabled: true
-      review:
-        agents:
-          - architect
-
-  - step: test
-    pause: true
-    input:
-      - contract_spec.output
-      - design_tree.output
+      - business_contract.output
+      - business_design_tree.output
     repeat:
       until: review_passed
       max: 7
@@ -144,12 +94,12 @@ steps:
           - architect
           - qa_engineer
 
-  - step: implement
+  - step: business_implement
     pause: true
     input:
-      - contract_spec.output
-      - design_tree.output
-      - test.output
+      - business_contract.output
+      - business_design_tree.output
+      - business_test.output
     repeat:
       until: review_passed
       max: 7
@@ -165,11 +115,11 @@ steps:
           - architect
           - senior
 
-  - step: publish_spec
+  - step: business_publish_spec
     pause: true
     input:
-      - contract_spec.output
-      - implement.output
+      - business_contract_spec.output
+      - business_implement.output
     repeat:
       until: review_passed
       max: 7
@@ -182,13 +132,13 @@ steps:
         agents:
           - architect
 
-  - step: summary
+  - step: business_summary
     pause: true
     input:
-      - design_tree.output
-      - test.output
-      - implement.output
-      - publish_spec.output
+      - business_design_tree.output
+      - business_test.output
+      - business_implement.output
+      - business_publish_spec.output
     with:
       logging:
         phases:

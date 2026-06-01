@@ -3,7 +3,7 @@
 /local.properties
 /.idea/
 .DS_Store
-/build
+build/
 /captures
 .externalNativeBuild
 .cxx
@@ -11,12 +11,8 @@
 /keystore/.gitignore
 /keystore/keystore_upload
 /app/release
-/build-settings/build/
-/modules/datastore/prefs/build/*
 /.kotlin
-/build-logic/build
 /.cursor
 /.vscode
 docs/forgeflow
 app/keystore/
-/modules/core/logger/build/

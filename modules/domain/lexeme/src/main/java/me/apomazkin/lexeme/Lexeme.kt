@@ -1,6 +1,9 @@
-package me.apomazkin.quiz.chat.entity
+package me.apomazkin.lexeme
 
 import java.util.Date
+
+@JvmInline
+value class LexemeId(val id: Long)
 
 @JvmInline
 value class Translation(val value: String)
@@ -9,9 +12,9 @@ value class Translation(val value: String)
 value class Definition(val value: String)
 
 data class Lexeme(
-    val id: Long,
-    val translation: Translation? = null,
-    val definition: Definition? = null,
+    val lexemeId: LexemeId,
+    val translation: Translation?,
+    val definition: Definition?,
     val addDate: Date,
     val changeDate: Date? = null,
 )
