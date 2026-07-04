@@ -12,7 +12,7 @@ steps:
           - "finalize:after"
 
   - name: infra_design_tree
-    step: design_tree
+    prompt: design_tree
     output: infra_design_tree.md
     pause: true
     input:
@@ -32,7 +32,9 @@ steps:
         agents:
           - architect
 
-  - step: infra_test
+  - name: infra_test
+    prompt: test
+    output: infra_test.md
     if: needs_tests
     pause: true
     input:
@@ -53,7 +55,9 @@ steps:
           - architect
           - qa_engineer
 
-  - step: infra_implement
+  - name: infra_implement
+    prompt: implement
+    output: infra_implement.md
     pause: true
     input:
       - scope_analysis.output
@@ -74,7 +78,9 @@ steps:
           - architect
           - senior
 
-  - step: infra_summary
+  - name: infra_summary
+    prompt: summary
+    output: infra_summary.md
     pause: true
     input:
       - infra_design_tree.output

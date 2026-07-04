@@ -124,9 +124,12 @@ dependencies {
     implementation(project("path" to ":modules:screen:quiz:chat"))
     implementation(project("path" to ":modules:screen:stattab"))
     implementation(project("path" to ":modules:screen:settingstab"))
+    implementation(project("path" to ":modules:screen:components_manager"))
+    implementation(project("path" to ":modules:screen:per_dictionary_components"))
 
     implementation(project("path" to ":modules:widget:dictionarypicker"))
     implementation(project("path" to ":modules:widget:dictionaryappbar"))
+    implementation(project("path" to ":modules:widget:component_widgets"))
 
     implementation(project("path" to ":modules:library:flags"))
     implementation(project("path" to ":modules:datasource:prefs"))

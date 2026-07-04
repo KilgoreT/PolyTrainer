@@ -14,6 +14,8 @@ class DictionaryAppBarNavigationEffectHandler @AssistedInject constructor(
     override suspend fun onScreenEffect(effect: NavigationEffect) {
         when (effect) {
             is DictionaryAppBarNavigationEffect.OpenDictionaryCreate -> barNavigator.openDictionaryCreate()
+            is DictionaryAppBarNavigationEffect.OpenPerDictionaryComponents ->
+                barNavigator.openPerDictionaryComponents(effect.dictionaryId)
         }
     }
 

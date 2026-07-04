@@ -1,6 +1,10 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.annotation.StringRes
+import me.apomazkin.lexeme.ComponentType
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentValue
+import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.wordcard.entity.Term
 
@@ -25,52 +29,38 @@ sealed interface Msg {
     data object CloseDeleteLexemeDialog : Msg
     data class RemoveLexeme(val lexemeId: Long) : Msg
 
-    // --- Translation chip ---
-    data class CreateTranslation(val lexemeId: Long) : Msg
-    data class UpdateTranslationInput(val lexemeId: Long, val value: String) : Msg
-    data class EnterTranslationEditMode(val lexemeId: Long) : Msg
-    data class CommitTranslationEdit(val lexemeId: Long) : Msg
-    data class RemoveTranslation(val lexemeId: Long) : Msg
+    // --- Component value (generic) ---
+    data class CreateComponentValue(val lexemeId: Long, val typeId: ComponentTypeId) : Msg
+    data class UpdateComponentValueInput(val lexemeId: Long, val key: ComponentValueKey, val value: String) : Msg
+    data class EnterComponentValueEditMode(val lexemeId: Long, val key: ComponentValueKey) : Msg
+    data class CommitComponentValueEdit(val lexemeId: Long, val key: ComponentValueKey) : Msg
+    data class RemoveComponentValueRequested(val lexemeId: Long, val key: ComponentValueKey) : Msg
 
-    // --- Definition chip ---
-    data class CreateDefinition(val lexemeId: Long) : Msg
-    data class UpdateDefinitionInput(val lexemeId: Long, val value: String) : Msg
-    data class EnterDefinitionEditMode(val lexemeId: Long) : Msg
-    data class CommitDefinitionEdit(val lexemeId: Long) : Msg
-    data class RemoveDefinition(val lexemeId: Long) : Msg
+    // --- Component types stream ---
+    data class ComponentTypesLoaded(val types: List<ComponentType>) : Msg
+    data class ComponentTypesLoadFailed(val error: Throwable) : Msg
+    data object RetryLoadComponentTypes : Msg
 
-    // --- Navigation + feedback ---
-    data object NavigateBack : Msg
-    data object NoOperation : Msg
-
-    // --- Datasource Msg ---
+    // --- Datasource events ---
     data class WordLoaded(val word: Term) : Msg
     data object WordNotFound : Msg
     data class RefreshWord(val word: Term) : Msg
-    data class RefreshTranslation(val lexemeId: Long, val translation: String?) : Msg
-    data class RefreshDefinition(val lexemeId: Long, val definition: String?) : Msg
-    data class RefreshLexemeList(val lexemes: List<Lexeme>) : Msg
-    data class ShowError(@StringRes val messageRes: Int) : Msg
-
-    // --- Delete events с payload для undo ---
-    data class TranslationDeleted(val lexemeId: Long, val removedValue: String) : Msg
-    data class DefinitionDeleted(val lexemeId: Long, val removedValue: String) : Msg
-    data class LexemeCascadeRemovedWithUndo(
+    data class RefreshLexemeComponents(val lexemeId: Long, val components: List<ComponentValue>) : Msg
+    data class ComponentValueInserted(
         val lexemeId: Long,
-        val removedTranslation: String?,
-        val removedDefinition: String?,
+        val pristineKey: Long,
+        val newCvId: ComponentValueId,
     ) : Msg
-    data class LexemeRemoved(
-        val lexemeId: Long,
-        val translation: String?,
-        val definition: String?,
-    ) : Msg
+    data class LexemeDraftPromoted(val newLexeme: Lexeme, val anchorPristineKey: Long) : Msg
 
-    // --- Undo Msg ---
-    data class UndoRemoveTranslation(val lexemeId: Long, val value: String) : Msg
-    data class UndoRemoveDefinition(val lexemeId: Long, val value: String) : Msg
-    data class UndoRemoveLexeme(
-        val translation: String?,
-        val definition: String?,
-    ) : Msg
+    // --- Delete / undo ---
+    data class LexemeCascadeRemoved(val removedLexeme: Lexeme) : Msg
+    data class LexemeRemoved(val removedLexeme: Lexeme) : Msg
+    data class UndoRestoreLexeme(val lexeme: Lexeme) : Msg
+    data class RestoreLexemeFailed(val snapshot: Lexeme) : Msg
+
+    // --- Errors / nav ---
+    data class OperationFailed(@StringRes val messageRes: Int) : Msg
+    data object NavigateBack : Msg
+    data object NoOperation : Msg
 }

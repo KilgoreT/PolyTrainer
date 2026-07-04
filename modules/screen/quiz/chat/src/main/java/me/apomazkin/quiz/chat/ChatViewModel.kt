@@ -15,6 +15,7 @@ import me.apomazkin.quiz.chat.logic.ChatScreenState
 import me.apomazkin.quiz.chat.logic.DatasourceEffect
 import me.apomazkin.quiz.chat.logic.DatasourceEffectHandler
 import me.apomazkin.quiz.chat.logic.Msg
+import me.apomazkin.quiz.chat.logic.QuizPickerFlowHandler
 import me.apomazkin.ui.resource.ResourceManager
 
 class ChatViewModel @AssistedInject constructor(
@@ -23,6 +24,7 @@ class ChatViewModel @AssistedInject constructor(
     logger: LexemeLogger,
     datasourceHandler: DatasourceEffectHandler,
     appBarFlowHandler: AppBarFlowHandler,
+    quizPickerFlowHandler: QuizPickerFlowHandler,
     navHandlerFactory: ChatNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<ChatScreenState, Msg> {
 
@@ -37,6 +39,7 @@ class ChatViewModel @AssistedInject constructor(
         effectHandlerSet = setOf(
             datasourceHandler,
             appBarFlowHandler,
+            quizPickerFlowHandler,
             navHandlerFactory.create(navigator),
         )
     )

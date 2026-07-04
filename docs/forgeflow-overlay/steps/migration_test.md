@@ -18,7 +18,7 @@ output_criteria:
 
 ## Что прочитать перед написанием
 
-1. **Гайд проекта:** `docs/guides/testing-migrations.md` — обязательное чтение, описывает паттерны и каркас для PolyTrainer'а.
+1. **Гайд проекта:** `docs/handbook/guides/testing-migrations.md` — обязательное чтение, описывает паттерны и каркас для PolyTrainer'а.
 2. **Существующие миграционные тесты:** ищи в `core/core-db-impl/src/androidTest/` — пойми принятый стиль.
 3. **Schema JSON:** `core/core-db-impl/schemas/<dbName>/<version>.json` — Room генерит их для каждой версии. Тест валидирует переход между ними.
 

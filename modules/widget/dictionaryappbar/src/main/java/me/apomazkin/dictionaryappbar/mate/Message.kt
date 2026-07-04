@@ -30,5 +30,11 @@ sealed interface Msg {
 
     data object OpenDictionaryCreate : Msg
 
+    /**
+     * Navigate to per-dictionary components screen (IS481).
+     * Payload carries dictionaryId explicitly — reducer does not read state.
+     */
+    data class OpenPerDictionaryComponents(val dictionaryId: Long) : Msg
+
     data object Empty : Msg
 }

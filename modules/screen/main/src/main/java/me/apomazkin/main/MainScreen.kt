@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import me.apomazkin.main.widget.BottomBarWidget
 import me.apomazkin.theme.whiteColor
@@ -49,9 +48,11 @@ fun MainScreen(
                 compositionRoot = compositionRoot,
                 openDictionaryCreate = openDictionaryCreate,
             )
-            composable(TabPoint.STATS.route) {
-                compositionRoot.StatisticTabScreenDep(openDictionaryCreate = openDictionaryCreate)
-            }
+            statistic(
+                navController = navController,
+                compositionRoot = compositionRoot,
+                openDictionaryCreate = openDictionaryCreate,
+            )
 
             settings(
                 navController = navController,

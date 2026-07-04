@@ -1,267 +1,260 @@
 package me.apomazkin.wordcard.mate
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import me.apomazkin.lexeme.ComponentType
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentValueId
+import me.apomazkin.lexeme.Lexeme
+import me.apomazkin.lexeme.TemplateValues
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import me.apomazkin.wordcard.deps.RemoveDefinitionResult
-import me.apomazkin.wordcard.deps.RemoveTranslationResult
+import me.apomazkin.wordcard.deps.AddComponentValueResult
+import me.apomazkin.wordcard.deps.RemoveComponentResult
+import me.apomazkin.wordcard.deps.RemoveLexemeResult
 import me.apomazkin.wordcard.deps.WordCardUseCase
-import me.apomazkin.lexeme.Definition
-import me.apomazkin.lexeme.Lexeme
-import me.apomazkin.lexeme.LexemeId
-import me.apomazkin.lexeme.Translation
 import me.apomazkin.wordcard.entity.Term
-import me.apomazkin.wordcard.entity.Word
-import me.apomazkin.wordcard.entity.WordId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.Date
 
 /**
- * Handler interaction tests per contract_spec § "Handler".
- *
- * Test cases:
- * - LoadWord exception: handler ловит → consumer(Msg.WordNotFound) silent exit.
- * - UpdateLexemeTranslation first-Commit success: handler → RefreshTranslation(realId, value).
- * - UpdateLexemeTranslation first-Commit failure (exception): handler → ShowNotification("Не удалось сохранить перевод").
- * - RemoveTranslation cascade-path: handler → LexemeCascadeRemoved(lexemeId).
- * - RemoveTranslation non-cascade-path: handler → RefreshTranslation(lexemeId, null).
- * - RemoveTranslation null-result-path: handler → ShowNotification.
- * - RemoveWord success: handler → NavigateBack; failure → ShowNotification.
+ * §9.5 DatasourceEffectHandler (REWRITE, generic) — two-Msg burst + error-ветки.
+ * TDD red — против НОВОГО WordCardUseCase (generic) и новых Effect/Msg/result-типов.
  */
 class DatasourceEffectHandlerTest {
 
-    /** Fake UseCase. Каждое поле — лямбда, переопределяемая в тесте. */
+    /** Fake нового generic WordCardUseCase (лямбда-поля). */
     private class FakeUseCase(
         var getTermByIdImpl: suspend (Long) -> Term? = { null },
         var deleteWordImpl: suspend (Long) -> Int = { 0 },
         var updateWordImpl: suspend (Long, String) -> Boolean = { _, _ -> false },
-        var deleteLexemeImpl: suspend (Long, Long) -> List<Lexeme>? = { _, _ -> null },
-        var addLexemeTranslationImpl: suspend (Long, Long?, String) -> Lexeme? = { _, _, _ -> null },
-        var deleteLexemeTranslationImpl: suspend (Long) -> RemoveTranslationResult? = { null },
-        var addLexemeDefinitionImpl: suspend (Long, Long?, String) -> Lexeme? = { _, _, _ -> null },
-        var deleteLexemeDefinitionImpl: suspend (Long) -> RemoveDefinitionResult? = { null },
-        var restoreLexemeImpl: suspend (Long, String?, String?) -> List<Lexeme>? = { _, _, _ -> null },
+        var deleteLexemeImpl: suspend (Long, Long) -> RemoveLexemeResult? = { _, _ -> null },
+        var addLexemeWithComponentImpl: suspend (Long, Long, ComponentTypeRef, TemplateValues) -> Lexeme? =
+            { _, _, _, _ -> null },
+        var addComponentValueImpl: suspend (Long, ComponentTypeId, TemplateValues) -> AddComponentValueResult? =
+            { _, _, _ -> null },
+        var updateComponentValueImpl: suspend (ComponentValueId, Long, TemplateValues) -> Lexeme? =
+            { _, _, _ -> null },
+        var deleteComponentValueImpl: suspend (ComponentValueId, Long) -> RemoveComponentResult? =
+            { _, _ -> null },
+        var restoreImpl: suspend (Long, Long, Lexeme) -> Lexeme? = { _, _, _ -> null },
+        var flowTypesImpl: (Long) -> Flow<List<ComponentType>> = { flowOf(emptyList()) },
     ) : WordCardUseCase {
         override suspend fun getTermById(wordId: Long): Term? = getTermByIdImpl(wordId)
         override suspend fun deleteWord(wordId: Long): Int = deleteWordImpl(wordId)
         override suspend fun updateWord(wordId: Long, value: String): Boolean = updateWordImpl(wordId, value)
-        override suspend fun deleteLexeme(wordId: Long, lexemeId: Long): List<Lexeme>? =
+        override suspend fun deleteLexeme(wordId: Long, lexemeId: Long): RemoveLexemeResult? =
             deleteLexemeImpl(wordId, lexemeId)
-        override suspend fun addLexemeTranslation(wordId: Long, lexemeId: Long?, translation: String): Lexeme? =
-            addLexemeTranslationImpl(wordId, lexemeId, translation)
-        override suspend fun deleteLexemeTranslation(lexemeId: Long): RemoveTranslationResult? =
-            deleteLexemeTranslationImpl(lexemeId)
-        override suspend fun addLexemeDefinition(wordId: Long, lexemeId: Long?, definition: String): Lexeme? =
-            addLexemeDefinitionImpl(wordId, lexemeId, definition)
-        override suspend fun deleteLexemeDefinition(lexemeId: Long): RemoveDefinitionResult? =
-            deleteLexemeDefinitionImpl(lexemeId)
-        override suspend fun restoreLexeme(
-            wordId: Long,
-            translation: String?,
-            definition: String?,
-        ): List<Lexeme>? = restoreLexemeImpl(wordId, translation, definition)
+        override suspend fun addLexemeWithComponent(
+            wordId: Long, dictionaryId: Long, ref: ComponentTypeRef, data: TemplateValues,
+        ): Lexeme? = addLexemeWithComponentImpl(wordId, dictionaryId, ref, data)
+        override suspend fun addComponentValue(
+            lexemeId: Long, componentTypeId: ComponentTypeId, data: TemplateValues,
+        ): AddComponentValueResult? = addComponentValueImpl(lexemeId, componentTypeId, data)
+        override suspend fun updateComponentValue(
+            componentValueId: ComponentValueId, lexemeId: Long, data: TemplateValues,
+        ): Lexeme? = updateComponentValueImpl(componentValueId, lexemeId, data)
+        override suspend fun deleteComponentValue(
+            componentValueId: ComponentValueId, lexemeId: Long,
+        ): RemoveComponentResult? = deleteComponentValueImpl(componentValueId, lexemeId)
+        override suspend fun restoreLexemeWithComponents(
+            wordId: Long, dictionaryId: Long, snapshot: Lexeme,
+        ): Lexeme? = restoreImpl(wordId, dictionaryId, snapshot)
+        override fun flowAvailableComponentTypes(dictionaryId: Long): Flow<List<ComponentType>> =
+            flowTypesImpl(dictionaryId)
     }
 
     private object NoopLogger : LexemeLogger {
-        override fun log(level: LogLevel, tag: String, message: String) = Unit
+        override fun log(level: LogLevel, tag: String, message: String, throwable: Throwable?) = Unit
     }
 
-    private fun runHandler(
-        useCase: WordCardUseCase,
-        effect: DatasourceEffect,
-    ): List<Msg> {
-        val collected = mutableListOf<Msg>()
+    private fun run(useCase: WordCardUseCase, effect: DatasourceEffect): List<Msg> {
+        val msgs = mutableListOf<Msg>()
         val handler = DatasourceEffectHandler(useCase, NoopLogger)
-        runBlocking {
-            handler.runEffect(effect) { msg -> collected.add(msg) }
-        }
-        return collected
-    }
-
-    @Test
-    fun `LoadWord exception yields WordNotFound silent exit`() {
-        val uc = FakeUseCase(getTermByIdImpl = { throw IllegalStateException("boom") })
-
-        val msgs = runHandler(uc, DatasourceEffect.LoadWord(wordId = 1L))
-
-        assertEquals(1, msgs.size)
-        assertTrue("expected WordNotFound", msgs.first() is Msg.WordNotFound)
-    }
-
-    @Test
-    fun `LoadWord null result yields WordNotFound`() {
-        val uc = FakeUseCase(getTermByIdImpl = { null })
-
-        val msgs = runHandler(uc, DatasourceEffect.LoadWord(wordId = 1L))
-
-        assertTrue(msgs.first() is Msg.WordNotFound)
+        runBlocking { handler.runEffect(effect) { msgs += it } }
+        return msgs
     }
 
     @Test
     fun `LoadWord success yields WordLoaded`() {
-        val term = Term(
-            wordId = WordId(1L), word = Word("w"),
-            addedDate = Date(0L), changedDate = null, removedDate = null,
-            lexemeList = emptyList(),
-        )
-        val uc = FakeUseCase(getTermByIdImpl = { term })
-
-        val msgs = runHandler(uc, DatasourceEffect.LoadWord(wordId = 1L))
-
-        val msg = msgs.first()
-        assertTrue(msg is Msg.WordLoaded)
-        assertEquals(term, (msg as Msg.WordLoaded).word)
+        val term = stubTerm()
+        val msgs = run(FakeUseCase(getTermByIdImpl = { term }), DatasourceEffect.LoadWord(7L))
+        assertEquals(1, msgs.size)
+        assertEquals(Msg.WordLoaded(term), msgs.single())
     }
 
     @Test
-    fun `UpdateLexemeTranslation first-Commit success yields RefreshTranslation with real id`() {
-        val newLexeme = Lexeme(
-            lexemeId = LexemeId(555L),
-            translation = Translation("hello"),
-            definition = null,
-            addDate = Date(0L),
-        )
-        val uc = FakeUseCase(
-            addLexemeTranslationImpl = { wordId, lexemeId, translation ->
-                // first-Commit path: lexemeId == null
-                assertEquals(null, lexemeId)
-                assertEquals(7L, wordId)
-                assertEquals("hello", translation)
-                newLexeme
-            },
-        )
+    fun `LoadWord null yields WordNotFound`() {
+        val msgs = run(FakeUseCase(getTermByIdImpl = { null }), DatasourceEffect.LoadWord(7L))
+        assertTrue(msgs.single() is Msg.WordNotFound)
+    }
 
-        val msgs = runHandler(
+    @Test
+    fun `LoadWord exception yields WordNotFound`() {
+        val msgs = run(FakeUseCase(getTermByIdImpl = { throw IllegalStateException() }), DatasourceEffect.LoadWord(7L))
+        assertTrue(msgs.single() is Msg.WordNotFound)
+    }
+
+    @Test
+    fun `AddValue success yields Refresh then Inserted burst`() {
+        val lex = domainLexeme(7L, listOf(domainCv(60L, 7L, "v")))
+        val uc = FakeUseCase(addComponentValueImpl = { _, _, _ -> AddComponentValueResult(lex, ComponentValueId(60L)) })
+        val msgs = run(
             uc,
-            DatasourceEffect.UpdateLexemeTranslation(
-                wordId = 7L, lexemeId = null, translation = "hello",
+            DatasourceEffect.UpsertComponentValue.AddValue(
+                wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
+                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
             ),
         )
-
-        val msg = msgs.first()
-        assertTrue(msg is Msg.RefreshTranslation)
-        val refresh = msg as Msg.RefreshTranslation
-        assertEquals(555L, refresh.lexemeId)
-        assertEquals("hello", refresh.translation)
+        assertEquals(2, msgs.size)
+        assertTrue("первый Refresh", msgs[0] is Msg.RefreshLexemeComponents)
+        val inserted = msgs[1] as Msg.ComponentValueInserted
+        assertEquals(1L, inserted.pristineKey)
+        assertEquals(ComponentValueId(60L), inserted.newCvId)
     }
 
     @Test
-    fun `UpdateLexemeTranslation failure (exception) yields ShowError`() {
-        val uc = FakeUseCase(
-            addLexemeTranslationImpl = { _, _, _ -> throw IllegalStateException("dict missing") },
-        )
-
-        val msgs = runHandler(
+    fun `CreateLexeme success yields LexemeDraftPromoted with anchor from effect`() {
+        val lex = domainLexeme(900L, listOf(domainCv(60L, 900L, "v")))
+        val uc = FakeUseCase(addLexemeWithComponentImpl = { _, _, _, _ -> lex })
+        val msgs = run(
             uc,
-            DatasourceEffect.UpdateLexemeTranslation(
-                wordId = 7L, lexemeId = null, translation = "hello",
+            DatasourceEffect.UpsertComponentValue.CreateLexeme(
+                wordId = 7L, dictionaryId = 3L, pristineKey = 5L,
+                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
             ),
         )
-
-        val msg = msgs.first()
-        assertTrue("expected ShowError", msg is Msg.ShowError)
+        assertEquals(listOf(Msg.LexemeDraftPromoted(lex, anchorPristineKey = 5L)), msgs)
     }
 
     @Test
-    fun `UpdateLexemeTranslation null result yields ShowError`() {
-        val uc = FakeUseCase(addLexemeTranslationImpl = { _, _, _ -> null })
-
-        val msgs = runHandler(
+    fun `UpdateValue success yields single Refresh`() {
+        val lex = domainLexeme(7L, listOf(domainCv(5L, 7L, "new")))
+        val uc = FakeUseCase(updateComponentValueImpl = { _, _, _ -> lex })
+        val msgs = run(
             uc,
-            DatasourceEffect.UpdateLexemeTranslation(wordId = 7L, lexemeId = null, translation = "hi"),
+            DatasourceEffect.UpsertComponentValue.UpdateValue(
+                wordId = 7L, dictionaryId = 3L, lexemeId = 7L,
+                componentValueId = ComponentValueId(5L),
+                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("new"),
+            ),
         )
-
-        val msg = msgs.first()
-        assertTrue(msg is Msg.ShowError)
+        assertEquals(1, msgs.size)
+        assertTrue(msgs.single() is Msg.RefreshLexemeComponents)
     }
 
     @Test
-    fun `RemoveTranslation cascade-path yields LexemeCascadeRemovedWithUndo with removedTranslation`() {
-        val uc = FakeUseCase(
-            deleteLexemeTranslationImpl = { lexemeId ->
-                assertEquals(42L, lexemeId)
-                RemoveTranslationResult.LexemeCascadeRemoved
-            },
-        )
-
-        val msgs = runHandler(
+    fun `AddValue null yields OperationFailed`() {
+        val uc = FakeUseCase(addComponentValueImpl = { _, _, _ -> null })
+        val msgs = run(
             uc,
-            DatasourceEffect.RemoveTranslation(lexemeId = 42L, currentValue = "removed-value"),
+            DatasourceEffect.UpsertComponentValue.AddValue(
+                wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
+                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
+            ),
         )
-
-        val msg = msgs.first()
-        assertTrue(
-            "expected LexemeCascadeRemovedWithUndo Msg",
-            msg is Msg.LexemeCascadeRemovedWithUndo,
-        )
-        val cascade = msg as Msg.LexemeCascadeRemovedWithUndo
-        assertEquals(42L, cascade.lexemeId)
-        assertEquals("removed-value", cascade.removedTranslation)
-        assertEquals(null, cascade.removedDefinition)
+        assertTrue(msgs.single() is Msg.OperationFailed)
     }
 
     @Test
-    fun `RemoveTranslation non-cascade-path yields TranslationDeleted with removedValue`() {
-        val updatedLex = Lexeme(
-            lexemeId = LexemeId(42L),
-            translation = null,
-            definition = Definition("d"),
-            addDate = Date(0L),
-        )
-        val uc = FakeUseCase(
-            deleteLexemeTranslationImpl = { RemoveTranslationResult.TranslationRemoved(updatedLex) },
-        )
-
-        val msgs = runHandler(
-            uc,
-            DatasourceEffect.RemoveTranslation(lexemeId = 42L, currentValue = "old-translation"),
-        )
-
-        val msg = msgs.first()
-        assertTrue(msg is Msg.TranslationDeleted)
-        val deleted = msg as Msg.TranslationDeleted
-        assertEquals(42L, deleted.lexemeId)
-        assertEquals("old-translation", deleted.removedValue)
+    fun `RemoveComponentValue ComponentRemoved yields Refresh`() {
+        val lex = domainLexeme(7L, listOf(domainCv(6L, 7L, "rest")))
+        val uc = FakeUseCase(deleteComponentValueImpl = { _, _ -> RemoveComponentResult.ComponentRemoved(lex) })
+        val msgs = run(uc, DatasourceEffect.RemoveComponentValue(ComponentValueId(5L), 7L))
+        assertTrue(msgs.single() is Msg.RefreshLexemeComponents)
     }
 
     @Test
-    fun `RemoveTranslation null result yields ShowError`() {
-        val uc = FakeUseCase(deleteLexemeTranslationImpl = { null })
+    fun `RemoveComponentValue Cascade yields LexemeCascadeRemoved`() {
+        val snapshot = domainLexeme(7L, listOf(domainCv(5L, 7L, "x")))
+        val uc = FakeUseCase(deleteComponentValueImpl = { _, _ -> RemoveComponentResult.LexemeCascadeRemoved(snapshot) })
+        val msgs = run(uc, DatasourceEffect.RemoveComponentValue(ComponentValueId(5L), 7L))
+        assertEquals(Msg.LexemeCascadeRemoved(snapshot), msgs.single())
+    }
 
-        val msgs = runHandler(
+    @Test
+    fun `RemoveComponentValue null yields OperationFailed`() {
+        val uc = FakeUseCase(deleteComponentValueImpl = { _, _ -> null })
+        val msgs = run(uc, DatasourceEffect.RemoveComponentValue(ComponentValueId(5L), 7L))
+        assertTrue(msgs.single() is Msg.OperationFailed)
+    }
+
+    @Test
+    fun `RestoreLexemeWithComponents success yields WordLoaded`() {
+        val snapshot = domainLexeme(7L, listOf(domainCv(5L, 7L, "x")))
+        val term = stubTerm()
+        val uc = FakeUseCase(restoreImpl = { _, _, _ -> snapshot }, getTermByIdImpl = { term })
+        val msgs = run(uc, DatasourceEffect.RestoreLexemeWithComponents(7L, 3L, snapshot))
+        assertTrue(msgs.any { it is Msg.WordLoaded })
+    }
+
+    @Test
+    fun `RestoreLexemeWithComponents null yields RestoreLexemeFailed with snapshot`() {
+        val snapshot = domainLexeme(7L, listOf(domainCv(5L, 7L, "x")))
+        val uc = FakeUseCase(restoreImpl = { _, _, _ -> null })
+        val msgs = run(uc, DatasourceEffect.RestoreLexemeWithComponents(7L, 3L, snapshot))
+        assertEquals(Msg.RestoreLexemeFailed(snapshot), msgs.single())
+    }
+
+    @Test
+    fun `UpdateValue null yields OperationFailed`() {
+        val uc = FakeUseCase(updateComponentValueImpl = { _, _, _ -> null })
+        val msgs = run(
             uc,
-            DatasourceEffect.RemoveTranslation(lexemeId = 42L, currentValue = "x"),
+            DatasourceEffect.UpsertComponentValue.UpdateValue(
+                wordId = 7L, dictionaryId = 3L, lexemeId = 7L,
+                componentValueId = ComponentValueId(5L),
+                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("x"),
+            ),
         )
+        assertTrue(msgs.single() is Msg.OperationFailed)
+    }
 
-        assertTrue(msgs.first() is Msg.ShowError)
+    @Test
+    fun `CreateLexeme null yields OperationFailed`() {
+        val uc = FakeUseCase(addLexemeWithComponentImpl = { _, _, _, _ -> null })
+        val msgs = run(
+            uc,
+            DatasourceEffect.UpsertComponentValue.CreateLexeme(
+                wordId = 7L, dictionaryId = 3L, pristineKey = 1L,
+                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("x"),
+            ),
+        )
+        assertTrue(msgs.single() is Msg.OperationFailed)
+    }
+
+    @Test
+    fun `useCase exception in upsert yields OperationFailed single Msg`() {
+        val uc = FakeUseCase(addComponentValueImpl = { _, _, _ -> throw IllegalStateException("boom") })
+        val msgs = run(
+            uc,
+            DatasourceEffect.UpsertComponentValue.AddValue(
+                wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
+                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
+            ),
+        )
+        assertEquals(1, msgs.size)
+        assertTrue(msgs.single() is Msg.OperationFailed)
+    }
+
+    @Test(expected = kotlinx.coroutines.CancellationException::class)
+    fun `CancellationException propagates not mapped to OperationFailed`() {
+        val uc = FakeUseCase(addComponentValueImpl = { _, _, _ -> throw kotlinx.coroutines.CancellationException() })
+        run(
+            uc,
+            DatasourceEffect.UpsertComponentValue.AddValue(
+                wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
+                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
+            ),
+        )
     }
 
     @Test
     fun `RemoveWord success yields NavigateBack`() {
-        val uc = FakeUseCase(deleteWordImpl = { 1 })
-
-        val msgs = runHandler(uc, DatasourceEffect.RemoveWord(wordId = 7L))
-
-        assertTrue(msgs.first() is Msg.NavigateBack)
-    }
-
-    @Test
-    fun `RemoveWord failure (returns 0) yields ShowError`() {
-        val uc = FakeUseCase(deleteWordImpl = { 0 })
-
-        val msgs = runHandler(uc, DatasourceEffect.RemoveWord(wordId = 7L))
-
-        assertTrue(msgs.first() is Msg.ShowError)
-    }
-
-    @Test
-    fun `RemoveWord exception yields ShowError`() {
-        val uc = FakeUseCase(deleteWordImpl = { throw IllegalStateException("boom") })
-
-        val msgs = runHandler(uc, DatasourceEffect.RemoveWord(wordId = 7L))
-
-        assertTrue(msgs.first() is Msg.ShowError)
+        val msgs = run(FakeUseCase(deleteWordImpl = { 1 }), DatasourceEffect.RemoveWord(7L))
+        assertTrue(msgs.single() is Msg.NavigateBack)
     }
 }

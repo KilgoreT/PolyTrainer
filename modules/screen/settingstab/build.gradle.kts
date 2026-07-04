@@ -38,4 +38,7 @@ dependencies {
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)
     implementation(composeLibs.activityCompose)
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation(project("path" to ":modules:core:mate"))
 }

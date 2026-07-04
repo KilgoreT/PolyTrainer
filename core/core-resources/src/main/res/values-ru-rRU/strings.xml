@@ -99,6 +99,9 @@
     <string name="word_card_snackbar_definition_deleted">Определение удалено</string>
     <string name="word_card_snackbar_lexeme_deleted">Значение удалено</string>
     <string name="word_card_snackbar_undo">Отменить</string>
+    <string name="word_card_error_load_component_types">Не удалось загрузить типы компонентов</string>
+    <string name="word_card_action_retry">Повторить</string>
+    <string name="word_card_error_generic">Не удалось сохранить</string>
     <string name="word_card_error_remove_word">Не удалось удалить слово</string>
     <string name="word_card_error_save_word">Не удалось сохранить</string>
     <string name="word_card_error_refresh_word">Не удалось получить обновлённое слово</string>
@@ -119,6 +122,8 @@
     <string name="chat_menu_item_show_debug">Show debug</string>
     <string name="chat_menu_item_mistakes">Частые ошибки</string>
     <string name="chat_menu_item_earliest_reviewed">Самые давние</string>
+    <string name="chat_menu_item_quiz_component">Компонент квиза</string>
+    <string name="chat_menu_item_component_translation">Перевод</string>
     <string name="chat_quiz_bg_image_content_description">Фоновое изображение</string>
     <string name="chat_quiz_start_button_title">Начать</string>
     <string name="chat_quiz_placeholder_text">Введите ответ</string>
@@ -187,6 +192,91 @@
     <!--WebView-->
     <string name="webview_error_title">Не удалось загрузить страницу</string>
     <string name="webview_retry">Повторить</string>
+
+    <!-- IS481 components constructor -->
+    <!-- Settings entry -->
+    <string name="settings_section_components_management">Компоненты</string>
+
+    <!-- DictionaryAppBar -->
+    <string name="components_tools_description">Управление компонентами этого словаря</string>
+
+    <!-- ComponentsManagerScreen -->
+    <string name="components_manager_title">Компоненты</string>
+
+    <!-- PerDictionaryComponentsScreen -->
+    <string name="per_dict_components_title">Компоненты словаря</string>
+
+    <!-- Empty state -->
+    <string name="components_empty_headline_manager">У вас пока нет своих компонентов</string>
+    <string name="components_empty_body_manager">Перевод работает автоматически в любом словаре.</string>
+    <string name="components_empty_headline_per_dict">В этом словаре только перевод</string>
+    <string name="components_empty_body_per_dict">Добавьте новый компонент, чтобы расширить карточки.</string>
+    <string name="components_empty_cta">Создать компонент</string>
+
+    <!-- FAB -->
+    <string name="components_create_cta">Создать</string>
+
+    <!-- Create dialog -->
+    <string name="components_create_dialog_title">Новый компонент</string>
+    <string name="components_create_field_name">Название</string>
+    <string name="components_create_name_placeholder">например, Пример предложения</string>
+    <string name="components_create_field_template">Тип значения</string>
+    <string name="components_create_field_is_multi">Разрешить несколько значений на карточке</string>
+
+    <!-- Rename dialog -->
+    <string name="components_rename_dialog_title">Переименовать компонент</string>
+    <string name="components_rename_original">Текущее название</string>
+    <string name="components_rename_new_name">Новое название</string>
+    <string name="components_rename_placeholder">Новое название</string>
+
+    <!-- Delete dialog -->
+    <string name="components_delete_dialog_title">Удалить \"%1$s\"?</string>
+    <string name="components_delete_impact_values">Будет скрыто значений: %1$d</string>
+    <string name="components_delete_impact_dicts">Затронуто словарей: %1$d</string>
+    <string name="components_delete_impact_quiz">Будет удалён из настроек квиза: %1$d</string>
+    <string name="components_delete_impact_prefs">Сбросит выбор квиза в словарях: %1$d</string>
+    <string name="components_delete_impact_unavailable">Превью последствий недоступно</string>
+    <string name="components_delete_hint">Компонент будет помечен как удалённый. Значения остаются в базе, но скрываются.</string>
+
+    <!-- NameError messages -->
+    <string name="components_name_error_empty">Название не может быть пустым</string>
+    <string name="components_name_error_same_scope_collision">Компонент с таким названием уже существует в этом охвате</string>
+    <string name="components_name_error_cross_scope_collision">Компонент с таким названием уже существует в другом охвате</string>
+
+    <!-- PerDict row meta -->
+    <string name="per_dict_row_value_count">Значений: %d</string>
+
+    <!-- Components manager error state (F163) -->
+    <string name="components_manager_load_failed">Не удалось загрузить компоненты</string>
+    <string name="components_per_dict_load_failed">Не удалось загрузить компоненты словаря</string>
+    <string name="components_error_retry">Повторить</string>
+
+    <!-- Common chip labels -->
+    <string name="components_chip_single">одно</string>
+    <string name="components_chip_multi">Несколько</string>
+    <string name="components_chip_global">Общий</string>
+
+    <!-- Template labels -->
+    <string name="components_template_text">Текст</string>
+    <string name="components_template_image">Изображение</string>
+
+    <!-- Button labels -->
+    <string name="components_button_create">Создать</string>
+    <string name="components_button_save">Сохранить</string>
+
+    <!-- Edit dialog (phase 2) -->
+    <string name="components_edit_dialog_title">Редактировать компонент</string>
+    <string name="components_edit_field_name">Название</string>
+    <string name="components_edit_field_template">Тип значения</string>
+    <string name="components_edit_field_is_multi">Разрешить несколько значений на карточке</string>
+    <string name="components_edit_cardinality_blocked_title">Нельзя переключить на одно — в этих карточках несколько значений:</string>
+    <string name="components_edit_show_all">Показать все (%1$d)</string>
+    <string name="components_edit_lexeme_label">Лексема №%1$d</string>
+
+    <!-- Create scope picker (phase 2 multi-dict) -->
+    <string name="components_create_field_scope">Охват</string>
+    <string name="components_create_scope_global">Общий (все словари)</string>
+    <string name="components_create_scope_per_dict">Пословарный</string>
 
     <string name="settings_section_about_app_title">Lexeme — это приложение, которое позволяет создавать собственный словарь иностранных слов.\nМы — команда разработчиков, которая понимает на своём опыте, как важно держать иностранную лексику в порядке и постоянно её повторять.</string>
 

@@ -32,6 +32,7 @@ class DeleteWordDialogTest {
         isPendingDbOp = isPendingDbOp,
         wordState = WordState.Loaded(
             id = id,
+            dictionaryId = 3L,
             added = Date(0L),
             value = "w",
             showWarningDialog = showWarningDialog,

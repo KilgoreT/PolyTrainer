@@ -18,7 +18,7 @@ class CloseTopBarMenuTest {
         val reducer = WordCardReducer()
         val initial = WordCardState(
             isLoading = false,
-            wordState = WordState.Loaded(id = 1L, added = Date(0L), value = "w"),
+            wordState = WordState.Loaded(id = 1L, dictionaryId = 3L, added = Date(0L), value = "w"),
             topBarState = TopBarState(isMenuOpen = true),
         )
 
@@ -33,7 +33,7 @@ class CloseTopBarMenuTest {
         val reducer = WordCardReducer()
         val initial = WordCardState(
             isLoading = false,
-            wordState = WordState.Loaded(id = 1L, added = Date(0L), value = "w"),
+            wordState = WordState.Loaded(id = 1L, dictionaryId = 3L, added = Date(0L), value = "w"),
             topBarState = TopBarState(isMenuOpen = false),
         )
 

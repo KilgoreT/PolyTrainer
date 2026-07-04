@@ -22,7 +22,7 @@ output_criteria:
 
 ## 2. Публикация спеки в `spec_dir`
 
-`spec_dir` определяется через `plan.context.workspace.spec_dir` (например `docs/features-spec/`).
+`spec_dir` определяется через `plan.context.workspace.spec_dir` (например `docs/handbook/specs/`).
 
 ### 2.1. Чтение черновика
 

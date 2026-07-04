@@ -54,7 +54,7 @@ steps:
           - architect
 
   - name: business_design_tree
-    step: design_tree
+    prompt: business_design_tree
     output: business_design_tree.md
     pause: true
     input:
@@ -73,8 +73,13 @@ steps:
       review:
         agents:
           - architect
+      checklist:
+        phases:
+          - "finalize:after"
 
-  - step: business_test
+  - name: business_test
+    prompt: test
+    output: business_test.md
     pause: true
     input:
       - business_contract.output
@@ -94,7 +99,9 @@ steps:
           - architect
           - qa_engineer
 
-  - step: business_implement
+  - name: business_implement
+    prompt: implement
+    output: business_implement.md
     pause: true
     input:
       - business_contract.output
@@ -114,8 +121,13 @@ steps:
         agents:
           - architect
           - senior
+      checklist:
+        phases:
+          - "finalize:after"
 
-  - step: business_publish_spec
+  - name: business_publish_spec
+    prompt: publish_spec
+    output: business_publish_spec.md
     pause: true
     input:
       - business_contract_spec.output
@@ -132,7 +144,9 @@ steps:
         agents:
           - architect
 
-  - step: business_summary
+  - name: business_summary
+    prompt: summary
+    output: business_summary.md
     pause: true
     input:
       - business_design_tree.output

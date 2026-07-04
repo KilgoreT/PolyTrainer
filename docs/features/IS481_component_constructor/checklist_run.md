@@ -1,0 +1,54 @@
+# checklist_run.md — IS481 component_constructor
+
+Прогон manual checklist `checklist.md` против реализованных summaries (infra / business / ui / data).
+Скоуп прогона — code-level review: подтверждение что код реализован для каждого пункта.
+Manual smoke на устройстве в рамках этого flow НЕ выполнялся.
+
+## 8 root business scenarios
+
+| ID | Scenario | Status | Note |
+|---|---|---|---|
+| 1 | Settings tab → drill-in «Управление компонентами» → aggregated view со счётчиком «используется в N словарей» | partial | Код done: `ComponentsManageWidget` в `SettingsTabScreen.kt`, route `COMPONENTS_MANAGER_ROUTE`, `ComponentsManagerScreen` + `UserDefinedRowWidget` + `flowAllUserDefinedTypesWithUsage` (LexemeApi → `UserDefinedTypesUsageSnapshot`). Логи `###ComponentConstructor###` (как требует checklist) НЕ внедрены — фактические теги `ComponentsManager` / `PerDictComponents` (см. `modules/screen/components_manager/.../LogTags.kt`). Manual smoke pending. |
+| 2 | DictionaryAppBar «молоток» icon-button (видим при `currentDict != null`) → per-dict view на 3 табах (Vocab/Quiz/Stat) | partial | Код done: `ComponentsToolsIconButton` в `DictionaryAppBar.actions` слот с условием видимости `currentDict != null && !isLoading`, shared nav route `per_dict_components/{dictionaryId}` зарегистрирован в `Vocabulary.kt`, переиспользуется через `NavHostController.goToPerDictionaryComponents`. Доступно на всех 3 табах через общий `DictionaryAppBar`. Логи `###ComponentConstructor###` не внедрены (тег `PerDictComponents` фактический). Manual smoke pending. |
+| 3 | Create user-defined component (имя + шаблон + scope + is_multi) | partial | Код done в MVP scope: `CreateComponentDialog` (имя + radio template) + `createUserDefinedComponent` UseCase + `CreateOutcome` (Success / NameEmpty / NameTooLong / SameScopeCollision / CrossScopeCollision). **F158 ограничение**: scope-control в UI отключён — Manager-экран жёстко создаёт `Scope.Global`, PerDict-экран жёстко создаёт `Scope.PerDictionaries([currentDict])`. Multi-dict picker (выбор подмножества словарей из manager) → backlog phase 2. `is_multi` checkbox в `CreateDialogState` — присутствует. Логи `###ComponentConstructor###` не внедрены. |
+| 4 | Rename user-defined component + cascade `quiz_configs.component_refs` | partial | Код done: `renameComponent` UseCase + `RenameOutcome` (Success / NameEmpty / SameScopeCollision / CrossScopeCollision / BuiltInProtected) + `renameComponentType` LexemeApi + `QuizConfigDao.updateComponentRefs` для cascade. **Caveat**: `RenameOutcome.NameTooLong` не реализован (только в `CreateOutcome`). `resetQuizPickerPrefsBestEffort` после renames — best-effort wrap. Логи `###ComponentConstructor###` / `RenameCascade ... N rows` не внедрены. Manual smoke pending. |
+| 5 | Soft-delete с warning (values / quiz_configs / prefs) | partial | Код done: `previewDeletionImpact` (`DeletionImpact` со счётчиками) + `softDeleteComponent` + `DeleteCascade` (quiz_configs refs cleanup в `QuizConfigDao` + prefs reset через `resetQuizPickerPrefsBestEffort`). `DeleteComponentConfirmDialog` показывает warning. `softDeleteAtomic` в `withTransaction { ... }` (F173). Логи `###ComponentConstructor### PreviewDeletionImpact ... DeleteCascade ...` не внедрены. Manual smoke pending. |
+| 6 | Cardinality downgrade блокировка (`is_multi=true→false` при count>1) | out-of-scope | **Explicitly deferred**. business_summary: «Edit-операции и cardinality downgrade — design не покрывает edit-flow. Перенесено в `docs/Backlog.md → IS481 phase 2` и `docs/FlowBacklog.md → IS481cc-F6` (process gap)». UseCase метод `downgradeCardinality` / `DowngradeCheck` / `DowngradeBlocked` НЕ существует. Edit-dialog не реализован — только Rename / Delete actions в `UserDefinedRowWidget`. |
+| 7 | Cold start фильтр `removed_at IS NULL` (active DAO queries + LexemeDbEntity post-load) | partial | Код done: все active queries в `ComponentTypeDao` / `ComponentValueDao` имеют `WHERE removed_at IS NULL` (data_summary §Modified DAO); `LexemeDbEntity.toApiEntity(logger)` делает post-load filter `value.removedAt == null && type.removedAt == null` (Room @Relation не поддерживает WHERE); `ComponentValueWithType.toApiEntity` стал nullable + `mapNotNull` для skip soft-deleted/corrupted. Миграция M12→M13 с backfill timestamps создана. **Instrumented migration tests (`MigrationFrom12to13*.kt`) написаны но НЕ запущены** — нужен emulator/device runner. Логи `###ComponentConstructor### ColdStart ...` не внедрены. Manual smoke pending. |
+| 8 | Quiz session использует только не-removed components (defence in depth) | partial | Код done: cascade `quiz_configs.component_refs` cleanup в `softDeleteComponent` (через `QuizConfigDao.updateComponentRefs`) — refs удалённых типов вычищены из конфига. Runtime JOIN-фильтр на `parent.removed_at IS NULL` обеспечен фильтром в DAO `getForLexeme` / `getActive*` + post-load filter в `LexemeDbEntity`. Quiz picker фильтрует `availableTypes` через active types snapshot. Логи `###ComponentConstructor### QuizSession effectiveRefs filtered ...` не внедрены. Manual smoke pending. |
+
+## 8 manual test scenarios
+
+Manual smoke в рамках текущего flow НЕ запускался. Все сценарии — pending до запуска debug build на устройстве/эмуляторе. Code-paths под каждый сценарий присутствуют (см. таблицу root scenarios), но визуальная проверка, logcat-проверка и БД-инспекция (через `adb shell sqlite3`) — отложены.
+
+| ID | Scenario | Status | Note |
+|---|---|---|---|
+| 1 | Aggregated view из Settings tab (пункт «Управление компонентами», список, badges, counter, empty state) | pending | Все widgets созданы (`ComponentsManageWidget`, `ComponentsEmptyStateWidget`, `UserDefinedRowWidget`); empty-state copy и иконка через `ic_components.xml` + strings. Не запускался. |
+| 2 | Per-dictionary view из DictionaryAppBar (3 таба, hammer icon-button перед picker'ом) | pending | `ComponentsToolsIconButton` добавлен в `DictionaryAppBar.actions` ПЕРЕД `DictDropDownWidget` (по ui_summary). Видим при `currentDict != null`. Не запускался. |
+| 3 | Создание нового user-defined компонента (включая name-collision flow) | pending | UI: `CreateComponentDialog` (template radio + name input + is_multi checkbox); collision возвращает `CreateOutcome.SameScopeCollision` / `CrossScopeCollision` → snackbar через `UiMsg.Snackbar` + state-flag. **MVP scope=Global only** — multi-dict picker в UI отсутствует (F158). Не запускался. |
+| 4 | Переименование user-defined компонента + cascade в picker'е | pending | UseCase + DAO cascade готовы; `resetQuizPickerPrefsBestEffort` best-effort wraps prefs failures. Поведение pref-key (`quiz_picker_dict_<id>`) после rename: не мигрирует, остаётся stale (fail-soft) — фиксация совпадает с checklist note. Не запускался. |
+| 5 | Soft-delete с warning (values + quiz_configs + prefs) | pending | `previewDeletionImpact` возвращает `DeletionImpact(valueCount, dictionaryIds, affectedQuizConfigs, affectedPrefs)`; `DeleteComponentConfirmDialog` рендерит warning. WordCard post-load filter скрывает values. Не запускался. |
+| 6 | Cardinality downgrade блокировка | blocked | OUT-OF-SCOPE (см. root #6). Сценарий нерелевантен текущему билду — кнопка edit не существует, `is_multi` после create не редактируется. Перенесён в `docs/Backlog.md → IS481 phase 2`. |
+| 7 | Cold start фильтр на `removed_at` | pending | Все DAO queries фильтруют `removed_at IS NULL`; миграция M12→M13 добавляет колонку с backfill. Сценарий требует install → soft-delete → kill process → reopen + adb sqlite3 inspect. Не запускался. |
+| 8 | Quiz session использует только не-removed компоненты | pending | Cascade + runtime JOIN-фильтр работают (defence in depth по data_summary §Modified DAO + business_summary §F049/F103). Не запускался. |
+
+## Cross-flow assessment
+
+- **Code-level**: 7 из 8 root сценариев реализованы (1-5, 7, 8). Root #6 (cardinality downgrade) — out-of-scope, deferred в Backlog phase 2.
+- **Тесты**:
+  - business unit tests: 8 файлов, ~146 тестов (`ComponentsManagerReducerTest` 68, `PerDictionaryComponentsReducerTest` 62, `ComponentsManagerUseCaseImplTest` 25, `PerDictionaryComponentsUseCaseImplTest` 6, 2× `DatasourceEffectHandlerTest` 14+14, 2× `FlowHandlerTest` 4+4). Все PASS.
+  - data unit tests: `TemplateValuesJsonTest` 10/10 PASS (round-trip text/image + fail-soft).
+  - migration instrumented tests: `MigrationFrom12to13.kt` (13 cases) + `MigrationFrom12to13IdempotencyTest.kt` (M3/M3b) — **spec written, runner НЕ запускался** в data sub-flow (требует emulator/device).
+  - infra reducer tests: `SettingsTabReducerTest` (1) + extended `DictionaryAppBarReducerTest` (+2). 9/9 PASS.
+- **Manual smoke**: pending — в рамках этого flow не запускался. Применимо ко всем 8 manual сценариям (кроме #6 = blocked).
+- **`assembleDebug` end-to-end**: статус нужно перепроверить после data_implement. ui_summary упоминает «assembleDebug падает на pre-existing ошибках в core-db-impl»; data_summary рапортует `:app:compileDebugKotlin` PASS + `testDebugUnitTest` PASS — то есть data-фаза разрешила pre-existing breakage. Финальная проверка `assembleDebug` + `lintDebug` — manual TODO.
+
+## Открытые вопросы / blockers
+
+- **Логи `###ComponentConstructor###` тег не внедрён**. Checklist требует уникального tag-стрима для feature; фактически используются модуль-локальные tags `ComponentsManager` / `PerDictComponents` (`modules/screen/components_manager/.../LogTags.kt`, аналог в per_dictionary_components). Также не добавлены логи в Migration_012_to_013 (счётчики rewrite'нутых rows / дроп индексов / backfill timestamps) и в DAO cascade-методах. Решение: либо отдельный лог-pass с rename на `###ComponentConstructor###`, либо обновить checklist под фактические теги.
+- **Cardinality downgrade (F-N5a, root #6, manual #6)** → backlog phase 2. Требует отдельного design + edit-flow + UseCase метода `downgradeCardinality(typeId)` + `DowngradeCheck` / `DowngradeBlocked` outcomes + UI edit-dialog.
+- **Instrumented migration tests НЕ запущены** (`MigrationFrom12to13.kt`, `MigrationFrom12to13IdempotencyTest.kt`). Файлы созданы со спецификацией, но `connectedDebugAndroidTest` требует emulator runner. До запуска M12→M13 не имеет hands-on validation на реальном Android SQLite. Backlog либо отдельный CI-ticket.
+- **Manual smoke 8 сценариев pending** — отдельный run на debug build c минимум 2 словарями (для покрытия Сценария 1 aggregated view).
+- **Дублирование Dialog'ов между ComponentsManager и PerDictionaryComponents screen-модулями** (ui_summary §«Что вне scope»). Архитектурно правильное решение — вынести в `:modules:widget:component_widgets` (модуль создан в infra phase, но source-files нет). Out-of-scope текущего flow.
+- **`RenameOutcome.NameTooLong`** не реализован (только в `CreateOutcome`). Минор-gap.
+- **PerDictionaries multi-dict picker** из manager-экрана — phase 2 (F158). Сейчас MVP создаёт только `Scope.Global` из Manager / `Scope.PerDictionaries([currentDict])` из PerDict-screen.

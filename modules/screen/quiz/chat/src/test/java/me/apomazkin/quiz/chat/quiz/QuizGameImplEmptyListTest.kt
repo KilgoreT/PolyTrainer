@@ -4,6 +4,9 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
+import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.QuizConfig
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.LogTags
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
@@ -38,6 +41,12 @@ class QuizGameImplEmptyListTest {
         logger = mockk(relaxed = true)
 
         coEvery { quizChatUseCase.getCurrentDictionaryId() } returns 1L
+        coEvery { quizChatUseCase.getQuizConfig(any(), any()) } returns QuizConfig(
+            dictionaryId = 1L,
+            quizMode = "write",
+            componentRefs = listOf(ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION)),
+        )
+        coEvery { quizChatUseCase.getQuizPickerSelection(any()) } returns null
         coEvery { prefsProvider.getBoolean(any()) } returns false
 
         quizGame = QuizGameImpl(

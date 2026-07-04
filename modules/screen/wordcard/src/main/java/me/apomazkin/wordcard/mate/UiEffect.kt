@@ -19,4 +19,11 @@ sealed interface UiEffect : Effect {
     data class ShowErrorSnackbar(
         @StringRes val messageRes: Int,
     ) : UiEffect
+
+    /** G4: Snackbar с retry-action; при нажатии отправляется [retryMsg]. */
+    data class ShowSnackbarWithRetry(
+        @StringRes val messageRes: Int,
+        @StringRes val actionLabelRes: Int,
+        val retryMsg: Msg,
+    ) : UiEffect
 }

@@ -33,7 +33,7 @@ steps:
           - architect
 
   - name: ui_design_tree
-    step: design_tree
+    prompt: design_tree
     output: ui_design_tree.md
     pause: true
     input:
@@ -55,8 +55,13 @@ steps:
       review:
         agents:
           - architect
+      checklist:
+        phases:
+          - "finalize:after"
 
-  - step: ui_implement
+  - name: ui_implement
+    prompt: implement
+    output: ui_implement.md
     pause: true
     input:
       - scope_analysis.output
@@ -78,6 +83,9 @@ steps:
         agents:
           - architect
           - senior
+      checklist:
+        phases:
+          - "finalize:after"
 
   - step: publish_ui
     pause: true
@@ -96,7 +104,9 @@ steps:
         agents:
           - architect
 
-  - step: ui_summary
+  - name: ui_summary
+    prompt: summary
+    output: ui_summary.md
     pause: true
     input:
       - ui_layout.output

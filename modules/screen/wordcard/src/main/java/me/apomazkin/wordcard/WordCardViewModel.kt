@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.mate.Mate
 import me.apomazkin.mate.MateStateHolder
 import me.apomazkin.wordcard.deps.UiHost
+import me.apomazkin.wordcard.mate.AvailableComponentTypesFlowHandler
 import me.apomazkin.wordcard.mate.DatasourceEffect
 import me.apomazkin.wordcard.mate.DatasourceEffectHandler
 import me.apomazkin.wordcard.mate.Msg
@@ -21,6 +22,7 @@ class WordCardViewModel @AssistedInject constructor(
     @Assisted navigator: WordCardNavigator,
     @Assisted uiHost: UiHost,
     datasourceHandler: DatasourceEffectHandler,
+    componentTypesFlowHandler: AvailableComponentTypesFlowHandler,
     navHandlerFactory: WordCardNavigationEffectHandler.Factory,
     uiEffectHandlerFactory: UiEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<WordCardState, Msg> {
@@ -32,6 +34,7 @@ class WordCardViewModel @AssistedInject constructor(
         reducer = WordCardReducer(),
         effectHandlerSet = setOf(
             datasourceHandler,
+            componentTypesFlowHandler,
             navHandlerFactory.create(navigator),
             uiEffectHandlerFactory.create(uiHost),
         )
@@ -41,6 +44,11 @@ class WordCardViewModel @AssistedInject constructor(
         get() = stateHolder.state
 
     override fun accept(message: Msg) = stateHolder.accept(message)
+
+    override fun onCleared() {
+        stateHolder.dispose()
+        super.onCleared()
+    }
 
     @AssistedFactory
     interface Factory {

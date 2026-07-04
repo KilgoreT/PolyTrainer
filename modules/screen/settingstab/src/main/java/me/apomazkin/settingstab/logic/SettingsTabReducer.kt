@@ -31,6 +31,10 @@ class SettingsTabReducer(
                 SettingsNavigationEffect.OpenWebView(message.pageKey)
             )
 
+            is Msg.OpenComponentsManager -> state to setOf(
+                SettingsNavigationEffect.OpenComponentsManager
+            )
+
             is Msg.ExportData -> state
                 .showExporting() to setOf(ExportData(uri = message.uri))
             

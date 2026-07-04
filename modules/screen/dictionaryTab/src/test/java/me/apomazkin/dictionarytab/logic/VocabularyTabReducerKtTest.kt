@@ -44,7 +44,7 @@ class VocabularyTabReducerKtTest {
 
     private val reducer = VocabularyTabReducer(
         logger = object : LexemeLogger {
-            override fun log(level: me.apomazkin.logger.LogLevel, tag: String, message: String) {}
+            override fun log(level: me.apomazkin.logger.LogLevel, tag: String, message: String, throwable: Throwable?) {}
         }
     )
 

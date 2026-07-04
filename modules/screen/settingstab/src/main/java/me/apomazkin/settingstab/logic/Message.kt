@@ -7,6 +7,7 @@ sealed interface Msg {
     data object OpenLangManagement : Msg
     data object OpenAboutApp : Msg
     data class OpenWebView(val pageKey: String) : Msg
+    data object OpenComponentsManager : Msg
     data class ExportData(val uri: Uri) : Msg
     data class ExportFile(val uri: Uri) : Msg
     data object FileExported : Msg

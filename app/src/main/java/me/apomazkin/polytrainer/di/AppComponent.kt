@@ -4,12 +4,14 @@ import android.content.Context
 import dagger.BindsInstance
 import dagger.Component
 import dagger.Module
+import me.apomazkin.components_manager.ComponentsManagerViewModel
 import me.apomazkin.core_db_api.CoreDbProvider
 import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.dictionary.form.DictionaryFormViewModel
 import me.apomazkin.dictionary.list.DictionaryListViewModel
 import me.apomazkin.dictionaryappbar.DictionaryAppBarViewModel
 import me.apomazkin.dictionarytab.ui.DictionaryTabViewModel
+import me.apomazkin.per_dictionary_components.PerDictionaryComponentsViewModel
 import me.apomazkin.quiztab.QuizTabViewModel
 import me.apomazkin.settingstab.SettingsTabViewModel
 import me.apomazkin.stattab.StatisticViewModel
@@ -17,9 +19,11 @@ import me.apomazkin.quiz.chat.ChatViewModel
 import me.apomazkin.polytrainer.MainActivity
 import me.apomazkin.polytrainer.di.module.EnvModule
 import me.apomazkin.polytrainer.di.module.ResourceModule
+import me.apomazkin.polytrainer.di.module.componentsmanager.ComponentsManagerModule
 import me.apomazkin.polytrainer.di.module.dictionary.DictionaryModule
 import me.apomazkin.polytrainer.di.module.dictionarytab.DictionaryTabModule
 import me.apomazkin.polytrainer.di.module.flags.CountryProviderModule
+import me.apomazkin.polytrainer.di.module.perdictionarycomponents.PerDictionaryComponentsModule
 import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
 import me.apomazkin.polytrainer.di.module.quizchat.QuizChatModule
 import me.apomazkin.polytrainer.di.module.quiztab.QuizTabModule
@@ -65,6 +69,8 @@ interface AppComponent {
     fun getQuizTabViewModelFactory(): QuizTabViewModel.Factory
     fun getStatisticViewModelFactory(): StatisticViewModel.Factory
     fun getSettingsTabViewModelFactory(): SettingsTabViewModel.Factory
+    fun getComponentsManagerViewModelFactory(): ComponentsManagerViewModel.Factory
+    fun getPerDictionaryComponentsViewModelFactory(): PerDictionaryComponentsViewModel.Factory
     fun getEnvParams(): EnvParams
     fun getLogger(): LexemeLogger
 
@@ -83,6 +89,8 @@ interface AppComponent {
         StatisticModule::class,
         SettingsModule::class,
         DictionaryAppBarModule::class,
+        ComponentsManagerModule::class,
+        PerDictionaryComponentsModule::class,
         CountryProviderModule::class,
         PrefsProviderModule::class,
         ResourceModule::class,

@@ -66,9 +66,12 @@ private val NOT_GRADABLE_INDEX = 1L shl (ADJ_ORDER_OFFSET + NOT_GRADABLE.ordinal
 class DefinitionMapper : Mapper<LexemeDb, DefinitionOld>() {
 
     override fun map(value: LexemeDb) = DefinitionOld(
+        // IS481 (v12): legacy маппер. `definition` колонка удалена — value всегда null.
+        // Реальные данные definition теперь в `component_values`. Маппер сохранён
+        // для backward-compat. TODO mapper-refactor (backlog).
         value.id,
         value.wordId,
-        value.definition,
+        null,
         mapWordClass(value)
     )
 
@@ -148,11 +151,12 @@ class DefinitionMapper : Mapper<LexemeDb, DefinitionOld>() {
     }
 
     override fun reverseMap(value: DefinitionOld) = LexemeDb(
+        // IS481 (v12): `definition` колонка удалена — value.value игнорируется.
+        // Реальные данные definition пишутся через component_values DAO.
         id = value.id
             ?: throw IllegalArgumentException("Definition id is null"),
         wordId = value.wordId
             ?: throw IllegalArgumentException("Definition wordId is null"),
-        definition = value.value,
         wordClass = reverseMapWordClass(value),
         options = convertOptions(value.wordClass),
         addDate = Date(0),

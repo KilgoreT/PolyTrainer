@@ -19,6 +19,7 @@ import me.apomazkin.di.viewModelFactory
 import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarState
 import me.apomazkin.dictionaryappbar.mate.Msg
 import me.apomazkin.dictionaryappbar.widget.AppBarTitleWidget
+import me.apomazkin.dictionaryappbar.widget.ComponentsToolsIconButton
 import me.apomazkin.dictionarypicker.DictDropDownWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeColor
@@ -61,6 +62,14 @@ internal fun DictionaryAppBar(
                             trackColor = Color.Transparent,
                     )
                 } else {
+                    val currentDict = state.currentDict
+                    if (currentDict != null) {
+                        ComponentsToolsIconButton(
+                            onClick = {
+                                sendMessage(Msg.OpenPerDictionaryComponents(dictionaryId = currentDict.id))
+                            },
+                        )
+                    }
                     DictDropDownWidget(
                             dictList = state.availableDictList,
                             currentDict = state.currentDict,

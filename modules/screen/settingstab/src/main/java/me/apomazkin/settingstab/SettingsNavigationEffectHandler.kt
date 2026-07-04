@@ -16,6 +16,7 @@ class SettingsNavigationEffectHandler @AssistedInject constructor(
             is SettingsNavigationEffect.OpenLangManagement -> settingsNavigator.openLangManagement()
             is SettingsNavigationEffect.OpenAboutApp -> settingsNavigator.openAboutApp()
             is SettingsNavigationEffect.OpenWebView -> settingsNavigator.openWebView(effect.pageKey)
+            is SettingsNavigationEffect.OpenComponentsManager -> settingsNavigator.openComponentsManager()
         }
     }
 

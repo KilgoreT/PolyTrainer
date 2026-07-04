@@ -1,6 +1,8 @@
 package me.apomazkin.quiz.chat.logic
 
 import androidx.compose.ui.text.AnnotatedString
+import me.apomazkin.lexeme.ComponentType
+import me.apomazkin.lexeme.ComponentTypeRef
 
 
 sealed interface Msg {
@@ -66,7 +68,23 @@ sealed interface Msg {
     
     data class SummaryOptions(val value: MessageContent) : Msg
     data class Summary(val value: List<MessageContent>) : Msg
-    
+
+    /**
+     * IS481 quiz picker. Click на radio-пункт. State напрямую не меняется —
+     * обновление приходит через `QuizPickerFlowHandler` re-emit после write.
+     */
+    data class SelectQuizComponent(val ref: ComponentTypeRef) : Msg
+
+    /**
+     * IS481 quiz picker. Bulk-load: availableTypes из БД + restored selectedRef
+     * из prefs. Emit из `LoadQuizComponentTypes` effect (initial) и из
+     * `QuizPickerFlowHandler` (on persist).
+     */
+    data class QuizComponentTypesLoaded(
+            val types: List<ComponentType>,
+            val restoredSelectedRef: ComponentTypeRef?,
+    ) : Msg
+
     data object Empty : Msg
 }
 

@@ -48,12 +48,15 @@ include(":modules:screen:quiztab")
 include(":modules:screen:stattab")
 include(":modules:screen:settingstab")
 include(":modules:screen:quiz:chat")
+include(":modules:screen:components_manager")
+include(":modules:screen:per_dictionary_components")
 
 //Widget
 include(":modules:widget:dictionaryappbar")
 include(":modules:widget:dictionarypicker")
 include(":modules:widget:iconDropDowned")
 include(":modules:widget:chipPicker")
+include(":modules:widget:component_widgets")
 
 include(":modules:datasource:prefs")
 

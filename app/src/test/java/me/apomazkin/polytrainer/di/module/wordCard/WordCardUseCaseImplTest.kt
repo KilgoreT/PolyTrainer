@@ -1,0 +1,262 @@
+package me.apomazkin.polytrainer.di.module.wordCard
+
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
+import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
+import me.apomazkin.core_db_api.entity.ComponentValueApiEntity
+import me.apomazkin.core_db_api.entity.LexemeApiEntity
+import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentValueId
+import me.apomazkin.lexeme.Primitive
+import me.apomazkin.lexeme.TextValues
+import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.prefs.PrefsProvider
+import me.apomazkin.wordcard.deps.AddComponentValueResult
+import me.apomazkin.wordcard.deps.RemoveComponentResult
+import me.apomazkin.wordcard.deps.RemoveLexemeResult
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.util.Date
+
+/**
+ * §4 WordCardUseCaseImpl (REWRITE, generic API) — T1–T18.
+ * TDD red — против НОВЫХ методов UseCase (addLexemeWithComponent / addComponentValue→
+ * AddComponentValueResult / updateComponentValue(cvId,lexemeId,data) / deleteComponentValue(cvId,lexemeId)→
+ * RemoveComponentResult / restoreLexemeWithComponents / flowAvailableComponentTypes) и
+ * нового LexemeApi.flowTypesForDictionary.
+ */
+class WordCardUseCaseImplTest {
+
+    private val wordApi = mockk<CoreDbApi.WordApi>(relaxed = true)
+    private val dictionaryApi = mockk<CoreDbApi.DictionaryApi>(relaxed = true)
+    private val termApi = mockk<CoreDbApi.TermApi>(relaxed = true)
+    private val lexemeApi = mockk<CoreDbApi.LexemeApi>(relaxed = true)
+    private val prefsProvider = mockk<PrefsProvider>(relaxed = true)
+    private val logger = mockk<LexemeLogger>(relaxed = true)
+
+    private val useCase = WordCardUseCaseImpl(
+        wordApi = wordApi,
+        dictionaryApi = dictionaryApi,
+        termApi = termApi,
+        lexemeApi = lexemeApi,
+        prefsProvider = prefsProvider,
+        logger = logger,
+    )
+
+    private val D0 = Date(0L)
+    private val TR = ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION)
+
+    private fun typeEntity(id: Long, ref: ComponentTypeRef, isMultiple: Boolean = false) = ComponentTypeApiEntity(
+        id = id,
+        systemKey = (ref as? ComponentTypeRef.BuiltIn)?.key,
+        dictionaryId = if (ref is ComponentTypeRef.BuiltIn) null else 3L,
+        name = (ref as? ComponentTypeRef.UserDefined)?.name,
+        template = ComponentTemplate.TEXT, position = 0, isMultiple = isMultiple,
+        createdAt = D0, updatedAt = D0,
+    )
+
+    private fun cvEntity(id: Long, lexemeId: Long, text: String, typeId: Long = 50L, ref: ComponentTypeRef = TR) =
+        ComponentValueApiEntity(
+            id = id, lexemeId = lexemeId, type = typeEntity(typeId, ref),
+            data = TextValues(Primitive.Text(text)), createdAt = D0, updatedAt = D0,
+        )
+
+    private fun lexemeEntity(id: Long, comps: List<ComponentValueApiEntity> = emptyList()) =
+        LexemeApiEntity(id = id, components = comps, addDate = D0)
+
+    private fun data(text: String) = TextValues(Primitive.Text(text))
+
+    // T1
+    @Test
+    fun `addLexemeWithComponent_happy_BuiltIn`() = runTest {
+        coEvery { lexemeApi.addLexemeWithComponents(7L, 3L, any()) } returns 100L
+        coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L, listOf(cvEntity(60L, 100L, "hi")))
+        val result = useCase.addLexemeWithComponent(7L, 3L, TR, data("hi"))
+        assertEquals(100L, result?.lexemeId?.id)
+        coVerify { lexemeApi.addLexemeWithComponents(7L, 3L, match { it.single().first is ComponentTypeRef.BuiltIn }) }
+    }
+
+    // T2
+    @Test
+    fun `addLexemeWithComponent_UserDefined_branch`() = runTest {
+        val ref = ComponentTypeRef.UserDefined("Example")
+        coEvery { lexemeApi.addLexemeWithComponents(7L, 3L, any()) } returns 100L
+        coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L)
+        useCase.addLexemeWithComponent(7L, 3L, ref, data("e"))
+        coVerify { lexemeApi.addLexemeWithComponents(7L, 3L, match { it.single().first is ComponentTypeRef.UserDefined }) }
+    }
+
+    // T3
+    @Test
+    fun `addLexemeWithComponent_null_type_not_found`() = runTest {
+        coEvery { lexemeApi.addLexemeWithComponents(any(), any(), any()) } returns null
+        val result = useCase.addLexemeWithComponent(7L, 3L, TR, data("x"))
+        assertNull(result)
+        coVerify(exactly = 0) { lexemeApi.getLexemeById(any()) }
+    }
+
+    // T4
+    @Test
+    fun `addComponentValue_returns_result_with_exact_newId`() = runTest {
+        coEvery { lexemeApi.addComponentValue(100L, 50L, any()) } returns 60L
+        coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L, listOf(cvEntity(60L, 100L, "v")))
+        val result = useCase.addComponentValue(100L, ComponentTypeId(50L), data("v"))
+        assertEquals(ComponentValueId(60L), result?.newComponentValueId)
+        assertEquals(100L, result?.lexeme?.lexemeId?.id)
+    }
+
+    // T5
+    @Test
+    fun `addComponentValue_getLexemeById_null_returns_null`() = runTest {
+        coEvery { lexemeApi.addComponentValue(any(), any(), any()) } returns 60L
+        coEvery { lexemeApi.getLexemeById(any()) } returns null
+        assertNull(useCase.addComponentValue(100L, ComponentTypeId(50L), data("v")))
+    }
+
+    // T6
+    @Test
+    fun `addComponentValue_exception_returns_null`() = runTest {
+        coEvery { lexemeApi.addComponentValue(any(), any(), any()) } throws IllegalStateException("boom")
+        assertNull(useCase.addComponentValue(100L, ComponentTypeId(50L), data("v")))
+    }
+
+    // T7
+    @Test
+    fun `updateComponentValue_happy_via_lexemeId_param`() = runTest {
+        coEvery { lexemeApi.updateComponentValue(50L, any()) } returns 1
+        coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L)
+        val result = useCase.updateComponentValue(ComponentValueId(50L), 100L, data("new"))
+        assertEquals(100L, result?.lexemeId?.id)
+        coVerify { lexemeApi.getLexemeById(100L) }
+    }
+
+    // T8
+    @Test
+    fun `updateComponentValue_returns_0_returns_null`() = runTest {
+        coEvery { lexemeApi.updateComponentValue(50L, any()) } returns 0
+        assertNull(useCase.updateComponentValue(ComponentValueId(50L), 100L, data("new")))
+        coVerify(exactly = 0) { lexemeApi.getLexemeById(any()) }
+    }
+
+    // T9
+    @Test
+    fun `updateComponentValue_softDeletedType_B1_5_caught_returns_null`() = runTest {
+        coEvery { lexemeApi.updateComponentValue(50L, any()) } throws IllegalStateException("soft-deleted")
+        assertNull(useCase.updateComponentValue(ComponentValueId(50L), 100L, data("new")))
+    }
+
+    // T10
+    @Test
+    fun `updateComponentValue_getLexemeById_null_returns_null`() = runTest {
+        coEvery { lexemeApi.updateComponentValue(50L, any()) } returns 1
+        coEvery { lexemeApi.getLexemeById(100L) } returns null
+        assertNull(useCase.updateComponentValue(ComponentValueId(50L), 100L, data("new")))
+    }
+
+    // T11
+    @Test
+    fun `deleteComponentValue_ComponentRemoved_when_remaining`() = runTest {
+        coEvery { lexemeApi.deleteComponentValue(50L) } returns 1
+        // before-snapshot = 2 comps, after-reread = 1 comp → size==1 доказывает, что взят after-reread
+        coEvery { lexemeApi.getLexemeById(100L) } returnsMany listOf(
+            lexemeEntity(100L, listOf(cvEntity(50L, 100L, "x"), cvEntity(61L, 100L, "rest"))),
+            lexemeEntity(100L, listOf(cvEntity(61L, 100L, "rest"))),
+        )
+        val result = useCase.deleteComponentValue(ComponentValueId(50L), 100L)
+        assertTrue(result is RemoveComponentResult.ComponentRemoved)
+        assertEquals(1, (result as RemoveComponentResult.ComponentRemoved).lexeme.components.size)
+        coVerify(exactly = 0) { lexemeApi.deleteLexeme(any()) }
+    }
+
+    // T13
+    @Test
+    fun `deleteComponentValue_works_without_removedAt_check`() = runTest {
+        coEvery { lexemeApi.deleteComponentValue(50L) } returns 1
+        coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L, listOf(cvEntity(61L, 100L, "rest")))
+        val result = useCase.deleteComponentValue(ComponentValueId(50L), 100L)
+        assertTrue("delete не валидирует removedAt типа — success", result is RemoveComponentResult.ComponentRemoved)
+    }
+
+    // T12
+    @Test
+    fun `deleteComponentValue_LexemeCascade_when_zero`() = runTest {
+        coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L, listOf(cvEntity(50L, 100L, "x")))
+        coEvery { lexemeApi.deleteComponentValue(50L) } returns 0
+        coEvery { lexemeApi.deleteLexeme(100L) } returns 1
+        val result = useCase.deleteComponentValue(ComponentValueId(50L), 100L)
+        assertTrue(result is RemoveComponentResult.LexemeCascadeRemoved)
+        assertEquals(100L, (result as RemoveComponentResult.LexemeCascadeRemoved).removedLexeme.lexemeId.id)
+        coVerify { lexemeApi.deleteLexeme(100L) }
+    }
+
+    // T14
+    @Test
+    fun `deleteComponentValue_snapshot_null_returns_null`() = runTest {
+        coEvery { lexemeApi.getLexemeById(100L) } returns null
+        assertNull(useCase.deleteComponentValue(ComponentValueId(50L), 100L))
+        coVerify(exactly = 0) { lexemeApi.deleteComponentValue(any()) }
+    }
+
+    // T15
+    @Test
+    fun `restoreLexemeWithComponents_maps_and_returns`() = runTest {
+        val snapshot = me.apomazkin.lexeme.Lexeme(
+            lexemeId = me.apomazkin.lexeme.LexemeId(8L),
+            components = emptyList(),
+            addDate = D0,
+        )
+        coEvery { lexemeApi.addLexemeWithComponents(7L, 3L, any()) } returns 900L
+        coEvery { lexemeApi.getLexemeById(900L) } returns lexemeEntity(900L)
+        assertEquals(900L, useCase.restoreLexemeWithComponents(7L, 3L, snapshot)?.lexemeId?.id)
+    }
+
+    // T15 _null
+    @Test
+    fun `restoreLexemeWithComponents_null_when_api_null`() = runTest {
+        val snapshot = me.apomazkin.lexeme.Lexeme(
+            lexemeId = me.apomazkin.lexeme.LexemeId(8L), components = emptyList(), addDate = D0,
+        )
+        coEvery { lexemeApi.addLexemeWithComponents(any(), any(), any()) } returns null
+        assertNull(useCase.restoreLexemeWithComponents(7L, 3L, snapshot))
+    }
+
+    // T16
+    @Test
+    fun `flowAvailableComponentTypes_maps_domain`() = runTest {
+        every { lexemeApi.flowTypesForDictionary(10L) } returns
+            flowOf(listOf(typeEntity(1L, TR), typeEntity(2L, ComponentTypeRef.UserDefined("Example"), isMultiple = true)))
+        val types = useCase.flowAvailableComponentTypes(10L).first()
+        assertEquals(2, types.size)
+        assertEquals(BuiltInComponent.TRANSLATION, types[0].systemKey)
+        assertTrue(types[1].isMultiple)
+    }
+
+    // T17
+    @Test
+    fun `deleteLexeme_returns_Removed_snapshot`() = runTest {
+        coEvery { lexemeApi.getLexemeById(8L) } returns lexemeEntity(8L, listOf(cvEntity(60L, 8L, "x")))
+        coEvery { lexemeApi.deleteLexeme(8L) } returns 1
+        val result = useCase.deleteLexeme(7L, 8L)
+        assertTrue(result is RemoveLexemeResult.Removed)
+    }
+
+    // T18
+    @Test
+    fun `addComponentValue_trims_before_write`() = runTest {
+        coEvery { lexemeApi.addComponentValue(100L, 50L, any()) } returns 60L
+        coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L)
+        useCase.addComponentValue(100L, ComponentTypeId(50L), data("  v  "))
+        coVerify { lexemeApi.addComponentValue(100L, 50L, match { (it as TextValues).value.value == "v" }) }
+    }
+}

@@ -2,7 +2,7 @@
 name: infra_walkthrough
 output: infra_walkthrough.md
 input_criteria:
-  - scope_analysis.output существует
+  - 02_scope.md существует
 output_criteria:
   - infra_walkthrough.md существует
   - все утверждения подкреплены ссылками на файлы (`file:line` либо path к директории)

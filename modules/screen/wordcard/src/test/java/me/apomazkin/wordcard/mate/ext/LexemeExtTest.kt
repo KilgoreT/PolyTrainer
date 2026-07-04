@@ -1,57 +1,43 @@
 package me.apomazkin.wordcard.mate.ext
 
-import me.apomazkin.wordcard.mate.LexemeState
-import me.apomazkin.wordcard.mate.TextValueState
-import me.apomazkin.wordcard.mate.WordCardState
-import me.apomazkin.wordcard.mate.WordState
+import me.apomazkin.wordcard.mate.lexeme
+import me.apomazkin.wordcard.mate.loaded
 import me.apomazkin.wordcard.mate.removeLexeme
+import me.apomazkin.wordcard.mate.savedCv
 import me.apomazkin.wordcard.mate.updateLexeme
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.util.Date
 
+/**
+ * WordCardState.updateLexeme / removeLexeme (generic, id-based) — мигрировано на
+ * компонентную модель IS481.
+ */
 class LexemeExtTest {
 
-    private fun loaded(lexemes: List<LexemeState> = emptyList()): WordCardState =
-        WordCardState(
-            isLoading = false,
-            wordState = WordState.Loaded(id = 1L, added = Date(0L), value = "w"),
-            lexemeList = lexemes,
-        )
-
     @Test
-    fun `updateLexeme applies update to matching id`() {
-        val initial = loaded(listOf(
-            LexemeState(id = 1L, translation = TextValueState(origin = "a")),
-            LexemeState(id = 2L, translation = TextValueState(origin = "b")),
-        ))
-
-        val result = initial.updateLexeme(1L) {
-            it.copy(translation = it.translation?.copy(origin = "A"))
-        }
-
-        assertEquals("A", result.lexemeList.first { it.id == 1L }.translation?.origin)
-        assertEquals("b", result.lexemeList.first { it.id == 2L }.translation?.origin)
+    fun `updateLexeme applies update to matching id only`() {
+        val initial = loaded(
+            lexemes = listOf(
+                lexeme(1L, listOf(savedCv(5L, origin = "a"))),
+                lexeme(2L, listOf(savedCv(6L, origin = "b"))),
+            ),
+        )
+        val result = initial.updateLexeme(1L) { it.copy(components = listOf(savedCv(5L, origin = "A"))) }
+        assertEquals("A", result.lexemeList.first { it.id == 1L }.components.single().origin)
+        assertEquals("b", result.lexemeList.first { it.id == 2L }.components.single().origin)
     }
 
     @Test
     fun `updateLexeme with non-existent id leaves list intact`() {
-        val initial = loaded(listOf(LexemeState(id = 1L, translation = TextValueState(origin = "a"))))
-
-        val result = initial.updateLexeme(999L) { it.copy(translation = null) }
-
+        val initial = loaded(lexemes = listOf(lexeme(1L, listOf(savedCv(5L)))))
+        val result = initial.updateLexeme(999L) { it.copy(components = emptyList()) }
         assertEquals(initial.lexemeList, result.lexemeList)
     }
 
     @Test
     fun `removeLexeme filters out matching id`() {
-        val initial = loaded(listOf(
-            LexemeState(id = 1L),
-            LexemeState(id = 2L),
-        ))
-
+        val initial = loaded(lexemes = listOf(lexeme(1L, emptyList()), lexeme(2L, emptyList())))
         val result = initial.removeLexeme(1L)
-
         assertEquals(1, result.lexemeList.size)
         assertEquals(2L, result.lexemeList.first().id)
     }

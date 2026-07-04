@@ -3,6 +3,7 @@ package me.apomazkin.core_db_impl.entity
 import androidx.room.Embedded
 import androidx.room.Relation
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
+import me.apomazkin.logger.LexemeLogger
 
 data class WriteQuizDbEntity(
     @Embedded val writeQuizDb: WriteQuizDb,
@@ -14,9 +15,9 @@ data class WriteQuizDbEntity(
     val lexemeDbWithWordDbRelation: LexemeDbWithWordDbRelation,
 )
 
-fun WriteQuizDbEntity.toApiEntity() = WriteQuizComplexEntity(
+fun WriteQuizDbEntity.toApiEntity(logger: LexemeLogger) = WriteQuizComplexEntity(
     quizData = writeQuizDb.toApiEntity(),
-    lexemeData = lexemeDbWithWordDbRelation.lexemeDb.toApiEntity(),
+    lexemeData = lexemeDbWithWordDbRelation.lexemeDb.toApiEntity(logger),
     wordData = lexemeDbWithWordDbRelation.wordDb.toApiEntity(),
     sampleData = lexemeDbWithWordDbRelation.lexemeDb.sampleDbList.toApiEntity(),
 )

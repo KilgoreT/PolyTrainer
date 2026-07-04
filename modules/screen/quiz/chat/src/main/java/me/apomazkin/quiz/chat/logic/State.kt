@@ -5,6 +5,8 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
+import me.apomazkin.lexeme.ComponentType
+import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.quiz.chat.logic.ChatMessage.MessageValue.Plain
 
@@ -45,6 +47,7 @@ data class ItemsState(
         val earliest: Earliest = Earliest(),
         val frequentMistakes: FrequentMistakes = FrequentMistakes(),
         val debug: Debug = Debug(),
+        val quizComponent: QuizComponent = QuizComponent(),
 ) {
     data class Earliest(
             val isOn: Boolean = false,
@@ -56,7 +59,39 @@ data class ItemsState(
     data class Debug(
             val isOn: Boolean = false,
     )
+
+    /**
+     * IS481 quiz picker. `availableTypes` — компоненты текущего словаря из БД,
+     * отсортированы по `position`. `selectedRef` — radio-выбор, null до load
+     * (transient окно). После load всегда non-null если `availableTypes`
+     * непустой (reducer обеспечивает инвариант).
+     */
+    data class QuizComponent(
+            val availableTypes: List<ComponentType> = emptyList(),
+            val selectedRef: ComponentTypeRef? = null,
+    )
 }
+
+/**
+ * Picker disabled при единственном типе: показывается checked, но клики
+ * игнорируются. Скрыт полностью при пустом списке (UI guard).
+ */
+val ItemsState.QuizComponent.isPickerEnabled: Boolean
+    get() = availableTypes.size > 1
+
+fun ChatScreenState.updateQuizComponent(
+        types: List<ComponentType>,
+        selectedRef: ComponentTypeRef?,
+): ChatScreenState = copy(
+        appBarState = appBarState.copy(
+                itemsState = appBarState.itemsState.copy(
+                        quizComponent = ItemsState.QuizComponent(
+                                availableTypes = types,
+                                selectedRef = selectedRef,
+                        ),
+                ),
+        ),
+)
 
 fun ChatScreenState.updateMenu(
         isEarliestOn: Boolean,

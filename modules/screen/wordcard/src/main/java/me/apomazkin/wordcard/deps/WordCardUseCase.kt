@@ -1,36 +1,78 @@
 package me.apomazkin.wordcard.deps
 
+import kotlinx.coroutines.flow.Flow
+import me.apomazkin.lexeme.ComponentType
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.lexeme.Lexeme
+import me.apomazkin.lexeme.TemplateValues
 import me.apomazkin.wordcard.entity.Term
 
+/**
+ * IS481 generic UseCase (AGG-12). Перевод/определение — обычные компоненты,
+ * без translation/definition-специфичных методов.
+ */
 interface WordCardUseCase {
+
+    // ===== Word / lexeme =====
     suspend fun getTermById(wordId: Long): Term?
     suspend fun deleteWord(wordId: Long): Int
     suspend fun updateWord(wordId: Long, value: String): Boolean
-    suspend fun deleteLexeme(wordId: Long, lexemeId: Long): List<Lexeme>?
-    suspend fun addLexemeTranslation(wordId: Long, lexemeId: Long?, translation: String): Lexeme?
-    suspend fun deleteLexemeTranslation(lexemeId: Long): RemoveTranslationResult?
-    suspend fun addLexemeDefinition(wordId: Long, lexemeId: Long?, definition: String): Lexeme?
-    suspend fun deleteLexemeDefinition(lexemeId: Long): RemoveDefinitionResult?
+    suspend fun deleteLexeme(wordId: Long, lexemeId: Long): RemoveLexemeResult?
 
-    /**
-     * Восстановить лексему после full-delete (undo через snackbar). Создаёт новую
-     * лексему c указанными translation/definition (хотя бы один обязателен). Возвращает
-     * актуальный список лексем word'а или null при ошибке.
-     */
-    suspend fun restoreLexeme(
+    // ===== Generic component API =====
+
+    /** Создать лексему первым (якорным) значением. null — тип не найден в словаре. */
+    suspend fun addLexemeWithComponent(
         wordId: Long,
-        translation: String?,
-        definition: String?,
-    ): List<Lexeme>?
+        dictionaryId: Long,
+        ref: ComponentTypeRef,
+        data: TemplateValues,
+    ): Lexeme?
+
+    /** Добавить значение к существующей лексеме. */
+    suspend fun addComponentValue(
+        lexemeId: Long,
+        componentTypeId: ComponentTypeId,
+        data: TemplateValues,
+    ): AddComponentValueResult?
+
+    /** Обновить значение; `lexemeId` — для re-read (A1), не для записи. */
+    suspend fun updateComponentValue(
+        componentValueId: ComponentValueId,
+        lexemeId: Long,
+        data: TemplateValues,
+    ): Lexeme?
+
+    /** Удалить значение; cascade лексемы если было последним. */
+    suspend fun deleteComponentValue(
+        componentValueId: ComponentValueId,
+        lexemeId: Long,
+    ): RemoveComponentResult?
+
+    /** Восстановить лексему из snapshot (undo) — atomic compound INSERT. */
+    suspend fun restoreLexemeWithComponents(
+        wordId: Long,
+        dictionaryId: Long,
+        snapshot: Lexeme,
+    ): Lexeme?
+
+    /** Реактивный поток active component types словаря (built-in + user-defined). */
+    fun flowAvailableComponentTypes(dictionaryId: Long): Flow<List<ComponentType>>
 }
 
-sealed interface RemoveTranslationResult {
-    data class TranslationRemoved(val lexeme: Lexeme) : RemoveTranslationResult
-    data object LexemeCascadeRemoved : RemoveTranslationResult
+/** Квитанция addComponentValue — детерминированная пара pristine → newCvId. */
+data class AddComponentValueResult(
+    val lexeme: Lexeme,
+    val newComponentValueId: ComponentValueId,
+)
+
+sealed interface RemoveComponentResult {
+    data class ComponentRemoved(val lexeme: Lexeme) : RemoveComponentResult
+    data class LexemeCascadeRemoved(val removedLexeme: Lexeme) : RemoveComponentResult
 }
 
-sealed interface RemoveDefinitionResult {
-    data class DefinitionRemoved(val lexeme: Lexeme) : RemoveDefinitionResult
-    data object LexemeCascadeRemoved : RemoveDefinitionResult
+sealed interface RemoveLexemeResult {
+    data class Removed(val snapshot: Lexeme) : RemoveLexemeResult
 }

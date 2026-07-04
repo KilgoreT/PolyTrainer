@@ -9,6 +9,9 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentValue
+import me.apomazkin.lexeme.TextValues
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.R
@@ -174,11 +177,23 @@ class QuizGameImpl @javax.inject.Inject constructor(
         val dictionaryId = quizChatUseCase.getCurrentDictionaryId()
         if (dictionaryId == null) {
             // IS476: словарь отсутствует — возвращаем пустой список квизов.
-            // Дальше loadData → hasNextQuestion → false (IS461: пустой quizList
-            // не крашит, сразу заканчивает сессию).
             logger.w(tag = LogTags.CHAT, message = "fetchData: no current dictionary (null id)")
             return emptyList()
         }
+        // IS481 (AGG-5, F5 — no N+1): pre-fetch QuizConfig один раз на session.
+        val quizConfig = quizChatUseCase.getQuizConfig(dictionaryId, "write")
+        if (quizConfig == null) {
+            logger.w(
+                tag = LogTags.CHAT,
+                message = "fetchData: no quiz config for dictionary $dictionaryId, mode=write",
+            )
+            return emptyList()
+        }
+        // IS481 (AGG-12) picker: override filter — non-null selectedRef → single-element
+        // refs list; null → fallback на quizConfig.componentRefs (preserves семантика
+        // до первого выбора).
+        val selectedRef = quizChatUseCase.getQuizPickerSelection(dictionaryId)
+        val effectiveRefs = selectedRef?.let { listOf(it) } ?: quizConfig.componentRefs
         return quizChatUseCase.getRandomWriteQuizList(
                 dictionaryId = dictionaryId,
                 limit = maxStepInSession,
@@ -208,8 +223,9 @@ class QuizGameImpl @javax.inject.Inject constructor(
             }
             allStat = if (prefsProvider.getBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN) == true) stat
             else null
-        }.map {
+        }.mapNotNull {
             it.toQuizItem(
+                    componentRefs = effectiveRefs,
                     resourceManager = resourceManager,
                     isDebugOn = prefsProvider.getBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN) ?: false,
             )
@@ -426,98 +442,91 @@ data class QuizItem(
     )
 }
 
+/**
+ * IS481 (AGG-5, F4 — order priority, F2 — graceful skip).
+ *
+ * Резолвит `componentRefs` в порядке config'а в первый matched ComponentValue
+ * лексемы и собирает `QuizItem`. Если ни один ref не резолвится — null
+ * (graceful skip, заменяет удалённый `throw IllegalArgumentException`).
+ */
 fun WriteQuiz.toQuizItem(
+        componentRefs: List<ComponentTypeRef>,
         resourceManager: ResourceManager,
         isDebugOn: Boolean,
-): QuizItem {
+): QuizItem? {
     val last = if (lastCorrectAnswerDate != null) {
         val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
         formatter.format(lastCorrectAnswerDate)
     } else {
         "none"
     }
-    val translation = lexeme.translation
-    val definition = lexeme.definition
+
+    // F4: первый match по порядку config — определяет приоритет рендеринга.
+    val resolved: Pair<ComponentTypeRef, ComponentValue>? = componentRefs
+        .firstNotNullOfOrNull { ref ->
+            lexeme.components.firstOrNull { it.matchesRef(ref) }?.let { ref to it }
+        }
+    resolved ?: return null  // F2: graceful skip.
+
+    val (ref, source) = resolved
+    // M13: LongTextValue упразднён (template-key consolidation `long_text → text`, F046).
+    val text = (source.data as? TextValues)?.value?.value
+        ?: return null
+
+    // Header для built-in TRANSLATION → resource translation header;
+    // для user-defined Definition / прочих → definition header (legacy).
+    // Future (backlog): per-component header в ComponentType / quiz config.
+    val headerResId = when (ref) {
+        is ComponentTypeRef.BuiltIn -> R.string.chat_quiz_ask_translation_header
+        is ComponentTypeRef.UserDefined -> R.string.chat_quiz_ask_definition_header
+    }
+
+    val fullQuestion = buildAnnotatedString {
+        if (isDebugOn) {
+            withStyle(
+                style = LexemeStyle.BodySBold.copy(
+                    color = Color.Gray
+                ).toSpanStyle()
+            ) {
+                append("### grade: $grade | score: $score | errorCount: $errorCount")
+                append("\n")
+                append("### last: $last")
+                append("\n")
+                if (ref is ComponentTypeRef.UserDefined) {
+                    append("### type: $type")
+                    append("\n")
+                }
+                append("#############################")
+                append("\n")
+            }
+        }
+        append(resourceManager.stringByResId(headerResId))
+        append("\n")
+        withStyle(style = LexemeStyle.BodyMBold.toSpanStyle()) {
+            append(text)
+        }
+    }
+
     return QuizItem(
-            answer = word.value,
-            fullQuestion = when {
-                translation != null -> buildAnnotatedString {
-                    if (isDebugOn) {
-                        withStyle(
-                                style = LexemeStyle.BodySBold.copy(
-                                        color = Color.Gray
-                                ).toSpanStyle()
-                        ) {
-                            append("### grade: $grade | score: $score | errorCount: $errorCount")
-                            append("\n")
-                            append("### last: $last")
-                            append("\n")
-                            append("#############################")
-                            append("\n")
-                        }
-                    }
-                    append(
-                            resourceManager.stringByResId(R.string.chat_quiz_ask_translation_header),
-                    )
-                    append("\n")
-                    withStyle(style = LexemeStyle.BodyMBold.toSpanStyle()) {
-                        append(
-                                translation.value
-                        )
-                    }
-                }
-
-                definition != null -> buildAnnotatedString {
-                    if (isDebugOn) {
-                        withStyle(
-                                style = LexemeStyle.BodySBold
-                                        .copy(
-                                                color = Color.Gray
-                                        ).toSpanStyle()
-                        ) {
-                            append("### grade: $grade | score: $score | errorCount: $errorCount")
-                            append("\n")
-                            append("### last: $last")
-                            append("\n")
-                            append("### type: $type")
-                            append("\n")
-                            append("#############################")
-                            append("\n")
-                        }
-                    }
-                    append(
-                            resourceManager.stringByResId(R.string.chat_quiz_ask_definition_header),
-                    )
-                    append("\n")
-                    withStyle(style = LexemeStyle.BodyMBold.toSpanStyle()) {
-                        append(
-                                definition.value
-                        )
-                    }
-                }
-
-                else -> throw IllegalArgumentException("No translation or definition")
-            },
-            question = buildAnnotatedString {
-                if (translation != null)
-                    append(translation.value)
-                else if (definition != null) {
-                    append(definition.value)
-                } else {
-                    append("No translation or definition")
-                }
-            },
-            info = QuizItem.QuizInfo(
-                    id = id,
-                    dictionaryId = dictionaryId,
-                    lexemeId = lexeme.lexemeId.id,
-                    grade = grade,
-                    score = score,
-                    errorCount = errorCount,
-                    addDate = addDate,
-                    lastSelectDate = lastCorrectAnswerDate,
-            )
+        answer = word.value,
+        fullQuestion = fullQuestion,
+        question = buildAnnotatedString { append(text) },
+        info = QuizItem.QuizInfo(
+            id = id,
+            dictionaryId = dictionaryId,
+            lexemeId = lexeme.lexemeId.id,
+            grade = grade,
+            score = score,
+            errorCount = errorCount,
+            addDate = addDate,
+            lastSelectDate = lastCorrectAnswerDate,
+        )
     )
+}
+
+private fun ComponentValue.matchesRef(ref: ComponentTypeRef): Boolean = when (ref) {
+    is ComponentTypeRef.BuiltIn -> type.systemKey == ref.key
+    is ComponentTypeRef.UserDefined -> type.systemKey == null && type.name == ref.name
 }
 
 

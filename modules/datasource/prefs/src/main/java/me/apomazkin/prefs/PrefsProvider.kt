@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
@@ -66,6 +67,31 @@ class PrefsProvider(
     suspend fun setBoolean(prefKey: PrefKey, value: Boolean) {
         context.dataStore.edit {
             it[booleanPreferencesKey(prefKey.value)] = value
+        }
+    }
+
+    /**
+     * IS481: raw-string dynamic-key API для per-entity prefs (например,
+     * per-dictionary quiz picker selection — ключ `quiz_picker_dict_<id>`).
+     * `PrefKey` enum не используется — ключи живут вне enum.
+     */
+    suspend fun getStringByRawKey(key: String): String? {
+        return context.dataStore.data.firstOrNull()?.get(stringPreferencesKey(key))
+    }
+
+    fun getStringFlowByRawKey(key: String): Flow<String?> {
+        return context.dataStore.data
+            .map { it[stringPreferencesKey(key)] }
+    }
+
+    suspend fun setStringByRawKey(key: String, value: String?) {
+        context.dataStore.edit {
+            val prefKey = stringPreferencesKey(key)
+            if (value == null) {
+                it.remove(prefKey)
+            } else {
+                it[prefKey] = value
+            }
         }
     }
 }

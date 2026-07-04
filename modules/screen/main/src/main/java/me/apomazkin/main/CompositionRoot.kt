@@ -9,6 +9,7 @@ interface CompositionRoot {
     fun VocabularyTabDep(
             openDictionaryCreate: () -> Unit,
             openWordCard: (wordId: Long) -> Unit,
+            openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
     )
 
     @Composable
@@ -21,6 +22,7 @@ interface CompositionRoot {
     fun QuizTabScreenDep(
             openDictionaryCreate: () -> Unit,
             openChatQuiz: (quizType: String) -> Unit,
+            openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
     )
 
     @Composable
@@ -31,6 +33,7 @@ interface CompositionRoot {
     @Composable
     fun StatisticTabScreenDep(
             openDictionaryCreate: () -> Unit,
+            openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
     )
 
     @Composable
@@ -38,6 +41,7 @@ interface CompositionRoot {
             onLangManagementClick: () -> Unit,
             onAboutAppClick: () -> Unit,
             onPrivacyPolicyClick: () -> Unit,
+            onComponentsManagerClick: () -> Unit,
     )
 
     @Composable
@@ -48,6 +52,17 @@ interface CompositionRoot {
     @Composable
     fun WebViewScreenDep(
             pageKey: String,
+            onBackPress: () -> Unit,
+    )
+
+    @Composable
+    fun ComponentsManagerScreenDep(
+            onBackPress: () -> Unit,
+    )
+
+    @Composable
+    fun PerDictionaryComponentsScreenDep(
+            dictionaryId: Long,
             onBackPress: () -> Unit,
     )
 }

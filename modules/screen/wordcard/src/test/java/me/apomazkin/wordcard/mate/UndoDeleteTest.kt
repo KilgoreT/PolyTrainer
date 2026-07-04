@@ -1,238 +1,153 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.mate.effects
+import me.apomazkin.core_resources.R
+import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertEffects
 import me.apomazkin.mate.test.assertNoEffects
 import me.apomazkin.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.Date
 
 /**
- * Reducer tests for IS479: snackbar c undo при удалении translation/definition/лексемы.
- *
- * Покрытие:
- * - TranslationDeleted / DefinitionDeleted → state update + ShowSnackbarWithUndo Effect
- * - LexemeCascadeRemovedWithUndo → NOT_IN_DB-черновик + ShowSnackbarWithUndo с правильным текстом
- * - LexemeRemoved (full-delete с snapshot) → remove + ShowSnackbarWithUndo
- * - LexemeRemoved без snapshot (snapshot==null/null) → remove без Effect (нет смысла в undo)
- * - UndoRemoveTranslation real id → UpdateLexemeTranslation(realId)
- * - UndoRemoveTranslation NOT_IN_DB → UpdateLexemeTranslation(null) = re-INSERT
- * - UndoRemoveLexeme c обеими субсущностями → RestoreLexeme(wordId, t, d)
+ * §1.9 Undo/Delete (REWRITE) — LexemeCascadeRemoved / LexemeRemoved / UndoRestoreLexeme /
+ * RemoveLexeme (вкл. NOT_IN_DB local).
  */
 class UndoDeleteTest {
 
-    private fun loaded(
-        wordId: Long = 7L,
-        lexemes: List<LexemeState> = emptyList(),
-    ): WordCardState = WordCardState(
-        isLoading = false,
-        isPendingDbOp = true, // обычно delete завершается — pending уже true
-        wordState = WordState.Loaded(id = wordId, added = Date(0L), value = "w"),
-        lexemeList = lexemes,
-    )
+    private val reducer = WordCardReducer()
 
     @Test
-    fun `TranslationDeleted nullifies translation and emits ShowSnackbarWithUndo`() {
-        val reducer = WordCardReducer()
-        val initial = loaded(lexemes = listOf(
-            LexemeState(
-                id = 42L,
-                translation = TextValueState(origin = "old"),
-                definition = TextValueState(origin = "d"),
+    fun `LexemeCascadeRemoved removes and emits undo`() {
+        val removed = domainLexeme(8L, listOf(domainCv(60L, 8L, "hi", ref = TR)))
+        val initial = loaded(lexemes = listOf(lexeme(8L, listOf(savedCv(60L))), lexeme(9L, listOf(savedCv(61L)))))
+        val result = reducer.testReduce(initial, Msg.LexemeCascadeRemoved(removed))
+        assertEquals(listOf(9L), result.state().lexemeList.map { it.id })
+        assertFalse(result.state().isPendingDbOp)
+        result.assertEffects(
+            setOf(
+                UiEffect.ShowSnackbarWithUndo(
+                    messageRes = R.string.word_card_snackbar_lexeme_deleted,
+                    actionLabelRes = R.string.word_card_snackbar_undo,
+                    undoMsg = Msg.UndoRestoreLexeme(removed),
+                ),
             ),
-        ))
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.TranslationDeleted(lexemeId = 42L, removedValue = "old"),
-        )
-
-        val lex = result.state().lexemeList.first()
-        assertNull("translation nullified", lex.translation)
-        assertNotNull("definition preserved", lex.definition)
-        assertFalse("pending cleared", result.state().isPendingDbOp)
-        val effects = result.effects()
-        assertEquals(1, effects.size)
-        val effect = effects.first() as UiEffect.ShowSnackbarWithUndo
-        assertEquals(
-            Msg.UndoRemoveTranslation(lexemeId = 42L, value = "old"),
-            effect.undoMsg,
         )
     }
 
     @Test
-    fun `DefinitionDeleted nullifies definition and emits ShowSnackbarWithUndo`() {
-        val reducer = WordCardReducer()
-        val initial = loaded(lexemes = listOf(
-            LexemeState(
-                id = 42L,
-                translation = TextValueState(origin = "t"),
-                definition = TextValueState(origin = "old"),
+    fun `LexemeRemoved removes and emits undo`() {
+        val removed = domainLexeme(9L, listOf(domainCv(61L, 9L, "x", ref = TR)))
+        val initial = loaded(lexemes = listOf(lexeme(8L, listOf(savedCv(60L))), lexeme(9L, listOf(savedCv(61L)))))
+        val result = reducer.testReduce(initial, Msg.LexemeRemoved(removed))
+        assertEquals(listOf(8L), result.state().lexemeList.map { it.id })
+        result.assertEffects(
+            setOf(
+                UiEffect.ShowSnackbarWithUndo(
+                    messageRes = R.string.word_card_snackbar_lexeme_deleted,
+                    actionLabelRes = R.string.word_card_snackbar_undo,
+                    undoMsg = Msg.UndoRestoreLexeme(removed),
+                ),
             ),
-        ))
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.DefinitionDeleted(lexemeId = 42L, removedValue = "old"),
-        )
-
-        val lex = result.state().lexemeList.first()
-        assertNull(lex.definition)
-        assertNotNull(lex.translation)
-        val effect = result.effects().first() as UiEffect.ShowSnackbarWithUndo
-        assertEquals(
-            Msg.UndoRemoveDefinition(lexemeId = 42L, value = "old"),
-            effect.undoMsg,
         )
     }
 
     @Test
-    fun `LexemeCascadeRemovedWithUndo (translation deleted) turns lexeme into NOT_IN_DB draft + snackbar with translation text`() {
-        val reducer = WordCardReducer()
-        val initial = loaded(lexemes = listOf(
-            LexemeState(
-                id = 42L,
-                translation = TextValueState(origin = "hello"),
-                definition = null,
-            ),
-        ))
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.LexemeCascadeRemovedWithUndo(
-                lexemeId = 42L,
-                removedTranslation = "hello",
-                removedDefinition = null,
-            ),
-        )
-
-        val state = result.state()
-        val draft = state.lexemeList.first()
-        assertEquals(NOT_IN_DB, draft.id)
-        assertNull(draft.translation)
-        assertNull(draft.definition)
-        assertFalse(state.isPendingDbOp)
-        assertTrue("isCreatingLexeme set (because NOT_IN_DB)", state.isCreatingLexeme)
-        val effect = result.effects().first() as UiEffect.ShowSnackbarWithUndo
-        // undoMsg = UndoRemoveTranslation с NOT_IN_DB → re-INSERT
-        assertEquals(
-            Msg.UndoRemoveTranslation(lexemeId = NOT_IN_DB, value = "hello"),
-            effect.undoMsg,
-        )
-    }
-
-    @Test
-    fun `LexemeRemoved with snapshot emits ShowSnackbarWithUndo and removes lexeme`() {
-        val reducer = WordCardReducer()
-        val initial = loaded(lexemes = listOf(
-            LexemeState(
-                id = 42L,
-                translation = TextValueState(origin = "t"),
-                definition = TextValueState(origin = "d"),
-            ),
-        ))
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.LexemeRemoved(lexemeId = 42L, translation = "t", definition = "d"),
-        )
-
-        val state = result.state()
-        assertTrue("lexeme removed", state.lexemeList.isEmpty())
-        assertFalse(state.isPendingDbOp)
-        val effect = result.effects().first() as UiEffect.ShowSnackbarWithUndo
-        assertEquals(
-            Msg.UndoRemoveLexeme(translation = "t", definition = "d"),
-            effect.undoMsg,
-        )
-    }
-
-    @Test
-    fun `LexemeRemoved without snapshot removes lexeme without Effect`() {
-        val reducer = WordCardReducer()
-        val initial = loaded(lexemes = listOf(LexemeState(id = 42L)))
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.LexemeRemoved(lexemeId = 42L, translation = null, definition = null),
-        )
-
+    fun `cascade clears pending and is not guarded`() {
+        val removed = domainLexeme(8L, listOf(domainCv(60L, 8L, "hi", ref = TR)))
+        val initial = loaded(isPendingDbOp = true, lexemes = listOf(lexeme(8L, listOf(savedCv(60L)))))
+        val result = reducer.testReduce(initial, Msg.LexemeCascadeRemoved(removed))
+        assertFalse(result.state().isPendingDbOp)
         assertTrue(result.state().lexemeList.isEmpty())
+    }
+
+    @Test
+    fun `UndoRestoreLexeme_sets_pending_and_emits_restore`() {
+        val snapshot = domainLexeme(8L, listOf(domainCv(60L, 8L, "hi", ref = TR), domainCv(61L, 8L, "e", typeId = 51L, ref = me.apomazkin.lexeme.ComponentTypeRef.UserDefined("Example"))))
+        val initial = loaded(wordId = 7L, dictionaryId = 3L)
+        val result = reducer.testReduce(initial, Msg.UndoRestoreLexeme(snapshot))
+        assertTrue(result.state().isPendingDbOp)
+        result.assertEffects(setOf(DatasourceEffect.RestoreLexemeWithComponents(7L, 3L, snapshot)))
+    }
+
+    @Test
+    fun `RemoveLexeme emits effect`() {
+        val initial = loaded(wordId = 7L, lexemes = listOf(lexeme(8L, listOf(savedCv(60L)))))
+        val result = reducer.testReduce(initial, Msg.RemoveLexeme(8L))
+        result.assertEffects(setOf(DatasourceEffect.RemoveLexeme(7L, 8L)))
+    }
+
+    @Test
+    fun `RemoveLexeme_NOT_IN_DB_local_no_effect_no_undo`() {
+        val initial = loaded(wordId = 7L, lexemes = listOf(lexeme(NOT_IN_DB, emptyList()), lexeme(8L, listOf(savedCv(60L)))))
+        val result = reducer.testReduce(initial, Msg.RemoveLexeme(NOT_IN_DB))
+        assertEquals(listOf(8L), result.state().lexemeList.map { it.id })
+        assertFalse(result.state().isPendingDbOp)
+        assertFalse(result.state().isCreatingLexeme)
         result.assertNoEffects()
     }
 
+    /**
+     * Regression (BUG-2, docs/features/IS481_bugs/bugs.md, сценарий L3.1): подтверждение
+     * в confirm-диалоге (`RemoveLexeme`) не сбрасывало `lexemeIdPendingDelete` — лексема
+     * удалялась ПОД модалкой, а сама модалка оставалась висеть (`ConfirmDeleteLexemeWidget`
+     * показывается, пока поле != null). Закрывался диалог только по «Отмена»
+     * (`CloseDeleteLexemeDialog`); путь подтверждения был не покрыт тестами.
+     */
     @Test
-    fun `UndoRemoveTranslation with real id emits UpdateLexemeTranslation with real lexemeId`() {
-        val reducer = WordCardReducer()
-        val initial = loaded(
-            wordId = 100L,
-            lexemes = listOf(LexemeState(id = 42L)),
-        ).copy(isPendingDbOp = false)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.UndoRemoveTranslation(lexemeId = 42L, value = "restored"),
-        )
-
-        assertTrue("pending set on undo", result.state().isPendingDbOp)
-        result.assertEffects(
-            setOf(
-                DatasourceEffect.UpdateLexemeTranslation(
-                    wordId = 100L,
-                    lexemeId = 42L,
-                    translation = "restored",
-                ),
-            ),
-        )
+    fun `RemoveLexeme closes confirm dialog`() {
+        val initial = loaded(wordId = 7L, lexemes = listOf(lexeme(8L, listOf(savedCv(60L)))))
+            .copy(lexemeIdPendingDelete = 8L)
+        val result = reducer.testReduce(initial, Msg.RemoveLexeme(8L))
+        assertNull("модалка закрыта", result.state().lexemeIdPendingDelete)
+        result.assertEffects(setOf(DatasourceEffect.RemoveLexeme(7L, 8L)))
     }
 
+    /** Regression (BUG-2): локальный путь (NOT_IN_DB черновик) тоже обязан закрывать модалку. */
     @Test
-    fun `UndoRemoveTranslation with NOT_IN_DB emits UpdateLexemeTranslation with null lexemeId (re-INSERT)`() {
-        val reducer = WordCardReducer()
-        val initial = loaded(
-            wordId = 100L,
-            lexemes = listOf(LexemeState(id = NOT_IN_DB)),
-        ).copy(isPendingDbOp = false)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.UndoRemoveTranslation(lexemeId = NOT_IN_DB, value = "restored"),
-        )
-
-        result.assertEffects(
-            setOf(
-                DatasourceEffect.UpdateLexemeTranslation(
-                    wordId = 100L,
-                    lexemeId = null,
-                    translation = "restored",
-                ),
-            ),
-        )
+    fun `RemoveLexeme NOT_IN_DB closes confirm dialog`() {
+        val initial = loaded(wordId = 7L, lexemes = listOf(lexeme(NOT_IN_DB, emptyList())))
+            .copy(lexemeIdPendingDelete = NOT_IN_DB)
+        val result = reducer.testReduce(initial, Msg.RemoveLexeme(NOT_IN_DB))
+        assertNull("модалка закрыта", result.state().lexemeIdPendingDelete)
+        result.assertNoEffects()
     }
 
+    /**
+     * Regression (ревью IS481): cascade-remove во время flush-on-back (`isExiting`) не должен
+     * слать undo-снек — экран тут же закрывается пост-шагом (`Back`), снек «Отменить» бесполезен.
+     */
     @Test
-    fun `UndoRemoveLexeme with both translation and definition emits RestoreLexeme`() {
-        val reducer = WordCardReducer()
-        val initial = loaded(wordId = 100L).copy(isPendingDbOp = false)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.UndoRemoveLexeme(translation = "t", definition = "d"),
+    fun `cascade during exit suppresses undo snackbar`() {
+        val removed = domainLexeme(8L, listOf(domainCv(60L, 8L, "x", ref = TR)))
+        val initial = loaded(
+            isExiting = true,
+            lexemes = listOf(lexeme(8L, listOf(savedCv(60L, isCommitting = true)))),
         )
+        val result = reducer.testReduce(initial, Msg.LexemeCascadeRemoved(removed))
+        assertTrue("лексема удалена", result.state().lexemeList.isEmpty())
+        result.assertEffects(setOf(NavigationEffect.Back))
+    }
 
-        assertTrue(result.state().isPendingDbOp)
+    /**
+     * Regression (ревью IS481, MAJOR / сценарий A17): провал восстановления (undo) должен дать
+     * retry-снек с `UndoRestoreLexeme(snapshot)`. Баг: эмитился `ShowErrorSnackbar` без action,
+     * snapshot отбрасывался → повтор восстановления невозможен. Reducer-ветка не была покрыта.
+     */
+    @Test
+    fun `RestoreLexemeFailed emits retry snackbar carrying snapshot`() {
+        val snapshot = domainLexeme(8L, listOf(domainCv(60L, 8L, "x", ref = TR)))
+        val result = reducer.testReduce(loaded(isPendingDbOp = true), Msg.RestoreLexemeFailed(snapshot))
+        assertFalse("pending снят", result.state().isPendingDbOp)
         result.assertEffects(
             setOf(
-                DatasourceEffect.RestoreLexeme(
-                    wordId = 100L,
-                    translation = "t",
-                    definition = "d",
+                UiEffect.ShowSnackbarWithRetry(
+                    messageRes = R.string.word_card_error_restore_lexeme,
+                    actionLabelRes = R.string.word_card_action_retry,
+                    retryMsg = Msg.UndoRestoreLexeme(snapshot),
                 ),
             ),
         )

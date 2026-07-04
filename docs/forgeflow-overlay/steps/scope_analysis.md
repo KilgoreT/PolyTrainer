@@ -2,7 +2,7 @@
 name: scope_analysis
 output: 02_scope.md
 input_criteria:
-  - 00_task.md существует
+  - task.md существует
   - если `feature_has_figma=true` → `figma_dump.json` существует в `plan.dir`
 output_criteria:
   - 02_scope.md существует
@@ -12,6 +12,7 @@ output_criteria:
   - перечислены аспекты
   - перечислены затронутые файлы
   - указан список sub-flow к запуску
+  - 02_scope.md содержит секцию `## Open questions` — список неоднозначностей с best-guess + альтернативами (либо явное «нет open questions» если всё однозначно)
 context_output:
   - infra_touched
   - business_touched
@@ -55,8 +56,8 @@ context_output:
 
 ### 3. Чтение спек и гайдов
 
-- `docs/features-spec/<feature>.md` — спека релевантной фичи
-- `docs/guides/<subsystem>.md` — гайды затронутых подсистем (mate-framework, dagger-di, navigation, prefs-datastore, testing-…)
+- `docs/handbook/specs/<feature>.md` — спека релевантной фичи
+- `docs/handbook/guides/<subsystem>.md` — гайды затронутых подсистем (mate-framework, dagger-di, navigation, prefs-datastore, testing-…)
 
 ### 4. Анализ зависимостей
 
@@ -78,7 +79,7 @@ context_output:
 - `feature_has_ui_contract` — есть ли у фичи UI-контракт (State/Msg/Reducer + Composable). True для UI-экранов / виджетов со своим reducer'ом. False для headless-фич (background sync, scheduler, periodic jobs). Управляет запуском контракт-блока в business sub-flow.
 
 **Имя файла существующей спеки** (`spec_filename` в `context_output`, строковая переменная):
-- Если для этой фичи **уже есть спека** в `docs/features-spec/` — `spec_filename: <имя>.md` (например `dictionary-list.md`). Найди через grep по `features-spec/README.md` + по упомянутым модулям.
+- Если для этой фичи **уже есть спека** в `docs/handbook/specs/` — `spec_filename: <имя>.md` (например `dictionary-list.md`). Найди через grep по `handbook/specs/README.md` + по упомянутым модулям.
 - Если **нет спеки** (новая фича / legacy без миграции / headless / `business_touched=false`) — `spec_filename: null`.
 
 Имя файла для **новой** спеки выбирает шаг `contract_spec` сам, когда контракт уже описан — scope_analysis имя не выбирает.
@@ -153,6 +154,13 @@ context_output:
 | Business | да/нет | ... |
 | UI | да/нет | ... |
 | Data | да/нет | ... |
+
+## Open questions
+
+(перечень неоднозначностей которые sub-agent не смог решить однозначно из брифа; если всё однозначно — явно написать «нет open questions»)
+
+- **<кратко вопрос>** — best-guess: <вариант агента>; альтернативы: <вариант B>, <вариант C>. Обоснование best-guess: <одна строка>.
+- ...
 ```
 
 ## Что вернуть в `context_output`
@@ -174,7 +182,7 @@ spec_filename: <string|null>
 
 ## Что НЕ делать
 
-- **Не спрашивай пользователя** об уточнениях. Если задача мутная — это проблема брифа, чинится переделкой `00_task.md`. Без интерактива.
+- **Не спрашивай пользователя в середине шага** (через `inquest` / pause). Всё неоднозначное — собирается в секцию `## Open questions` артефакта `02_scope.md` с явным best-guess + альтернативами. Pause после шага = review пользователем, где он либо принимает best-guess либо переписывает. Без зацикленных rerun'ов на угадывание.
 - **Не пиши код**, не правь файлы.
 - **Не делай design-решений** по конкретным слоям — это работа sub-flow.
 - **Не дублируй research** который sub-flow сделают сами по своему слою. Твоя задача — классификация уровня «затронут / не затронут», не глубокая проработка.

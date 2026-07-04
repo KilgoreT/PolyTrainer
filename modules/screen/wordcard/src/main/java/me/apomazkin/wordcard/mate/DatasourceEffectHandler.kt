@@ -1,50 +1,90 @@
 package me.apomazkin.wordcard.mate
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
 import me.apomazkin.core_resources.R
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentValueId
+import me.apomazkin.lexeme.Lexeme
+import me.apomazkin.lexeme.TemplateValues
 import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.logger.LogLevel
 import me.apomazkin.mate.Effect
-import me.apomazkin.mate.LogTags
 import me.apomazkin.mate.MateTypedEffectHandler
-import me.apomazkin.wordcard.deps.RemoveDefinitionResult
-import me.apomazkin.wordcard.deps.RemoveTranslationResult
+import me.apomazkin.wordcard.deps.RemoveComponentResult
+import me.apomazkin.wordcard.deps.RemoveLexemeResult
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import javax.inject.Inject
+
+private const val TAG = "WordCardDatasource"
 
 sealed interface DatasourceEffect : Effect {
 
     data class LoadWord(val wordId: Long) : DatasourceEffect
     data class RemoveWord(val wordId: Long) : DatasourceEffect
     data class UpdateWord(val wordId: Long, val value: String) : DatasourceEffect
-
     data class RemoveLexeme(val wordId: Long, val lexemeId: Long) : DatasourceEffect
 
-    data class UpdateLexemeTranslation(
-        val wordId: Long,
-        /** null ⇒ insert новой лексемы с переводом. */
-        val lexemeId: Long?,
-        val translation: String,
+    /** A3: три РАЗНЫЕ операции upsert значения компонента (impossible states impossible). */
+    sealed interface UpsertComponentValue : DatasourceEffect {
+        val wordId: Long
+        val dictionaryId: Long
+        val componentTypeId: ComponentTypeId
+        val componentTypeRef: ComponentTypeRef
+        val data: TemplateValues
+
+        /** Создание NOT_IN_DB лексемы якорным значением. */
+        data class CreateLexeme(
+            override val wordId: Long,
+            override val dictionaryId: Long,
+            val pristineKey: Long,
+            override val componentTypeId: ComponentTypeId,
+            override val componentTypeRef: ComponentTypeRef,
+            override val data: TemplateValues,
+        ) : UpsertComponentValue
+
+        /** Добавление нового значения к существующей лексеме. */
+        data class AddValue(
+            override val wordId: Long,
+            override val dictionaryId: Long,
+            val lexemeId: Long,
+            val pristineKey: Long,
+            override val componentTypeId: ComponentTypeId,
+            override val componentTypeRef: ComponentTypeRef,
+            override val data: TemplateValues,
+        ) : UpsertComponentValue
+
+        /** Обновление существующего значения. */
+        data class UpdateValue(
+            override val wordId: Long,
+            override val dictionaryId: Long,
+            val lexemeId: Long,
+            val componentValueId: ComponentValueId,
+            override val componentTypeId: ComponentTypeId,
+            override val componentTypeRef: ComponentTypeRef,
+            override val data: TemplateValues,
+        ) : UpsertComponentValue
+    }
+
+    data class RemoveComponentValue(
+        val componentValueId: ComponentValueId,
+        val lexemeId: Long,
     ) : DatasourceEffect
 
-    data class RemoveTranslation(val lexemeId: Long, val currentValue: String) : DatasourceEffect
+    /** Trigger для AvailableComponentTypesFlowHandler (re-)subscribe. */
+    data class LoadAvailableComponentTypes(val dictionaryId: Long) : DatasourceEffect
 
-    data class UpdateLexemeDefinition(
+    data class RestoreLexemeWithComponents(
         val wordId: Long,
-        /** null ⇒ insert новой лексемы с определением. */
-        val lexemeId: Long?,
-        val definition: String,
-    ) : DatasourceEffect
-
-    data class RemoveDefinition(val lexemeId: Long, val currentValue: String) : DatasourceEffect
-
-    data class RestoreLexeme(
-        val wordId: Long,
-        val translation: String?,
-        val definition: String?,
+        val dictionaryId: Long,
+        val snapshot: Lexeme,
     ) : DatasourceEffect
 }
 
+/**
+ * ЭТАП 0: skeleton. РЕАЛИЗАЦИЯ — этап 5 (two-Msg burst Refresh+Inserted, error→OperationFailed,
+ * CancellationException проброс). Сейчас no-op → тесты §9.5 red.
+ */
 class DatasourceEffectHandler @Inject constructor(
     private val wordCardUseCase: WordCardUseCase,
     private val logger: LexemeLogger,
@@ -53,132 +93,107 @@ class DatasourceEffectHandler @Inject constructor(
     override fun filter(effect: Effect): DatasourceEffect? = effect as? DatasourceEffect
 
     override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
-        val msg: Msg = withContext(Dispatchers.IO) {
-            try {
-                when (effect) {
-                    is DatasourceEffect.LoadWord ->
-                        wordCardUseCase.getTermById(effect.wordId)
-                            ?.let { Msg.WordLoaded(it) }
-                            ?: Msg.WordNotFound
-
-                    is DatasourceEffect.RemoveWord -> {
-                        val deleted = wordCardUseCase.deleteWord(effect.wordId)
-                        if (deleted > 0) Msg.NavigateBack
-                        else Msg.ShowError(R.string.word_card_error_remove_word)
-                    }
-
-                    is DatasourceEffect.UpdateWord -> {
-                        val ok = wordCardUseCase.updateWord(effect.wordId, effect.value)
-                        if (!ok) {
-                            Msg.ShowError(R.string.word_card_error_save_word)
-                        } else {
-                            wordCardUseCase.getTermById(effect.wordId)
-                                ?.let { Msg.RefreshWord(it) }
-                                ?: Msg.ShowError(R.string.word_card_error_refresh_word)
-                        }
-                    }
-
-                    is DatasourceEffect.RemoveLexeme -> {
-                        // Snapshot subentities ДО delete — нужно для undo.
-                        val snapshot = wordCardUseCase.getTermById(effect.wordId)
-                            ?.lexemeList?.firstOrNull { it.lexemeId.id == effect.lexemeId }
-                        val translationSnapshot = snapshot?.translation?.value
-                        val definitionSnapshot = snapshot?.definition?.value
-                        wordCardUseCase.deleteLexeme(effect.wordId, effect.lexemeId)
-                            ?.let { _ ->
-                                Msg.LexemeRemoved(
-                                    lexemeId = effect.lexemeId,
-                                    translation = translationSnapshot,
-                                    definition = definitionSnapshot,
-                                )
-                            }
-                            ?: Msg.ShowError(R.string.word_card_error_remove_lexeme)
-                    }
-
-                    is DatasourceEffect.UpdateLexemeTranslation ->
-                        wordCardUseCase.addLexemeTranslation(
-                            wordId = effect.wordId,
-                            lexemeId = effect.lexemeId,
-                            translation = effect.translation,
-                        )?.let { lex ->
-                            Msg.RefreshTranslation(
-                                lexemeId = lex.lexemeId.id,
-                                translation = lex.translation?.value,
-                            )
-                        } ?: Msg.ShowError(R.string.word_card_error_save_translation)
-
-                    is DatasourceEffect.RemoveTranslation ->
-                        when (val r = wordCardUseCase.deleteLexemeTranslation(effect.lexemeId)) {
-                            is RemoveTranslationResult.TranslationRemoved ->
-                                Msg.TranslationDeleted(
-                                    lexemeId = r.lexeme.lexemeId.id,
-                                    removedValue = effect.currentValue,
-                                )
-                            RemoveTranslationResult.LexemeCascadeRemoved ->
-                                Msg.LexemeCascadeRemovedWithUndo(
-                                    lexemeId = effect.lexemeId,
-                                    removedTranslation = effect.currentValue,
-                                    removedDefinition = null,
-                                )
-                            null ->
-                                Msg.ShowError(R.string.word_card_error_remove_translation)
-                        }
-
-                    is DatasourceEffect.UpdateLexemeDefinition ->
-                        wordCardUseCase.addLexemeDefinition(
-                            wordId = effect.wordId,
-                            lexemeId = effect.lexemeId,
-                            definition = effect.definition,
-                        )?.let { lex ->
-                            Msg.RefreshDefinition(
-                                lexemeId = lex.lexemeId.id,
-                                definition = lex.definition?.value,
-                            )
-                        } ?: Msg.ShowError(R.string.word_card_error_save_definition)
-
-                    is DatasourceEffect.RemoveDefinition ->
-                        when (val r = wordCardUseCase.deleteLexemeDefinition(effect.lexemeId)) {
-                            is RemoveDefinitionResult.DefinitionRemoved ->
-                                Msg.DefinitionDeleted(
-                                    lexemeId = r.lexeme.lexemeId.id,
-                                    removedValue = effect.currentValue,
-                                )
-                            RemoveDefinitionResult.LexemeCascadeRemoved ->
-                                Msg.LexemeCascadeRemovedWithUndo(
-                                    lexemeId = effect.lexemeId,
-                                    removedTranslation = null,
-                                    removedDefinition = effect.currentValue,
-                                )
-                            null ->
-                                Msg.ShowError(R.string.word_card_error_remove_definition)
-                        }
-
-                    is DatasourceEffect.RestoreLexeme ->
-                        wordCardUseCase.restoreLexeme(
-                            wordId = effect.wordId,
-                            translation = effect.translation,
-                            definition = effect.definition,
-                        )?.let { Msg.RefreshLexemeList(it) }
-                            ?: Msg.ShowError(R.string.word_card_error_restore_lexeme)
-                }
-            } catch (e: Exception) {
-                logger.e(
-                    tag = LogTags.MATE,
-                    message = "DatasourceEffect failed: ${effect::class.simpleName} — ${e.message}",
-                )
-                when (effect) {
-                    is DatasourceEffect.LoadWord -> Msg.WordNotFound
-                    is DatasourceEffect.RemoveWord -> Msg.ShowError(R.string.word_card_error_remove_word)
-                    is DatasourceEffect.UpdateWord -> Msg.ShowError(R.string.word_card_error_save_word)
-                    is DatasourceEffect.RemoveLexeme -> Msg.ShowError(R.string.word_card_error_remove_lexeme)
-                    is DatasourceEffect.UpdateLexemeTranslation -> Msg.ShowError(R.string.word_card_error_save_translation)
-                    is DatasourceEffect.RemoveTranslation -> Msg.ShowError(R.string.word_card_error_remove_translation)
-                    is DatasourceEffect.UpdateLexemeDefinition -> Msg.ShowError(R.string.word_card_error_save_definition)
-                    is DatasourceEffect.RemoveDefinition -> Msg.ShowError(R.string.word_card_error_remove_definition)
-                    is DatasourceEffect.RestoreLexeme -> Msg.ShowError(R.string.word_card_error_restore_lexeme)
+        when (effect) {
+            is DatasourceEffect.LoadWord -> {
+                try {
+                    val term = wordCardUseCase.getTermById(effect.wordId)
+                    consumer(if (term != null) Msg.WordLoaded(term) else Msg.WordNotFound)
+                } catch (c: CancellationException) {
+                    throw c
+                } catch (t: Throwable) {
+                    logger.log(LogLevel.ERROR, TAG, "LoadWord failed", t)
+                    consumer(Msg.WordNotFound)
                 }
             }
+
+            is DatasourceEffect.RemoveWord -> guarded(consumer, R.string.word_card_error_remove_word) {
+                if (wordCardUseCase.deleteWord(effect.wordId) > 0) consumer(Msg.NavigateBack)
+                else consumer(Msg.OperationFailed(R.string.word_card_error_remove_word))
+            }
+
+            is DatasourceEffect.UpdateWord -> guarded(consumer, R.string.word_card_error_save_word) {
+                if (wordCardUseCase.updateWord(effect.wordId, effect.value)) {
+                    val term = wordCardUseCase.getTermById(effect.wordId)
+                    if (term != null) consumer(Msg.RefreshWord(term))
+                    else consumer(Msg.OperationFailed(R.string.word_card_error_save_word))
+                } else {
+                    consumer(Msg.OperationFailed(R.string.word_card_error_save_word))
+                }
+            }
+
+            is DatasourceEffect.RemoveLexeme -> guarded(consumer, R.string.word_card_error_remove_lexeme) {
+                when (val r = wordCardUseCase.deleteLexeme(effect.wordId, effect.lexemeId)) {
+                    is RemoveLexemeResult.Removed -> consumer(Msg.LexemeRemoved(r.snapshot))
+                    null -> consumer(Msg.OperationFailed(R.string.word_card_error_remove_lexeme))
+                }
+            }
+
+            is DatasourceEffect.UpsertComponentValue.CreateLexeme ->
+                guarded(consumer, R.string.word_card_error_generic) {
+                    val lex = wordCardUseCase.addLexemeWithComponent(
+                        effect.wordId, effect.dictionaryId, effect.componentTypeRef, effect.data,
+                    )
+                    if (lex != null) consumer(Msg.LexemeDraftPromoted(lex, anchorPristineKey = effect.pristineKey))
+                    else consumer(Msg.OperationFailed(R.string.word_card_error_generic))
+                }
+
+            is DatasourceEffect.UpsertComponentValue.AddValue ->
+                guarded(consumer, R.string.word_card_error_generic) {
+                    val result = wordCardUseCase.addComponentValue(effect.lexemeId, effect.componentTypeId, effect.data)
+                    if (result != null) {
+                        consumer(Msg.RefreshLexemeComponents(effect.lexemeId, result.lexeme.components))
+                        consumer(Msg.ComponentValueInserted(effect.lexemeId, effect.pristineKey, result.newComponentValueId))
+                    } else {
+                        consumer(Msg.OperationFailed(R.string.word_card_error_generic))
+                    }
+                }
+
+            is DatasourceEffect.UpsertComponentValue.UpdateValue ->
+                guarded(consumer, R.string.word_card_error_generic) {
+                    val lex = wordCardUseCase.updateComponentValue(effect.componentValueId, effect.lexemeId, effect.data)
+                    if (lex != null) consumer(Msg.RefreshLexemeComponents(effect.lexemeId, lex.components))
+                    else consumer(Msg.OperationFailed(R.string.word_card_error_generic))
+                }
+
+            is DatasourceEffect.RemoveComponentValue ->
+                guarded(consumer, R.string.word_card_error_remove_lexeme) {
+                    when (val r = wordCardUseCase.deleteComponentValue(effect.componentValueId, effect.lexemeId)) {
+                        is RemoveComponentResult.ComponentRemoved ->
+                            consumer(Msg.RefreshLexemeComponents(effect.lexemeId, r.lexeme.components))
+                        is RemoveComponentResult.LexemeCascadeRemoved ->
+                            consumer(Msg.LexemeCascadeRemoved(r.removedLexeme))
+                        null -> consumer(Msg.OperationFailed(R.string.word_card_error_remove_lexeme))
+                    }
+                }
+
+            is DatasourceEffect.RestoreLexemeWithComponents ->
+                guarded(consumer, R.string.word_card_error_restore_lexeme) {
+                    val restored = wordCardUseCase.restoreLexemeWithComponents(
+                        effect.wordId, effect.dictionaryId, effect.snapshot,
+                    )
+                    if (restored != null) {
+                        val term = wordCardUseCase.getTermById(effect.wordId)
+                        if (term != null) consumer(Msg.WordLoaded(term))
+                        else consumer(Msg.OperationFailed(R.string.word_card_error_restore_lexeme))
+                    } else {
+                        consumer(Msg.RestoreLexemeFailed(effect.snapshot))
+                    }
+                }
+
+            // Обрабатывает AvailableComponentTypesFlowHandler (flow-handler), здесь — no-op.
+            is DatasourceEffect.LoadAvailableComponentTypes -> Unit
         }
-        consumer(msg)
+    }
+
+    /** try/catch обёртка: CancellationException пробрасывается, прочее → OperationFailed(errorRes). */
+    private suspend fun guarded(consumer: (Msg) -> Unit, errorRes: Int, block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (c: CancellationException) {
+            throw c
+        } catch (t: Throwable) {
+            logger.log(LogLevel.ERROR, TAG, "DB op failed", t)
+            consumer(Msg.OperationFailed(errorRes))
+        }
     }
 }
