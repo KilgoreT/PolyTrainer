@@ -109,6 +109,9 @@
     <string name="word_card_snackbar_definition_deleted">Definition deleted</string>
     <string name="word_card_snackbar_lexeme_deleted">Value deleted</string>
     <string name="word_card_snackbar_undo">Undo</string>
+    <string name="word_card_error_load_component_types">Failed to load component types</string>
+    <string name="word_card_action_retry">Retry</string>
+    <string name="word_card_error_generic">Failed to save</string>
     <string name="word_card_error_remove_word">Failed to delete word</string>
     <string name="word_card_error_save_word">Failed to save</string>
     <string name="word_card_error_refresh_word">Failed to refresh word</string>
@@ -129,6 +132,8 @@
     <string name="chat_menu_item_show_debug">Show debug</string>
     <string name="chat_menu_item_mistakes">Frequent Mistakes</string>
     <string name="chat_menu_item_earliest_reviewed">Earliest Reviewed</string>
+    <string name="chat_menu_item_quiz_component">Quiz component</string>
+    <string name="chat_menu_item_component_translation">Translation</string>
     <string name="chat_quiz_bg_image_content_description">Background image</string>
     <string name="chat_quiz_start_button_title">Start</string>
     <string name="chat_quiz_placeholder_text">Enter the answer</string>
@@ -198,5 +203,90 @@
     <string name="webview_retry">Retry</string>
 
     <string name="settings_section_about_app_title">Lexeme is an app that allows you to create your own dictionary of foreign words.\nWe are a team of developers who know from our own experience how important it is to keep foreign vocabulary organized and to review it regularly.</string>
+
+    <!-- IS481 components constructor -->
+    <!-- Settings entry -->
+    <string name="settings_section_components_management">Components</string>
+
+    <!-- DictionaryAppBar -->
+    <string name="components_tools_description">Manage components for this dictionary</string>
+
+    <!-- ComponentsManagerScreen -->
+    <string name="components_manager_title">Components</string>
+
+    <!-- PerDictionaryComponentsScreen -->
+    <string name="per_dict_components_title">Components in dictionary</string>
+
+    <!-- Empty state -->
+    <string name="components_empty_headline_manager">No custom components yet</string>
+    <string name="components_empty_body_manager">Translation works automatically in every dictionary.</string>
+    <string name="components_empty_headline_per_dict">Only translation in this dictionary</string>
+    <string name="components_empty_body_per_dict">Add another component to extend your cards.</string>
+    <string name="components_empty_cta">Create component</string>
+
+    <!-- FAB -->
+    <string name="components_create_cta">Create</string>
+
+    <!-- Create dialog -->
+    <string name="components_create_dialog_title">New component</string>
+    <string name="components_create_field_name">Name</string>
+    <string name="components_create_name_placeholder">e.g. Example sentence</string>
+    <string name="components_create_field_template">Type of value</string>
+    <string name="components_create_field_is_multi">Allow multiple values per card</string>
+
+    <!-- Rename dialog -->
+    <string name="components_rename_dialog_title">Rename component</string>
+    <string name="components_rename_original">Current name</string>
+    <string name="components_rename_new_name">New name</string>
+    <string name="components_rename_placeholder">New name</string>
+
+    <!-- Delete dialog -->
+    <string name="components_delete_dialog_title">Delete \"%1$s\"?</string>
+    <string name="components_delete_impact_values">%1$d existing values will be hidden</string>
+    <string name="components_delete_impact_dicts">Affects %1$d dictionary(s)</string>
+    <string name="components_delete_impact_quiz">Removed from %1$d quiz config(s)</string>
+    <string name="components_delete_impact_prefs">%1$d dictionary(s) will reset quiz pick</string>
+    <string name="components_delete_impact_unavailable">Impact preview unavailable</string>
+    <string name="components_delete_hint">Component will be soft-deleted. Values stay in the database but become invisible.</string>
+
+    <!-- NameError messages -->
+    <string name="components_name_error_empty">Name can\'t be empty</string>
+    <string name="components_name_error_same_scope_collision">A component with this name already exists in this scope</string>
+    <string name="components_name_error_cross_scope_collision">A component with this name already exists elsewhere</string>
+
+    <!-- PerDict row meta -->
+    <string name="per_dict_row_value_count">%d values</string>
+
+    <!-- Components manager error state (F163) -->
+    <string name="components_manager_load_failed">Failed to load components</string>
+    <string name="components_per_dict_load_failed">Failed to load components for this dictionary</string>
+    <string name="components_error_retry">Retry</string>
+
+    <!-- Common chip labels -->
+    <string name="components_chip_single">single</string>
+    <string name="components_chip_multi">multiple</string>
+    <string name="components_chip_global">global</string>
+
+    <!-- Template labels -->
+    <string name="components_template_text">Text</string>
+    <string name="components_template_image">Image</string>
+
+    <!-- Button labels -->
+    <string name="components_button_create">Create</string>
+    <string name="components_button_save">Save</string>
+
+    <!-- Edit dialog (phase 2) -->
+    <string name="components_edit_dialog_title">Edit component</string>
+    <string name="components_edit_field_name">Name</string>
+    <string name="components_edit_field_template">Type of value</string>
+    <string name="components_edit_field_is_multi">Allow multiple values per card</string>
+    <string name="components_edit_cardinality_blocked_title">Cannot switch to single — these cards have multiple values:</string>
+    <string name="components_edit_show_all">Show all (%1$d)</string>
+    <string name="components_edit_lexeme_label">Lexeme #%1$d</string>
+
+    <!-- Create scope picker (phase 2 multi-dict) -->
+    <string name="components_create_field_scope">Scope</string>
+    <string name="components_create_scope_global">Global (all dictionaries)</string>
+    <string name="components_create_scope_per_dict">Per-dictionary</string>
 
 </resources>

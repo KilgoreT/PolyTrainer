@@ -37,6 +37,7 @@ dependencies {
     implementation("javax.inject:javax.inject:1")
     implementation(project("path" to ":modules:widget:dictionarypicker"))
     implementation(project("path" to ":modules:widget:iconDropDowned"))
+    implementation(project("path" to ":core:core-resources"))
 
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)

@@ -12,6 +12,8 @@ value class Word(val value: String)
 data class Term(
     val wordId: WordId,
     val word: Word,
+    /** IS481 F1 fix — нужен handler'у `LoadWord` для `getComponentTypes(dictionaryId)`. */
+    val dictionaryId: Long,
     val addedDate: Date,
     val changedDate: Date?,
     val removedDate: Date?,

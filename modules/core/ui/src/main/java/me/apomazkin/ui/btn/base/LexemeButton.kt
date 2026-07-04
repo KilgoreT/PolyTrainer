@@ -29,12 +29,13 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 private const val DEFAULT_ROUNDED_CORNER = 12
 private const val DEFAULT_HORIZONTAL_PADDING = 28
+private val DEFAULT_HEIGHT = 44.dp
 
 @Composable
 fun LexemeButton(
     modifier: Modifier = Modifier,
     @StringRes titleRes: Int,
-    height: Dp,
+    height: Dp = DEFAULT_HEIGHT,
     enabledColor: Color,
     titleTextColor: Color,
     disabledTitleTextColor: Color = MaterialTheme.colorScheme.secondary,

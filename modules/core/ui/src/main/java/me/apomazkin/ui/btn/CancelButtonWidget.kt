@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.blackColor
@@ -21,13 +22,14 @@ fun CancelButtonWidget(
     modifier: Modifier = Modifier,
     @StringRes titleRes: Int = R.string.button_cancel,
     enabled: Boolean = true,
+    height: Dp = 44.dp,
     onClick: () -> Unit,
 ) {
     LexemeButton(
         modifier = modifier,
         titleRes = titleRes,
         enabled = enabled,
-        height = 44.dp,
+        height = height,
         enabledColor = MaterialTheme.colorScheme.onSecondary,
         titleTextColor = blackColor,
         onClick = onClick,

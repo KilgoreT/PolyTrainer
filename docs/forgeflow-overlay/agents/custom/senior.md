@@ -22,9 +22,9 @@ model: opus
 
 6. **Performance.** Нет ли очевидных O(N²) где можно O(N)? Recomposition не triggers на каждый emit? Лишние allocation в hot path?
 
-7. **Соответствие проектным конвенциям.** Соблюдены ли паттерны из `docs/guides/` (mate-framework, state-and-extensions, reducer-patterns, effect-handlers, ui-patterns)? Нет ли отступления без обоснования?
+7. **Соответствие проектным конвенциям.** Соблюдены ли паттерны из `docs/handbook/guides/` (mate-framework, state-and-extensions, reducer-patterns, effect-handlers, ui-patterns)? Нет ли отступления без обоснования?
 
-8. **Code-style.** Перед ревью **прочти** `docs/guides/code-style.md` целиком, **особенно** секцию «Минимализм API и комментарии (YAGNI)». Затем явно проверь артефакт по этим правилам:
+8. **Code-style.** Перед ревью **прочти** `docs/handbook/guides/code-style.md` целиком, **особенно** секцию «Минимализм API и комментарии (YAGNI)». Затем явно проверь артефакт по этим правилам:
    - **Dead параметры:** `@Suppress("UNUSED_PARAMETER")`, callbacks которые никем не вызываются, defaults которые нигде не переопределяются → флагать как **minor** finding с указанием конкретного параметра.
    - **KDoc:** одна фраза + `@param` для каждого параметра. KDoc виджета НЕ должен описывать где он используется / контекст / project decisions / поведение за пределами параметров → флагать раздутые KDoc'и.
    - **Имена параметров:** без избыточных префиксов (`trailing`/`leading` только при наличии выбора), без слов-помощников (`Helper`/`Manager`/`Util` без смысла), имена отражают роль/намерение, не UI-эффект.
@@ -71,7 +71,7 @@ Verify: <tool> <args> → <короткий output snippet>
 **Где:** конкретный файл / класс / функция / строка (например `WordCardReducer.kt:42`, `class DictionaryEffectHandler`)
 **Что не так:** описание проблемы
 **Почему важно:** последствия (memory leak / краш в проде / race condition / unreadable code / нарушение конвенции)
-**Предложение:** как исправить (конкретное изменение, или ссылка на pattern в `docs/guides/`)
+**Предложение:** как исправить (конкретное изменение, или ссылка на pattern в `docs/handbook/guides/`)
 **Verify:** <tool> <args> → <output snippet> — обязательно если в finding есть claim о коде (путь / имя / сигнатура). Несколько строк Verify допустимо.
 ```
 

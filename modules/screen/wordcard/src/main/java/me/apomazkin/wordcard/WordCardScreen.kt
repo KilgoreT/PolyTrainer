@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -38,9 +40,10 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewScreen
+import me.apomazkin.wordcard.mate.ComponentValueState
+import me.apomazkin.wordcard.mate.ComponentValueKey
 import me.apomazkin.wordcard.mate.LexemeState
 import me.apomazkin.wordcard.mate.Msg
-import me.apomazkin.wordcard.mate.TextValueState
 import me.apomazkin.wordcard.mate.WordCardState
 import me.apomazkin.wordcard.mate.WordState
 import me.apomazkin.wordcard.widget.AddLexemeWidget
@@ -50,10 +53,13 @@ import me.apomazkin.wordcard.widget.TopBarWidget
 import me.apomazkin.wordcard.widget.WordFieldWidget
 import me.apomazkin.wordcard.widget.internal.UiHostImpl
 import me.apomazkin.core_resources.R
-import me.apomazkin.wordcard.widget.lexeme.AddLexemeMeaningRow
+import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.wordcard.widget.lexeme.DeleteLexemeButton
 import me.apomazkin.wordcard.widget.lexeme.LexemeCard
-import me.apomazkin.wordcard.widget.lexeme.LexemeMeaningField
+import me.apomazkin.wordcard.widget.lexeme.LexemeComponentsBlock
 import java.util.Date
 
 @Composable
@@ -140,7 +146,7 @@ internal fun WordCardScreen(
                 ) {
                     WordFieldWidget(
                         loaded = state.wordState,
-                        enabled = !state.isPendingDbOp,
+                        enabled = !state.isPendingDbOp && !state.isExiting,
                         onValueChange = { sendMessage(Msg.UpdateWordInput(it)) },
                         onOpenEditMode = { sendMessage(Msg.EnterWordEditMode) },
                         onCommit = { sendMessage(Msg.CommitWordChanges) },
@@ -154,47 +160,37 @@ internal fun WordCardScreen(
                         state.lexemeList.forEach { lexemeState ->
                             key(lexemeState.id) {
                                 LexemeCard {
-                                    lexemeState.translation?.let { translation ->
-                                        LexemeMeaningField(
-                                            labelRes = R.string.word_card_bottom_translation,
-                                            state = translation,
-                                            enabled = !state.isPendingDbOp,
-                                            onValueChange = { sendMessage(Msg.UpdateTranslationInput(lexemeState.id, it)) },
-                                            onOpenEditMode = { sendMessage(Msg.EnterTranslationEditMode(lexemeState.id)) },
-                                            onCommitEdit = { sendMessage(Msg.CommitTranslationEdit(lexemeState.id)) },
-                                            onRemove = { sendMessage(Msg.RemoveTranslation(lexemeState.id)) },
-                                        )
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                    }
-                                    lexemeState.definition?.let { definition ->
-                                        LexemeMeaningField(
-                                            labelRes = R.string.word_card_bottom_definition,
-                                            state = definition,
-                                            enabled = !state.isPendingDbOp,
-                                            onValueChange = { sendMessage(Msg.UpdateDefinitionInput(lexemeState.id, it)) },
-                                            onOpenEditMode = { sendMessage(Msg.EnterDefinitionEditMode(lexemeState.id)) },
-                                            onCommitEdit = { sendMessage(Msg.CommitDefinitionEdit(lexemeState.id)) },
-                                            onRemove = { sendMessage(Msg.RemoveDefinition(lexemeState.id)) },
-                                        )
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                    }
-                                    if (lexemeState.canAddTranslation || lexemeState.canAddDefinition) {
-                                        AddLexemeMeaningRow(
-                                            canAddTranslation = lexemeState.canAddTranslation,
-                                            canAddDefinition = lexemeState.canAddDefinition,
-                                            enabled = !state.isPendingDbOp,
-                                            onCreateTranslation = { sendMessage(Msg.CreateTranslation(lexemeState.id)) },
-                                            onCreateDefinition = { sendMessage(Msg.CreateDefinition(lexemeState.id)) },
-                                        )
-                                    }
+                                    LexemeComponentsBlock(
+                                        lexemeState = lexemeState,
+                                        availableTypes = state.availableComponentTypes,
+                                        enabled = !state.isPendingDbOp && !state.isExiting,
+                                        sendMessage = sendMessage,
+                                    )
                                     DeleteLexemeButton(
-                                        enabled = !state.isPendingDbOp,
+                                        enabled = !state.isPendingDbOp && !state.isExiting,
                                         onClick = { sendMessage(Msg.OpenDeleteLexemeDialog(lexemeState.id)) },
                                     )
                                 }
                             }
                         }
                     }
+                }
+            }
+
+            // Flush-on-back: блокирующий loader пока isExiting (ждём завершения commit'ов перед выходом).
+            if (state.isExiting) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Black.copy(alpha = 0.2f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {},
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }
@@ -223,6 +219,7 @@ private fun Preview() {
             state = WordCardState(
                 wordState = WordState.Loaded(
                     id = 1L,
+                    dictionaryId = 1L,
                     added = Date(),
                     value = "Word",
                 ),
@@ -240,17 +237,21 @@ private fun PreviewWithLexeme() {
             state = WordCardState(
                 wordState = WordState.Loaded(
                     id = 1L,
+                    dictionaryId = 1L,
                     added = Date(),
                     value = "Word",
                 ),
                 lexemeList = listOf(
                     LexemeState(
                         id = 1L,
-                        translation = TextValueState(
-                            origin = "Translation",
-                        ),
-                        definition = TextValueState(
-                            origin = "Definition",
+                        components = listOf(
+                            ComponentValueState(
+                                key = ComponentValueKey.Saved(ComponentValueId(1L)),
+                                componentTypeId = ComponentTypeId(50L),
+                                componentTypeRef = ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION),
+                                isMultiple = false,
+                                origin = "Translation",
+                            ),
                         ),
                     ),
                 ),

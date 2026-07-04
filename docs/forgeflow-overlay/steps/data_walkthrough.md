@@ -2,7 +2,7 @@
 name: data_walkthrough
 output: data_walkthrough.md
 input_criteria:
-  - scope_analysis.output существует
+  - 02_scope.md существует
 output_criteria:
   - data_walkthrough.md существует
   - все утверждения подкреплены ссылками на файлы (`file:line` либо path к директории)

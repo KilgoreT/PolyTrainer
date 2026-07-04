@@ -1,0 +1,727 @@
+flow: adaptive
+started: 2026-06-22T16:07:25-06:00
+dir: docs/features/IS481_component_constructor_phase2/
+parent: null
+
+context:
+  ticket: IS481
+  feature_name: component_constructor_phase2
+  branch: IS481_lexeme_component_constructor
+  mode: autonomy
+  overlay: docs/forgeflow-overlay
+  workspace:
+    dir_template: "docs/features/{ticket}_{name}/"
+    spec_dir: "docs/features-spec/"
+  depth: 0
+  feedback_iteration: 0
+  feedback_restart: false
+  parent: null
+  feature_has_figma: false
+  infra_touched: true
+  business_touched: true
+  ui_touched: true
+  data_touched: true
+  needs_tests: true
+  needs_migration_tests: false
+  feature_has_ui_contract: true
+  spec_filename: component-constructor.md
+  review_passed: true
+
+steps:
+  task:
+    status: done
+    started: 2026-06-22T16:12:30-06:00
+    finished: 2026-06-22T16:16:40-06:00
+    pause: true
+    output: task.md
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  figma_dump:
+    status: done
+    started: 2026-06-22T16:16:40-06:00
+    finished: 2026-06-22T16:26:10-06:00
+    pause: false
+    input: task.output
+    output: figma_dump.json
+    sets:
+      - feature_has_figma
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  scope_analysis:
+    status: done
+    started: 2026-06-22T16:30:41-06:00
+    iteration: 5
+    finished: 2026-06-22T17:58:46-06:00
+    output: 02_scope.md
+    pause: true
+    input:
+      - task.output
+      - figma_dump.output
+    output: 02_scope.md
+    sets:
+      - infra_touched
+      - business_touched
+      - ui_touched
+      - data_touched
+      - needs_tests
+      - needs_migration_tests
+      - feature_has_ui_contract
+      - spec_filename
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  checklist_init:
+    status: done
+    started: 2026-06-22T17:58:46-06:00
+    finished: 2026-06-22T17:58:46-06:00
+    output: checklist.md
+    pause: true
+    input:
+      - scope_analysis.output
+    output: checklist.md
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  infra_walkthrough:
+    status: done
+    started: 2026-06-22T17:58:46-06:00
+    finished: 2026-06-22T18:11:42-06:00
+    output: infra_walkthrough.md
+    if: infra_touched
+    pause: true
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  infra_design_tree:
+    status: done
+    started: 2026-06-22T18:11:42-06:00
+    iteration: 2
+    finished: 2026-06-22T18:23:24-06:00
+    prompt: design_tree
+    if: infra_touched
+    output: infra_design_tree.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_walkthrough.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  infra_test:
+    status: done
+    started: 2026-06-22T18:23:24-06:00
+    iteration: 1
+    finished: 2026-06-22T18:29:57-06:00
+    prompt: test
+    if: (needs_tests) AND infra_touched
+    output: infra_test.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  infra_implement:
+    status: done
+    started: 2026-06-22T18:29:57-06:00
+    iteration: 1
+    finished: 2026-06-22T18:37:15-06:00
+    prompt: implement
+    if: infra_touched
+    output: infra_implement.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_design_tree.output
+      - infra_test.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+
+  infra_summary:
+    status: done
+    started: 2026-06-22T18:37:15-06:00
+    finished: 2026-06-22T18:41:12-06:00
+    prompt: summary
+    if: infra_touched
+    output: infra_summary.md
+    pause: true
+    input:
+      - infra_design_tree.output
+      - infra_test.output
+      - infra_implement.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  business_walkthrough:
+    status: done
+    started: 2026-06-22T18:41:12-06:00
+    finished: 2026-06-22T18:48:38-06:00
+    output: business_walkthrough.md
+    if: business_touched
+    pause: true
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  business_contract:
+    status: done
+    started: 2026-06-22T18:48:38-06:00
+    finished: 2026-06-22T18:54:50-06:00
+    output: business_contract.md
+    if: business_touched
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_walkthrough.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  business_contract_review:
+    status: done
+    started: 2026-06-22T18:54:50-06:00
+    finished: 2026-06-22T18:54:50-06:00
+    output: business_contract_review.md
+    if: business_touched
+    input:
+      - business_walkthrough.output
+      - business_contract.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  business_contract_spec:
+    status: done
+    started: 2026-06-22T19:12:34-06:00
+    iteration: 1
+    finished: 2026-06-22T19:19:53-06:00
+    output: business_contract_spec.md
+    if: business_touched
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_contract.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  business_design_tree:
+    status: done
+    started: 2026-06-22T19:19:53-06:00
+    iteration: 1
+    finished: 2026-06-22T19:30:21-06:00
+    if: business_touched
+    output: business_design_tree.md
+    pause: true
+    input:
+      - business_contract.output
+      - business_contract_spec.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+      checklist:
+        phases:
+          - "finalize:after"
+
+  business_test:
+    status: done
+    started: 2026-06-22T19:30:21-06:00
+    iteration: 1
+    finished: 2026-06-22T19:41:04-06:00
+    prompt: test
+    if: business_touched
+    output: business_test.md
+    pause: true
+    input:
+      - business_contract.output
+      - business_design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  business_implement:
+    status: done
+    started: 2026-06-22T19:41:04-06:00
+    iteration: 1
+    finished: 2026-06-22T20:15:00-06:00
+    prompt: implement
+    if: business_touched
+    output: business_implement.md
+    pause: true
+    input:
+      - business_contract.output
+      - business_design_tree.output
+      - business_test.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+      checklist:
+        phases:
+          - "finalize:after"
+
+  business_publish_spec:
+    status: done
+    started: 2026-06-22T20:15:00-06:00
+    iteration: 1
+    finished: 2026-06-22T20:27:26-06:00
+    prompt: publish_spec
+    if: business_touched
+    output: business_publish_spec.md
+    pause: true
+    input:
+      - business_contract_spec.output
+      - business_implement.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      review:
+        agents:
+          - architect
+
+  business_summary:
+    status: done
+    started: 2026-06-22T20:27:26-06:00
+    finished: 2026-06-22T20:32:00-06:00
+    prompt: summary
+    if: business_touched
+    output: business_summary.md
+    pause: true
+    input:
+      - business_design_tree.output
+      - business_test.output
+      - business_implement.output
+      - business_publish_spec.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  ui_walkthrough:
+    status: done
+    started: 2026-06-22T20:32:13-06:00
+    finished: 2026-06-22T20:37:42-06:00
+    output: ui_walkthrough.md
+    if: ui_touched
+    pause: true
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  ui_layout:
+    status: done
+    started: 2026-06-22T20:37:42-06:00
+    iteration: 1
+    finished: 2026-06-22T20:44:57-06:00
+    output: ui_layout.md
+    if: ui_touched
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_summary.output
+      - figma_dump.output
+      - ui_walkthrough.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  ui_design_tree:
+    status: done
+    started: 2026-06-22T20:44:57-06:00
+    iteration: 1
+    finished: 2026-06-22T20:49:30-06:00
+    prompt: design_tree
+    if: ui_touched
+    output: ui_design_tree.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_summary.output
+      - business_summary.output
+      - figma_dump.output
+      - ui_layout.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+      checklist:
+        phases:
+          - "finalize:after"
+
+  ui_implement:
+    status: done
+    started: 2026-06-22T20:49:30-06:00
+    iteration: 1
+    finished: 2026-06-22T21:23:10-06:00
+    prompt: implement
+    if: ui_touched
+    output: ui_implement.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_summary.output
+      - figma_dump.output
+      - ui_layout.output
+      - ui_design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+      checklist:
+        phases:
+          - "finalize:after"
+
+  publish_ui:
+    status: done
+    started: 2026-06-22T21:23:10-06:00
+    iteration: 1
+    finished: 2026-06-22T21:29:56-06:00
+    output: publish_ui.md
+    if: ui_touched
+    pause: true
+    input:
+      - ui_layout.output
+      - ui_implement.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      review:
+        agents:
+          - architect
+
+  ui_summary:
+    status: done
+    started: 2026-06-22T21:29:56-06:00
+    finished: 2026-06-22T21:32:26-06:00
+    prompt: summary
+    if: ui_touched
+    output: ui_summary.md
+    pause: true
+    input:
+      - ui_layout.output
+      - ui_design_tree.output
+      - ui_implement.output
+      - publish_ui.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  data_walkthrough:
+    status: done
+    started: 2026-06-22T21:32:26-06:00
+    finished: 2026-06-22T21:39:33-06:00
+    output: data_walkthrough.md
+    if: data_touched
+    pause: true
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  data_design_tree:
+    status: done
+    started: 2026-06-22T21:39:33-06:00
+    iteration: 1
+    finished: 2026-06-22T21:42:53-06:00
+    prompt: design_tree
+    if: data_touched
+    output: data_design_tree.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_summary.output
+      - business_summary.output
+      - data_walkthrough.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+      checklist:
+        phases:
+          - "finalize:after"
+
+  data_migration_test:
+    status: skipped
+    prompt: migration_test
+    if: (needs_migration_tests) AND data_touched
+    output: data_migration_test.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - data_design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  data_implement:
+    status: done
+    started: 2026-06-22T21:42:53-06:00
+    iteration: 1
+    finished: 2026-06-22T21:53:26-06:00
+    prompt: implement
+    if: data_touched
+    output: data_implement.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_summary.output
+      - data_design_tree.output
+      - data_migration_test.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+      checklist:
+        phases:
+          - "finalize:after"
+
+  data_summary:
+    status: done
+    started: 2026-06-22T21:53:26-06:00
+    finished: 2026-06-22T21:55:24-06:00
+    prompt: summary
+    if: data_touched
+    output: data_summary.md
+    pause: true
+    input:
+      - data_design_tree.output
+      - data_migration_test.output
+      - data_implement.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  checklist_run:
+    status: done
+    started: 2026-06-22T21:55:24-06:00
+    finished: 2026-06-22T21:59:59-06:00
+    pause: true
+    input:
+      - checklist_init.output
+      - infra_summary.output?
+      - business_summary.output?
+      - ui_summary.output?
+      - data_summary.output?
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  check:
+    status: done
+    started: 2026-06-22T21:59:59-06:00
+    finished: 2026-06-22T22:09:08-06:00
+    pause: true
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checks:
+        - lint
+        - test
+        - build
+
+  global_code_review:
+    status: done
+    started: 2026-06-22T22:09:08-06:00
+    finished: 2026-06-22T22:31:48-06:00
+    output: REVIEW.md
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_summary.output?
+      - business_summary.output?
+      - ui_summary.output?
+      - data_summary.output?
+    with:
+      logging:
+        phases:
+          - "finalize:after"

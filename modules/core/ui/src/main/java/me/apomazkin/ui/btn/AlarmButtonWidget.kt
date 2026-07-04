@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.R
@@ -18,13 +19,14 @@ fun AlarmButtonWidget(
     @StringRes titleRes: Int,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    height: Dp = 44.dp,
     onClick: () -> Unit,
 ) {
     LexemeButton(
         modifier = modifier,
         titleRes = titleRes,
         enabled = enabled,
-        height = 44.dp,
+        height = height,
         enabledColor = MaterialTheme.colorScheme.error,
         titleTextColor = MaterialTheme.colorScheme.onError,
         onClick = onClick,

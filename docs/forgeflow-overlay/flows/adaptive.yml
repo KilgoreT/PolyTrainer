@@ -11,6 +11,7 @@ modules:
   - logging
   - review
   - guides
+  - checklist
 
 steps:
   - step: task
@@ -62,6 +63,16 @@ steps:
           - architect
           - qa_engineer
 
+  - step: checklist_init
+    pause: true
+    input:
+      - scope_analysis.output
+    output: checklist.md
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
   - subflow: infra
     flow: flows/infra.yml
     if: infra_touched
@@ -77,6 +88,19 @@ steps:
   - subflow: data
     flow: flows/data.yml
     if: data_touched
+
+  - step: checklist_run
+    pause: true
+    input:
+      - checklist_init.output
+      - infra_summary.output?
+      - business_summary.output?
+      - ui_summary.output?
+      - data_summary.output?
+    with:
+      logging:
+        phases:
+          - "finalize:after"
 
   - step: check
     pause: true

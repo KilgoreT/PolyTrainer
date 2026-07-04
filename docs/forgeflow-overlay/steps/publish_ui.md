@@ -18,7 +18,7 @@ UI-аналог business `publish_spec`. Мержит UI Layout (snapshot из `
 - `implement.output` — артефакт реализации (для опциональной корректировки UI Layout под фактически реализованный код, если в impl что-то отошло от ui_layout).
 - `spec_dir/<feature>.md` — существующая спека (может быть создана `publish_spec` business sub-flow ранее либо отсутствовать).
 
-`spec_dir` определяется через `plan.context.workspace.spec_dir` (например `docs/features-spec/`).
+`spec_dir` определяется через `plan.context.workspace.spec_dir` (например `docs/handbook/specs/`).
 
 ## 2. Имя файла спеки
 

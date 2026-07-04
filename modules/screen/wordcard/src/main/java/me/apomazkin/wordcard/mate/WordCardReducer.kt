@@ -1,57 +1,59 @@
 package me.apomazkin.wordcard.mate
 
 import me.apomazkin.core_resources.R
+import me.apomazkin.lexeme.toRef
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.ReducerResult
 
+/**
+ * IS481 generic reducer. ЭТАП 0: скелет — простые (unchanged) ветки реальны,
+ * generic-компонентные и flush-on-back — заглушки (этап 4). Структура guard +
+ * post-step (§6.1) реальна.
+ */
 class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
 
     override fun reduce(state: WordCardState, message: Msg): ReducerResult<WordCardState, Effect> {
-        if (state.isPendingDbOp && message.isGuardedByPending()) {
+        if ((state.isPendingDbOp || state.isExiting) && message.isGuardedByPending()) {
             return state to emptySet()
         }
-        return reduceImpl(state, message)
+        val (next, effects) = reduceImpl(state, message)
+        // Flush-on-back (§6.2.3): Back на ПЕРЕХОДЕ в (isExiting && !hasInFlightCommits), isExiting НЕ сбрасываем.
+        val readyNow = next.isExiting && !next.hasInFlightCommits
+        val readyBefore = state.isExiting && !state.hasInFlightCommits
+        return if (readyNow && !readyBefore) {
+            next to (effects + NavigationEffect.Back)
+        } else {
+            next to effects
+        }
     }
 
-    private fun reduceImpl(state: WordCardState, message: Msg): ReducerResult<WordCardState, Effect> {
+    private fun reduceImpl(
+        state: WordCardState,
+        message: Msg,
+    ): ReducerResult<WordCardState, Effect> {
         return when (message) {
-            // ===== Top bar menu =====
+            // ===== Top bar =====
             is Msg.OpenTopBarMenu -> state.showMenu() to emptySet()
-
             is Msg.CloseTopBarMenu ->
-                if (!state.topBarState.isMenuOpen) state to emptySet()
-                else state.hideMenu() to emptySet()
+                if (!state.topBarState.isMenuOpen) state to emptySet() else state.hideMenu() to emptySet()
 
             // ===== Delete word =====
-            is Msg.OpenDeleteWordDialog -> {
+            is Msg.OpenDeleteWordDialog ->
                 if (state.wordState !is WordState.Loaded) state to emptySet()
                 else state.showWordWarningDialog() to emptySet()
-            }
 
             is Msg.CloseDeleteWordDialog -> state.hideWordWarningDialog() to emptySet()
 
             is Msg.RemoveWord -> {
                 val loaded = state.wordState as? WordState.Loaded
-                if (loaded == null || loaded.id != message.wordId) {
-                    state to emptySet()
-                } else {
-                    state.copy(isPendingDbOp = true)
-                        .hideWordWarningDialog()
-                        .hideMenu() to setOf(DatasourceEffect.RemoveWord(wordId = message.wordId))
-                }
+                if (loaded == null || loaded.id != message.wordId) state to emptySet()
+                else state.copy(isPendingDbOp = true).hideWordWarningDialog().hideMenu() to
+                        setOf(DatasourceEffect.RemoveWord(wordId = message.wordId))
             }
 
             // ===== Word edit =====
-            is Msg.EnterWordEditMode -> {
-                if (state.wordState !is WordState.Loaded) state to emptySet()
-                else {
-                    val (closedState, commitEffects) = state.commitAndCloseAllEdits()
-                    closedState.enableWordEdit() to commitEffects
-                }
-            }
-
             is Msg.UpdateWordInput -> {
                 val loaded = state.wordState as? WordState.Loaded
                 if (loaded == null || !loaded.isEditMode) state to emptySet()
@@ -63,193 +65,24 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 when {
                     loaded == null -> state to emptySet()
                     loaded.edited.isBlank() -> state to emptySet()
-                    else -> state.copy(isPendingDbOp = true)
-                        .disableWordEdit() to setOf(
-                        DatasourceEffect.UpdateWord(
-                            wordId = loaded.id,
-                            value = loaded.edited,
-                        )
-                    )
-                }
-            }
-
-            // ===== Lexeme =====
-            is Msg.CreateLexeme -> {
-                val loaded = state.wordState as? WordState.Loaded
-                when {
-                    loaded == null -> state to emptySet()
-                    state.isCreatingLexeme -> state to emptySet()
-                    else -> {
-                        val (closed, commitEffects) = state.commitAndCloseAllEdits()
-                        closed.copy(
-                            lexemeList = listOf(
-                                LexemeState(
-                                    id = NOT_IN_DB,
-                                    translation = null,
-                                    definition = null,
+                    else -> state.copy(isPendingDbOp = true).disableWordEdit() to
+                            setOf(
+                                DatasourceEffect.UpdateWord(
+                                    wordId = loaded.id,
+                                    value = loaded.edited,
                                 ),
-                            ) + closed.lexemeList,
-                        ) to commitEffects
-                    }
-                }
-            }
-
-            is Msg.OpenDeleteLexemeDialog -> {
-                val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
-                when {
-                    lex == null -> state to emptySet()
-                    // Пустая NOT_IN_DB-лексема — удаляем сразу без confirm.
-                    lex.id == NOT_IN_DB && lex.translation == null && lex.definition == null ->
-                        state.removeLexeme(message.lexemeId) to emptySet()
-                    else ->
-                        state.copy(lexemeIdPendingDelete = message.lexemeId) to emptySet()
-                }
-            }
-
-            is Msg.CloseDeleteLexemeDialog -> {
-                state.copy(lexemeIdPendingDelete = null) to emptySet()
-            }
-
-            is Msg.RemoveLexeme -> {
-                val loaded = state.wordState as? WordState.Loaded
-                val cleared = state.copy(lexemeIdPendingDelete = null)
-                when {
-                    loaded == null -> cleared to emptySet()
-                    message.lexemeId == NOT_IN_DB ->
-                        cleared.removeLexeme(NOT_IN_DB) to emptySet()
-                    else ->
-                        cleared.copy(isPendingDbOp = true) to setOf(
-                            DatasourceEffect.RemoveLexeme(
-                                wordId = loaded.id,
-                                lexemeId = message.lexemeId,
                             )
-                        )
                 }
             }
 
-            // ===== Translation chip =====
-            is Msg.CreateTranslation -> {
-                val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
-                if (lex == null || lex.translation != null) state to emptySet()
-                else {
-                    val (closed, commitEffects) = state.commitAndCloseAllEdits()
-                    closed.createLexemeTranslation(message.lexemeId) to commitEffects
-                }
-            }
+            // ===== Lexeme delete dialog =====
+            is Msg.OpenDeleteLexemeDialog ->
+                state.copy(lexemeIdPendingDelete = message.lexemeId) to emptySet()
 
-            is Msg.UpdateTranslationInput -> {
-                val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
-                val t = lex?.translation
-                if (t == null || !t.isEdit) state to emptySet()
-                else state.updateLexemeTranslationText(message.lexemeId, message.value) to emptySet()
-            }
+            is Msg.CloseDeleteLexemeDialog ->
+                state.copy(lexemeIdPendingDelete = null) to emptySet()
 
-            is Msg.EnterTranslationEditMode -> {
-                val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
-                if (lex?.translation == null) state to emptySet()
-                else {
-                    val (closed, commitEffects) = state.commitAndCloseAllEdits()
-                    closed.enableLexemeTranslationEdit(message.lexemeId) to commitEffects
-                }
-            }
-
-            is Msg.CommitTranslationEdit -> commitTranslationEdit(state, message.lexemeId)
-
-            is Msg.RemoveTranslation -> {
-                val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
-                when {
-                    lex == null -> state to emptySet()
-                    lex.id == NOT_IN_DB -> {
-                        val nullified = state.updateLexeme(message.lexemeId) {
-                            it.copy(translation = null)
-                        }
-                        val after = nullified.lexemeList.first { it.id == message.lexemeId }
-                        if (after.translation == null && after.definition == null) {
-                            nullified.removeLexeme(message.lexemeId) to emptySet()
-                        } else {
-                            nullified to emptySet()
-                        }
-                    }
-                    // Translation ещё не сохранён в БД (пустой chip у real-лексемы) —
-                    // локальный nullify без эффекта.
-                    lex.translation?.origin?.isEmpty() == true ->
-                        state.updateLexeme(message.lexemeId) {
-                            it.copy(translation = null)
-                        } to emptySet()
-                    else -> state.copy(isPendingDbOp = true) to setOf(
-                        DatasourceEffect.RemoveTranslation(
-                            lexemeId = message.lexemeId,
-                            currentValue = lex.translation?.origin.orEmpty(),
-                        )
-                    )
-                }
-            }
-
-            // ===== Definition chip (зеркально Translation) =====
-            is Msg.CreateDefinition -> {
-                val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
-                if (lex == null || lex.definition != null) state to emptySet()
-                else {
-                    val (closed, commitEffects) = state.commitAndCloseAllEdits()
-                    closed.createLexemeDefinition(message.lexemeId) to commitEffects
-                }
-            }
-
-            is Msg.UpdateDefinitionInput -> {
-                val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
-                val d = lex?.definition
-                if (d == null || !d.isEdit) state to emptySet()
-                else state.updateLexemeDefinitionText(message.lexemeId, message.value) to emptySet()
-            }
-
-            is Msg.EnterDefinitionEditMode -> {
-                val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
-                if (lex?.definition == null) state to emptySet()
-                else {
-                    val (closed, commitEffects) = state.commitAndCloseAllEdits()
-                    closed.enableLexemeDefinitionEdit(message.lexemeId) to commitEffects
-                }
-            }
-
-            is Msg.CommitDefinitionEdit -> commitDefinitionEdit(state, message.lexemeId)
-
-            is Msg.RemoveDefinition -> {
-                val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
-                when {
-                    lex == null -> state to emptySet()
-                    lex.id == NOT_IN_DB -> {
-                        val nullified = state.updateLexeme(message.lexemeId) {
-                            it.copy(definition = null)
-                        }
-                        val after = nullified.lexemeList.first { it.id == message.lexemeId }
-                        if (after.translation == null && after.definition == null) {
-                            nullified.removeLexeme(message.lexemeId) to emptySet()
-                        } else {
-                            nullified to emptySet()
-                        }
-                    }
-                    // Definition ещё не сохранён в БД (пустой chip у real-лексемы) —
-                    // локальный nullify без эффекта.
-                    lex.definition?.origin?.isEmpty() == true ->
-                        state.updateLexeme(message.lexemeId) {
-                            it.copy(definition = null)
-                        } to emptySet()
-                    else -> state.copy(isPendingDbOp = true) to setOf(
-                        DatasourceEffect.RemoveDefinition(
-                            lexemeId = message.lexemeId,
-                            currentValue = lex.definition?.origin.orEmpty(),
-                        )
-                    )
-                }
-            }
-
-            // ===== Navigation / feedback =====
-            is Msg.NavigateBack ->
-                state.copy(isPendingDbOp = false) to setOf(NavigationEffect.Back)
-
-            is Msg.NoOperation -> state to emptySet()
-
-            // ===== Datasource Msg =====
+            // ===== Datasource load =====
             is Msg.WordLoaded -> {
                 val w = message.word
                 state.copy(
@@ -257,381 +90,432 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                     isPendingDbOp = false,
                     wordState = WordState.Loaded(
                         id = w.wordId.id,
+                        dictionaryId = w.dictionaryId,
                         added = w.addedDate,
                         value = w.word.value,
                     ),
                     lexemeList = w.lexemeList.map { it.toLexemeState() },
-                ) to emptySet()
+                ) to setOf(DatasourceEffect.LoadAvailableComponentTypes(w.dictionaryId))
             }
 
             is Msg.WordNotFound ->
-                state.copy(isLoading = false, isPendingDbOp = false) to
-                        setOf(NavigationEffect.Back)
+                state.copy(isLoading = false, isPendingDbOp = false) to setOf(NavigationEffect.Back)
 
             is Msg.RefreshWord -> {
                 val loaded = state.wordState as? WordState.Loaded
-                if (loaded == null) {
-                    state.copy(isPendingDbOp = false) to emptySet()
-                } else {
-                    state.copy(
-                        isPendingDbOp = false,
-                        wordState = loaded.copy(
-                            value = message.word.word.value,
-                            isEditMode = false,
-                            edited = "",
-                        ),
-                    ) to emptySet()
+                if (loaded == null) state.copy(isPendingDbOp = false) to emptySet()
+                else state.copy(
+                    isPendingDbOp = false,
+                    wordState = loaded.copy(
+                        value = message.word.word.value,
+                        isEditMode = false,
+                        edited = "",
+                    ),
+                ) to emptySet()
+            }
+
+            is Msg.NoOperation -> state to emptySet()
+
+            // ===== Word edit (commit open edits first) =====
+            is Msg.EnterWordEditMode -> {
+                if (state.wordState !is WordState.Loaded) state to emptySet()
+                else {
+                    val (committed, effects) = state.commitAndCloseAllEdits()
+                    committed.enableWordEdit() to effects
                 }
             }
 
-            is Msg.RefreshTranslation -> refreshTranslation(state, message.lexemeId, message.translation)
-            is Msg.RefreshDefinition -> refreshDefinition(state, message.lexemeId, message.definition)
-
-            is Msg.RefreshLexemeList -> {
-                val mapped = message.lexemes.map { it.toLexemeState() }
-                val keepLocal = state.lexemeList.firstOrNull { it.id == NOT_IN_DB }
-                val newList = if (keepLocal != null && mapped.none { it.id == NOT_IN_DB }) {
-                    listOf(keepLocal) + mapped
-                } else {
-                    mapped
+            // ===== Lexeme create =====
+            is Msg.CreateLexeme -> {
+                if (state.isCreatingLexeme) state to emptySet()
+                else {
+                    val (committed, effects) = state.commitAndCloseAllEdits()
+                    committed.copy(lexemeList = listOf(LexemeState(id = NOT_IN_DB)) + committed.lexemeList) to effects
                 }
-                state.copy(isPendingDbOp = false, lexemeList = newList) to emptySet()
             }
 
-            is Msg.ShowError ->
-                state.copy(isPendingDbOp = false) to setOf(UiEffect.ShowErrorSnackbar(message.messageRes))
+            // ===== Lexeme remove / undo =====
+            is Msg.RemoveLexeme -> {
+                if (message.lexemeId == NOT_IN_DB) {
+                    state.removeLexeme(NOT_IN_DB).copy(lexemeIdPendingDelete = null) to emptySet()
+                } else {
+                    val loaded = state.wordState as? WordState.Loaded
+                    if (loaded == null) state to emptySet()
+                    else state.copy(isPendingDbOp = true, lexemeIdPendingDelete = null) to
+                            setOf(DatasourceEffect.RemoveLexeme(loaded.id, message.lexemeId))
+                }
+            }
 
-            // ===== Delete events with undo =====
-            is Msg.TranslationDeleted -> {
-                // Translation удалён из существующей лексемы. State: убрать translation,
-                // снять pending. Effect: показать snackbar c undo.
-                state.updateLexeme(message.lexemeId) { it.copy(translation = null) }
-                    .copy(isPendingDbOp = false) to setOf(
-                    UiEffect.ShowSnackbarWithUndo(
-                        messageRes = R.string.word_card_snackbar_translation_deleted,
-                        actionLabelRes = R.string.word_card_snackbar_undo,
-                        undoMsg = Msg.UndoRemoveTranslation(
-                            lexemeId = message.lexemeId,
-                            value = message.removedValue,
-                        ),
-                    )
+            is Msg.LexemeCascadeRemoved -> removeLexemeWithUndo(state, message.removedLexeme)
+            is Msg.LexemeRemoved -> removeLexemeWithUndo(state, message.removedLexeme)
+
+            is Msg.UndoRestoreLexeme -> {
+                val loaded = state.wordState as? WordState.Loaded
+                if (loaded == null) state to emptySet()
+                else state.copy(isPendingDbOp = true) to
+                        setOf(
+                            DatasourceEffect.RestoreLexemeWithComponents(
+                                loaded.id,
+                                loaded.dictionaryId,
+                                message.lexeme,
+                            ),
+                        )
+            }
+
+            is Msg.RestoreLexemeFailed ->
+                state.copy(isPendingDbOp = false) to setOf(
+                    UiEffect.ShowSnackbarWithRetry(
+                        messageRes = R.string.word_card_error_restore_lexeme,
+                        actionLabelRes = R.string.word_card_action_retry,
+                        retryMsg = Msg.UndoRestoreLexeme(message.snapshot),
+                    ),
                 )
+
+            // ===== Component value lifecycle =====
+            is Msg.CreateComponentValue -> reduceCreateComponentValue(state, message)
+            is Msg.UpdateComponentValueInput -> {
+                val cv = state.lexemeList.firstOrNull { it.id == message.lexemeId }
+                    ?.findByKey(message.key)
+                if (cv == null || !cv.isEdit) state to emptySet()
+                else state.updateLexeme(message.lexemeId) {
+                    it.updateComponent(message.key) { c -> c.copy(edited = message.value) }
+                } to emptySet()
             }
 
-            is Msg.DefinitionDeleted -> {
-                state.updateLexeme(message.lexemeId) { it.copy(definition = null) }
-                    .copy(isPendingDbOp = false) to setOf(
-                    UiEffect.ShowSnackbarWithUndo(
-                        messageRes = R.string.word_card_snackbar_definition_deleted,
-                        actionLabelRes = R.string.word_card_snackbar_undo,
-                        undoMsg = Msg.UndoRemoveDefinition(
-                            lexemeId = message.lexemeId,
-                            value = message.removedValue,
-                        ),
-                    )
-                )
+            is Msg.EnterComponentValueEditMode -> {
+                val (committed, effects) = state.commitAndCloseAllEdits()
+                committed.updateLexeme(message.lexemeId) { lex ->
+                    lex.updateComponent(message.key) { c ->
+                        c.copy(
+                            isEdit = true,
+                            edited = c.origin,
+                        )
+                    }
+                } to effects
             }
 
-            is Msg.LexemeCascadeRemovedWithUndo -> {
-                // Cascade: лексема удалена из БД, в UI — NOT_IN_DB-черновик. Текст snackbar
-                // зависит от того, какая субсущность была удалена пользователем.
-                val newState = state.copy(isPendingDbOp = false)
-                    .updateLexeme(message.lexemeId) {
-                        it.copy(
+            is Msg.CommitComponentValueEdit -> reduceCommitComponentValueEdit(state, message)
+            is Msg.RemoveComponentValueRequested -> reduceRemoveComponentValue(state, message)
+
+            // ===== Component types stream =====
+            is Msg.ComponentTypesLoaded -> state.copy(availableComponentTypes = message.types) to emptySet()
+            is Msg.ComponentTypesLoadFailed -> state to setOf(
+                UiEffect.ShowSnackbarWithRetry(
+                    messageRes = R.string.word_card_error_load_component_types,
+                    actionLabelRes = R.string.word_card_action_retry,
+                    retryMsg = Msg.RetryLoadComponentTypes,
+                ),
+            )
+
+            is Msg.RetryLoadComponentTypes -> {
+                val loaded = state.wordState as? WordState.Loaded
+                if (loaded == null) state to emptySet()
+                else state to setOf(DatasourceEffect.LoadAvailableComponentTypes(loaded.dictionaryId))
+            }
+
+            // ===== Datasource re-read =====
+            is Msg.RefreshLexemeComponents -> reduceRefreshLexemeComponents(state, message)
+            is Msg.ComponentValueInserted -> reduceComponentValueInserted(state, message)
+            is Msg.LexemeDraftPromoted -> reduceLexemeDraftPromoted(state, message)
+
+            // ===== Errors / flush-on-back =====
+            is Msg.OperationFailed -> reduceOperationFailed(state, message)
+            is Msg.NavigateBack -> {
+                if (state.isExiting) state to emptySet()
+                else state.copy(isExiting = true).commitAndCloseAllEdits()
+            }
+        }
+    }
+
+    private fun removeLexemeWithUndo(
+        state: WordCardState,
+        removed: me.apomazkin.lexeme.Lexeme,
+    ): ReducerResult<WordCardState, Effect> {
+        val id = removed.lexemeId.id
+        val next = state.copy(
+            isPendingDbOp = false,
+            lexemeList = state.lexemeList.filterNot { it.id == id },
+        )
+        // При flush-on-back экран тут же закрывается (пост-шаг Back) — undo-снек бесполезен.
+        val effects: Set<Effect> = if (next.isExiting) {
+            emptySet()
+        } else {
+            setOf(
+                UiEffect.ShowSnackbarWithUndo(
+                    messageRes = R.string.word_card_snackbar_lexeme_deleted,
+                    actionLabelRes = R.string.word_card_snackbar_undo,
+                    undoMsg = Msg.UndoRestoreLexeme(removed),
+                ),
+            )
+        }
+        return next to effects
+    }
+
+    private fun reduceCreateComponentValue(
+        state: WordCardState,
+        message: Msg.CreateComponentValue,
+    ): ReducerResult<WordCardState, Effect> {
+        val type = state.availableComponentTypes.firstOrNull { it.id == message.typeId }
+            ?: return state to emptySet()
+        val (committed, effects) = state.commitAndCloseAllEdits()
+        val pristine = ComponentValueState(
+            key = ComponentValueKey.Pristine(committed.nextPristineKey),
+            componentTypeId = type.id,
+            componentTypeRef = type.toRef(),
+            isMultiple = type.isMultiple,
+            isEdit = true,
+        )
+        return when {
+            committed.lexemeList.any { it.id == message.lexemeId } ->
+                committed
+                    .updateLexeme(message.lexemeId) { it.appendPristine(pristine) }
+                    .copy(nextPristineKey = committed.nextPristineKey + 1) to effects
+
+            // target — пустой NOT_IN_DB черновик, выкинутый commitAndCloseAllEdits: восстановить с pristine.
+            message.lexemeId == NOT_IN_DB ->
+                committed.copy(
+                    lexemeList = listOf(
+                        LexemeState(
                             id = NOT_IN_DB,
-                            translation = null,
-                            definition = null,
-                        )
-                    }
-                val effect = when {
-                    message.removedTranslation != null -> UiEffect.ShowSnackbarWithUndo(
-                        messageRes = R.string.word_card_snackbar_translation_deleted,
-                        actionLabelRes = R.string.word_card_snackbar_undo,
-                        undoMsg = Msg.UndoRemoveTranslation(
-                            lexemeId = NOT_IN_DB,
-                            value = message.removedTranslation,
+                            components = listOf(pristine),
                         ),
-                    )
-                    message.removedDefinition != null -> UiEffect.ShowSnackbarWithUndo(
-                        messageRes = R.string.word_card_snackbar_definition_deleted,
-                        actionLabelRes = R.string.word_card_snackbar_undo,
-                        undoMsg = Msg.UndoRemoveDefinition(
-                            lexemeId = NOT_IN_DB,
-                            value = message.removedDefinition,
-                        ),
-                    )
-                    else -> null
-                }
-                newState to setOfNotNull(effect)
-            }
+                    ) +
+                            committed.lexemeList,
+                    nextPristineKey = committed.nextPristineKey + 1,
+                ) to effects
 
-            is Msg.LexemeRemoved -> {
-                // Full-delete лексемы через DeleteLexemeButton. State: убрать лексему,
-                // снять pending. Если есть snapshot translation/definition — snackbar с undo.
-                val cleared = state.copy(isPendingDbOp = false)
-                    .removeLexeme(message.lexemeId)
-                val hasSnapshot = message.translation != null || message.definition != null
-                val effect = if (hasSnapshot) {
-                    UiEffect.ShowSnackbarWithUndo(
-                        messageRes = R.string.word_card_snackbar_lexeme_deleted,
-                        actionLabelRes = R.string.word_card_snackbar_undo,
-                        undoMsg = Msg.UndoRemoveLexeme(
-                            translation = message.translation,
-                            definition = message.definition,
-                        ),
-                    )
-                } else null
-                cleared to setOfNotNull(effect)
-            }
-
-            // ===== Undo handlers (IS479) =====
-            is Msg.UndoRemoveTranslation -> {
-                val loaded = state.wordState as? WordState.Loaded ?: return state to emptySet()
-                // lexemeId == NOT_IN_DB → re-INSERT новой лексемы (cascade-случай).
-                // Иначе → restore translation в существующей.
-                val effectLexemeId: Long? = if (message.lexemeId == NOT_IN_DB) null else message.lexemeId
-                state.copy(isPendingDbOp = true) to setOf(
-                    DatasourceEffect.UpdateLexemeTranslation(
-                        wordId = loaded.id,
-                        lexemeId = effectLexemeId,
-                        translation = message.value,
-                    )
-                )
-            }
-
-            is Msg.UndoRemoveDefinition -> {
-                val loaded = state.wordState as? WordState.Loaded ?: return state to emptySet()
-                val effectLexemeId: Long? = if (message.lexemeId == NOT_IN_DB) null else message.lexemeId
-                state.copy(isPendingDbOp = true) to setOf(
-                    DatasourceEffect.UpdateLexemeDefinition(
-                        wordId = loaded.id,
-                        lexemeId = effectLexemeId,
-                        definition = message.value,
-                    )
-                )
-            }
-
-            is Msg.UndoRemoveLexeme -> {
-                val loaded = state.wordState as? WordState.Loaded ?: return state to emptySet()
-                if (message.translation == null && message.definition == null) {
-                    state to emptySet()
-                } else {
-                    state.copy(isPendingDbOp = true) to setOf(
-                        DatasourceEffect.RestoreLexeme(
-                            wordId = loaded.id,
-                            translation = message.translation,
-                            definition = message.definition,
-                        )
-                    )
-                }
-            }
+            // target — real лексема, исчезнувшая до коммита (гонка с удалением): не фабриковать фантом.
+            else -> committed to effects
         }
     }
 
-    // ===== Helpers =====
-
-    private fun commitTranslationEdit(
+    private fun reduceCommitComponentValueEdit(
         state: WordCardState,
-        lexemeId: Long,
+        message: Msg.CommitComponentValueEdit,
     ): ReducerResult<WordCardState, Effect> {
         val loaded = state.wordState as? WordState.Loaded ?: return state to emptySet()
-        val lex = state.lexemeList.firstOrNull { it.id == lexemeId }
-            ?: return state to emptySet()
-        val t = lex.translation
-        if (t == null || !t.isEdit) return state to emptySet()
-        val edited = t.edited
-        val origin = t.origin
-        return when {
-            edited.isBlank() && origin.isEmpty() -> {
-                val nullified = state.updateLexeme(lexemeId) { it.copy(translation = null) }
-                val after = nullified.lexemeList.first { it.id == lexemeId }
-                val final = if (lex.id == NOT_IN_DB && after.translation == null && after.definition == null) {
-                    nullified.removeLexeme(lexemeId)
-                } else nullified
-                final to emptySet()
-            }
-            edited.isBlank() && origin.isNotEmpty() -> {
-                state.copy(isPendingDbOp = true)
-                    .updateLexeme(lexemeId) {
-                        it.copy(translation = it.translation?.copy(isEdit = false, edited = ""))
-                    } to setOf(
-                    DatasourceEffect.RemoveTranslation(
-                        lexemeId = lexemeId,
-                        currentValue = origin,
-                    )
-                )
-            }
-            edited == origin -> {
-                state.updateLexeme(lexemeId) {
-                    it.copy(translation = it.translation?.copy(isEdit = false, edited = ""))
+        val lex =
+            state.lexemeList.firstOrNull { it.id == message.lexemeId } ?: return state to emptySet()
+        val cv = lex.findByKey(message.key) ?: return state to emptySet()
+        return when (val outcome = cv.commitDecision()) {
+            CommitOutcome.NoOp ->
+                if (!cv.isEdit) state to emptySet()
+                else state.updateLexeme(message.lexemeId) {
+                    it.updateComponent(message.key) { c -> c.copy(isEdit = false, edited = "") }
                 } to emptySet()
+
+            CommitOutcome.LocalRemove -> dropComponentMaybeCascade(
+                state,
+                message.lexemeId,
+                message.key,
+            ) to emptySet()
+
+            CommitOutcome.PessimisticRemove -> {
+                val cvId = cv.componentValueId ?: return dropComponentMaybeCascade(
+                    state,
+                    message.lexemeId,
+                    message.key,
+                ) to emptySet()
+                state.copy(isPendingDbOp = true).updateLexeme(message.lexemeId) {
+                    it.updateComponent(message.key) { c -> c.copy(isCommitting = true) }
+                } to setOf(DatasourceEffect.RemoveComponentValue(cvId, lex.id))
             }
-            else -> {
-                val effectLexemeId: Long? = if (lex.id == NOT_IN_DB) null else lex.id
-                state.copy(isPendingDbOp = true)
-                    .updateLexeme(lexemeId) {
-                        it.copy(translation = it.translation?.copy(isEdit = false, edited = ""))
-                    } to setOf(
-                    DatasourceEffect.UpdateLexemeTranslation(
-                        wordId = loaded.id,
-                        lexemeId = effectLexemeId,
-                        translation = edited,
-                    )
-                )
+
+            is CommitOutcome.Update -> {
+                val effect = upsertEffect(loaded, lex, cv, outcome.text)
+                state.copy(isPendingDbOp = true).updateLexeme(message.lexemeId) {
+                    it.updateComponent(message.key) { c -> c.copy(isCommitting = true) }
+                } to setOf(effect)
             }
         }
     }
 
-    private fun commitDefinitionEdit(
+    private fun reduceRemoveComponentValue(
         state: WordCardState,
-        lexemeId: Long,
+        message: Msg.RemoveComponentValueRequested,
     ): ReducerResult<WordCardState, Effect> {
-        val loaded = state.wordState as? WordState.Loaded ?: return state to emptySet()
-        val lex = state.lexemeList.firstOrNull { it.id == lexemeId }
-            ?: return state to emptySet()
-        val d = lex.definition
-        if (d == null || !d.isEdit) return state to emptySet()
-        val edited = d.edited
-        val origin = d.origin
+        val lex =
+            state.lexemeList.firstOrNull { it.id == message.lexemeId } ?: return state to emptySet()
+        val cv = lex.findByKey(message.key) ?: return state to emptySet()
         return when {
-            edited.isBlank() && origin.isEmpty() -> {
-                val nullified = state.updateLexeme(lexemeId) { it.copy(definition = null) }
-                val after = nullified.lexemeList.first { it.id == lexemeId }
-                val final = if (lex.id == NOT_IN_DB && after.translation == null && after.definition == null) {
-                    nullified.removeLexeme(lexemeId)
-                } else nullified
-                final to emptySet()
-            }
-            edited.isBlank() && origin.isNotEmpty() -> {
-                state.copy(isPendingDbOp = true)
-                    .updateLexeme(lexemeId) {
-                        it.copy(definition = it.definition?.copy(isEdit = false, edited = ""))
-                    } to setOf(
-                    DatasourceEffect.RemoveDefinition(
-                        lexemeId = lexemeId,
-                        currentValue = origin,
-                    )
-                )
-            }
-            edited == origin -> {
-                state.updateLexeme(lexemeId) {
-                    it.copy(definition = it.definition?.copy(isEdit = false, edited = ""))
-                } to emptySet()
-            }
+            cv.isPristine -> dropComponentMaybeCascade(
+                state,
+                message.lexemeId,
+                message.key,
+            ) to emptySet()
+
+            cv.origin.isEmpty() -> state.updateLexeme(message.lexemeId) { it.removeComponent(message.key) } to emptySet()
             else -> {
-                val effectLexemeId: Long? = if (lex.id == NOT_IN_DB) null else lex.id
-                state.copy(isPendingDbOp = true)
-                    .updateLexeme(lexemeId) {
-                        it.copy(definition = it.definition?.copy(isEdit = false, edited = ""))
-                    } to setOf(
-                    DatasourceEffect.UpdateLexemeDefinition(
-                        wordId = loaded.id,
-                        lexemeId = effectLexemeId,
-                        definition = edited,
-                    )
-                )
+                val cvId = cv.componentValueId!!
+                state.copy(isPendingDbOp = true).updateLexeme(message.lexemeId) {
+                    it.updateComponent(message.key) { c -> c.copy(isCommitting = true) }
+                } to setOf(DatasourceEffect.RemoveComponentValue(cvId, message.lexemeId))
             }
         }
     }
 
-    private fun refreshTranslation(
+    private fun reduceRefreshLexemeComponents(
         state: WordCardState,
-        lexemeId: Long,
-        translation: String?,
+        message: Msg.RefreshLexemeComponents,
     ): ReducerResult<WordCardState, Effect> {
-        val realExists = state.lexemeList.any { it.id == lexemeId }
-        val notInDbExists = state.lexemeList.any { it.id == NOT_IN_DB }
-        val newList = when {
-            realExists -> state.lexemeList.map { l ->
-                if (l.id != lexemeId) l
-                else if (translation == null) l.copy(translation = null)
-                else {
-                    val current = l.translation
-                    if (current == null) {
-                        l.copy(
-                            translation = TextValueState(
-                                origin = translation,
-                                isEdit = false,
-                                edited = "",
-                            )
-                        )
-                    } else {
-                        l.copy(translation = current.copy(origin = translation))
-                    }
-                }
-            }
-            notInDbExists -> state.lexemeList.map { l ->
-                if (l.id != NOT_IN_DB) l
-                else l.copy(
-                    id = lexemeId,
-                    translation = translation?.let {
-                        TextValueState(origin = it, isEdit = false, edited = "")
-                    },
+        val cleared = state.copy(isPendingDbOp = false)
+        val target = cleared.lexemeList.firstOrNull { it.id == message.lexemeId }
+            ?: return cleared to emptySet()
+        val existingByCvId = target.components
+            .filter { it.componentValueId != null }
+            .associateBy { it.componentValueId }
+        val savedComps = message.components.map { domain ->
+            val existing = existingByCvId[domain.id]
+            val newOrigin = domain.data.asText().orEmpty()
+            when {
+                existing == null -> domain.toComponentValueState()
+                existing.isCommitting -> existing.copy(
+                    origin = newOrigin,
+                    isEdit = false,
+                    isCommitting = false,
+                    edited = "",
                 )
+
+                existing.isEdit -> existing.copy(origin = newOrigin)
+                else -> existing.copy(origin = newOrigin, isEdit = false)
             }
-            else -> state.lexemeList
         }
-        return state.copy(isPendingDbOp = false, lexemeList = newList) to emptySet()
+        val pristineTail = target.components.filter { it.isPristine }
+        val merged = target.copy(components = savedComps + pristineTail)
+        return cleared.updateLexeme(message.lexemeId) { merged } to emptySet()
     }
 
-    private fun refreshDefinition(
+    private fun reduceComponentValueInserted(
         state: WordCardState,
-        lexemeId: Long,
-        definition: String?,
+        message: Msg.ComponentValueInserted,
     ): ReducerResult<WordCardState, Effect> {
-        val realExists = state.lexemeList.any { it.id == lexemeId }
-        val notInDbExists = state.lexemeList.any { it.id == NOT_IN_DB }
-        val newList = when {
-            realExists -> state.lexemeList.map { l ->
-                if (l.id != lexemeId) l
-                else if (definition == null) l.copy(definition = null)
-                else {
-                    val current = l.definition
-                    if (current == null) {
-                        l.copy(
-                            definition = TextValueState(
-                                origin = definition,
-                                isEdit = false,
-                                edited = "",
-                            )
-                        )
-                    } else {
-                        l.copy(definition = current.copy(origin = definition))
-                    }
-                }
-            }
-            notInDbExists -> state.lexemeList.map { l ->
-                if (l.id != NOT_IN_DB) l
-                else l.copy(
-                    id = lexemeId,
-                    definition = definition?.let {
-                        TextValueState(origin = it, isEdit = false, edited = "")
-                    },
+        val lex =
+            state.lexemeList.firstOrNull { it.id == message.lexemeId } ?: return state to emptySet()
+        val pristine = lex.components.firstOrNull { it.pristineKey == message.pristineKey }
+            ?: return state to emptySet()
+        val savedKey = ComponentValueKey.Saved(message.newCvId)
+        val updated = if (lex.components.any { it.key == savedKey }) {
+            lex.removeComponent(pristine.key)
+        } else {
+            lex.updateComponent(pristine.key) { c ->
+                c.copy(
+                    key = savedKey,
+                    isEdit = false,
+                    isCommitting = false,
                 )
             }
-            else -> state.lexemeList
         }
-        return state.copy(isPendingDbOp = false, lexemeList = newList) to emptySet()
+        return state.updateLexeme(message.lexemeId) { updated } to emptySet()
+    }
+
+    private fun reduceLexemeDraftPromoted(
+        state: WordCardState,
+        message: Msg.LexemeDraftPromoted,
+    ): ReducerResult<WordCardState, Effect> {
+        val loaded = state.wordState as? WordState.Loaded
+            ?: return state.copy(isPendingDbOp = false) to emptySet()
+        val draft = state.lexemeList.firstOrNull { it.id == NOT_IN_DB }
+            ?: return state.copy(isPendingDbOp = false) to emptySet()
+        val survivors = draft.components.filter {
+            it.isPristine && it.pristineKey != message.anchorPristineKey && it.edited.trim()
+                .isNotEmpty()
+        }
+        val promoted = message.newLexeme.toLexemeState()
+        val survivorStates = survivors.map { it.copy(isCommitting = true) }
+        val newLexeme = promoted.copy(components = promoted.components + survivorStates)
+        val effects = survivors.map { s ->
+            DatasourceEffect.UpsertComponentValue.AddValue(
+                wordId = loaded.id,
+                dictionaryId = loaded.dictionaryId,
+                lexemeId = promoted.id,
+                pristineKey = s.pristineKey!!,
+                componentTypeId = s.componentTypeId,
+                componentTypeRef = s.componentTypeRef,
+                data = textValuesOf(s.edited.trim()),
+            )
+        }.toSet()
+        val newList = state.lexemeList.map { if (it.id == NOT_IN_DB) newLexeme else it }
+        return state.copy(isPendingDbOp = false, lexemeList = newList) to effects
+    }
+
+    private fun reduceOperationFailed(
+        state: WordCardState,
+        message: Msg.OperationFailed,
+    ): ReducerResult<WordCardState, Effect> {
+        val cleared = state.copy(
+            isPendingDbOp = false,
+            isExiting = false,
+            lexemeList = state.lexemeList.map { lex ->
+                lex.copy(components = lex.components.map { if (it.isCommitting) it.copy(isCommitting = false) else it })
+            },
+        )
+        return cleared to setOf(UiEffect.ShowErrorSnackbar(message.messageRes))
+    }
+
+    /** Удалить компонент локально; если NOT_IN_DB лексема осталась без компонентов — удалить её (cascade). */
+    private fun dropComponentMaybeCascade(
+        state: WordCardState,
+        lexemeId: Long,
+        key: ComponentValueKey,
+    ): WordCardState {
+        val afterRemove = state.updateLexeme(lexemeId) { it.removeComponent(key) }
+        return afterRemove.copy(
+            lexemeList = afterRemove.lexemeList.filterNot { it.id == NOT_IN_DB && it.components.isEmpty() },
+        )
+    }
+
+    /** Эффект upsert по контексту: NOT_IN_DB→CreateLexeme, saved→UpdateValue, real-pristine→AddValue. */
+    private fun upsertEffect(
+        loaded: WordState.Loaded,
+        lex: LexemeState,
+        cv: ComponentValueState,
+        text: String,
+    ): DatasourceEffect.UpsertComponentValue = when {
+        lex.id == NOT_IN_DB -> DatasourceEffect.UpsertComponentValue.CreateLexeme(
+            wordId = loaded.id,
+            dictionaryId = loaded.dictionaryId,
+            pristineKey = cv.pristineKey!!,
+            componentTypeId = cv.componentTypeId,
+            componentTypeRef = cv.componentTypeRef,
+            data = textValuesOf(text),
+        )
+
+        cv.componentValueId != null -> DatasourceEffect.UpsertComponentValue.UpdateValue(
+            wordId = loaded.id,
+            dictionaryId = loaded.dictionaryId,
+            lexemeId = lex.id,
+            componentValueId = cv.componentValueId!!,
+            componentTypeId = cv.componentTypeId,
+            componentTypeRef = cv.componentTypeRef,
+            data = textValuesOf(text),
+        )
+
+        else -> DatasourceEffect.UpsertComponentValue.AddValue(
+            wordId = loaded.id,
+            dictionaryId = loaded.dictionaryId,
+            lexemeId = lex.id,
+            pristineKey = cv.pristineKey!!,
+            componentTypeId = cv.componentTypeId,
+            componentTypeRef = cv.componentTypeRef,
+            data = textValuesOf(text),
+        )
     }
 }
 
-/** true ⇒ Msg блокируется глобальным guard'ом isPendingDbOp. */
+/** true ⇒ Msg блокируется guard'ом isPendingDbOp / isExiting. */
 private fun Msg.isGuardedByPending(): Boolean = when (this) {
     is Msg.RemoveWord,
     Msg.CommitWordChanges,
     is Msg.RemoveLexeme,
-    is Msg.CommitTranslationEdit,
-    is Msg.RemoveTranslation,
-    is Msg.CommitDefinitionEdit,
-    is Msg.RemoveDefinition,
+    is Msg.CommitComponentValueEdit,
+    is Msg.RemoveComponentValueRequested,
+    is Msg.EnterComponentValueEditMode,
     Msg.OpenTopBarMenu,
     Msg.OpenDeleteWordDialog,
     is Msg.OpenDeleteLexemeDialog,
     Msg.EnterWordEditMode,
     Msg.CreateLexeme,
-    is Msg.CreateTranslation,
-    is Msg.EnterTranslationEditMode,
-    is Msg.CreateDefinition,
-    is Msg.EnterDefinitionEditMode -> true
+        -> true
+
     else -> false
 }

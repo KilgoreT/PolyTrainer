@@ -18,6 +18,7 @@ fun NavGraphBuilder.quiz(
         compositionRoot.QuizTabScreenDep(
             openDictionaryCreate = openDictionaryCreate,
             openChatQuiz = { navController.goToQuiz(it) },
+            openPerDictionaryComponents = { dictId -> navController.goToPerDictionaryComponents(dictId) },
         )
     }
     

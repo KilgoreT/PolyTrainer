@@ -1,154 +1,125 @@
 package me.apomazkin.wordcard.mate
 
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.state
+import me.apomazkin.mate.test.assertEffects
 import me.apomazkin.mate.test.assertNoEffects
 import me.apomazkin.mate.test.assertSingleEffect
 import me.apomazkin.mate.test.testReduce
-import me.apomazkin.lexeme.Definition
-import me.apomazkin.lexeme.Lexeme
-import me.apomazkin.lexeme.LexemeId
-import me.apomazkin.lexeme.Translation
-import me.apomazkin.wordcard.entity.Term
-import me.apomazkin.wordcard.entity.Word
-import me.apomazkin.wordcard.entity.WordId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.Date
 
 /**
- * Reducer tests for WordLoaded / WordNotFound — first scenarios in contract_spec § "Тестовые сценарии".
- *
- * Test cases:
- * 1. WordLoaded атомарность: (NotLoaded, isLoading=true) → WordLoaded(term) → Loaded(...), isLoading=false,
- *    isPendingDbOp=false, lexemeList = term.lexemeList.map { toLexemeState() }.
- * 2. WordLoaded — empty lexeme list.
- * 3. WordLoaded — multiple lexemes mapped через toLexemeState (translation/definition origin сохранены, edited="", isEdit=false).
- * 4. WordNotFound silent exit: (NotLoaded, isLoading=true) → NavigationEffect.Back; snackbar НЕ устанавливается.
+ * §1.1 WordLoaded / WordNotFound / RefreshWord (REWRITE, generic model).
+ * TDD red — против будущего API (WordLoaded(word) одно-арг, dictionaryId на Loaded).
  */
 class WordLoadedTest {
 
+    private val reducer = WordCardReducer()
+
     @Test
-    fun `given NotLoaded with isLoading when WordLoaded then atomically transitions to Loaded with mapped lexemes and clears pending`() {
-        // Test case 1: атомарность WordLoaded.
-        val reducer = WordCardReducer()
-        val initialState = WordCardState(
-            isLoading = true,
-            isPendingDbOp = false,
-            wordState = WordState.NotLoaded,
-            lexemeList = emptyList(),
-        )
-        val lexeme = Lexeme(
-            lexemeId = LexemeId(10L),
-            translation = Translation("hello"),
-            definition = Definition("greeting"),
-            addDate = Date(2000L),
-            changeDate = null,
-        )
-        val term = Term(
-            wordId = WordId(123L),
-            word = Word("test"),
-            addedDate = Date(1000L),
-            changedDate = null,
-            removedDate = null,
-            lexemeList = listOf(lexeme),
+    fun `WordLoaded sets word lexemes dictionaryId and emits LoadAvailableComponentTypes`() {
+        val term = stubTerm(
+            wordId = 7L, dictionaryId = 3L, value = "w",
+            lexemes = listOf(domainLexeme(1L, listOf(domainCv(5L, 1L, "hi")))),
         )
 
-        val result = reducer.testReduce(initialState, Msg.WordLoaded(term))
+        val result = reducer.testReduce(WordCardState(), Msg.WordLoaded(term))
 
         val state = result.state()
-        assertFalse("isLoading should be false", state.isLoading)
-        assertFalse("isPendingDbOp should be false", state.isPendingDbOp)
-        assertTrue("wordState should be Loaded", state.wordState is WordState.Loaded)
         val loaded = state.wordState as WordState.Loaded
-        assertEquals("id should match term", 123L, loaded.id)
-        assertEquals("value should match term", "test", loaded.value)
-        assertEquals("added should match term", Date(1000L), loaded.added)
-        assertFalse("isEditMode default false", loaded.isEditMode)
-        assertEquals("edited default empty", "", loaded.edited)
-        assertFalse("showWarningDialog default false", loaded.showWarningDialog)
-
-        assertEquals("lexemeList size", 1, state.lexemeList.size)
-        val lex = state.lexemeList.first()
-        assertEquals("lexeme id", 10L, lex.id)
-        assertEquals("translation origin", "hello", lex.translation?.origin)
-        assertEquals("translation edited empty (per mapper)", "", lex.translation?.edited)
-        assertFalse("translation isEdit false", lex.translation?.isEdit ?: true)
-        assertEquals("definition origin", "greeting", lex.definition?.origin)
-        assertEquals("definition edited empty (per mapper)", "", lex.definition?.edited)
-        assertFalse("definition isEdit false", lex.definition?.isEdit ?: true)
-
-        result.assertNoEffects("WordLoaded should not produce effects")
+        assertEquals(3L, loaded.dictionaryId)
+        assertFalse(state.isLoading)
+        assertFalse(state.isPendingDbOp)
+        val cv = state.lexemeList.single().components.single()
+        assertEquals("hi", cv.origin)
+        assertEquals(ComponentValueKey.Saved(ComponentValueId(5L)), cv.key)
+        result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
     }
 
     @Test
-    fun `given NotLoaded when WordLoaded with empty lexeme list then lexemeList is empty`() {
-        val reducer = WordCardReducer()
-        val initialState = WordCardState(
-            isLoading = true,
-            wordState = WordState.NotLoaded,
+    fun `WordLoaded clears pending`() {
+        val result = reducer.testReduce(
+            WordCardState(isPendingDbOp = true),
+            Msg.WordLoaded(stubTerm()),
         )
-        val term = Term(
-            wordId = WordId(1L),
-            word = Word("w"),
-            addedDate = Date(1L),
-            changedDate = null,
-            removedDate = null,
-            lexemeList = emptyList(),
-        )
-
-        val result = reducer.testReduce(initialState, Msg.WordLoaded(term))
-
-        assertTrue(result.state().lexemeList.isEmpty())
-        assertTrue(result.state().wordState is WordState.Loaded)
+        assertFalse(result.state().isPendingDbOp)
+        result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
     }
 
     @Test
-    fun `given multiple lexemes when WordLoaded then all are mapped to LexemeState with empty edited`() {
-        val reducer = WordCardReducer()
-        val initialState = WordCardState(isLoading = true, wordState = WordState.NotLoaded)
-        val lexemes = listOf(
-            Lexeme(LexemeId(1L), Translation("a"), null, Date(0)),
-            Lexeme(LexemeId(2L), null, Definition("b"), Date(0)),
-            Lexeme(LexemeId(3L), Translation("c"), Definition("d"), Date(0)),
-        )
-        val term = Term(
-            wordId = WordId(99L),
-            word = Word("w"),
-            addedDate = Date(0L),
-            changedDate = null,
-            removedDate = null,
-            lexemeList = lexemes,
+    fun `WordLoaded maps multi component preserving order`() {
+        val term = stubTerm(
+            lexemes = listOf(
+                domainLexeme(
+                    1L,
+                    listOf(
+                        domainCv(5L, 1L, "tr", typeId = 50L, ref = TR),
+                        domainCv(6L, 1L, "ex", typeId = 51L, ref = ComponentTypeRef.UserDefined("Example"), isMultiple = true),
+                    ),
+                ),
+            ),
         )
 
-        val result = reducer.testReduce(initialState, Msg.WordLoaded(term))
+        val comps = reducer.testReduce(WordCardState(), Msg.WordLoaded(term)).state()
+            .lexemeList.single().components
 
-        val list = result.state().lexemeList
-        assertEquals(3, list.size)
-        assertEquals("", list[0].translation?.edited)
-        assertEquals("a", list[0].translation?.origin)
-        assertEquals(null, list[1].translation)
-        assertEquals("b", list[1].definition?.origin)
-        assertEquals("c", list[2].translation?.origin)
-        assertEquals("d", list[2].definition?.origin)
+        assertEquals(2, comps.size)
+        assertEquals(TR, comps[0].componentTypeRef)
+        assertEquals(true, comps[1].isMultiple)
     }
 
     @Test
-    fun `given NotLoaded when WordNotFound then emits NavigationEffect Back and clears pending`() {
-        val reducer = WordCardReducer()
-        val initialState = WordCardState(
-            isLoading = true,
+    fun `WordLoaded does not prepopulate availableComponentTypes`() {
+        val state = reducer.testReduce(WordCardState(), Msg.WordLoaded(stubTerm())).state()
+        assertEquals(emptyList<Any>(), state.availableComponentTypes)
+    }
+
+    @Test
+    fun `WordLoaded keeps nextPristineKey unchanged and always emits load`() {
+        val result = reducer.testReduce(
+            WordCardState(nextPristineKey = 5L),
+            Msg.WordLoaded(stubTerm()),
+        )
+        assertEquals(5L, result.state().nextPristineKey)
+        result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
+    }
+
+    @Test
+    fun `WordLoaded full rebuild wipes in-flight pristine on reload`() {
+        val initial = loaded(lexemes = listOf(lexeme(1L, listOf(pristineCv(10L, edited = "draft")))))
+        val state = reducer.testReduce(initial, Msg.WordLoaded(stubTerm())).state()
+        assertEquals(0, state.lexemeList.sumOf { l -> l.components.count { it.isPristine } })
+    }
+
+    @Test
+    fun `RefreshWord updates value resets word-edit clears pending keeps lexemes`() {
+        val base = loaded(
             isPendingDbOp = true,
-            wordState = WordState.NotLoaded,
+            lexemes = listOf(lexeme(1L, listOf(savedCv(5L)))),
+        )
+        val initial = base.copy(
+            wordState = (base.wordState as WordState.Loaded).copy(isEditMode = true, edited = "x"),
         )
 
-        val result = reducer.testReduce(initialState, Msg.WordNotFound)
+        val result = reducer.testReduce(initial, Msg.RefreshWord(stubTerm(value = "w2")))
 
-        val state = result.state()
-        assertFalse("isLoading should be false", state.isLoading)
-        assertFalse("isPendingDbOp should be false", state.isPendingDbOp)
+        val loaded = result.state().wordState as WordState.Loaded
+        assertEquals("w2", loaded.value)
+        assertFalse(loaded.isEditMode)
+        assertEquals("", loaded.edited)
+        assertFalse(result.state().isPendingDbOp)
+        assertEquals(initial.lexemeList, result.state().lexemeList)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `WordNotFound clears loading and navigates back`() {
+        val result = reducer.testReduce(WordCardState(isLoading = true), Msg.WordNotFound)
+        assertFalse(result.state().isLoading)
         result.assertSingleEffect<NavigationEffect.Back>()
     }
 }

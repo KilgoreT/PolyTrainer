@@ -2,8 +2,8 @@
 name: business_contract_spec
 output: business_contract_spec.md
 input_criteria:
-  - scope_analysis.output существует
-  - business_contract.output существует
+  - 02_scope.md существует
+  - business_contract.md существует
 output_criteria:
   - business_contract_spec.md существует
   - содержит секцию Бизнес-описание

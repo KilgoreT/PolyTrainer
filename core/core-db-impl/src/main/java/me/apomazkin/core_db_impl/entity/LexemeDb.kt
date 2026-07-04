@@ -7,6 +7,11 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.Date
 
+/**
+ * IS481 (v12): колонки `translation` / `definition` УДАЛЕНЫ.
+ * Single source of truth — `component_values` table через @Relation
+ * в `LexemeDbEntity.componentValueListDb`.
+ */
 @Entity(
     tableName = "lexemes",
     foreignKeys = [
@@ -23,8 +28,6 @@ data class LexemeDb(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id") val id: Long = 0,
     @ColumnInfo(name = "word_id") val wordId: Long,
-    @ColumnInfo(name = "translation") val translation: String? = null,
-    @ColumnInfo(name = "definition") val definition: String? = null,
     @ColumnInfo(name = "word_class") val wordClass: String? = null,
     @ColumnInfo(name = "options") val options: Long = 0,
     @ColumnInfo(name = "add_date") val addDate: Date,

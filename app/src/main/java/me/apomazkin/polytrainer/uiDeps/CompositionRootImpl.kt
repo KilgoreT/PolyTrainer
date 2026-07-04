@@ -5,6 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
+import me.apomazkin.components_manager.ComponentsManagerScreen
+import me.apomazkin.components_manager.ComponentsManagerViewModel
 import me.apomazkin.dictionaryappbar.DictionaryAppBar
 import me.apomazkin.dictionaryappbar.DictionaryAppBarViewModel
 import me.apomazkin.dictionarytab.deps.DictionaryTabUiDeps
@@ -12,10 +14,14 @@ import me.apomazkin.dictionarytab.ui.DictionaryTabScreen
 import me.apomazkin.dictionarytab.ui.DictionaryTabViewModel
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.main.CompositionRoot
+import me.apomazkin.per_dictionary_components.PerDictionaryComponentsScreen
+import me.apomazkin.per_dictionary_components.PerDictionaryComponentsViewModel
 import me.apomazkin.polytrainer.LogTags
 import me.apomazkin.polytrainer.env.EnvParams
 import me.apomazkin.polytrainer.navigator.ChatNavigatorImpl
+import me.apomazkin.polytrainer.navigator.ComponentsManagerNavigatorImpl
 import me.apomazkin.polytrainer.navigator.DictionaryAppBarNavigatorImpl
+import me.apomazkin.polytrainer.navigator.PerDictionaryComponentsNavigatorImpl
 import me.apomazkin.polytrainer.navigator.QuizTabNavigatorImpl
 import me.apomazkin.polytrainer.navigator.SettingsNavigatorImpl
 import me.apomazkin.polytrainer.navigator.StatisticNavigatorImpl
@@ -45,6 +51,8 @@ class CompositionRootImpl(
     private val quizTabViewModelFactory: QuizTabViewModel.Factory,
     private val statisticViewModelFactory: StatisticViewModel.Factory,
     private val settingsTabViewModelFactory: SettingsTabViewModel.Factory,
+    private val componentsManagerViewModelFactory: ComponentsManagerViewModel.Factory,
+    private val perDictionaryComponentsViewModelFactory: PerDictionaryComponentsViewModel.Factory,
     private val envParams: EnvParams,
     private val logger: LexemeLogger,
 ) : CompositionRoot {
@@ -52,9 +60,13 @@ class CompositionRootImpl(
     override fun VocabularyTabDep(
         openDictionaryCreate: () -> Unit,
         openWordCard: (wordId: Long) -> Unit,
+        openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
     ) {
-        val appBarNavigator = remember(openDictionaryCreate) {
-            DictionaryAppBarNavigatorImpl(onOpenDictionaryCreate = openDictionaryCreate)
+        val appBarNavigator = remember(openDictionaryCreate, openPerDictionaryComponents) {
+            DictionaryAppBarNavigatorImpl(
+                onOpenDictionaryCreate = openDictionaryCreate,
+                onOpenPerDictionaryComponents = openPerDictionaryComponents,
+            )
         }
         val vocabularyNavigator = remember(openWordCard) {
             VocabularyNavigatorImpl(onOpenWordCard = openWordCard)
@@ -90,9 +102,13 @@ class CompositionRootImpl(
     override fun QuizTabScreenDep(
         openDictionaryCreate: () -> Unit,
         openChatQuiz: (quizType: String) -> Unit,
+        openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
     ) {
-        val appBarNavigator = remember(openDictionaryCreate) {
-            DictionaryAppBarNavigatorImpl(onOpenDictionaryCreate = openDictionaryCreate)
+        val appBarNavigator = remember(openDictionaryCreate, openPerDictionaryComponents) {
+            DictionaryAppBarNavigatorImpl(
+                onOpenDictionaryCreate = openDictionaryCreate,
+                onOpenPerDictionaryComponents = openPerDictionaryComponents,
+            )
         }
         val quizTabNavigator = remember(openChatQuiz) {
             QuizTabNavigatorImpl(onOpenChat = openChatQuiz)
@@ -125,9 +141,13 @@ class CompositionRootImpl(
     @Composable
     override fun StatisticTabScreenDep(
         openDictionaryCreate: () -> Unit,
+        openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
     ) {
-        val appBarNavigator = remember(openDictionaryCreate) {
-            DictionaryAppBarNavigatorImpl(onOpenDictionaryCreate = openDictionaryCreate)
+        val appBarNavigator = remember(openDictionaryCreate, openPerDictionaryComponents) {
+            DictionaryAppBarNavigatorImpl(
+                onOpenDictionaryCreate = openDictionaryCreate,
+                onOpenPerDictionaryComponents = openPerDictionaryComponents,
+            )
         }
         val statisticNavigator = remember { StatisticNavigatorImpl() }
         StatisticTabScreen(
@@ -149,8 +169,14 @@ class CompositionRootImpl(
         onLangManagementClick: () -> Unit,
         onAboutAppClick: () -> Unit,
         onPrivacyPolicyClick: () -> Unit,
+        onComponentsManagerClick: () -> Unit,
     ) {
-        val navigator = remember(onLangManagementClick, onAboutAppClick, onPrivacyPolicyClick) {
+        val navigator = remember(
+            onLangManagementClick,
+            onAboutAppClick,
+            onPrivacyPolicyClick,
+            onComponentsManagerClick,
+        ) {
             SettingsNavigatorImpl(
                 onOpenLangManagement = onLangManagementClick,
                 onOpenAboutApp = onAboutAppClick,
@@ -158,10 +184,39 @@ class CompositionRootImpl(
                     logger.log(tag = me.apomazkin.settingstab.LogTags.SETTINGS, message = "navigate: $pageKey")
                     onPrivacyPolicyClick()
                 },
+                onOpenComponentsManager = onComponentsManagerClick,
             )
         }
         SettingsTabScreen(
             factory = settingsTabViewModelFactory,
+            navigator = navigator,
+        )
+    }
+
+    @Composable
+    override fun ComponentsManagerScreenDep(
+        onBackPress: () -> Unit,
+    ) {
+        val navigator = remember(onBackPress) {
+            ComponentsManagerNavigatorImpl(onBack = onBackPress)
+        }
+        ComponentsManagerScreen(
+            factory = componentsManagerViewModelFactory,
+            navigator = navigator,
+        )
+    }
+
+    @Composable
+    override fun PerDictionaryComponentsScreenDep(
+        dictionaryId: Long,
+        onBackPress: () -> Unit,
+    ) {
+        val navigator = remember(onBackPress) {
+            PerDictionaryComponentsNavigatorImpl(onBack = onBackPress)
+        }
+        PerDictionaryComponentsScreen(
+            dictionaryId = dictionaryId,
+            factory = perDictionaryComponentsViewModelFactory,
             navigator = navigator,
         )
     }

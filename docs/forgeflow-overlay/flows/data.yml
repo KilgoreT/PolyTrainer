@@ -12,7 +12,7 @@ steps:
           - "finalize:after"
 
   - name: data_design_tree
-    step: design_tree
+    prompt: design_tree
     output: data_design_tree.md
     pause: true
     input:
@@ -33,8 +33,13 @@ steps:
       review:
         agents:
           - architect
+      checklist:
+        phases:
+          - "finalize:after"
 
-  - step: data_migration_test
+  - name: data_migration_test
+    prompt: migration_test
+    output: data_migration_test.md
     if: needs_migration_tests
     pause: true
     input:
@@ -55,7 +60,9 @@ steps:
           - architect
           - qa_engineer
 
-  - step: data_implement
+  - name: data_implement
+    prompt: implement
+    output: data_implement.md
     pause: true
     input:
       - scope_analysis.output
@@ -76,8 +83,13 @@ steps:
         agents:
           - architect
           - senior
+      checklist:
+        phases:
+          - "finalize:after"
 
-  - step: data_summary
+  - name: data_summary
+    prompt: summary
+    output: data_summary.md
     pause: true
     input:
       - data_design_tree.output

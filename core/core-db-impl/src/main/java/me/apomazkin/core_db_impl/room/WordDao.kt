@@ -9,9 +9,11 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import me.apomazkin.core_db_impl.entity.ComponentValueDb
 import me.apomazkin.core_db_impl.entity.DictionaryDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.LexemeDbEntity
+import me.apomazkin.core_db_impl.entity.QuizConfigDb
 import me.apomazkin.core_db_impl.entity.SampleDb
 import me.apomazkin.core_db_impl.entity.TermDbEntity
 import me.apomazkin.core_db_impl.entity.WordDb
@@ -26,7 +28,28 @@ interface WordDao {
      * Dictionaries
      */
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun addDictionary(dictionaryDb: DictionaryDb): Long
+    suspend fun _addDictionaryRow(dictionaryDb: DictionaryDb): Long
+
+    @Insert
+    suspend fun _addQuizConfigRow(config: QuizConfigDb): Long
+
+    /**
+     * IS481 (AGG-4 реверс): atomic INSERT dictionary + default quiz_config row(s)
+     * в одной транзакции. F1 invariant — каждый dictionary имеет default config
+     * `[BuiltIn(TRANSLATION)]` для `quiz_mode='write'` сразу после создания.
+     */
+    @Transaction
+    suspend fun addDictionary(dictionaryDb: DictionaryDb): Long {
+        val newDictionaryId = _addDictionaryRow(dictionaryDb)
+        _addQuizConfigRow(
+            QuizConfigDb(
+                dictionaryId = newDictionaryId,
+                quizMode = "write",
+                componentRefs = """[{"type":"builtin","key":"translation"}]""",
+            )
+        )
+        return newDictionaryId
+    }
 
     @Query("SELECT * FROM dictionaries WHERE numericCode = :numericCode")
     suspend fun getDictionaryByNumeric(numericCode: Int): DictionaryDb?
@@ -118,12 +141,6 @@ interface WordDao {
     @Query("SELECT * FROM lexemes WHERE id = :id")
     suspend fun getLexemeById(id: Long): LexemeDbEntity?
 
-    @Query("UPDATE lexemes SET translation = :translation WHERE id = :id")
-    suspend fun updateLexemeTranslation(id: Long, translation: String?): Int
-
-    @Query("UPDATE lexemes SET definition = :definition WHERE id = :id")
-    suspend fun updateLexemeDefinition(id: Long, definition: String?): Int
-
     @Query("UPDATE lexemes SET word_class = :value WHERE id = :id")
     suspend fun updateLexemeCategory(id: Long, value: String): Int
 
@@ -157,6 +174,9 @@ interface WordDao {
     @Insert
     suspend fun addWriteQuiz(writeQuizDb: WriteQuizDb): Long
 
+    @Insert
+    suspend fun _insertComponentValue(value: ComponentValueDb): Long
+
     /**
      * Atomic INSERT лексемы + write-quiz записи в одной транзакции.
      * Гарантирует domain-инвариант «у каждой лексемы есть write-quiz».
@@ -165,6 +185,33 @@ interface WordDao {
     suspend fun addLexemeWithQuiz(lexemeDb: LexemeDb, dictionaryId: Long): Long {
         val newLexemeId = addLexeme(lexemeDb)
         addWriteQuiz(WriteQuizDb.create(dictionaryId = dictionaryId, lexemeId = newLexemeId))
+        return newLexemeId
+    }
+
+    /**
+     * IS481 (MIN-9 + M13): atomic compound INSERT — lexeme + write_quiz +
+     * N component_values в одной транзакции. FK violation на любом шаге → rollback
+     * всего (regression test IS479 F1 + MIN-9 atomicity).
+     *
+     * **F171 (M13):** cardinality pre-check (F169 / F170) выполняется в
+     * `LexemeApiImpl.addLexemeWithComponents` (Room `@Dao interface` не имеет
+     * cross-DAO access — отсюда нельзя вызвать `componentTypeDao.getById(...)`).
+     * WordDao выполняет ТОЛЬКО cascading INSERTs.
+     *
+     * @param components список full `ComponentValueDb` entities (с createdAt/updatedAt).
+     *   `lexemeId` будет перезаписан на новый id после INSERT lexeme.
+     */
+    @Transaction
+    suspend fun addLexemeWithComponents(
+        lexemeDb: LexemeDb,
+        dictionaryId: Long,
+        components: List<ComponentValueDb>,
+    ): Long {
+        val newLexemeId = addLexeme(lexemeDb)
+        addWriteQuiz(WriteQuizDb.create(dictionaryId = dictionaryId, lexemeId = newLexemeId))
+        components.forEach { cv ->
+            _insertComponentValue(cv.copy(lexemeId = newLexemeId))
+        }
         return newLexemeId
     }
 

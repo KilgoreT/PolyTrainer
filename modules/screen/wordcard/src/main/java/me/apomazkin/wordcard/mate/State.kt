@@ -1,8 +1,14 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.compose.runtime.Stable
-import me.apomazkin.mate.Effect
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentType
+import me.apomazkin.lexeme.ComponentValue
+import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.lexeme.Lexeme
+import me.apomazkin.lexeme.toRef
+import me.apomazkin.mate.Effect
 import java.util.Date
 
 const val NOT_IN_DB = -1L
@@ -12,26 +18,33 @@ data class WordCardState(
     val topBarState: TopBarState = TopBarState(),
     val isLoading: Boolean = true,
     val isPendingDbOp: Boolean = false,
+    /** Flush-on-back (маркеры, §6.2.3): «назад» при незавершённой записи — лоадер + отложенная навигация. */
+    val isExiting: Boolean = false,
     val wordState: WordState = WordState.NotLoaded,
     val lexemeList: List<LexemeState> = listOf(),
     val lexemeIdPendingDelete: Long? = null,
+    /** Available component types словаря (driver для ChipsRow). */
+    val availableComponentTypes: List<ComponentType> = emptyList(),
+    /** Reducer-counter для уникальных pristine identity. */
+    val nextPristineKey: Long = 1L,
 ) {
     val isLoaded: Boolean
-        get() = when (wordState) {
-            is WordState.Loaded -> true
-            WordState.NotLoaded -> false
-        }
+        get() = wordState is WordState.Loaded
 
     val isCreatingLexeme: Boolean
         get() = lexemeList.any { it.id == NOT_IN_DB }
 
     val canAddLexeme: Boolean
         get() = !isPendingDbOp && !isCreatingLexeme
+
+    /** computed: есть хоть одна незавершённая (in-flight) запись компонента — для flush-on-back. */
+    val hasInFlightCommits: Boolean
+        get() = lexemeList.any { l -> l.components.any { it.isCommitting } }
 }
 
 @Stable
 data class TopBarState(
-    val isMenuOpen: Boolean = false
+    val isMenuOpen: Boolean = false,
 )
 
 @Stable
@@ -40,6 +53,7 @@ sealed interface WordState {
 
     data class Loaded(
         val id: Long,
+        val dictionaryId: Long,
         val added: Date,
         val value: String,
         val isEditMode: Boolean = false,
@@ -51,270 +65,214 @@ sealed interface WordState {
 @Stable
 data class LexemeState(
     val id: Long = NOT_IN_DB,
-    val translation: TextValueState? = null,
-    val definition: TextValueState? = null,
+    val components: List<ComponentValueState> = emptyList(),
 ) {
-    val canAddTranslation: Boolean get() = translation == null
-    val canAddDefinition: Boolean get() = definition == null
+    /** typeId всех НЕ-multi компонентов — для скрытия их chip'ов в ChipsRow. */
+    val addedNonMultipleTypeIds: Set<ComponentTypeId>
+        get() = components.filterNot { it.isMultiple }.map { it.componentTypeId }.toSet()
 }
 
 @Stable
-data class TextValueState(
+data class ComponentValueState(
+    val key: ComponentValueKey,
+    val componentTypeId: ComponentTypeId,
+    val componentTypeRef: ComponentTypeRef,
+    val isMultiple: Boolean,
     val isEdit: Boolean = false,
+    /** A10-redesign: DB-операция в полёте + flush-on-back driver (hasInFlightCommits). */
+    val isCommitting: Boolean = false,
     val origin: String = "",
     val edited: String = "",
-)
+) {
+    val isPristine: Boolean get() = key is ComponentValueKey.Pristine
+    val componentValueId: ComponentValueId? get() = (key as? ComponentValueKey.Saved)?.componentValueId
+    val pristineKey: Long? get() = (key as? ComponentValueKey.Pristine)?.pristineKey
+}
 
 /**
- * ###### TOP BAR STATE ######
+ * ###### TOP BAR ######
  */
 fun WordCardState.showMenu(): WordCardState =
-    this.copy(
-        topBarState = this.topBarState.copy(
-            isMenuOpen = true
-        )
-    )
+    copy(topBarState = topBarState.copy(isMenuOpen = true))
 
 fun WordCardState.hideMenu(): WordCardState =
-    this.copy(
-        topBarState = this.topBarState.copy(
-            isMenuOpen = false
-        )
-    )
+    copy(topBarState = topBarState.copy(isMenuOpen = false))
 
 /**
  * ###### WORD STATE ######
  */
 fun WordCardState.enableWordEdit(): WordCardState {
     val loaded = wordState as? WordState.Loaded ?: return this
-    return this.copy(
-        wordState = loaded.copy(
-            isEditMode = true,
-            edited = loaded.value
-        )
-    )
+    return copy(wordState = loaded.copy(isEditMode = true, edited = loaded.value))
 }
 
 fun WordCardState.disableWordEdit(): WordCardState {
     val loaded = wordState as? WordState.Loaded ?: return this
-    return this.copy(
-        wordState = loaded.copy(
-            isEditMode = false,
-            edited = ""
-        )
-    )
+    return copy(wordState = loaded.copy(isEditMode = false, edited = ""))
 }
 
 fun WordCardState.updateWordEdited(edited: String): WordCardState {
     val loaded = wordState as? WordState.Loaded ?: return this
-    return this.copy(
-        wordState = loaded.copy(
-            edited = edited
-        )
-    )
+    return copy(wordState = loaded.copy(edited = edited))
 }
 
 fun WordCardState.showWordWarningDialog(): WordCardState {
     val loaded = wordState as? WordState.Loaded ?: return this
-    return this.copy(
-        wordState = loaded.copy(
-            showWarningDialog = true
-        )
-    )
+    return copy(wordState = loaded.copy(showWarningDialog = true))
 }
 
 fun WordCardState.hideWordWarningDialog(): WordCardState {
     val loaded = wordState as? WordState.Loaded ?: return this
-    return this.copy(
-        wordState = loaded.copy(
-            showWarningDialog = false
-        )
-    )
-}
-
-/**
- * ###### CLOSE ALL EDIT MODES ######
- *
- * Закрывает word edit + все chip-edits.
- */
-fun WordCardState.closeAllEditModes(): WordCardState {
-    val newWordState: WordState = when (val w = wordState) {
-        is WordState.Loaded -> w.copy(isEditMode = false, edited = "")
-        WordState.NotLoaded -> w
-    }
-    val newList = lexemeList.map { l ->
-        l.copy(
-            translation = l.translation?.copy(isEdit = false, edited = ""),
-            definition = l.definition?.copy(isEdit = false, edited = ""),
-        )
-    }
-    return copy(wordState = newWordState, lexemeList = newList)
-}
-
-/**
- * ###### COMMIT AND CLOSE ALL EDIT MODES ######
- *
- * Для каждого активного edit с грязным `edited` (!= origin && не пустой) эмитит
- * `Update*`-эффект и локально комитит; пустые/неизменённые — просто закрываются.
- */
-fun WordCardState.commitAndCloseAllEdits(): Pair<WordCardState, Set<Effect>> {
-    val loaded = wordState as? WordState.Loaded
-        ?: return closeAllEditModes() to emptySet()
-
-    val effects = mutableSetOf<Effect>()
-
-    // Word commit / close.
-    val wordEdited = loaded.edited
-    val wordOrigin = loaded.value
-    val newWordState: WordState =
-        if (loaded.isEditMode && wordEdited.isNotEmpty() && wordEdited != wordOrigin) {
-            effects += DatasourceEffect.UpdateWord(
-                wordId = loaded.id,
-                value = wordEdited,
-            )
-            loaded.copy(
-                isEditMode = false,
-                edited = "",
-                value = wordEdited,
-            )
-        } else {
-            loaded.copy(isEditMode = false, edited = "")
-        }
-
-    // Lexeme list — translation / definition commit per item.
-    val newList = lexemeList.map { l ->
-        val newTranslation = l.translation?.let { t ->
-            if (t.isEdit && t.edited.isNotEmpty() && t.edited != t.origin) {
-                val effectLexemeId: Long? = if (l.id == NOT_IN_DB) null else l.id
-                effects += DatasourceEffect.UpdateLexemeTranslation(
-                    wordId = loaded.id,
-                    lexemeId = effectLexemeId,
-                    translation = t.edited,
-                )
-                t.copy(origin = t.edited, isEdit = false, edited = "")
-            } else {
-                t.copy(isEdit = false, edited = "")
-            }
-        }
-        val newDefinition = l.definition?.let { d ->
-            if (d.isEdit && d.edited.isNotEmpty() && d.edited != d.origin) {
-                val effectLexemeId: Long? = if (l.id == NOT_IN_DB) null else l.id
-                effects += DatasourceEffect.UpdateLexemeDefinition(
-                    wordId = loaded.id,
-                    lexemeId = effectLexemeId,
-                    definition = d.edited,
-                )
-                d.copy(origin = d.edited, isEdit = false, edited = "")
-            } else {
-                d.copy(isEdit = false, edited = "")
-            }
-        }
-        l.copy(translation = newTranslation, definition = newDefinition)
-    }
-
-    val pending = effects.isNotEmpty()
-    val newState = copy(
-        wordState = newWordState,
-        lexemeList = newList,
-        isPendingDbOp = if (pending) true else isPendingDbOp,
-    )
-    return newState to effects
+    return copy(wordState = loaded.copy(showWarningDialog = false))
 }
 
 /**
  * ###### LEXEME LIST ######
  */
-fun WordCardState.updateLexeme(
-    lexemeId: Long,
-    update: (LexemeState) -> LexemeState
-): WordCardState =
-    this.copy(
-        lexemeList = this.lexemeList.map { lexeme ->
-            if (lexeme.id == lexemeId) update(lexeme) else lexeme
-        }
-    )
+fun WordCardState.updateLexeme(lexemeId: Long, update: (LexemeState) -> LexemeState): WordCardState =
+    copy(lexemeList = lexemeList.map { if (it.id == lexemeId) update(it) else it })
 
 fun WordCardState.removeLexeme(lexemeId: Long): WordCardState =
-    this.copy(
-        lexemeList = this.lexemeList.filter { it.id != lexemeId }
-    )
+    copy(lexemeList = lexemeList.filter { it.id != lexemeId })
+
+/**
+ * ###### LEXEME COMPONENT EXTENSIONS ######
+ */
+fun LexemeState.findByKey(key: ComponentValueKey): ComponentValueState? =
+    components.firstOrNull { it.key == key }
+
+fun LexemeState.updateComponent(key: ComponentValueKey, transform: (ComponentValueState) -> ComponentValueState): LexemeState =
+    copy(components = components.map { if (it.key == key) transform(it) else it })
+
+fun LexemeState.removeComponent(key: ComponentValueKey): LexemeState =
+    copy(components = components.filterNot { it.key == key })
+
+fun LexemeState.appendPristine(component: ComponentValueState): LexemeState =
+    copy(components = components + component)
 
 /**
  * ###### ENTITY MAPPING ######
  */
+fun ComponentValue.toComponentValueState(): ComponentValueState = ComponentValueState(
+    key = ComponentValueKey.Saved(id),
+    componentTypeId = type.id,
+    componentTypeRef = type.toRef(),
+    isMultiple = type.isMultiple,
+    origin = data.asText().orEmpty(),
+)
+
 fun Lexeme.toLexemeState(): LexemeState = LexemeState(
-    id = this.lexemeId.id,
-    translation = this.translation?.let { translation ->
-        TextValueState(
-            origin = translation.value,
-            isEdit = false,
-            edited = "",
-        )
-    },
-    definition = this.definition?.let { definition ->
-        TextValueState(
-            origin = definition.value,
-            isEdit = false,
-            edited = "",
-        )
-    },
+    id = lexemeId.id,
+    components = components.map { it.toComponentValueState() },
 )
 
 /**
- * ###### SPECIALIZED LEXEME EXTENSIONS ######
+ * ###### COMMIT ALL EDIT MODES ######
  */
+/**
+ * Commit всех правок (flush): для каждого компонента — [commitDecision], эмиссия эффектов.
+ * - NoOp → закрыть edit; LocalRemove → drop локально (без эффекта);
+ * - Update → A10 hold edit + isCommitting=true, эффект Upsert (UpdateValue/AddValue);
+ * - PessimisticRemove → isCommitting=true, эффект RemoveComponentValue;
+ * - NOT_IN_DB лексема → только anchor (первый по порядку Update) эмитит CreateLexeme,
+ *   остальные ждут promotion; пустой draft удаляется.
+ * - word edit (изменён) → UpdateWord + value продвигается.
+ */
+fun WordCardState.commitAndCloseAllEdits(): Pair<WordCardState, Set<Effect>> {
+    val loaded = wordState as? WordState.Loaded ?: return this to emptySet()
+    val effects = mutableSetOf<Effect>()
 
-// Translation management
-fun WordCardState.createLexemeTranslation(lexemeId: Long): WordCardState =
-    this.updateLexeme(lexemeId) {
-        it.copy(
-            translation = TextValueState(
-                origin = "",
-                isEdit = true,
-                edited = "",
-            )
-        )
+    val newLexemes = lexemeList.mapNotNull { lexeme ->
+        if (lexeme.id == NOT_IN_DB) {
+            commitDraftLexeme(lexeme, loaded.id, loaded.dictionaryId, effects)
+        } else {
+            commitRealLexeme(lexeme, loaded.id, loaded.dictionaryId, effects)
+        }
     }
 
-fun WordCardState.updateLexemeTranslationText(lexemeId: Long, text: String): WordCardState =
-    this.updateLexeme(lexemeId) {
-        it.copy(translation = it.translation?.copy(edited = text))
+    val trimmedWord = loaded.edited.trim()
+    val newWordState = if (loaded.isEditMode && trimmedWord.isNotEmpty() && trimmedWord != loaded.value) {
+        effects += DatasourceEffect.UpdateWord(loaded.id, trimmedWord)
+        loaded.copy(value = trimmedWord, isEditMode = false, edited = "")
+    } else {
+        loaded.copy(isEditMode = false, edited = "")
     }
 
-fun WordCardState.enableLexemeTranslationEdit(lexemeId: Long): WordCardState =
-    this.updateLexeme(lexemeId) {
-        it.copy(
-            translation = it.translation?.copy(
-                isEdit = true,
-                edited = it.translation.origin,
-            )
-        )
-    }
+    return copy(
+        lexemeList = newLexemes,
+        wordState = newWordState,
+        isPendingDbOp = isPendingDbOp || effects.isNotEmpty(),
+    ) to effects
+}
 
-// Definition management
-fun WordCardState.createLexemeDefinition(lexemeId: Long): WordCardState =
-    this.updateLexeme(lexemeId) {
-        it.copy(
-            definition = TextValueState(
-                origin = "",
-                isEdit = true,
-                edited = "",
-            )
-        )
+private fun commitRealLexeme(
+    lexeme: LexemeState,
+    wordId: Long,
+    dictionaryId: Long,
+    effects: MutableSet<Effect>,
+): LexemeState {
+    val newComps = lexeme.components.mapNotNull { cv ->
+        if (cv.isCommitting) return@mapNotNull cv // уже in-flight — не реэмитим
+        when (val outcome = cv.commitDecision()) {
+            CommitOutcome.NoOp -> cv.copy(isEdit = false, edited = "")
+            CommitOutcome.LocalRemove -> null
+            CommitOutcome.PessimisticRemove -> {
+                val cvId = cv.componentValueId ?: return@mapNotNull null
+                effects += DatasourceEffect.RemoveComponentValue(cvId, lexeme.id)
+                cv.copy(isCommitting = true)
+            }
+            is CommitOutcome.Update -> {
+                val cvId = cv.componentValueId
+                if (cvId != null) {
+                    effects += DatasourceEffect.UpsertComponentValue.UpdateValue(
+                        wordId = wordId,
+                        dictionaryId = dictionaryId,
+                        lexemeId = lexeme.id,
+                        componentValueId = cvId,
+                        componentTypeId = cv.componentTypeId,
+                        componentTypeRef = cv.componentTypeRef,
+                        data = textValuesOf(outcome.text),
+                    )
+                } else {
+                    effects += DatasourceEffect.UpsertComponentValue.AddValue(
+                        wordId = wordId,
+                        dictionaryId = dictionaryId,
+                        lexemeId = lexeme.id,
+                        pristineKey = cv.pristineKey!!,
+                        componentTypeId = cv.componentTypeId,
+                        componentTypeRef = cv.componentTypeRef,
+                        data = textValuesOf(outcome.text),
+                    )
+                }
+                cv.copy(isCommitting = true)
+            }
+        }
     }
+    return lexeme.copy(components = newComps)
+}
 
-fun WordCardState.updateLexemeDefinitionText(lexemeId: Long, text: String): WordCardState =
-    this.updateLexeme(lexemeId) {
-        it.copy(definition = it.definition?.copy(edited = text))
+private fun commitDraftLexeme(
+    lexeme: LexemeState,
+    wordId: Long,
+    dictionaryId: Long,
+    effects: MutableSet<Effect>,
+): LexemeState? {
+    if (lexeme.components.any { it.isCommitting }) return lexeme // draft уже создаётся — не реэмитим
+    val survived = lexeme.components.filterNot { it.commitDecision() == CommitOutcome.LocalRemove }
+    if (survived.isEmpty()) return null
+    val anchor = survived.firstOrNull { it.commitDecision() is CommitOutcome.Update }
+        ?: return lexeme.copy(components = survived)
+    val anchorText = (anchor.commitDecision() as CommitOutcome.Update).text
+    effects += DatasourceEffect.UpsertComponentValue.CreateLexeme(
+        wordId = wordId,
+        dictionaryId = dictionaryId,
+        pristineKey = anchor.pristineKey!!,
+        componentTypeId = anchor.componentTypeId,
+        componentTypeRef = anchor.componentTypeRef,
+        data = textValuesOf(anchorText),
+    )
+    val newComps = survived.map { cv ->
+        if (cv.key == anchor.key) cv.copy(isCommitting = true) else cv
     }
-
-fun WordCardState.enableLexemeDefinitionEdit(lexemeId: Long): WordCardState =
-    this.updateLexeme(lexemeId) {
-        it.copy(
-            definition = it.definition?.copy(
-                isEdit = true,
-                edited = it.definition.origin,
-            )
-        )
-    }
-
+    return lexeme.copy(components = newComps)
+}

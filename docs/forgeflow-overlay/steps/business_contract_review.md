@@ -3,8 +3,8 @@ name: business_contract_review
 output: business_contract_review.md
 reviews: business_contract
 input_criteria:
-  - business_walkthrough.output существует
-  - business_contract.output существует
+  - business_walkthrough.md существует
+  - business_contract.md существует
 output_criteria:
   - business_contract_review.md существует
   - содержит секцию Verdict с `verdict: approved | changes_requested`

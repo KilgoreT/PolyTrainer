@@ -28,6 +28,13 @@ class UiEffectHandler @AssistedInject constructor(
             is UiEffect.ShowErrorSnackbar -> {
                 uiHost.showSnackbar(effect.messageRes)
             }
+            is UiEffect.ShowSnackbarWithRetry -> {
+                val retryPressed = uiHost.showSnackbarWithAction(
+                    messageRes = effect.messageRes,
+                    actionLabelRes = effect.actionLabelRes,
+                )
+                if (retryPressed) consumer(effect.retryMsg)
+            }
         }
     }
 

@@ -29,6 +29,7 @@ import me.apomazkin.settingstab.widgets.settings.SettingsAppBar
 import me.apomazkin.settingstab.widgets.settings.SettingsSectionWidget
 import me.apomazkin.settingstab.widgets.settings.items.AboutAppWidget
 import me.apomazkin.settingstab.widgets.settings.items.AppShareWidget
+import me.apomazkin.settingstab.widgets.settings.items.ComponentsManageWidget
 import me.apomazkin.settingstab.widgets.settings.items.ExportDataWidget
 import me.apomazkin.settingstab.widgets.settings.items.FeedBackWidget
 import me.apomazkin.settingstab.widgets.settings.items.ImportDataWidget
@@ -90,6 +91,7 @@ internal fun SettingsTabScreen(
                 item {
                     SettingsSectionWidget {
                         LangManageWidget(onClick = { sendMessage(Msg.OpenLangManagement) })
+                        ComponentsManageWidget(onClick = { sendMessage(Msg.OpenComponentsManager) })
                         ExportDataWidget(
                             onClick = { sendMessage(Msg.ExportData(uri = it)) },
                         )

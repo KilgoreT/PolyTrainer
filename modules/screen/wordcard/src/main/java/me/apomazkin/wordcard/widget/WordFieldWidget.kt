@@ -112,6 +112,7 @@ private fun Preview() {
             WordFieldWidget(
                 loaded = WordState.Loaded(
                     id = 1L,
+                    dictionaryId = 1L,
                     added = Date(),
                     value = "apple",
                 ),

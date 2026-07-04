@@ -3,8 +3,10 @@ package me.apomazkin.dictionaryappbar.mate
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
+import me.apomazkin.dictionaryappbar.DictionaryAppBarNavigationEffect
 import me.apomazkin.mate.state
 import me.apomazkin.mate.effects
+import me.apomazkin.mate.test.assertEffects
 import me.apomazkin.mate.test.assertNoEffects
 import me.apomazkin.mate.test.testReduce
 import org.junit.Assert.assertEquals
@@ -27,12 +29,18 @@ import org.junit.Test
  * === Msg.DictMenu* ===
  * 5. Standard: DictMenuOn sets isDropDownMenuOpen = true
  * 6. Standard: DictMenuOff sets isDropDownMenuOpen = false
+ *
+ * === Msg.OpenPerDictionaryComponents (IS481) ===
+ * 7. Standard: OpenPerDictionaryComponents(dictionaryId=1L) on initial state with currentDict=dictEn
+ *    → state immutable, emit OpenPerDictionaryComponents(dictionaryId=1L) nav-effect
+ * 8. Standard: OpenPerDictionaryComponents(dictionaryId=0L) sentinel — payload prokidyvaetsya as-is
+ *    (documents the contract «reducer doesn't validate payload»)
  */
 class DictionaryAppBarReducerTest {
 
     private val reducer = DictionaryAppBarReducer(
         logger = object : LexemeLogger {
-            override fun log(level: LogLevel, tag: String, message: String) {}
+            override fun log(level: LogLevel, tag: String, message: String, throwable: Throwable?) {}
         }
     )
 
@@ -162,5 +170,40 @@ class DictionaryAppBarReducerTest {
 
         assertFalse("isDropDownMenuOpen should be false", result.state().isDropDownMenuOpen)
         result.assertNoEffects("DictMenuOff should produce no effects")
+    }
+
+    // === Msg.OpenPerDictionaryComponents (IS481) ===
+
+    @Test
+    fun `should emit OpenPerDictionaryComponents nav effect carrying dictionaryId when Msg OpenPerDictionaryComponents received`() {
+        // Test case 7: Standard - IS481, юзер тапает «молоток» в DictionaryAppBar
+        // Given
+        val initialState = DictionaryAppBarState(currentDict = dictEn)
+
+        // When
+        val result = reducer.testReduce(initialState, Msg.OpenPerDictionaryComponents(dictionaryId = 1L))
+
+        // Then
+        assertEquals("state should be unchanged", initialState, result.state())
+        result.assertEffects(
+            setOf(DictionaryAppBarNavigationEffect.OpenPerDictionaryComponents(dictionaryId = 1L))
+        )
+    }
+
+    @Test
+    fun `should pass dictionaryId payload as-is when Msg OpenPerDictionaryComponents received with sentinel value`() {
+        // Test case 8: Payload passthrough - sentinel-0 documents «reducer не валидирует payload, прокидывает as-is»
+        // Защита от future require(dictionaryId > 0) рефакторинга на уровне reducer.
+        // Given
+        val initialState = DictionaryAppBarState()
+
+        // When
+        val result = reducer.testReduce(initialState, Msg.OpenPerDictionaryComponents(dictionaryId = 0L))
+
+        // Then
+        assertEquals("state should be unchanged", initialState, result.state())
+        result.assertEffects(
+            setOf(DictionaryAppBarNavigationEffect.OpenPerDictionaryComponents(dictionaryId = 0L))
+        )
     }
 }

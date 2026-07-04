@@ -2,6 +2,9 @@ package me.apomazkin.quiz.chat.logic
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
+import me.apomazkin.lexeme.ComponentType
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.toRef
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.NavigationEffect
@@ -29,7 +32,7 @@ internal class ChatReducer(
                     .systemMessage(
                             message = welcomeMessage()
                                     .toMessageContent()
-                    ) to setOf()
+                    ) to setOf(DatasourceEffect.LoadQuizComponentTypes)
 
             is Msg.ShowMenu -> state
                     .showActionMenu() to setOf()
@@ -197,6 +200,14 @@ internal class ChatReducer(
                     .hideUserActions()
                     .disableUserInput() to emptySet()
 
+            is Msg.SelectQuizComponent -> state to
+                    setOf(DatasourceEffect.SaveQuizPickerSelection(message.ref))
+
+            is Msg.QuizComponentTypesLoaded -> state.updateQuizComponent(
+                    types = message.types,
+                    selectedRef = resolveSelection(message.types, message.restoredSelectedRef),
+            ) to setOf()
+
             is Msg.Empty -> state to emptySet()
         }.also {
             logger.log(message = "Reduce --newState--: ${it.state()} ")
@@ -204,6 +215,22 @@ internal class ChatReducer(
                 logger.log(message = "Reduce --toEffect--: $effect ")
             }
         }
+    }
+
+    /**
+     * IS481 quiz picker. Membership check restored ref в available.
+     * - types пуст → null.
+     * - restored ∈ types.map { it.toRef() } → restored.
+     * - иначе fallback на первый по `position` (types preserve порядок из БД).
+     */
+    private fun resolveSelection(
+            types: List<ComponentType>,
+            restored: ComponentTypeRef?,
+    ): ComponentTypeRef? {
+        if (types.isEmpty()) return null
+        val available = types.map { it.toRef() }
+        if (restored != null && restored in available) return restored
+        return available.first()
     }
 
     private fun welcomeMessage(): String {

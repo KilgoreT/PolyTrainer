@@ -1,0 +1,620 @@
+flow: adaptive
+started: 2026-06-03T20:46:31Z
+dir: docs/features/IS481_lexeme_component_constructor_vPrepared/
+parent: null
+
+context:
+  ticket: IS481
+  feature_name: lexeme_component_constructor_vPrepared
+  branch: IS481_lexeme_component_constructor
+  mode: autonomy
+  overlay: docs/forgeflow-overlay
+  workspace:
+    dir_template: "docs/features/{ticket}_{name}/"
+    spec_dir: "docs/features-spec/"
+  depth: 0
+  feedback_iteration: 0
+  feedback_restart: false
+  feature_has_figma: false
+  review_passed: true
+  infra_touched: true
+  business_touched: false
+  ui_touched: false
+  data_touched: true
+  needs_tests: true
+  needs_migration_tests: false
+  feature_has_ui_contract: false
+  spec_filename: null
+
+steps:
+  task:
+    status: done
+    started: 2026-06-03T20:46:31Z
+    finished: 2026-06-03T20:50:00Z
+    pause: true
+    output: 00_task.md
+    note: "Conductor pragmatic shortcut — task scope покрыт существующим `00_brief.md` (создан в conversation до flow). Скопирован в 00_task.md. Sub-agent execute пропущен."
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  figma_dump:
+    status: done
+    started: 2026-06-03T20:51:00Z
+    finished: 2026-06-03T20:51:00Z
+    pause: false
+    input: task.output
+    output: figma_dump.json
+    sets:
+      - feature_has_figma
+    note: "Conductor inline-resolution: 00_task.md (= 00_brief.md) — infra-only prereq, Figma не упоминается. Case A figma_dump step: feature_has_figma=false, output не создаётся. Sub-agent execute пропущен (boolean-результат)."
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  scope_analysis:
+    status: done
+    iteration: 2
+    started: 2026-06-03T20:53:00Z
+    iteration2_started: 2026-06-03T21:14:00Z
+    finished: 2026-06-03T21:25:00Z
+    review_iter1_findings: "5 critical approved (F001, F002, F005, F006, F007) + 2 minor approved (F008, F009); 3 rejected (F003 transitive coroutines, F004 DUP, F010 brief даёт criterion)"
+    review_iter2: "architect PASS + qa_engineer PASS → review_passed=true"
+    pause: true
+    input:
+      - task.output
+      - figma_dump.output
+    output: 02_scope.md
+    sets:
+      - infra_touched
+      - business_touched
+      - ui_touched
+      - data_touched
+      - needs_tests
+      - needs_migration_tests
+      - feature_has_ui_contract
+      - spec_filename
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  infra_walkthrough:
+    status: done
+    if: infra_touched
+    started: 2026-06-03T21:26:00Z
+    finished: 2026-06-03T21:29:00Z
+    output: infra_walkthrough.md
+    pause: true
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+    note: "Вердикт — аналог bundled SQLite в проекте не найден (greenfield). Новый факт: CI не запускает androidTest → acceptance 6.1/6.2 локально."
+
+  infra_design_tree:
+    status: done
+    iteration: 1
+    started: 2026-06-03T21:30:00Z
+    finished: 2026-06-03T21:36:00Z
+    if: infra_touched
+    pause: true
+    review_iter1: "architect PASS → review_passed=true"
+    input:
+      - scope_analysis.output
+      - infra_walkthrough.output
+    output: infra_design_tree.md
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  infra_test:
+    status: done
+    iteration: 1
+    started: 2026-06-03T21:42:00Z
+    finished: 2026-06-03T21:54:00Z
+    output: infra_test.md
+    if: needs_tests AND infra_touched
+    pause: true
+    note: "Pragmatic alias mapping by conductor: infra_test → step: test.md (generic from base), output: infra_test.md. Workaround для IS481-F4."
+    review_iter1: "architect 2 minor + qa_engineer 5 findings (1 medium + 4 low/info). Conductor inquisitor: 3 approved minor (consolidated test3 assertion + F009 process + regression baseline) + 1 rejected (step4 vs pre-req)."
+    decision: "accept с tech debt вместо iter2; fix-инструкции в infra_test_review.md для имплементатора"
+    input:
+      - scope_analysis.output
+      - infra_design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  infra_implement:
+    status: done
+    iteration: 1
+    started: 2026-06-03T21:55:00Z
+    finished: 2026-06-03T22:05:00Z
+    output: infra_implement.md
+    if: infra_touched
+    pause: true
+    note: "Pragmatic alias workaround IS481-F4: использовать generic implement.md из base, output infra_implement.md."
+    decision_D1: "BaseMigration.kt НЕ менялся — Room 2.8 ctors mutually exclusive (verified в source). Acceptance 6.1 эскалирован, finding IS481-F5 в FlowBacklog. 5/6 узлов DAG имплементированы."
+    compile_checks: "compileDebugKotlin EXIT 0, compileDebugAndroidTestKotlin EXIT 0"
+    input:
+      - scope_analysis.output
+      - infra_design_tree.output
+      - infra_test.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+
+  infra_summary:
+    status: done
+    started: 2026-06-03T22:07:00Z
+    finished: 2026-06-03T22:10:00Z
+    output: infra_summary.md
+    if: infra_touched
+    pause: true
+    note: "Alias workaround IS481-F4: generic summary.md → output infra_summary.md."
+    summary_status: "done — D1 эскалирован через FlowBacklog IS481-F5, не блокер prereq"
+    input:
+      - infra_design_tree.output
+      - infra_test.output
+      - infra_implement.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  business_walkthrough:
+    status: pending
+    if: business_touched
+    pause: true
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  business_contract:
+    status: pending
+    if: business_touched
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_walkthrough.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  business_contract_review:
+    status: pending
+    if: business_touched
+    input:
+      - business_walkthrough.output
+      - business_contract.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+
+  business_contract_spec:
+    status: pending
+    if: business_touched
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_contract.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  business_design_tree:
+    status: pending
+    if: business_touched
+    pause: true
+    input:
+      - business_contract.output
+      - business_contract_spec.output
+    output: business_design_tree.md
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  business_test:
+    status: pending
+    if: business_touched
+    pause: true
+    input:
+      - business_contract.output
+      - business_design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  business_implement:
+    status: pending
+    if: business_touched
+    pause: true
+    input:
+      - business_contract.output
+      - business_design_tree.output
+      - business_test.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+
+  business_publish_spec:
+    status: pending
+    if: business_touched
+    pause: true
+    input:
+      - business_contract_spec.output
+      - business_implement.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      review:
+        agents:
+          - architect
+
+  business_summary:
+    status: pending
+    if: business_touched
+    pause: true
+    input:
+      - business_design_tree.output
+      - business_test.output
+      - business_implement.output
+      - business_publish_spec.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  ui_walkthrough:
+    status: pending
+    if: ui_touched
+    pause: true
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  ui_layout:
+    status: pending
+    if: ui_touched
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_summary.output
+      - figma_dump.output
+      - ui_walkthrough.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  ui_design_tree:
+    status: pending
+    if: ui_touched
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_summary.output
+      - business_summary.output
+      - figma_dump.output
+      - ui_layout.output
+    output: ui_design_tree.md
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  ui_implement:
+    status: pending
+    if: ui_touched
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_summary.output
+      - figma_dump.output
+      - ui_layout.output
+      - ui_design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+
+  publish_ui:
+    status: pending
+    if: ui_touched
+    pause: true
+    input:
+      - ui_layout.output
+      - ui_implement.output
+    repeat:
+      until: review_passed
+      max: 3
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      review:
+        agents:
+          - architect
+
+  ui_summary:
+    status: pending
+    if: ui_touched
+    pause: true
+    input:
+      - ui_layout.output
+      - ui_design_tree.output
+      - ui_implement.output
+      - publish_ui.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  data_walkthrough:
+    status: skipped
+    if: data_touched
+    skip_reason: "Conductor decision: scope iter2 пометил data_touched=true, но реальная work (RoomModule/build.gradle/ProGuard/Bundled driver setup) — pure infra. Data layer (Migration / DAO / Entity) НЕ трогался. Data subflow дублировал бы infra_implement."
+    pause: true
+    input:
+      - scope_analysis.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  data_design_tree:
+    status: skipped
+    if: data_touched
+    skip_reason: "Conductor decision: scope iter2 пометил data_touched=true, но реальная work (RoomModule/build.gradle/ProGuard/Bundled driver setup) — pure infra. Data layer (Migration / DAO / Entity) НЕ трогался. Data subflow дублировал бы infra_implement."
+    pause: true
+    input:
+      - scope_analysis.output
+      - infra_summary.output
+      - business_summary.output
+      - data_walkthrough.output
+    output: data_design_tree.md
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+
+  data_migration_test:
+    status: pending
+    if: needs_migration_tests AND data_touched
+    pause: true
+    input:
+      - scope_analysis.output
+      - data_design_tree.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - qa_engineer
+
+  data_implement:
+    status: skipped
+    if: data_touched
+    skip_reason: "Conductor decision: scope iter2 пометил data_touched=true, но реальная work (RoomModule/build.gradle/ProGuard/Bundled driver setup) — pure infra. Data layer (Migration / DAO / Entity) НЕ трогался. Data subflow дублировал бы infra_implement."
+    pause: true
+    input:
+      - scope_analysis.output
+      - business_summary.output
+      - data_design_tree.output
+      - data_migration_test.output
+    repeat:
+      until: review_passed
+      max: 7
+      on_max: escalate
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      guides:
+        enabled: true
+      review:
+        agents:
+          - architect
+          - senior
+
+  data_summary:
+    status: skipped
+    if: data_touched
+    skip_reason: "Conductor decision: scope iter2 пометил data_touched=true, но реальная work (RoomModule/build.gradle/ProGuard/Bundled driver setup) — pure infra. Data layer (Migration / DAO / Entity) НЕ трогался. Data subflow дублировал бы infra_implement."
+    pause: true
+    input:
+      - data_design_tree.output
+      - data_migration_test.output
+      - data_implement.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+
+  check:
+    status: done
+    started: 2026-06-03T22:11:00Z
+    finished: 2026-06-03T22:20:00Z
+    output: check.md
+    pause: true
+    results: "lint EXIT:0, test EXIT:0, build EXIT:0"
+    with:
+      logging:
+        phases:
+          - "finalize:after"
+      checks:
+        - lint
+        - test
+        - build
+
+  global_code_review:
+    status: done
+    started: 2026-06-03T22:21:00Z
+    finished: 2026-06-03T22:35:00Z
+    output: REVIEW.md
+    pause: true
+    findings: "16 raw findings от 3 reviewers (Arch + Bugs + YAGNI). После dedup и triage: 7 закрыть в фиче (applied), 2 в backlog, 7 rejected/auto-closed."
+    main_action: "Удалён logBundledSqliteVersion в RoomModule.kt → одним shot'ом закрыл 8 findings (orphan CoroutineScope + side-effect provider + Log обход + race init + double dispatcher + Y1)."
+    post_fix_verify: "compileDebugKotlin EXIT:0, compileDebugAndroidTestKotlin EXIT:0, lint EXIT:0, test EXIT:0"
+    input:
+      - scope_analysis.output
+      - infra_summary.output
+      - business_summary.output
+      - ui_summary.output
+      - data_summary.output
+    with:
+      logging:
+        phases:
+          - "finalize:after"

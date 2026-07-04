@@ -16,7 +16,7 @@ output_criteria:
   - каждый custom widget (❇️ / 🔄 / 📌) в `## 🔍 Анализ виджетов` имеет поле `structure:` с описанием через примитивы и слоты (atoms + layouts) из подложенных гайдов; старые теги `⟦...⟧` запрещены
 ---
 
-Финальная UI-спека фичи. Готовится перед `design_tree` UI sub-flow и публикуется через `publish_ui` в раздел `## UI Layout` общей спеки фичи (`docs/features-spec/<feature>.md`).
+Финальная UI-спека фичи. Готовится перед `design_tree` UI sub-flow и публикуется через `publish_ui` в раздел `## UI Layout` общей спеки фичи (`docs/handbook/specs/<feature>.md`).
 
 Артефакт = **полное финальное состояние UI после реализации фичи** (snapshot), не diff. Источник истины для `design_tree` и `implement` шагов UI.
 
@@ -115,7 +115,7 @@ output_criteria:
 
 ### Источник 1 — Существующая спека
 
-`docs/features-spec/<feature>.md` — если существует, прочитать раздел `## UI Layout` (если есть). Это baseline. Финальный артефакт = baseline + дельта от Figma/scope.
+`docs/handbook/specs/<feature>.md` — если существует, прочитать раздел `## UI Layout` (если есть). Это baseline. Финальный артефакт = baseline + дельта от Figma/scope.
 
 Если спеки нет — фича без публичной спеки, baseline пустой.
 

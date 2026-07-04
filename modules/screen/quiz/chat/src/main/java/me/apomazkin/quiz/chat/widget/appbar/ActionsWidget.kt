@@ -3,11 +3,13 @@ package me.apomazkin.quiz.chat.widget.appbar
 import androidx.compose.runtime.Composable
 import me.apomazkin.icondropdowned.DividerMenuItem
 import me.apomazkin.icondropdowned.IconDropdownWidget
+import me.apomazkin.quiz.chat.BuildConfig
 import me.apomazkin.quiz.chat.logic.ItemsState
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.widget.appbar.menu.DebugMenuItem
 import me.apomazkin.quiz.chat.widget.appbar.menu.EarliestReviewedMenuItem
 import me.apomazkin.quiz.chat.widget.appbar.menu.MistakesMenuItem
+import me.apomazkin.quiz.chat.widget.appbar.menu.QuizComponentMenuItem
 
 @Composable
 fun ActionsWidget(
@@ -34,13 +36,19 @@ fun ActionsWidget(
                     sendMessage(message)
                 }
         )
-        DividerMenuItem()
-        DebugMenuItem(
-                isChecked = state.debug.isOn,
-                onClick = { isChecked ->
-                    val message = if (isChecked) Msg.DebugOn else Msg.DebugOff
-                    sendMessage(message)
-                }
+        QuizComponentMenuItem(
+                state = state.quizComponent,
+                onSelect = { ref -> sendMessage(Msg.SelectQuizComponent(ref)) },
         )
+        if (BuildConfig.DEBUG) {
+            DividerMenuItem()
+            DebugMenuItem(
+                    isChecked = state.debug.isOn,
+                    onClick = { isChecked ->
+                        val message = if (isChecked) Msg.DebugOn else Msg.DebugOff
+                        sendMessage(message)
+                    }
+            )
+        }
     }
 }

@@ -5,10 +5,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateTypedEffectHandler
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
+import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.quiz.QuizGame
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
@@ -30,11 +32,25 @@ sealed interface DatasourceEffect : Effect {
     data object GetAnswer : DatasourceEffect
     data class CheckAnswer(val answer: String) : DatasourceEffect
     data object Summary : DatasourceEffect
+
+    /**
+     * IS481 quiz picker. One-shot fetch на entry — availableTypes + restored
+     * selectedRef → `Msg.QuizComponentTypesLoaded`. `dictionaryId` резолвится
+     * в handler через `useCase.getCurrentDictionaryId()`.
+     */
+    data object LoadQuizComponentTypes : DatasourceEffect
+
+    /**
+     * IS481 quiz picker. Persist write. Flow подхватит write и emit
+     * `Msg.QuizComponentTypesLoaded` для UI update.
+     */
+    data class SaveQuizPickerSelection(val ref: ComponentTypeRef) : DatasourceEffect
 }
 
 class DatasourceEffectHandler @Inject constructor(
     private val quizGame: QuizGame,
     private val prefsProvider: PrefsProvider,
+    private val useCase: QuizChatUseCase,
     private val logger: LexemeLogger,
 ) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
 
@@ -99,6 +115,24 @@ class DatasourceEffectHandler @Inject constructor(
                 Msg.Assessment(value = MessageContent.create(text = assessment))
             }
             is DatasourceEffect.Summary -> sendSummary()
+            is DatasourceEffect.LoadQuizComponentTypes -> withContext(Dispatchers.IO) {
+                val dictId = useCase.getCurrentDictionaryId()
+                if (dictId == null) {
+                    Msg.Empty
+                } else {
+                    Msg.QuizComponentTypesLoaded(
+                        types = useCase.getAvailableTypes(dictId),
+                        restoredSelectedRef = useCase.getQuizPickerSelection(dictId),
+                    )
+                }
+            }
+            is DatasourceEffect.SaveQuizPickerSelection -> withContext(Dispatchers.IO) {
+                val dictId = useCase.getCurrentDictionaryId()
+                if (dictId != null) {
+                    useCase.setQuizPickerSelection(dictId, effect.ref)
+                }
+                Msg.Empty
+            }
         }
         consumer(msg)
     }

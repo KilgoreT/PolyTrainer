@@ -16,6 +16,10 @@
     @androidx.room.Relation *;
 }
 
+# Bundled SQLite driver — keep native methods and driver classes
+-keep class androidx.sqlite.driver.bundled.** { *; }
+-keep class androidx.sqlite.** { native <methods>; }
+
 # Keep all DB entities in core-db-impl
 -keep class me.apomazkin.core_db_impl.entity.** { *; }
 -keep class me.apomazkin.core_db_impl.room.** { *; }

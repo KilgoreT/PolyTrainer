@@ -70,6 +70,43 @@ internal fun SubentityChip(
     }
 }
 
+/** IS481: overload c произвольной строкой-лейблом (user-defined типы). */
+@Composable
+internal fun SubentityChip(
+    label: String,
+    @DrawableRes iconRes: Int,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(6.dp),
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                PaddingValues(start = 12.dp, top = 6.dp, end = 6.dp, bottom = 6.dp),
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+            Icon(
+                modifier = Modifier.size(16.dp),
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+            )
+        }
+    }
+}
+
 @PreviewWidget
 @Composable
 private fun PreviewPlaceholderTranslation() {

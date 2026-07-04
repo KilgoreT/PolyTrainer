@@ -36,6 +36,10 @@ class DictionaryAppBarReducer(
                 DictionaryAppBarNavigationEffect.OpenDictionaryCreate
             )
 
+            is Msg.OpenPerDictionaryComponents -> state to setOf(
+                DictionaryAppBarNavigationEffect.OpenPerDictionaryComponents(message.dictionaryId)
+            )
+
             is Msg.Empty -> state to setOf()
         }.also {
             logger.log(message = "Reduce --newState--: ${it.first} ")

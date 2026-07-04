@@ -1,6 +1,7 @@
 [versions]
 datastore-version = "1.1.7"
 roomVersion = "2.8.4"
+sqliteBundledVersion = "2.6.2"
 documentfileVersion = "1.1.0"
 pagingVersion = "3.3.6"
 
@@ -11,5 +12,6 @@ roomCompiler = { group = "androidx.room", name = "room-compiler", version.ref = 
 roomKtx = { group = "androidx.room", name = "room-ktx", version.ref = "roomVersion" }
 roomPaging = { group = "androidx.room", name = "room-paging", version.ref = "roomVersion" }
 roomTesting = { group = "androidx.room", name = "room-testing", version.ref = "roomVersion" }
+sqliteBundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqliteBundledVersion" }
 documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfileVersion" }
 paging = { group = "androidx.paging", name = "paging-runtime-ktx", version.ref = "pagingVersion" }

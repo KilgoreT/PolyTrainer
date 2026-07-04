@@ -8,10 +8,10 @@ import javax.inject.Inject
 class LexemeLoggerImpl @Inject constructor(
     private val sinks: List<@JvmSuppressWildcards LogSink>
 ) : LexemeLogger {
-    override fun log(level: LogLevel, tag: String, message: String) {
+    override fun log(level: LogLevel, tag: String, message: String, throwable: Throwable?) {
         sinks.forEach { sink ->
             if (level >= sink.minLevel) {
-                sink.write(level, tag, message)
+                sink.write(level, tag, message, throwable)
             }
         }
     }

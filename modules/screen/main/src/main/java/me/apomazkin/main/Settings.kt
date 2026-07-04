@@ -8,6 +8,7 @@ import androidx.navigation.navArgument
 
 private const val ABOUT_APP_ROUTE = "about_app"
 private const val WEBVIEW_ROUTE = "webview/{pageKey}"
+private const val COMPONENTS_MANAGER_ROUTE = "components_manager"
 
 fun NavGraphBuilder.settings(
     navController: NavHostController,
@@ -19,7 +20,8 @@ fun NavGraphBuilder.settings(
         compositionRoot.SettingsTabScreenDep(
             onLangManagementClick = openDictionaryList,
             onAboutAppClick = { navController.goToAboutApp() },
-            onPrivacyPolicyClick = { navController.goToWebView("privacy_policy") }
+            onPrivacyPolicyClick = { navController.goToWebView("privacy_policy") },
+            onComponentsManagerClick = { navController.goToComponentsManager() },
         )
     }
 
@@ -44,6 +46,12 @@ fun NavGraphBuilder.settings(
         )
     }
 
+    composable(route = COMPONENTS_MANAGER_ROUTE) {
+        compositionRoot.ComponentsManagerScreenDep(
+            onBackPress = { navController.backPress() },
+        )
+    }
+
 }
 
 private fun NavHostController.goToAboutApp() {
@@ -54,6 +62,12 @@ private fun NavHostController.goToAboutApp() {
 
 private fun NavHostController.goToWebView(pageKey: String) {
     navigate(route = "webview/$pageKey") {
+        launchSingleTop = true
+    }
+}
+
+private fun NavHostController.goToComponentsManager() {
+    navigate(route = COMPONENTS_MANAGER_ROUTE) {
         launchSingleTop = true
     }
 }

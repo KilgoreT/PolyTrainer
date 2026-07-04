@@ -72,9 +72,12 @@ private val NOT_GRADABLE_INDEX = 1L shl (ADJ_ORDER_OFFSET + NOT_GRADABLE.ordinal
 //)
 
 fun LexemeDbEntity.toMateApp() = DefinitionOld(
+    // IS481 (v12): legacy маппер. `definition` колонка удалена — value всегда
+    // "Empty value". Реальные данные definition в `component_values`.
+    // TODO mapper-refactor (backlog): переписать на components либо удалить.
     id = lexemeDb.id ?: throw IllegalArgumentException("Id not found."),
     wordId = lexemeDb.wordId ?: throw IllegalArgumentException("WordId not found."),
-    value = lexemeDb.definition ?: "Empty value",
+    value = "Empty value",
 //    category = lexemeDb.wordClass ?: throw IllegalArgumentException("WordClass not found."),
 )
 

@@ -62,7 +62,7 @@ business_walkthrough        — Discovery: data-API, sealed-результаты
 
 Между `business_contract` и `business_contract_review` работает reviewer-механика из FF base (`spec/dsl.md` → «feedback_required для обычных шагов»). Если review вернул `changes_requested` — runner делает `trigger_step_rerun` на `business_contract`, цикл до approved.
 
-Модуль `guides` включён на `business_contract` / `business_contract_review` / далее — правила моделирования State / Msg / IO подкладываются автоматически из проектных гайдов (`docs/guides/state-modeling.md`, `state-and-extensions.md`, `reducer-patterns.md`).
+Модуль `guides` включён на `business_contract` / `business_contract_review` / далее — правила моделирования State / Msg / IO подкладываются автоматически из проектных гайдов (`docs/handbook/guides/state-modeling.md`, `state-and-extensions.md`, `reducer-patterns.md`).
 
 ---
 
@@ -77,7 +77,7 @@ ui_walkthrough     — Discovery: core/ui примитивы, существую
   → ui_summary
 ```
 
-`ui_layout` декларирует `format: ui_layout` в frontmatter — runner инжектит спеку формата из [`../formats/ui_layout.md`](../formats/ui_layout.md). Описание виджетов — через примитивы (atoms + layouts) из гайда `docs/guides/ui-primitives.md` (подкладывается модулем `guides`).
+`ui_layout` декларирует `format: ui_layout` в frontmatter — runner инжектит спеку формата из [`../formats/ui_layout.md`](../formats/ui_layout.md). Описание виджетов — через примитивы (atoms + layouts) из гайда `docs/handbook/guides/ui-primitives.md` (подкладывается модулем `guides`).
 
 ---
 
@@ -139,6 +139,6 @@ Nullable inputs (FF base) — отсутствующий шаг (skipped по `i
 ## Связанные документы
 
 - [`docs/FlowBacklog.md`](../../FlowBacklog.md) — журнал finding'ов и реализаций.
-- [`docs/guides/`](../../guides/README.md) — проектные гайды (правила моделирования, паттерны, конвенции).
+- [`docs/handbook/guides/`](../../guides/README.md) — проектные гайды (правила моделирования, паттерны, конвенции).
 - `~/dev/forgeflow/spec/dsl.md` — формальный DSL ForgeFlow (subflow / child_flow / repeat / require_clean_iteration / format / feedback_required).
 - `~/dev/forgeflow/spec/runner.md` — псевдокод runner'а.
