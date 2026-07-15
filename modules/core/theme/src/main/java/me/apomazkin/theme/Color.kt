@@ -45,6 +45,12 @@ val statInProcessBg = Color(0xFFE5F2FF)
 val statNotSTartedFg = Color(0xFFD19100)
 val statNotStartedBg = Color(0xFFFFFCC1)
 
+val formBackground = Color(0xFFFCFCFA)
+val formTextSecondary = Color(0xFF8A8A90)
+val formTextTertiary = Color(0xFF55555C)
+val formTextHint = Color(0xFF9A9AA2)
+val searchPillColor = Color(0xFFF1F0EC)
+
 object LexemeColor {
     // brand
     val primary = Color(0xFF4A49BC)

@@ -61,6 +61,9 @@
     <string name="dictionary_save">Сохранить</string>
     <string name="dictionary_create">Создать</string>
     <string name="dictionary_filter_flags_hint">Поиск по стране или языку…</string>
+    <string name="dictionary_form_subtitle">Выберите язык и назовите словарь</string>
+    <string name="dictionary_flags_not_found">Ничего не найдено</string>
+    <string name="dictionary_edit_title">Редактирование словаря</string>
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Словарь</string>

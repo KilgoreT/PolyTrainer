@@ -15,10 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.di.viewModelFactory
+import me.apomazkin.dictionary.R
 import me.apomazkin.dictionary.form.widget.DictionaryFormWidget
 import me.apomazkin.dictionary.widget.DictionaryAppBar
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.whiteColor
+import me.apomazkin.theme.formBackground
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
@@ -49,12 +50,20 @@ internal fun DictionaryFormScreen(
     BackHandler { sendMsg(DictionaryFormMsg.Back) }
 
     SystemBarsWidget(
-        color = whiteColor,
+        color = formBackground,
     )
     Scaffold(
+        containerColor = formBackground,
         topBar = {
             if (showAppBar) {
-                DictionaryAppBar(onBackPress = { sendMsg(DictionaryFormMsg.Back) })
+                DictionaryAppBar(
+                    onBackPress = { sendMsg(DictionaryFormMsg.Back) },
+                    titleResId = if (state.editingDictionaryId != null) {
+                        R.string.dictionary_edit_title
+                    } else {
+                        R.string.dictionary_new
+                    },
+                )
             }
         }
     ) { paddings ->
@@ -65,10 +74,11 @@ internal fun DictionaryFormScreen(
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .imePadding()
-                .background(color = whiteColor)
+                .background(color = formBackground)
         ) {
             DictionaryFormWidget(
                 formState = state,
+                showTitle = !showAppBar,
                 sendMsg = sendMsg,
             )
         }
