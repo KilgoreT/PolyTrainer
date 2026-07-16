@@ -11,7 +11,6 @@ import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.PerDictionarySnapshot
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.per_dictionary_components.deps.PerDictionaryComponentsUseCase
 import me.apomazkin.polytrainer.mapper.toDomain
@@ -21,7 +20,7 @@ import javax.inject.Inject
  * Business-impl `PerDictionaryComponentsUseCase` (IS481, M13).
  *
  * - `flowComponentsForDictionary` — scoped subset (global ∪ per-dict для словаря).
- * - Write-методы (`create` / `rename` / `previewDeletionImpact` / `softDelete`) —
+ * - Write-методы (`create` / `previewDeletionImpact` / `softDelete`) —
  *   делегирование на shared CRUD (решение Open Q #2 business_contract).
  *
  * F126 retrofit: `sharedCrud` параметр типа [ComponentsManagerUseCase] (interface),
@@ -50,11 +49,6 @@ class PerDictionaryComponentsUseCaseImpl @Inject constructor(
         isMultiple: Boolean,
         scope: Scope,
     ): CreateOutcome = sharedCrud.createUserDefinedComponent(name, template, isMultiple, scope)
-
-    override suspend fun renameComponent(
-        typeId: ComponentTypeId,
-        newName: String,
-    ): RenameOutcome = sharedCrud.renameComponent(typeId, newName)
 
     override suspend fun previewDeletionImpact(
         typeId: ComponentTypeId,

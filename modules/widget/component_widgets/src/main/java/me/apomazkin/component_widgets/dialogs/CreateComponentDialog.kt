@@ -6,17 +6,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -28,11 +24,7 @@ import me.apomazkin.lexeme.NameError
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.blackColor
-import me.apomazkin.ui.btn.CancelButtonWidget
-import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 import me.apomazkin.ui.dialog.base.LexemeDialog
-import me.apomazkin.ui.dropdown.LexemeRadioRow
-import me.apomazkin.ui.input.base.LexemeTextFieldWidget
 
 /**
  * IS481 phase 2: принимает structure из удалённых widget/CreateComponentDialog.kt
@@ -83,19 +75,9 @@ fun CreateComponentDialog(
             )
 
             // Name section
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(id = R.string.components_create_field_name),
-                    style = LexemeStyle.BodyS,
-                    color = blackColor,
-                )
-                LexemeTextFieldWidget(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = name,
-                    placeHolder = null,
-                    onValueChange = onNameChange,
-                    onKeyboardActions = {},
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ComponentDialogLabel(textRes = R.string.components_create_field_name, accent = true)
+                ComponentNameField(value = name, onValueChange = onNameChange)
                 nameError?.let { err ->
                     Text(
                         text = stringResource(id = err.labelRes()),
@@ -106,60 +88,31 @@ fun CreateComponentDialog(
             }
 
             // Template radio-group
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(id = R.string.components_create_field_template),
-                    style = LexemeStyle.BodyS,
-                    color = blackColor,
-                )
-                ComponentTemplate.entries.forEach { t ->
-                    LexemeRadioRow(
-                        textRes = t.labelRes(),
-                        selected = t == template,
-                        onClick = { onTemplateSelect(t) },
-                        color = blackColor,
-                    )
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ComponentDialogLabel(textRes = R.string.components_create_field_template, accent = false)
+                ComponentTemplateRadioGroup(selected = template, onSelect = onTemplateSelect)
             }
 
             // Multi toggle row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(
-                    checked = isMultiple,
-                    onCheckedChange = onMultiToggle,
-                )
-                Text(
-                    text = stringResource(id = R.string.components_create_field_is_multi),
-                    style = LexemeStyle.BodyL,
-                    color = blackColor,
-                )
-            }
+            ComponentMultiToggle(
+                textRes = R.string.components_create_field_is_multi,
+                checked = isMultiple,
+                onToggle = onMultiToggle,
+            )
 
             // Scope picker — Manager variant only (phase 2 NEW)
             if (hostVariant == HostVariant.Manager) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(id = R.string.components_create_field_scope),
-                        style = LexemeStyle.BodyS,
-                        color = blackColor,
-                    )
-                    LexemeRadioRow(
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ComponentDialogLabel(textRes = R.string.components_create_field_scope, accent = false)
+                    ComponentRadioRow(
                         textRes = R.string.components_create_scope_global,
                         selected = scope is Scope.Global,
                         onClick = { onScopeChange(Scope.Global) },
-                        color = blackColor,
                     )
-                    LexemeRadioRow(
+                    ComponentRadioRow(
                         textRes = R.string.components_create_scope_per_dict,
                         selected = scope is Scope.PerDictionaries,
-                        onClick = {
-                            onScopeChange(Scope.PerDictionaries(emptyList()))
-                        },
-                        color = blackColor,
+                        onClick = { onScopeChange(Scope.PerDictionaries(emptyList())) },
                     )
                     if (scope is Scope.PerDictionaries) {
                         FlowRow(
@@ -184,25 +137,12 @@ fun CreateComponentDialog(
                 }
             }
 
-            // Actions
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                CancelButtonWidget(
-                    modifier = Modifier.weight(1f),
-                    height = 56.dp,
-                    onClick = onDismiss,
-                )
-                PrimaryFullButtonWidget(
-                    modifier = Modifier.weight(1f),
-                    titleRes = R.string.components_button_create,
-                    enabled = canSubmit,
-                    onClick = onSubmit,
-                )
-            }
+            ComponentDialogActions(
+                submitRes = R.string.components_button_create,
+                submitEnabled = canSubmit,
+                onCancel = onDismiss,
+                onSubmit = onSubmit,
+            )
         }
     }
 }

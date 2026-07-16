@@ -2,9 +2,6 @@ package me.apomazkin.component_widgets.dialogs
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -15,8 +12,6 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.blackColor
-import me.apomazkin.ui.btn.AlarmButtonWidget
-import me.apomazkin.ui.btn.CancelButtonWidget
 import me.apomazkin.ui.dialog.base.LexemeDialog
 
 /**
@@ -117,25 +112,13 @@ fun DeleteComponentConfirmDialog(
                 color = blackColor,
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                CancelButtonWidget(
-                    modifier = Modifier.weight(1f),
-                    height = 56.dp,
-                    onClick = onDismiss,
-                )
-                AlarmButtonWidget(
-                    modifier = Modifier.weight(1f),
-                    titleRes = R.string.button_delete,
-                    enabled = canConfirm,
-                    height = 56.dp,
-                    onClick = onConfirm,
-                )
-            }
+            ComponentDialogActions(
+                submitRes = R.string.button_delete,
+                submitEnabled = canConfirm,
+                onCancel = onDismiss,
+                onSubmit = onConfirm,
+                destructive = true,
+            )
         }
     }
 }

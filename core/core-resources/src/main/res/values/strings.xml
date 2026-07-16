@@ -71,6 +71,9 @@
     <string name="dictionary_save">Save</string>
     <string name="dictionary_create">Create</string>
     <string name="dictionary_filter_flags_hint">Search by country or language…</string>
+    <string name="word_card_draft_badge">Draft</string>
+    <string name="word_card_draft_hint">Pick a component to add a value</string>
+    <string name="word_card_add_component_label">ADD COMPONENT</string>
     <string name="dictionary_form_subtitle">Pick a language and name your dictionary</string>
     <string name="dictionary_flags_not_found">Nothing found</string>
     <string name="dictionary_edit_title">Edit dictionary</string>

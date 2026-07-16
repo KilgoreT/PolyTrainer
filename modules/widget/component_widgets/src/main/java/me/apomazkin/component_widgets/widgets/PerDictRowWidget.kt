@@ -1,16 +1,13 @@
-@file:OptIn(ExperimentalLayoutApi::class)
-
 package me.apomazkin.component_widgets.widgets
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,22 +18,20 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.theme.LexemeColor
 import me.apomazkin.theme.LexemeStyle
-import me.apomazkin.theme.blackColor
-import me.apomazkin.theme.enableIconColor
-import me.apomazkin.ui.IconBoxed
+import me.apomazkin.theme.componentCardBorder
+import me.apomazkin.theme.destructiveRed
+import me.apomazkin.theme.formTextHint
+import me.apomazkin.theme.whiteColor
+import me.apomazkin.ui.preview.PreviewWidget
 
 /**
- * IS481 phase 2 — per-dict CRUD row.
+ * Строка компонента словаря (Figma 5027:1548). Карточка r18 + бордер + лёгкая тень:
+ * иконка типа, название, «Значений: N», чип шаблона, кнопки edit/delete.
  *
- * Layout (см. `docs/features/IS481_component_constructor_phase2/bugs/layout_component_item.md`):
- *
- * Column:
- *   FlowRow [Text(name) + chip(global if isGlobal) + chip(одно/много)]
- *   Row     [icon(24) + chip(template) + Spacer(weight=1) + edit(44) + trash(44)]
- *   Text    «Значений: N»
- *
- * Чипы — кастомный [BlueAssistChip] (pill, мелкий шрифт).
+ * IS485: бейджи охвата/«Несколько»/словарей не отображаются (терминология не финализирована);
+ * параметры [isMultiple]/[isGlobal]/[dictionaryNames] остаются в сигнатуре — данные живут.
  */
 @Composable
 fun PerDictRowWidget(
@@ -50,89 +45,77 @@ fun PerDictRowWidget(
     onDelete: (ComponentTypeId) -> Unit,
     dictionaryNames: List<String> = emptyList(),
 ) {
+    ComponentRowCard(
+        name = name,
+        template = template,
+        valueCount = valueCount,
+        onEdit = { onEdit(typeId) },
+        onDelete = { onDelete(typeId) },
+    )
+}
+
+/** Общий облик строки компонента для обоих экранов (per-dict + Manager). */
+@Composable
+internal fun ComponentRowCard(
+    name: String,
+    template: ComponentTemplate,
+    valueCount: Int,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(18.dp),
+        color = whiteColor,
+        border = BorderStroke(1.dp, componentCardBorder),
+        shadowElevation = 1.dp,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(18.dp),
         ) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                itemVerticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = name,
-                    style = LexemeStyle.BodyL,
-                    color = blackColor,
-                )
-                if (isGlobal) {
-                    BlueAssistChip(textRes = R.string.components_chip_global)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ComponentTypeIcon()
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = name,
+                        style = LexemeStyle.BodyLBold,
+                        color = LexemeColor.secondary,
+                    )
+                    Text(
+                        text = stringResource(id = R.string.per_dict_row_value_count, valueCount),
+                        style = LexemeStyle.BodyS,
+                        color = formTextHint,
+                    )
                 }
-                BlueAssistChip(
-                    textRes = if (isMultiple) {
-                        R.string.components_chip_multi
-                    } else {
-                        R.string.components_chip_single
-                    },
-                )
-            }
-            if (!isGlobal && dictionaryNames.isNotEmpty()) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    dictionaryNames.forEach { dictName ->
-                        BlueAssistChipText(text = dictName)
-                    }
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconBoxed(
-                    iconRes = R.drawable.ic_components,
-                    contentDescriptionRes = R.string.content_description_icon,
-                    enabled = true,
-                    colorEnabled = enableIconColor,
-                    size = 24,
-                )
-                BlueAssistChip(textRes = template.labelRes())
-                Row(modifier = Modifier.weight(1f)) {}
-                IconBoxed(
+                ComponentIconButton(
                     iconRes = R.drawable.ic_edit,
-                    contentDescriptionRes = R.string.content_description_button,
-                    enabled = true,
-                    colorEnabled = enableIconColor,
-                    size = 44,
-                    onClick = { onEdit(typeId) },
+                    tint = LexemeColor.secondary,
+                    onClick = onEdit,
                 )
-                IconBoxed(
+                Spacer(modifier = Modifier.width(8.dp))
+                ComponentIconButton(
                     iconRes = R.drawable.ic_trash,
-                    contentDescriptionRes = R.string.button_delete,
-                    enabled = true,
-                    colorEnabled = enableIconColor,
-                    size = 44,
-                    onClick = { onDelete(typeId) },
+                    tint = destructiveRed,
+                    onClick = onDelete,
                 )
             }
-            Text(
-                text = stringResource(
-                    id = R.string.per_dict_row_value_count,
-                    valueCount,
-                ),
-                style = LexemeStyle.BodyS,
-                color = blackColor,
-            )
+            Spacer(modifier = Modifier.padding(top = 8.dp))
+            TemplateChip(template = template)
         }
     }
+}
+
+@Composable
+@PreviewWidget
+private fun Preview() {
+    ComponentRowCard(
+        name = "Определение",
+        template = ComponentTemplate.TEXT,
+        valueCount = 3,
+        onEdit = {},
+        onDelete = {},
+    )
 }

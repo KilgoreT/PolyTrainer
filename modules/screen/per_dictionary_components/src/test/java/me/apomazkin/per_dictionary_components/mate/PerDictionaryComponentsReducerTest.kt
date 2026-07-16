@@ -9,7 +9,6 @@ import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.NameError
 import me.apomazkin.lexeme.PerDictionarySnapshot
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
@@ -89,27 +88,6 @@ class PerDictionaryComponentsReducerTest {
             template = template,
             isMultiple = isMultiple,
             scope = scope,
-            nameError = nameError,
-        ),
-    )
-
-    private fun stateWithRenameDialog(
-        epochId: Long = 1L,
-        typeId: Long = 1L,
-        originalName: String = "Notes",
-        editedName: String = "Notes",
-        nameError: NameError? = null,
-        isRenaming: Boolean = false,
-    ) = baseState(
-        items = listOf(row(id = typeId, name = originalName)),
-        nextEpoch = epochId,
-    ).copy(
-        isRenaming = isRenaming,
-        renameDialog = RenameDialogState(
-            epochId = epochId,
-            typeId = ComponentTypeId(typeId),
-            originalName = originalName,
-            editedName = editedName,
             nameError = nameError,
         ),
     )
@@ -300,19 +278,15 @@ class PerDictionaryComponentsReducerTest {
     @Test
     fun `OpenCreateDialog closes other dialogs (F138)`() {
         val initial = baseState(items = listOf(row(id = 1L))).copy(
-            renameDialog = RenameDialogState(epochId = 3L, typeId = ComponentTypeId(1L), originalName = "X", editedName = "X"),
             deleteConfirm = DeleteConfirmState(epochId = 4L, typeId = ComponentTypeId(1L), name = "X"),
             nextEpoch = 4L,
-            isRenaming = true,
             isDeleting = true,
         )
 
         val result = reducer.testReduce(initial, Msg.OpenCreateDialog)
 
         assertNotNull(result.state().createDialog)
-        assertNull(result.state().renameDialog)
         assertNull(result.state().deleteConfirm)
-        assertEquals(false, result.state().isRenaming)
         assertEquals(false, result.state().isDeleting)
         assertEquals(false, result.state().isCreating)
     }
@@ -498,198 +472,6 @@ class PerDictionaryComponentsReducerTest {
         result.assertNoEffects()
     }
 
-    // ===== 4.3 Rename dialog =====
-
-    @Test
-    fun `OpenRenameDialog row found - opens dialog with epochId`() {
-        val initial = stateWithRows(row(id = 1L, name = "Notes"))
-
-        val result = reducer.testReduce(initial, Msg.OpenRenameDialog(ComponentTypeId(1L)))
-
-        val dlg = result.state().renameDialog
-        assertEquals(ComponentTypeId(1L), dlg?.typeId)
-        assertEquals("Notes", dlg?.originalName)
-        assertEquals(1L, dlg?.epochId)
-    }
-
-    @Test
-    fun `OpenRenameDialog closes other dialogs (F138)`() {
-        val initial = baseState(items = listOf(row(id = 1L))).copy(
-            createDialog = CreateDialogState(epochId = 2L, scope = Scope.PerDictionaries(listOf(DICT_ID))),
-            deleteConfirm = DeleteConfirmState(epochId = 3L, typeId = ComponentTypeId(99L), name = "Z"),
-            nextEpoch = 3L,
-        )
-
-        val result = reducer.testReduce(initial, Msg.OpenRenameDialog(ComponentTypeId(1L)))
-
-        assertNotNull(result.state().renameDialog)
-        assertNull(result.state().createDialog)
-        assertNull(result.state().deleteConfirm)
-    }
-
-    @Test
-    fun `OpenRenameDialog row missing - no-op`() {
-        val initial = stateWithRows()
-
-        val result = reducer.testReduce(initial, Msg.OpenRenameDialog(ComponentTypeId(99L)))
-
-        assertNull(result.state().renameDialog)
-        result.assertNoEffects()
-    }
-
-    @Test
-    fun `CloseRenameDialog clears dialog`() {
-        val result = reducer.testReduce(stateWithRenameDialog(), Msg.CloseRenameDialog)
-        assertNull(result.state().renameDialog)
-    }
-
-    @Test
-    fun `RenameTextChange updates editedName and clears nameError`() {
-        val initial = stateWithRenameDialog(nameError = NameError.Empty)
-
-        val result = reducer.testReduce(initial, Msg.RenameTextChange("Y"))
-
-        assertEquals("Y", result.state().renameDialog?.editedName)
-        assertNull(result.state().renameDialog?.nameError)
-    }
-
-    @Test
-    fun `SubmitRename happy path - dispatches effect with epochId`() {
-        val initial = stateWithRenameDialog(epochId = 4L, editedName = "Y")
-
-        val result = reducer.testReduce(initial, Msg.SubmitRename)
-
-        assertEquals(true, result.state().isRenaming)
-        assertEquals(
-            setOf(DatasourceEffect.RenameComponent(epochId = 4L, typeId = ComponentTypeId(1L), newName = "Y")),
-            result.effects(),
-        )
-    }
-
-    @Test
-    fun `SubmitRename blank editedName - NameError Empty`() {
-        val initial = stateWithRenameDialog(editedName = "")
-
-        val result = reducer.testReduce(initial, Msg.SubmitRename)
-
-        assertEquals(NameError.Empty, result.state().renameDialog?.nameError)
-        result.assertNoEffects()
-    }
-
-    @Test
-    fun `SubmitRename guard when isRenaming true - no double-effect`() {
-        val initial = stateWithRenameDialog(editedName = "Y", isRenaming = true)
-
-        val result = reducer.testReduce(initial, Msg.SubmitRename)
-
-        assertEquals(initial, result.state())
-        result.assertNoEffects()
-    }
-
-    @Test
-    fun `RenameResult Success closes dialog + snackbar`() {
-        val initial = stateWithRenameDialog(epochId = 4L, isRenaming = true)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.RenameResult(epochId = 4L, outcome = RenameOutcome.Success(domainType(1L, "Renamed"))),
-        )
-
-        assertEquals(false, result.state().isRenaming)
-        assertNull(result.state().renameDialog)
-        assertTrue(result.effects().any { it is UiEffect.Snackbar })
-    }
-
-    @Test
-    fun `RenameResult NameEmpty sets nameError`() {
-        val initial = stateWithRenameDialog(epochId = 4L, isRenaming = true)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.RenameResult(epochId = 4L, outcome = RenameOutcome.NameEmpty),
-        )
-
-        assertEquals(NameError.Empty, result.state().renameDialog?.nameError)
-    }
-
-    @Test
-    fun `RenameResult SameScopeCollision sets nameError`() {
-        val initial = stateWithRenameDialog(epochId = 4L, isRenaming = true)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.RenameResult(epochId = 4L, outcome = RenameOutcome.SameScopeCollision),
-        )
-
-        assertEquals(NameError.SameScopeCollision, result.state().renameDialog?.nameError)
-    }
-
-    @Test
-    fun `RenameResult CrossScopeCollision sets nameError`() {
-        val initial = stateWithRenameDialog(epochId = 4L, isRenaming = true)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.RenameResult(epochId = 4L, outcome = RenameOutcome.CrossScopeCollision),
-        )
-
-        assertEquals(NameError.CrossScopeCollision, result.state().renameDialog?.nameError)
-    }
-
-    @Test
-    fun `RenameResult BuiltInProtected closes dialog + snackbar`() {
-        val initial = stateWithRenameDialog(epochId = 4L, isRenaming = true)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.RenameResult(epochId = 4L, outcome = RenameOutcome.BuiltInProtected),
-        )
-
-        assertEquals(false, result.state().isRenaming)
-        assertNull(result.state().renameDialog)
-        assertTrue(result.effects().any { it is UiEffect.Snackbar })
-    }
-
-    @Test
-    fun `RenameResult Failure clears isRenaming + snackbar`() {
-        val initial = stateWithRenameDialog(epochId = 4L, isRenaming = true)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.RenameResult(epochId = 4L, outcome = RenameOutcome.Failure(RuntimeException("boom"))),
-        )
-
-        assertEquals(false, result.state().isRenaming)
-        assertTrue(result.effects().any { it is UiEffect.Snackbar })
-    }
-
-    @Test
-    fun `RenameResult race condition - dialog closed during flight (F101)`() {
-        val initial = baseState().copy(renameDialog = null, isRenaming = true)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.RenameResult(epochId = 0L, outcome = RenameOutcome.SameScopeCollision),
-        )
-
-        assertEquals(false, result.state().isRenaming)
-        assertNull(result.state().renameDialog)
-        assertTrue(result.effects().any { it is UiEffect.Snackbar })
-    }
-
-    @Test
-    fun `RenameResult with stale epochId - discarded (F136)`() {
-        val initial = stateWithRenameDialog(epochId = 7L, isRenaming = true)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.RenameResult(epochId = 2L, outcome = RenameOutcome.SameScopeCollision),
-        )
-
-        assertEquals(initial, result.state())
-        result.assertNoEffects()
-    }
-
     // ===== 4.4 Delete confirm =====
 
     @Test
@@ -709,7 +491,6 @@ class PerDictionaryComponentsReducerTest {
     fun `OpenDeleteConfirm closes other dialogs (F138)`() {
         val initial = baseState(items = listOf(row(id = 1L, name = "Notes"))).copy(
             createDialog = CreateDialogState(epochId = 2L, scope = Scope.PerDictionaries(listOf(DICT_ID))),
-            renameDialog = RenameDialogState(epochId = 3L, typeId = ComponentTypeId(99L), originalName = "Z", editedName = "Z"),
             nextEpoch = 3L,
         )
 
@@ -717,7 +498,6 @@ class PerDictionaryComponentsReducerTest {
 
         assertNotNull(result.state().deleteConfirm)
         assertNull(result.state().createDialog)
-        assertNull(result.state().renameDialog)
     }
 
     @Test
@@ -1025,10 +805,8 @@ class PerDictionaryComponentsReducerTest {
     fun `whenOpenEditDialog_thenEditDialogStateOpened_andOtherDialogsReset`() {
         val initial = baseState(items = listOf(row(id = 1L, name = "Notes", isMultiple = true))).copy(
             createDialog = CreateDialogState(epochId = 1L, scope = Scope.PerDictionaries(listOf(DICT_ID))),
-            renameDialog = RenameDialogState(epochId = 2L, typeId = ComponentTypeId(1L), originalName = "Notes", editedName = "Notes"),
             deleteConfirm = DeleteConfirmState(epochId = 3L, typeId = ComponentTypeId(1L), name = "Notes"),
             isCreating = true,
-            isRenaming = true,
             isDeleting = true,
             nextEpoch = 3L,
         )
@@ -1042,11 +820,9 @@ class PerDictionaryComponentsReducerTest {
         assertEquals(true, dlg?.originalIsMultiple)
         // F138 mutual-exclusion
         assertNull(result.state().createDialog)
-        assertNull(result.state().renameDialog)
         assertNull(result.state().deleteConfirm)
         // F140 in-flight reset
         assertEquals(false, result.state().isCreating)
-        assertEquals(false, result.state().isRenaming)
         assertEquals(false, result.state().isDeleting)
         assertEquals(false, result.state().isEditing)
     }
@@ -1058,17 +834,6 @@ class PerDictionaryComponentsReducerTest {
         val result = reducer.testReduce(initial, Msg.OpenCreateDialog)
 
         assertNotNull(result.state().createDialog)
-        assertNull(result.state().editDialog)
-        assertEquals(false, result.state().isEditing)
-    }
-
-    @Test
-    fun `whenOpenRenameDialog_closesEditDialog_mutualExclusion`() {
-        val initial = stateWithEditDialog(epochId = 5L, isEditing = true)
-
-        val result = reducer.testReduce(initial, Msg.OpenRenameDialog(ComponentTypeId(1L)))
-
-        assertNotNull(result.state().renameDialog)
         assertNull(result.state().editDialog)
         assertEquals(false, result.state().isEditing)
     }
@@ -1364,21 +1129,7 @@ class PerDictionaryComponentsReducerTest {
         )
     }
 
-    // ===== P2.4 Rename / Delete Removed parity =====
-
-    @Test
-    fun `whenRenameResultRemoved_thenDialogClosed_andRemovedSnackbar`() {
-        val initial = stateWithRenameDialog(epochId = 4L, isRenaming = true)
-
-        val result = reducer.testReduce(
-            initial,
-            Msg.RenameResult(epochId = 4L, outcome = RenameOutcome.Removed),
-        )
-
-        assertEquals(false, result.state().isRenaming)
-        assertNull(result.state().renameDialog)
-        assertTrue(result.effects().any { it is UiEffect.Snackbar })
-    }
+    // ===== P2.4 Delete Removed parity =====
 
     @Test
     fun `whenDeleteResultRemoved_thenDialogClosed_andRemovedSnackbar`() {

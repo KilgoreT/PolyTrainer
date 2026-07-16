@@ -8,7 +8,6 @@ import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.PerDictionarySnapshot
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 
 /**
@@ -16,7 +15,7 @@ import me.apomazkin.lexeme.Scope
  * user-defined component_types применимых к конкретному словарю
  * (global ∪ per-dict).
  *
- * Write-методы (`create` / `rename` / `previewDeletionImpact` / `softDelete`) —
+ * Write-методы (`create` / `previewDeletionImpact` / `softDelete`) —
  * те же сигнатуры что в `ComponentsManagerUseCase`; impl делегирует на общий
  * shared CRUD (решение Open Q #2 business_contract).
  */
@@ -35,11 +34,6 @@ interface PerDictionaryComponentsUseCase {
         isMultiple: Boolean,
         scope: Scope,
     ): CreateOutcome
-
-    suspend fun renameComponent(
-        typeId: ComponentTypeId,
-        newName: String,
-    ): RenameOutcome
 
     suspend fun previewDeletionImpact(typeId: ComponentTypeId): DeletionImpact?
 

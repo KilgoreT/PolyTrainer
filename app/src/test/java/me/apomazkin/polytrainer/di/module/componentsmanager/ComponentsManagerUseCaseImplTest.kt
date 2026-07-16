@@ -15,7 +15,6 @@ import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
 import me.apomazkin.core_db_api.entity.CreateComponentOutcome
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.EditComponentOutcome
-import me.apomazkin.core_db_api.entity.RenameComponentOutcome
 import me.apomazkin.core_db_api.entity.SoftDeleteComponentOutcome
 import me.apomazkin.core_db_api.entity.UserDefinedTypesUsageSnapshot
 import me.apomazkin.lexeme.ComponentTemplate
@@ -24,7 +23,6 @@ import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.EditOutcome
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.prefs.PrefsProvider
@@ -45,7 +43,6 @@ import java.util.Date
  * Coverage:
  * - 1.1 flowAllUserDefinedTypes (3 теста)
  * - 1.2 createUserDefinedComponent (6 тестов)
- * - 1.3 renameComponent (6 тестов)
  * - 1.4 previewDeletionImpact (3 теста)
  * - 1.5 softDeleteComponent (5 тестов, включая 1.5.6 orphan prefs)
  */
@@ -276,76 +273,6 @@ class ComponentsManagerUseCaseImplTest {
                 scope = Scope.Global,
             )
         }
-    }
-
-    // =========================================================================
-    // 1.3 renameComponent
-    // =========================================================================
-
-    @Test
-    fun `renameComponent blank name returns NameEmpty without api call`() = runTest {
-        val result = useCase.renameComponent(ComponentTypeId(1L), "")
-
-        assertEquals(RenameOutcome.NameEmpty, result)
-        coVerify(exactly = 0) { lexemeApi.renameComponentType(any(), any()) }
-    }
-
-    @Test
-    fun `renameComponent success maps entity to domain`() = runTest {
-        coEvery {
-            lexemeApi.renameComponentType(1L, "Quote")
-        } returns RenameComponentOutcome.Success(apiEntity(id = 1L, name = "Quote"))
-
-        val result = useCase.renameComponent(ComponentTypeId(1L), "Quote")
-
-        assertTrue(result is RenameOutcome.Success)
-        assertEquals("Quote", (result as RenameOutcome.Success).type.name)
-        assertEquals(ComponentTypeId(1L), result.type.id)
-    }
-
-    @Test
-    fun `renameComponent SameScopeCollision passes through`() = runTest {
-        coEvery {
-            lexemeApi.renameComponentType(any(), any())
-        } returns RenameComponentOutcome.SameScopeCollision
-
-        val result = useCase.renameComponent(ComponentTypeId(1L), "Quote")
-
-        assertEquals(RenameOutcome.SameScopeCollision, result)
-    }
-
-    @Test
-    fun `renameComponent CrossScopeCollision passes through`() = runTest {
-        coEvery {
-            lexemeApi.renameComponentType(any(), any())
-        } returns RenameComponentOutcome.CrossScopeCollision
-
-        val result = useCase.renameComponent(ComponentTypeId(1L), "Quote")
-
-        assertEquals(RenameOutcome.CrossScopeCollision, result)
-    }
-
-    @Test
-    fun `renameComponent BuiltInProtected passes through`() = runTest {
-        coEvery {
-            lexemeApi.renameComponentType(any(), any())
-        } returns RenameComponentOutcome.BuiltInProtected
-
-        val result = useCase.renameComponent(ComponentTypeId(1L), "Translation2")
-
-        assertEquals(RenameOutcome.BuiltInProtected, result)
-    }
-
-    @Test
-    fun `renameComponent api throws returns Failure with cause`() = runTest {
-        val ex = SQLException("constraint")
-        coEvery { lexemeApi.renameComponentType(any(), any()) } throws ex
-
-        val result = useCase.renameComponent(ComponentTypeId(1L), "Quote")
-
-        assertTrue(result is RenameOutcome.Failure)
-        assertSame(ex, (result as RenameOutcome.Failure).cause)
-        coVerify(exactly = 1) { logger.e(any(), any()) }
     }
 
     // =========================================================================
@@ -607,17 +534,6 @@ class ComponentsManagerUseCaseImplTest {
         val result = useCase.softDeleteComponent(ComponentTypeId(1L))
 
         assertEquals(DeleteOutcome.Removed, result)
-    }
-
-    @Test
-    fun `whenRenameApiReturnsRemoved_thenDomainRenameOutcomeRemoved`() = runTest {
-        coEvery {
-            lexemeApi.renameComponentType(any(), any())
-        } returns RenameComponentOutcome.Removed
-
-        val result = useCase.renameComponent(ComponentTypeId(1L), "Quote")
-
-        assertEquals(RenameOutcome.Removed, result)
     }
 
     @Test

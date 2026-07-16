@@ -15,7 +15,6 @@ import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.EditOutcome
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.components_manager.deps.ComponentsManagerUseCase
 import org.junit.Assert.assertEquals
@@ -128,18 +127,6 @@ class PerDictionaryComponentsUseCaseImplTest {
         coVerify(exactly = 1) {
             sharedCrud.createUserDefinedComponent("Quote", ComponentTemplate.TEXT, false, scope)
         }
-    }
-
-    @Test
-    fun `renameComponent delegates to sharedCrud`() = runTest {
-        coEvery {
-            sharedCrud.renameComponent(ComponentTypeId(1L), "Quote")
-        } returns RenameOutcome.NameEmpty
-
-        val result = useCase.renameComponent(ComponentTypeId(1L), "Quote")
-
-        assertEquals(RenameOutcome.NameEmpty, result)
-        coVerify(exactly = 1) { sharedCrud.renameComponent(ComponentTypeId(1L), "Quote") }
     }
 
     @Test

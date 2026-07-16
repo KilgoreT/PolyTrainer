@@ -161,10 +161,12 @@ internal fun stubTerm(
     dictionaryId: Long = 3L,
     value: String = "w",
     lexemes: List<Lexeme> = emptyList(),
+    dictionaryFlagRes: Int? = null,
 ): Term = Term(
     wordId = WordId(wordId),
     word = Word(value),
     dictionaryId = dictionaryId,
+    dictionaryFlagRes = dictionaryFlagRes,
     addedDate = Date(0L),
     changedDate = null,
     removedDate = null,

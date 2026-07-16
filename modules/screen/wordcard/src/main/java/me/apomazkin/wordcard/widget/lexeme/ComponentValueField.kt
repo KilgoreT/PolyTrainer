@@ -3,12 +3,14 @@ package me.apomazkin.wordcard.widget.lexeme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.LexemeStyle
+import me.apomazkin.theme.editUnderline
 import me.apomazkin.ui.text.base.LexemeEditableText
 import me.apomazkin.wordcard.mate.ComponentValueState
 
@@ -50,5 +52,8 @@ internal fun ComponentValueField(
                 if (value.isEmpty()) onRemove() else onCommitEdit()
             },
         )
+        if (state.isEdit) {
+            HorizontalDivider(color = editUnderline)
+        }
     }
 }

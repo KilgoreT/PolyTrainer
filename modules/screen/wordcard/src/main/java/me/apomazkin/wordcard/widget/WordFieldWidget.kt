@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -14,13 +15,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.theme.LexemeColor
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.blackColor
-import me.apomazkin.theme.grayTextColor
+import me.apomazkin.theme.cardShadowTint
+import me.apomazkin.theme.formTextHint
+import me.apomazkin.theme.whiteColor
+import me.apomazkin.ui.FlagPlaceholderWidget
 import me.apomazkin.ui.ImageFlagWidget
 import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.ui.text.base.LexemeEditableText
@@ -44,14 +50,21 @@ internal fun WordFieldWidget(
     onCommit: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        shadowElevation = 4.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 2.dp,
+                shape = CARD_SHAPE,
+                ambientColor = cardShadowTint,
+                spotColor = cardShadowTint,
+            ),
+        shape = CARD_SHAPE,
+        color = whiteColor,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
         ) {
             Column(
                 modifier = Modifier
@@ -77,23 +90,35 @@ internal fun WordFieldWidget(
                     Text(
                         text = stringResource(id = R.string.word_card_added_field),
                         style = LexemeStyle.BodyM,
-                        color = grayTextColor,
+                        color = formTextHint,
                     )
                     Text(
                         text = getDate(date = loaded.added),
                         style = LexemeStyle.BodyMBold,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = LexemeColor.secondary,
                     )
                 }
             }
-            ImageFlagWidget(
-                flagRes = R.drawable.example_ic_flag_gb,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-            )
+            if (loaded.dictionaryFlagRes != null) {
+                ImageFlagWidget(
+                    flagRes = loaded.dictionaryFlagRes,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .size(38.dp),
+                )
+            } else {
+                FlagPlaceholderWidget(
+                    letter = "",
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .size(38.dp),
+                )
+            }
         }
     }
 }
+
+private val CARD_SHAPE = RoundedCornerShape(18.dp)
 
 private fun getDate(date: Date): String {
     val dateFormat = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())

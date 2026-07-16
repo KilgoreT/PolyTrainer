@@ -25,12 +25,6 @@ sealed interface DatasourceEffect : Effect {
         val scope: Scope,
     ) : DatasourceEffect
 
-    data class RenameComponent(
-        val epochId: Long,
-        val typeId: ComponentTypeId,
-        val newName: String,
-    ) : DatasourceEffect
-
     data class LoadImpact(val typeId: ComponentTypeId) : DatasourceEffect
 
     data class SoftDeleteComponent(

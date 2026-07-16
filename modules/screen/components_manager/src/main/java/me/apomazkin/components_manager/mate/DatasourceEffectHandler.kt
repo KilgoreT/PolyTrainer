@@ -8,7 +8,6 @@ import me.apomazkin.components_manager.deps.ComponentsManagerUseCase
 import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.EditOutcome
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateTypedEffectHandler
@@ -55,12 +54,6 @@ class DatasourceEffectHandler @Inject constructor(
                                 effect.isMultiple,
                                 effect.scope,
                             ),
-                        )
-
-                    is DatasourceEffect.RenameComponent ->
-                        Msg.RenameResult(
-                            epochId = effect.epochId,
-                            outcome = useCase.renameComponent(effect.typeId, effect.newName),
                         )
 
                     is DatasourceEffect.LoadImpact -> {
@@ -111,8 +104,6 @@ class DatasourceEffectHandler @Inject constructor(
                     is DatasourceEffect.CreateComponent ->
                         Msg.CreateResult(effect.epochId, CreateOutcome.Failure(e))
 
-                    is DatasourceEffect.RenameComponent ->
-                        Msg.RenameResult(effect.epochId, RenameOutcome.Failure(e))
 
                     is DatasourceEffect.LoadImpact ->
                         Msg.ImpactPreviewFailed(effect.typeId, e)

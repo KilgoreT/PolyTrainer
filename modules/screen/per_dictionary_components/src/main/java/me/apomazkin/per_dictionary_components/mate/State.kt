@@ -20,7 +20,7 @@ import me.apomazkin.lexeme.Scope
  * Все [F123/F124/F127/F132/F136/F138/F140] инварианты с самого начала (iter 3 retrofit).
  *
  * Invariants:
- * - `[shape]` createDialog/renameDialog/deleteConfirm: одновременно ≤1 диалог
+ * - `[shape]` createDialog/deleteConfirm/editDialog: одновременно ≤1 диалог
  *   (enforced в Reducer mutual-exclusion в Open*Dialog ветках — F138).
  * - `[shape]` is*ing == true → соответствующий dialog != null (race fallback допускает временно null).
  * - `[transition]` ConfirmDelete пока isDeleting=true → ignored.
@@ -39,14 +39,12 @@ data class PerDictionaryComponentsScreenState(
     // ===== UI flags (explicit) =====
     val isLoading: Boolean = false,
     val isCreating: Boolean = false,
-    val isRenaming: Boolean = false,
     val isDeleting: Boolean = false,
     /** Phase 2 (IS481): in-flight edit operation. */
     val isEditing: Boolean = false,
 
     // ===== Dialogs =====
     val createDialog: CreateDialogState? = null,
-    val renameDialog: RenameDialogState? = null,
     val deleteConfirm: DeleteConfirmState? = null,
     /** Phase 2 (IS481): edit dialog state. */
     val editDialog: EditDialogState? = null,
@@ -80,15 +78,6 @@ data class CreateDialogState(
      * в Reducer ветке `Msg.OpenCreateDialog` (preselect; см. `business_design_tree.md` #47).
      */
     val scope: Scope,
-    val nameError: NameError? = null,
-)
-
-@Stable
-data class RenameDialogState(
-    val epochId: Long,
-    val typeId: ComponentTypeId,
-    val originalName: String,
-    val editedName: String,
     val nameError: NameError? = null,
 )
 

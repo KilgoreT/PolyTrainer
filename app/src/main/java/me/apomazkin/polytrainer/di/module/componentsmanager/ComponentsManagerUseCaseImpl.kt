@@ -9,7 +9,6 @@ import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.CreateComponentOutcome
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.EditComponentOutcome
-import me.apomazkin.core_db_api.entity.RenameComponentOutcome
 import me.apomazkin.core_db_api.entity.SoftDeleteComponentOutcome
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
@@ -18,7 +17,6 @@ import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.EditOutcome
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.lexeme.UserDefinedTypesSnapshot
 import me.apomazkin.logger.LexemeLogger
@@ -82,27 +80,6 @@ class ComponentsManagerUseCaseImpl @Inject constructor(
         } catch (e: Exception) {
             logger.e(tag = LogTags.ALL_COMPONENTS, message = "createUserDefinedComponent failed: ${e.message}")
             CreateOutcome.Failure(e)
-        }
-    }
-
-    override suspend fun renameComponent(
-        typeId: ComponentTypeId,
-        newName: String,
-    ): RenameOutcome {
-        if (newName.isBlank()) return RenameOutcome.NameEmpty
-        return try {
-            when (val r = lexemeApi.renameComponentType(typeId.id, newName.trim())) {
-                is RenameComponentOutcome.Success -> RenameOutcome.Success(r.type.toDomain())
-                RenameComponentOutcome.SameScopeCollision -> RenameOutcome.SameScopeCollision
-                RenameComponentOutcome.CrossScopeCollision -> RenameOutcome.CrossScopeCollision
-                RenameComponentOutcome.BuiltInProtected -> RenameOutcome.BuiltInProtected
-                RenameComponentOutcome.Removed -> RenameOutcome.Removed
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            logger.e(tag = LogTags.ALL_COMPONENTS, message = "renameComponent failed: ${e.message}")
-            RenameOutcome.Failure(e)
         }
     }
 

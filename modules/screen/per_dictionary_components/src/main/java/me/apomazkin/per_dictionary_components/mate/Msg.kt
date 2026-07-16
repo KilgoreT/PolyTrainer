@@ -7,7 +7,6 @@ import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.PerDictionarySnapshot
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 
 /**
@@ -31,13 +30,6 @@ sealed interface Msg {
     data class CreateScopeChange(val scope: Scope) : Msg
     data object SubmitCreate : Msg
     data class CreateResult(val epochId: Long, val outcome: CreateOutcome) : Msg
-
-    // ===== Rename dialog =====
-    data class OpenRenameDialog(val typeId: ComponentTypeId) : Msg
-    data object CloseRenameDialog : Msg
-    data class RenameTextChange(val value: String) : Msg
-    data object SubmitRename : Msg
-    data class RenameResult(val epochId: Long, val outcome: RenameOutcome) : Msg
 
     // ===== Edit dialog (phase 2) =====
     data class OpenEditDialog(val typeId: ComponentTypeId) : Msg

@@ -54,6 +54,8 @@ sealed interface WordState {
     data class Loaded(
         val id: Long,
         val dictionaryId: Long,
+        /** IS485 — drawable флага словаря для шапки; null → плейсхолдер. */
+        val dictionaryFlagRes: Int? = null,
         val added: Date,
         val value: String,
         val isEditMode: Boolean = false,

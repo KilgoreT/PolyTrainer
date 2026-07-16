@@ -13,7 +13,6 @@ import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.DeletionImpact
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.per_dictionary_components.deps.PerDictionaryComponentsUseCase
@@ -119,43 +118,6 @@ class DatasourceEffectHandlerTest {
         assertThrows(CancellationException::class.java) {
             kotlinx.coroutines.runBlocking {
                 run(DatasourceEffect.CreateComponent(1L, "Notes", ComponentTemplate.TEXT, false, Scope.Global))
-            }
-        }
-    }
-
-    // ===== RenameComponent =====
-
-    @Test
-    fun `RenameComponent useCase returns Success - emits RenameResult with epochId`() = runTest {
-        coEvery {
-            useCase.renameComponent(ComponentTypeId(1L), "Y")
-        } returns RenameOutcome.Success(ctype.copy(name = "Y"))
-
-        val msg = run(DatasourceEffect.RenameComponent(epochId = 9L, typeId = ComponentTypeId(1L), newName = "Y"))
-
-        assertTrue(msg is Msg.RenameResult)
-        val res = msg as Msg.RenameResult
-        assertEquals(9L, res.epochId)
-        assertTrue(res.outcome is RenameOutcome.Success)
-    }
-
-    @Test
-    fun `RenameComponent useCase throws - emits Failure outcome`() = runTest {
-        coEvery { useCase.renameComponent(any(), any()) } throws RuntimeException("boom")
-
-        val msg = run(DatasourceEffect.RenameComponent(epochId = 9L, typeId = ComponentTypeId(1L), newName = "Y"))
-
-        assertTrue(msg is Msg.RenameResult)
-        assertTrue((msg as Msg.RenameResult).outcome is RenameOutcome.Failure)
-    }
-
-    @Test
-    fun `RenameComponent useCase throws CancellationException - re-thrown (F125)`() {
-        coEvery { useCase.renameComponent(any(), any()) } throws CancellationException("cancelled")
-
-        assertThrows(CancellationException::class.java) {
-            kotlinx.coroutines.runBlocking {
-                run(DatasourceEffect.RenameComponent(1L, ComponentTypeId(1L), "Y"))
             }
         }
     }

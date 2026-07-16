@@ -3,28 +3,19 @@ package me.apomazkin.component_widgets.dialogs
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.component_widgets.widgets.CardinalityDowngradePreviewWidget
-import me.apomazkin.component_widgets.widgets.labelRes
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.blackColor
-import me.apomazkin.ui.btn.CancelButtonWidget
-import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 import me.apomazkin.ui.dialog.base.LexemeDialog
-import me.apomazkin.ui.dropdown.LexemeRadioRow
-import me.apomazkin.ui.input.base.LexemeTextFieldWidget
 
 /**
  * IS481 phase 2 — NEW edit dialog. Mounted на обоих screen-модулях.
@@ -79,19 +70,9 @@ fun EditComponentDialog(
             )
 
             // Name section
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(id = R.string.components_edit_field_name),
-                    style = LexemeStyle.BodyS,
-                    color = blackColor,
-                )
-                LexemeTextFieldWidget(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = name,
-                    placeHolder = null,
-                    onValueChange = onNameChange,
-                    onKeyboardActions = {},
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ComponentDialogLabel(textRes = R.string.components_edit_field_name, accent = true)
+                ComponentNameField(value = name, onValueChange = onNameChange)
                 nameErrorRes?.let { res ->
                     Text(
                         text = stringResource(id = res),
@@ -102,38 +83,17 @@ fun EditComponentDialog(
             }
 
             // Template radio-group (clickable; UseCase enforces immutability)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(id = R.string.components_edit_field_template),
-                    style = LexemeStyle.BodyS,
-                    color = blackColor,
-                )
-                ComponentTemplate.entries.forEach { t ->
-                    LexemeRadioRow(
-                        textRes = t.labelRes(),
-                        selected = t == template,
-                        onClick = { onTemplateSelect(t) },
-                        color = blackColor,
-                    )
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ComponentDialogLabel(textRes = R.string.components_edit_field_template, accent = false)
+                ComponentTemplateRadioGroup(selected = template, onSelect = onTemplateSelect)
             }
 
             // Multi toggle row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(
-                    checked = isMultiple,
-                    onCheckedChange = onMultiToggle,
-                )
-                Text(
-                    text = stringResource(id = R.string.components_edit_field_is_multi),
-                    style = LexemeStyle.BodyL,
-                    color = blackColor,
-                )
-            }
+            ComponentMultiToggle(
+                textRes = R.string.components_edit_field_is_multi,
+                checked = isMultiple,
+                onToggle = onMultiToggle,
+            )
 
             // Preview slot — cardinality downgrade blocked
             if (previewInlineIds != null) {
@@ -146,25 +106,12 @@ fun EditComponentDialog(
                 )
             }
 
-            // Actions
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                CancelButtonWidget(
-                    modifier = Modifier.weight(1f),
-                    height = 56.dp,
-                    onClick = onDismiss,
-                )
-                PrimaryFullButtonWidget(
-                    modifier = Modifier.weight(1f),
-                    titleRes = R.string.components_button_save,
-                    enabled = canSubmit,
-                    onClick = onSubmit,
-                )
-            }
+            ComponentDialogActions(
+                submitRes = R.string.components_button_save,
+                submitEnabled = canSubmit,
+                onCancel = onDismiss,
+                onSubmit = onSubmit,
+            )
         }
     }
 }
