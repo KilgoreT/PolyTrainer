@@ -483,6 +483,11 @@
 
 ## ВекторныйПиздеж
 
+- **[IS486: `ComponentTypeRef.UserDefined(name)` — миграция name-based refs на id-based].**
+  Ревью-агент (совместимость IS486) указал: quiz_configs хранят refs по имени компонента, а зависимости/опции IS486 — по числовым id. Два параллельных адресных пространства: rename дешёвый в id-мире требует cascade в name-мире; фильтрация квизов по enabled/degraded вынуждена резолвить имя → тип на каждую сборку квиза.
+  Почему не сделано сейчас: out-of-scope IS486 — трогает формат хранения quiz_configs и cascade rename, отдельная миграция.
+  Нужно: единая функция резолва name→ComponentType при сборке квиза (в рамках IS486), затем отдельным брифом — миграция refs на id.
+
 - **[IS481: seed built-in типов не выполняется на destructive-fallback пути].**
   Расследование BUG-1 (docs/features/IS481_bugs/bugs.md) показало: seed `translation` висит только на `Callback.onCreate`, а Room после destructive-пересоздания зовёт `onDestructiveMigration`+`onOpen`, но НЕ `onCreate` (Room 2.8.4, `RoomConnectionManager.onMigrate`) → после fallback приложение остаётся без built-in типа навсегда.
   Почему не сделано сейчас: путь недостижим в проде (v13 существовала только на dev-девайсе; fallback рассчитан на pre-0.1.0 internal сборки) — решение юзера: не баг, чинится переустановкой.
