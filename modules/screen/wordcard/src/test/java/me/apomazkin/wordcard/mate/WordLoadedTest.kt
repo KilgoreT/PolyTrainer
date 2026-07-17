@@ -40,6 +40,33 @@ class WordLoadedTest {
         result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
     }
 
+    /**
+     * IS485 (редизайн карточки): `WordLoaded` прокидывает `dictionaryFlagRes` из Term
+     * в `WordState.Loaded` — шапка показывает реальный флаг словаря вместо заглушки UK.
+     * Full-state assert (R-TR-003): всё незаявленное обязано остаться дефолтным.
+     */
+    @Test
+    fun `WordLoaded carries dictionaryFlagRes into loaded state`() {
+        val term = stubTerm(wordId = 7L, dictionaryId = 3L, value = "w", dictionaryFlagRes = 42)
+
+        val result = reducer.testReduce(WordCardState(), Msg.WordLoaded(term))
+
+        val expected = WordCardState(
+            isLoading = false,
+            isPendingDbOp = false,
+            wordState = WordState.Loaded(
+                id = 7L,
+                dictionaryId = 3L,
+                dictionaryFlagRes = 42,
+                added = term.addedDate,
+                value = "w",
+            ),
+            lexemeList = emptyList(),
+        )
+        assertEquals(expected, result.state())
+        result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
+    }
+
     @Test
     fun `WordLoaded clears pending`() {
         val result = reducer.testReduce(

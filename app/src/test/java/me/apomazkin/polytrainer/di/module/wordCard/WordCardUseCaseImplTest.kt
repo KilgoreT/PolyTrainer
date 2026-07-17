@@ -4,13 +4,18 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
 import me.apomazkin.core_db_api.entity.ComponentValueApiEntity
+import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
+import me.apomazkin.core_db_api.entity.TermApiEntity
+import me.apomazkin.core_db_api.entity.WordApiEntity
+import me.apomazkin.flags.CountryProvider
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
@@ -44,6 +49,7 @@ class WordCardUseCaseImplTest {
     private val lexemeApi = mockk<CoreDbApi.LexemeApi>(relaxed = true)
     private val prefsProvider = mockk<PrefsProvider>(relaxed = true)
     private val logger = mockk<LexemeLogger>(relaxed = true)
+    private val countryProvider = mockk<CountryProvider>(relaxed = true)
 
     private val useCase = WordCardUseCaseImpl(
         wordApi = wordApi,
@@ -52,6 +58,7 @@ class WordCardUseCaseImplTest {
         lexemeApi = lexemeApi,
         prefsProvider = prefsProvider,
         logger = logger,
+        countryProvider = countryProvider,
     )
 
     private val D0 = Date(0L)
@@ -76,6 +83,39 @@ class WordCardUseCaseImplTest {
         LexemeApiEntity(id = id, components = comps, addDate = D0)
 
     private fun data(text: String) = TextValues(Primitive.Text(text))
+
+    private fun termEntity(dictionaryId: Long = 3L) = TermApiEntity(
+        word = WordApiEntity(id = 7L, dictionaryId = dictionaryId, value = "book", addDate = D0),
+        lexemes = emptyList(),
+    )
+
+    /** IS485: getTermById резолвит флаг словаря (numericCode → flagRes через CountryProvider). */
+    @Test
+    fun `getTermById_resolves_dictionary_flag`() = runTest {
+        coEvery { termApi.getTermById(7L) } returns termEntity(dictionaryId = 3L)
+        coEvery { dictionaryApi.getDictionaryById(3L) } returns DictionaryApiEntity(
+            id = 3L, numericCode = 840, name = "EN", addDate = D0,
+        )
+        every { countryProvider.getFlagRes(840) } returns 42
+
+        val term = useCase.getTermById(7L)
+
+        assertEquals(42, term?.dictionaryFlagRes)
+    }
+
+    /** IS485: словарь без numericCode (флаг не выбран) → dictionaryFlagRes = null, без падений. */
+    @Test
+    fun `getTermById_dictionary_without_flag_gives_null`() = runTest {
+        coEvery { termApi.getTermById(7L) } returns termEntity(dictionaryId = 3L)
+        coEvery { dictionaryApi.getDictionaryById(3L) } returns DictionaryApiEntity(
+            id = 3L, numericCode = null, name = "EN", addDate = D0,
+        )
+
+        val term = useCase.getTermById(7L)
+
+        assertNull(term?.dictionaryFlagRes)
+        verify(exactly = 0) { countryProvider.getFlagRes(any()) }
+    }
 
     // T1
     @Test

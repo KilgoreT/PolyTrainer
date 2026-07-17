@@ -37,13 +37,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.di.viewModelFactory
 import me.apomazkin.theme.AppTheme
-import me.apomazkin.theme.whiteColor
+import me.apomazkin.theme.wordCardBackground
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewScreen
 import me.apomazkin.wordcard.mate.ComponentValueState
 import me.apomazkin.wordcard.mate.ComponentValueKey
 import me.apomazkin.wordcard.mate.LexemeState
 import me.apomazkin.wordcard.mate.Msg
+import me.apomazkin.wordcard.mate.NOT_IN_DB
 import me.apomazkin.wordcard.mate.WordCardState
 import me.apomazkin.wordcard.mate.WordState
 import me.apomazkin.wordcard.widget.AddLexemeWidget
@@ -93,7 +94,7 @@ internal fun WordCardScreen(
     sendMessage: (Msg) -> Unit,
 ) {
     SystemBarsWidget(
-        color = whiteColor,
+        color = wordCardBackground,
     )
 
     val focusManager = LocalFocusManager.current
@@ -140,7 +141,7 @@ internal fun WordCardScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.tertiary)
+                        .background(wordCardBackground)
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                 ) {
@@ -159,7 +160,7 @@ internal fun WordCardScreen(
                     ) {
                         state.lexemeList.forEach { lexemeState ->
                             key(lexemeState.id) {
-                                LexemeCard {
+                                LexemeCard(isDraft = lexemeState.id == NOT_IN_DB) {
                                     LexemeComponentsBlock(
                                         lexemeState = lexemeState,
                                         availableTypes = state.availableComponentTypes,

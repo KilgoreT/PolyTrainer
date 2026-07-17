@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.TermApiEntity
+import me.apomazkin.flags.CountryProvider
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
@@ -37,10 +38,16 @@ class WordCardUseCaseImpl @Inject constructor(
     private val lexemeApi: CoreDbApi.LexemeApi,
     private val prefsProvider: PrefsProvider,
     private val logger: LexemeLogger,
+    private val countryProvider: CountryProvider,
 ) : WordCardUseCase {
 
     override suspend fun getTermById(wordId: Long): Term? =
-        termApi.getTermById(wordId)?.toDomainEntity()
+        termApi.getTermById(wordId)?.toDomainEntity()?.let { term ->
+            val flagRes = dictionaryApi.getDictionaryById(term.dictionaryId)
+                ?.numericCode
+                ?.let { countryProvider.getFlagRes(it) }
+            term.copy(dictionaryFlagRes = flagRes)
+        }
 
     override suspend fun deleteWord(wordId: Long): Int = wordApi.deleteWordSuspend(wordId)
 

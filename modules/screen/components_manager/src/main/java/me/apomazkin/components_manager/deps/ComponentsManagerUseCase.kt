@@ -8,7 +8,6 @@ import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.EditOutcome
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.lexeme.UserDefinedTypesSnapshot
 
@@ -42,15 +41,6 @@ interface ComponentsManagerUseCase {
         isMultiple: Boolean,
         scope: Scope,
     ): CreateOutcome
-
-    /**
-     * Atomic rename + cascade `quiz_configs.component_refs`. Built-in защищён на
-     * SQL-уровне (`WHERE system_key IS NULL`).
-     */
-    suspend fun renameComponent(
-        typeId: ComponentTypeId,
-        newName: String,
-    ): RenameOutcome
 
     /**
      * Read-only preview: valueCount + dictionariesWithValues + affectedQuizConfigs +

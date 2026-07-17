@@ -13,11 +13,10 @@ import me.apomazkin.lexeme.UserDefinedTypesSnapshot
  * State для `ComponentsManagerScreen` (IS481 aggregated CRUD view).
  *
  * Invariants (см. business_contract_spec.md § Инварианты + iter 3 retrofit + phase 2):
- * - `[shape]` createDialog / renameDialog / deleteConfirm / editDialog: одновременно
+ * - `[shape]` createDialog / deleteConfirm / editDialog: одновременно
  *   открыт не более одного диалога (enforced в Reducer через mutual-exclusion в
  *   Open*Dialog ветках — F138; 4-way в phase 2).
  * - `[shape]` isCreating == true → createDialog != null (race race-fallback допускает временно null).
- * - `[shape]` isRenaming == true → renameDialog != null (race fallback допускает временно null).
  * - `[shape]` isDeleting == true → deleteConfirm != null (race fallback допускает временно null).
  * - `[shape]` isEditing == true → editDialog != null (race fallback допускает временно null).
  * - `[transition]` ConfirmDelete пока isDeleting=true → ignored (защита от двойного тапа).
@@ -34,14 +33,12 @@ data class ComponentsManagerScreenState(
     // ===== UI flags (explicit) =====
     val isLoading: Boolean = false,
     val isCreating: Boolean = false,
-    val isRenaming: Boolean = false,
     val isDeleting: Boolean = false,
     /** Phase 2: in-flight edit operation. */
     val isEditing: Boolean = false,
 
     // ===== Dialogs =====
     val createDialog: CreateDialogState? = null,
-    val renameDialog: RenameDialogState? = null,
     val deleteConfirm: DeleteConfirmState? = null,
     /** Phase 2: edit dialog state. */
     val editDialog: EditDialogState? = null,
@@ -143,15 +140,6 @@ sealed interface ImpactedLexemesPreview {
         val inlineIds: List<Long>,
     ) : ImpactedLexemesPreview
 }
-
-@Stable
-data class RenameDialogState(
-    val epochId: Long,
-    val typeId: ComponentTypeId,
-    val originalName: String,
-    val editedName: String,
-    val nameError: NameError? = null,
-)
 
 @Stable
 data class DeleteConfirmState(

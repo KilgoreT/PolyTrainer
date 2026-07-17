@@ -91,6 +91,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                     wordState = WordState.Loaded(
                         id = w.wordId.id,
                         dictionaryId = w.dictionaryId,
+                        dictionaryFlagRes = w.dictionaryFlagRes,
                         added = w.addedDate,
                         value = w.word.value,
                     ),

@@ -10,7 +10,8 @@ context:
 modules:
   - logging
   - review
-  - guides
+  - guides:
+      guides_dir: docs/handbook/guides
   - checklist
 
 steps:

@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.preview.PreviewWidget
 
@@ -44,24 +45,24 @@ internal fun SubentityChip(
 ) {
     Surface(
         modifier = modifier.clickable(enabled = enabled, onClick = onClick),
-        shape = RoundedCornerShape(6.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {
         Row(
             modifier = Modifier.padding(
-                PaddingValues(start = 12.dp, top = 6.dp, end = 6.dp, bottom = 6.dp),
+                PaddingValues(start = 12.dp, top = 5.dp, end = 8.dp, bottom = 5.dp),
             ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = stringResource(id = labelRes),
-                style = MaterialTheme.typography.labelLarge,
+                style = LexemeStyle.BodyS,
                 color = MaterialTheme.colorScheme.onPrimary,
             )
             Icon(
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(12.dp),
                 painter = painterResource(id = iconRes),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary,
@@ -81,24 +82,24 @@ internal fun SubentityChip(
 ) {
     Surface(
         modifier = modifier.clickable(enabled = enabled, onClick = onClick),
-        shape = RoundedCornerShape(6.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {
         Row(
             modifier = Modifier.padding(
-                PaddingValues(start = 12.dp, top = 6.dp, end = 6.dp, bottom = 6.dp),
+                PaddingValues(start = 12.dp, top = 5.dp, end = 8.dp, bottom = 5.dp),
             ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = LexemeStyle.BodyS,
                 color = MaterialTheme.colorScheme.onPrimary,
             )
             Icon(
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(12.dp),
                 painter = painterResource(id = iconRes),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary,

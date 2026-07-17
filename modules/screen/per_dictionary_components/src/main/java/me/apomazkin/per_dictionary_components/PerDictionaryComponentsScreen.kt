@@ -19,12 +19,14 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -35,7 +37,6 @@ import me.apomazkin.component_widgets.dialogs.DeleteComponentConfirmDialog
 import me.apomazkin.component_widgets.dialogs.DeletionImpactRef
 import me.apomazkin.component_widgets.dialogs.EditComponentDialog
 import me.apomazkin.component_widgets.dialogs.HostVariant
-import me.apomazkin.component_widgets.dialogs.RenameComponentDialog
 import me.apomazkin.component_widgets.widgets.ComponentsEmptyStateWidget
 import me.apomazkin.component_widgets.widgets.CreateComponentFab
 import me.apomazkin.component_widgets.widgets.PerDictRowWidget
@@ -45,13 +46,15 @@ import me.apomazkin.per_dictionary_components.mate.EditNameError
 import me.apomazkin.per_dictionary_components.mate.ImpactedLexemesPreview
 import me.apomazkin.per_dictionary_components.mate.Msg
 import me.apomazkin.per_dictionary_components.mate.isEmpty
+import me.apomazkin.theme.LexemeStyle
+import me.apomazkin.theme.formBackground
 import me.apomazkin.ui.ErrorStateWidget
 
 /**
  * IS481: `PerDictionaryComponentsScreen` — scoped CRUD view (global ∪ per-dict).
  *
  * Phase 2: dialogs/rows вынесены в `:modules:widget:component_widgets`. Mount'ит 4
- * диалога (Create + Rename + DeleteConfirm + Edit), CreateComponentDialog получает
+ * диалога (Create + DeleteConfirm + Edit), CreateComponentDialog получает
  * hostVariant=PerDict (scope picker скрыт; scope hardcoded в Reducer).
  */
 @Composable
@@ -77,12 +80,18 @@ fun PerDictionaryComponentsScreen(
     }
 
     Scaffold(
+        containerColor = formBackground,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent,
+                ),
                 title = {
                     Text(
                         text = state.dictionaryName
                             ?: stringResource(id = R.string.per_dict_components_title),
+                        style = LexemeStyle.H5,
                     )
                 },
                 navigationIcon = {
@@ -176,17 +185,6 @@ fun PerDictionaryComponentsScreen(
             onDictionaryToggle = { /* no-op */ },
             onSubmit = { viewModel.accept(Msg.SubmitCreate) },
             onDismiss = { viewModel.accept(Msg.CloseCreateDialog) },
-        )
-    }
-    state.renameDialog?.let { dialog ->
-        RenameComponentDialog(
-            originalName = dialog.originalName,
-            editedName = dialog.editedName,
-            nameError = dialog.nameError,
-            isSubmitting = state.isRenaming,
-            onNameChange = { viewModel.accept(Msg.RenameTextChange(it)) },
-            onSubmit = { viewModel.accept(Msg.SubmitRename) },
-            onDismiss = { viewModel.accept(Msg.CloseRenameDialog) },
         )
     }
     state.deleteConfirm?.let { dialog ->

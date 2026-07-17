@@ -4,7 +4,9 @@ package me.apomazkin.wordcard.widget
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import me.apomazkin.core_resources.R
 import me.apomazkin.icondropdowned.IconDropdownWidget
 import me.apomazkin.theme.AppTheme
@@ -22,6 +24,9 @@ internal fun TopBarWidget(
     onDeleteWord: () -> Unit,
 ) {
     TopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+        ),
         navigationIcon = {
             IconBoxed(
                 iconRes = R.drawable.ic_back,

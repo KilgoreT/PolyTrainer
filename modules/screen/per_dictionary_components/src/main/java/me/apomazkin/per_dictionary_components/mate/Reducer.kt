@@ -4,7 +4,6 @@ import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.NameError
-import me.apomazkin.lexeme.RenameOutcome
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.mate.Effect
@@ -25,8 +24,8 @@ import me.apomazkin.tools.failureLabel
  * Все [F123/F124/F127/F132/F136/F138/F140] инварианты включены с самого начала.
  *
  * Invariants:
- * - SubmitCreate / SubmitRename / ConfirmDelete — игнорируются если соответствующий
- *   `is{Creating,Renaming,Deleting}=true`.
+ * - SubmitCreate / ConfirmDelete — игнорируются если соответствующий
+ *   `is{Creating,Deleting}=true`.
  * - ConfirmDelete также guard на `isLoadingImpact=true` (F102).
  * - Open*Dialog при уже открытом — overwrite reset (F106) + новый epochId + закрытие
  *   других диалогов (F138).
@@ -83,11 +82,9 @@ class PerDictionaryComponentsReducer(
                     epochId = newEpoch,
                     scope = Scope.PerDictionaries(listOf(state.dictionaryId)),
                 ),
-                renameDialog = null,
                 deleteConfirm = null,
                 editDialog = null,
                 isCreating = false,
-                isRenaming = false,
                 isDeleting = false,
                 isEditing = false,
                 nextEpoch = newEpoch,
@@ -194,120 +191,6 @@ class PerDictionaryComponentsReducer(
             }
         }
 
-        // ===== Rename dialog =====
-        is Msg.OpenRenameDialog -> {
-            val row = state.items?.firstOrNull { it.typeId == message.typeId }
-            if (row == null) {
-                state to emptySet()                                  // guard: row not found
-            } else {
-                val newEpoch = state.nextEpoch + 1
-                state.copy(
-                    renameDialog = RenameDialogState(
-                        epochId = newEpoch,
-                        typeId = row.typeId,
-                        originalName = row.name,
-                        editedName = row.name,
-                    ),
-                    createDialog = null,
-                    deleteConfirm = null,
-                    editDialog = null,
-                    isCreating = false,
-                    isRenaming = false,
-                    isDeleting = false,
-                    isEditing = false,
-                    nextEpoch = newEpoch,
-                ) to emptySet()
-            }
-        }
-
-        Msg.CloseRenameDialog ->
-            state.copy(renameDialog = null) to emptySet()
-
-        is Msg.RenameTextChange -> {
-            val dlg = state.renameDialog
-            if (dlg == null) state to emptySet()
-            else state.copy(
-                renameDialog = dlg.copy(editedName = message.value, nameError = null)
-            ) to emptySet()
-        }
-
-        Msg.SubmitRename -> {
-            val dlg = state.renameDialog
-            when {
-                dlg == null -> state to emptySet()
-                state.isRenaming -> state to emptySet()
-                dlg.editedName.isBlank() ->
-                    state.copy(
-                        renameDialog = dlg.copy(nameError = NameError.Empty)
-                    ) to emptySet()
-                else ->
-                    state.copy(isRenaming = true) to setOf(
-                        DatasourceEffect.RenameComponent(
-                            epochId = dlg.epochId,
-                            typeId = dlg.typeId,
-                            newName = dlg.editedName,
-                        )
-                    )
-            }
-        }
-
-        is Msg.RenameResult -> {
-            val dlg = state.renameDialog
-            if (dlg != null && dlg.epochId != message.epochId) {
-                state to emptySet()                                  // F136 stale
-            } else when (val o = message.outcome) {
-                is RenameOutcome.Success ->
-                    state.copy(isRenaming = false, renameDialog = null) to setOf(
-                        UiEffect.Snackbar("Renamed")
-                    )
-                RenameOutcome.NameEmpty ->
-                    if (dlg == null) {
-                        state.copy(isRenaming = false) to setOf(
-                            UiEffect.Snackbar("Name cannot be empty")
-                        )
-                    } else {
-                        state.copy(
-                            isRenaming = false,
-                            renameDialog = dlg.copy(nameError = NameError.Empty),
-                        ) to emptySet()
-                    }
-                RenameOutcome.SameScopeCollision ->
-                    if (dlg == null) {
-                        state.copy(isRenaming = false) to setOf(
-                            UiEffect.Snackbar("Name already taken in this scope")
-                        )
-                    } else {
-                        state.copy(
-                            isRenaming = false,
-                            renameDialog = dlg.copy(nameError = NameError.SameScopeCollision),
-                        ) to emptySet()
-                    }
-                RenameOutcome.CrossScopeCollision ->
-                    if (dlg == null) {
-                        state.copy(isRenaming = false) to setOf(
-                            UiEffect.Snackbar("Name conflicts across scopes")
-                        )
-                    } else {
-                        state.copy(
-                            isRenaming = false,
-                            renameDialog = dlg.copy(nameError = NameError.CrossScopeCollision),
-                        ) to emptySet()
-                    }
-                RenameOutcome.BuiltInProtected ->
-                    state.copy(isRenaming = false, renameDialog = null) to setOf(
-                        UiEffect.Snackbar("Built-in protected")
-                    )
-                RenameOutcome.Removed ->
-                    state.copy(isRenaming = false, renameDialog = null) to setOf(
-                        UiEffect.Snackbar("Component removed")
-                    )
-                is RenameOutcome.Failure ->
-                    state.copy(isRenaming = false) to setOf(
-                        UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}")
-                    )
-            }
-        }
-
         // ===== Delete confirm =====
         is Msg.OpenDeleteConfirm -> {
             val row = state.items?.firstOrNull { it.typeId == message.typeId }
@@ -326,10 +209,8 @@ class PerDictionaryComponentsReducer(
                             isLoadingImpact = true,
                         ),
                         createDialog = null,
-                        renameDialog = null,
                         editDialog = null,
                         isCreating = false,
-                        isRenaming = false,
                         isDeleting = false,
                         isEditing = false,
                         nextEpoch = newEpoch,
@@ -424,10 +305,8 @@ class PerDictionaryComponentsReducer(
                         isMultiple = row.isMultiple,
                     ),
                     createDialog = null,
-                    renameDialog = null,
                     deleteConfirm = null,
                     isCreating = false,
-                    isRenaming = false,
                     isDeleting = false,
                     isEditing = false,
                     nextEpoch = newEpoch,

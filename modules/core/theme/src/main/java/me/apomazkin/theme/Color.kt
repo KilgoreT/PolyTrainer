@@ -45,6 +45,32 @@ val statInProcessBg = Color(0xFFE5F2FF)
 val statNotSTartedFg = Color(0xFFD19100)
 val statNotStartedBg = Color(0xFFFFFCC1)
 
+val formBackground = Color(0xFFFCFCFA)
+val formTextSecondary = Color(0xFF8A8A90)
+val formTextTertiary = Color(0xFF55555C)
+val formTextHint = Color(0xFF9A9AA2)
+val searchPillColor = Color(0xFFF1F0EC)
+
+val wordCardBackground = Color(0xFFEDE9F6)
+val cardShadowTint = Color(0xFF32285A)
+val draftBorder = Color(0xFFDCD6F2)
+val draftBadgeBg = Color(0xFFEEECEF)
+val destructiveRed = Color(0xFFD64545)
+val cardDivider = Color(0xFFF0EEF7)
+val editUnderline = Color(0xFFC2C1E8)
+val fabLavender = Color(0xFFC9C3EA)
+val fabLavenderDisabled = Color(0xFFD8D3EC)
+val fabShadowTint = Color(0xFF645AA0)
+
+val componentCardBorder = Color(0xFFECEAE4)
+val typeIconBg = Color(0xFFE9E6FA)
+val iconButtonBg = Color(0xFFF3F2EE)
+val templateChipBg = Color(0xFFF1F0EC)
+val templateChipText = Color(0xFF6E6E76)
+val dialogFieldBg = Color(0xFFF5F4F0)
+val radioSelectedBg = Color(0xFFF3F1FC)
+val radioBorderInactive = Color(0xFFC4C4CC)
+
 object LexemeColor {
     // brand
     val primary = Color(0xFF4A49BC)
