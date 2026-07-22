@@ -1,10 +1,14 @@
 package me.apomazkin.per_dictionary_components.mate
 
+import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
+import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.NameError
+import me.apomazkin.lexeme.OptionOutcome
 import me.apomazkin.lexeme.Scope
+import me.apomazkin.lexeme.SetEnabledOutcome
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
@@ -105,7 +109,13 @@ class PerDictionaryComponentsReducer(
         is Msg.CreateTemplateChange -> {
             val dlg = state.createDialog
             if (dlg == null) state to emptySet()
-            else state.copy(createDialog = dlg.copy(template = message.template)) to emptySet()
+            // IS486: мульти для CHOICE запрещён (spec §7.5) — сброс при выборе шаблона.
+            else state.copy(
+                createDialog = dlg.copy(
+                    template = message.template,
+                    isMultiple = if (message.template == ComponentTemplate.CHOICE) false else dlg.isMultiple,
+                ),
+            ) to emptySet()
         }
 
         is Msg.CreateMultiToggle -> {
@@ -120,14 +130,74 @@ class PerDictionaryComponentsReducer(
             else state.copy(createDialog = dlg.copy(scope = message.scope)) to emptySet()
         }
 
+        // ===== IS486 (В1): пикер цели в Create =====
+        is Msg.CreateTargetChange -> {
+            val dlg = state.createDialog
+            if (dlg == null) state to emptySet()
+            // Ядро — свойство зависимых от лексемы (spec §7.7): при уводе цели
+            // с лексемы галка форсится false.
+            else state.copy(
+                createDialog = dlg.copy(
+                    target = message.target,
+                    core = if (message.target is DependencyTarget.Lexeme) dlg.core else false,
+                ),
+            ) to emptySet()
+        }
+
+        is Msg.CreateCoreToggle -> {
+            val dlg = state.createDialog
+            when {
+                dlg == null -> state to emptySet()
+                dlg.target !is DependencyTarget.Lexeme -> state to emptySet()  // guard
+                else -> state.copy(createDialog = dlg.copy(core = message.core)) to emptySet()
+            }
+        }
+
+        // ===== IS486 (В2): черновики вариантов CHOICE в Create =====
+        Msg.CreateOptionAdd -> {
+            val dlg = state.createDialog
+            if (dlg == null) state to emptySet()
+            else state.copy(
+                createDialog = dlg.copy(optionDrafts = dlg.optionDrafts + "", optionsError = false),
+            ) to emptySet()
+        }
+
+        is Msg.CreateOptionChange -> {
+            val dlg = state.createDialog
+            if (dlg == null || message.index !in dlg.optionDrafts.indices) state to emptySet()
+            else state.copy(
+                createDialog = dlg.copy(
+                    optionDrafts = dlg.optionDrafts.toMutableList()
+                        .apply { set(message.index, message.value) },
+                    optionsError = false,
+                ),
+            ) to emptySet()
+        }
+
+        is Msg.CreateOptionRemove -> {
+            val dlg = state.createDialog
+            if (dlg == null || message.index !in dlg.optionDrafts.indices) state to emptySet()
+            else state.copy(
+                createDialog = dlg.copy(
+                    optionDrafts = dlg.optionDrafts.filterIndexed { i, _ -> i != message.index },
+                ),
+            ) to emptySet()
+        }
+
         Msg.SubmitCreate -> {
             val dlg = state.createDialog
+            val choiceLabels = dlg?.optionDrafts.orEmpty().map { it.trim() }.filter { it.isNotBlank() }
             when {
                 dlg == null -> state to emptySet()
                 state.isCreating -> state to emptySet()
                 dlg.name.isBlank() ->
                     state.copy(
                         createDialog = dlg.copy(nameError = NameError.Empty)
+                    ) to emptySet()
+                // IS486: CHOICE без единого непустого варианта — UI-отказ (домен разрешает).
+                dlg.template == ComponentTemplate.CHOICE && choiceLabels.isEmpty() ->
+                    state.copy(
+                        createDialog = dlg.copy(optionsError = true)
                     ) to emptySet()
                 else ->
                     state.copy(isCreating = true) to setOf(
@@ -137,6 +207,9 @@ class PerDictionaryComponentsReducer(
                             template = dlg.template,
                             isMultiple = dlg.isMultiple,
                             scope = dlg.scope,
+                            target = dlg.target,
+                            core = dlg.core,
+                            optionLabels = if (dlg.template == ComponentTemplate.CHOICE) choiceLabels else emptyList(),
                         )
                     )
             }
@@ -279,6 +352,11 @@ class PerDictionaryComponentsReducer(
                     state.copy(isDeleting = false, deleteConfirm = null) to setOf(
                         UiEffect.Snackbar("Component removed")
                     )
+                // IS486: нельзя удалить последнее включённое ядро словаря (spec §7.8).
+                DeleteOutcome.LastEnabledCore ->
+                    state.copy(isDeleting = false, deleteConfirm = null) to setOf(
+                        UiEffect.Snackbar("Last enabled core component")
+                    )
                 is DeleteOutcome.Failure ->
                     state.copy(isDeleting = false) to setOf(
                         UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}")
@@ -289,28 +367,43 @@ class PerDictionaryComponentsReducer(
         // ===== Edit dialog (phase 2) =====
         is Msg.OpenEditDialog -> {
             val row = state.items?.firstOrNull { it.typeId == message.typeId }
-            if (row == null) {
-                state to emptySet()
-            } else {
-                val newEpoch = state.nextEpoch + 1
-                state.copy(
-                    editDialog = EditDialogState(
-                        epochId = newEpoch,
-                        typeId = row.typeId,
-                        originalName = row.name,
-                        originalTemplate = row.template,
-                        originalIsMultiple = row.isMultiple,
-                        name = row.name,
-                        template = row.template,
-                        isMultiple = row.isMultiple,
-                    ),
-                    createDialog = null,
-                    deleteConfirm = null,
-                    isCreating = false,
-                    isDeleting = false,
-                    isEditing = false,
-                    nextEpoch = newEpoch,
-                ) to emptySet()
+            when {
+                row == null -> state to emptySet()
+                // IS486: builtin в фазе 3 не редактируется (опции builtin — §21.2, фаза 4).
+                row.systemKey != null -> state to emptySet()
+                else -> {
+                    val newEpoch = state.nextEpoch + 1
+                    state.copy(
+                        editDialog = EditDialogState(
+                            epochId = newEpoch,
+                            typeId = row.typeId,
+                            originalName = row.name,
+                            originalTemplate = row.template,
+                            originalIsMultiple = row.isMultiple,
+                            name = row.name,
+                            template = row.template,
+                            isMultiple = row.isMultiple,
+                            originalTarget = row.dependsOn,
+                            originalCore = row.core,
+                            target = row.dependsOn,
+                            core = row.core,
+                            existingOptions = row.options.map { o ->
+                                EditOptionRow(
+                                    optionId = o.optionId,
+                                    systemKey = o.systemKey,
+                                    originalLabel = o.label,
+                                    label = o.label.orEmpty(),
+                                )
+                            },
+                        ),
+                        createDialog = null,
+                        deleteConfirm = null,
+                        isCreating = false,
+                        isDeleting = false,
+                        isEditing = false,
+                        nextEpoch = newEpoch,
+                    ) to emptySet()
+                }
             }
         }
 
@@ -342,25 +435,277 @@ class PerDictionaryComponentsReducer(
             ) to emptySet()
         }
 
+        // ===== IS486 (В1): пикер цели в Edit =====
+        is Msg.EditTargetChange -> {
+            val dlg = state.editDialog
+            when {
+                dlg == null -> state to emptySet()
+                // Ранний цикл-чек (девайс-фидбек C2, решение 2026-07-21): выбор цели,
+                // создающей цикл, отклоняется сразу в пикере — тост, target не меняется.
+                // Data-проверка CycleDetected остаётся подстраховкой.
+                createsCycle(state.items.orEmpty(), dlg.typeId, message.target) ->
+                    state to setOf(UiEffect.Snackbar("Dependency cycle detected"))
+                else -> state.copy(
+                    editDialog = dlg.copy(
+                        target = message.target,
+                        core = if (message.target is DependencyTarget.Lexeme) dlg.core else false,
+                    ),
+                ) to emptySet()
+            }
+        }
+
+        is Msg.EditCoreToggle -> {
+            val dlg = state.editDialog
+            when {
+                dlg == null -> state to emptySet()
+                dlg.target !is DependencyTarget.Lexeme -> state to emptySet()  // guard
+                else -> state.copy(editDialog = dlg.copy(core = message.core)) to emptySet()
+            }
+        }
+
+        // ===== IS486 (В2): варианты CHOICE в Edit =====
+        is Msg.EditOptionLabelChange -> {
+            val dlg = state.editDialog
+            if (dlg == null) state to emptySet()
+            else state.copy(
+                editDialog = dlg.copy(
+                    existingOptions = dlg.existingOptions.map { o ->
+                        if (o.optionId == message.optionId) o.copy(label = message.value) else o
+                    },
+                ),
+            ) to emptySet()
+        }
+
+        Msg.EditOptionDraftAdd -> {
+            val dlg = state.editDialog
+            if (dlg == null) state to emptySet()
+            else state.copy(
+                editDialog = dlg.copy(newOptionDrafts = dlg.newOptionDrafts + ""),
+            ) to emptySet()
+        }
+
+        is Msg.EditOptionDraftChange -> {
+            val dlg = state.editDialog
+            if (dlg == null || message.index !in dlg.newOptionDrafts.indices) state to emptySet()
+            else state.copy(
+                editDialog = dlg.copy(
+                    newOptionDrafts = dlg.newOptionDrafts.toMutableList()
+                        .apply { set(message.index, message.value) },
+                ),
+            ) to emptySet()
+        }
+
+        is Msg.EditOptionDraftRemove -> {
+            val dlg = state.editDialog
+            if (dlg == null || message.index !in dlg.newOptionDrafts.indices) state to emptySet()
+            else state.copy(
+                editDialog = dlg.copy(
+                    newOptionDrafts = dlg.newOptionDrafts.filterIndexed { i, _ -> i != message.index },
+                ),
+            ) to emptySet()
+        }
+
+        is Msg.EditOptionDeleteRequest -> {
+            val dlg = state.editDialog
+            val option = dlg?.existingOptions?.firstOrNull { it.optionId == message.optionId }
+            when {
+                dlg == null || option == null -> state to emptySet()
+                dlg.isDeletingOption -> state to emptySet()          // guard
+                dlg.optionDeleteConfirm?.optionId == message.optionId -> state to emptySet()
+                else -> state.copy(
+                    editDialog = dlg.copy(
+                        optionDeleteConfirm = OptionDeleteConfirmState(
+                            optionId = option.optionId,
+                            label = option.label,
+                            isLoadingImpact = true,
+                        ),
+                    ),
+                ) to setOf(DatasourceEffect.LoadOptionImpact(option.optionId))
+            }
+        }
+
+        Msg.CloseOptionDeleteConfirm -> {
+            val dlg = state.editDialog
+            if (dlg == null) state to emptySet()
+            else state.copy(editDialog = dlg.copy(optionDeleteConfirm = null)) to emptySet()
+        }
+
+        is Msg.OptionImpactLoaded -> {
+            val dlg = state.editDialog
+            val confirm = dlg?.optionDeleteConfirm
+            if (dlg == null || confirm == null || confirm.optionId != message.optionId) {
+                state to emptySet()                                  // stale
+            } else state.copy(
+                editDialog = dlg.copy(
+                    optionDeleteConfirm = confirm.copy(impact = message.impact, isLoadingImpact = false),
+                ),
+            ) to emptySet()
+        }
+
+        is Msg.OptionImpactFailed -> {
+            val dlg = state.editDialog
+            val confirm = dlg?.optionDeleteConfirm
+            if (dlg == null || confirm == null || confirm.optionId != message.optionId) {
+                state to emptySet()                                  // stale / closed — silent
+            } else state.copy(
+                editDialog = dlg.copy(
+                    optionDeleteConfirm = confirm.copy(isLoadingImpact = false),
+                ),
+            ) to setOf(UiEffect.Snackbar("Failed to load impact"))
+        }
+
+        Msg.ConfirmOptionDelete -> {
+            val dlg = state.editDialog
+            val confirm = dlg?.optionDeleteConfirm
+            when {
+                dlg == null || confirm == null -> state to emptySet()
+                dlg.isDeletingOption -> state to emptySet()          // double-tap guard
+                confirm.isLoadingImpact -> state to emptySet()       // F102 parity
+                else -> state.copy(
+                    editDialog = dlg.copy(isDeletingOption = true),
+                ) to setOf(
+                    DatasourceEffect.DeleteOption(
+                        epochId = dlg.epochId,
+                        optionId = confirm.optionId,
+                    )
+                )
+            }
+        }
+
+        is Msg.OptionDeleteResult -> {
+            val dlg = state.editDialog
+            if (dlg != null && dlg.epochId != message.epochId) {
+                state to emptySet()                                  // F136 stale
+            } else when (val o = message.outcome) {
+                is OptionOutcome.Deleted ->
+                    // Решение 2026-07-21 (девайс-фидбек O3): удаление опции — немедленная
+                    // самостоятельная операция; Edit-диалог закрывается целиком (серая
+                    // «Сохранить» после применённого удаления путала).
+                    state.copy(editDialog = null, isEditing = false) to setOf(
+                        UiEffect.Snackbar("${o.impact.valueCount + o.impact.descendantValueCount} values hidden")
+                    )
+                is OptionOutcome.Success ->
+                    // Delete не возвращает Success — defensive.
+                    state.copy(
+                        editDialog = dlg?.copy(isDeletingOption = false, optionDeleteConfirm = null),
+                    ) to emptySet()
+                OptionOutcome.Removed ->
+                    state.copy(
+                        editDialog = dlg?.copy(isDeletingOption = false, optionDeleteConfirm = null),
+                    ) to setOf(UiEffect.Snackbar("Option removed"))
+                // Решение §21.2: недостижимо из UI (Edit builtin закрыт) — defensive.
+                OptionOutcome.BuiltInProtected ->
+                    state.copy(
+                        editDialog = dlg?.copy(isDeletingOption = false, optionDeleteConfirm = null),
+                    ) to setOf(UiEffect.Snackbar("Built-in protected"))
+                is OptionOutcome.Failure ->
+                    state.copy(
+                        editDialog = dlg?.copy(isDeletingOption = false),
+                    ) to setOf(UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}"))
+            }
+        }
+
         Msg.SubmitEdit -> {
             val dlg = state.editDialog
             when {
                 dlg == null -> state to emptySet()
                 state.isEditing -> state to emptySet()       // F139 double-tap
+                dlg.isDeletingOption -> state to emptySet()  // IS486: дождаться каскада опции
                 dlg.name.trim().isBlank() ->
                     state.copy(
                         editDialog = dlg.copy(nameError = EditNameError.NameEmpty),
                     ) to emptySet()
-                else ->
-                    state.copy(isEditing = true) to setOf(
-                        DatasourceEffect.EditComponent(
-                            epochId = dlg.epochId,
+                // IS486 умный сброс (решение 2026-07-21): смена цели/ядра — сначала
+                // обязательный impact-конфирм («безопасно» / «будет скрыто N»).
+                dlg.target != dlg.originalTarget || dlg.core != dlg.originalCore ->
+                    state.copy(
+                        editDialog = dlg.copy(
+                            rebindConfirm = RebindConfirmState(isLoadingImpact = true),
+                        ),
+                    ) to setOf(
+                        DatasourceEffect.LoadRebindImpact(
                             typeId = dlg.typeId,
-                            name = dlg.name,
-                            template = dlg.template,
-                            isMultiple = dlg.isMultiple,
+                            target = dlg.target,
+                            core = dlg.core,
                         ),
                     )
+                else -> submitEditEffect(state, dlg)
+            }
+        }
+
+        // ===== IS486 умный сброс: конфирм перепривязки =====
+        is Msg.RebindImpactLoaded -> {
+            val dlg = state.editDialog
+            val confirm = dlg?.rebindConfirm
+            if (dlg == null || confirm == null || dlg.typeId != message.typeId) {
+                state to emptySet()                                  // stale
+            } else state.copy(
+                editDialog = dlg.copy(
+                    rebindConfirm = confirm.copy(impact = message.impact, isLoadingImpact = false),
+                ),
+            ) to emptySet()
+        }
+
+        is Msg.RebindImpactFailed -> {
+            val dlg = state.editDialog
+            val confirm = dlg?.rebindConfirm
+            if (dlg == null || confirm == null || dlg.typeId != message.typeId) {
+                state to emptySet()                                  // stale / closed — silent
+            } else state.copy(
+                editDialog = dlg.copy(rebindConfirm = null),
+            ) to setOf(UiEffect.Snackbar("Failed to load impact"))
+        }
+
+        Msg.CloseRebindConfirm -> {
+            val dlg = state.editDialog
+            if (dlg == null) state to emptySet()
+            else state.copy(editDialog = dlg.copy(rebindConfirm = null)) to emptySet()
+        }
+
+        Msg.ConfirmRebind -> {
+            val dlg = state.editDialog
+            val confirm = dlg?.rebindConfirm
+            when {
+                dlg == null || confirm == null -> state to emptySet()
+                state.isEditing -> state to emptySet()               // double-tap
+                confirm.isLoadingImpact -> state to emptySet()       // F102 parity
+                else -> {
+                    val (next, effects) = submitEditEffect(
+                        state.copy(editDialog = dlg.copy(rebindConfirm = null)),
+                        dlg.copy(rebindConfirm = null),
+                    )
+                    next to effects
+                }
+            }
+        }
+
+        // (helper submitEditEffect — внизу файла)
+
+        // ===== IS486: рубильник enabled (spec §6) =====
+        is Msg.ToggleEnabled -> {
+            val row = state.items?.firstOrNull { it.typeId == message.typeId }
+            when {
+                row == null -> state to emptySet()
+                message.typeId in state.pendingEnabledToggles -> state to emptySet()  // guard
+                row.enabled == message.enabled -> state to emptySet()                 // no-op
+                else -> state.copy(
+                    pendingEnabledToggles = state.pendingEnabledToggles + message.typeId,
+                ) to setOf(DatasourceEffect.SetEnabled(message.typeId, message.enabled))
+            }
+        }
+
+        is Msg.SetEnabledResult -> {
+            val cleared = state.copy(
+                pendingEnabledToggles = state.pendingEnabledToggles - message.typeId,
+            )
+            when (val o = message.outcome) {
+                is SetEnabledOutcome.Success -> cleared to emptySet()  // flow отдаст новый снапшот
+                SetEnabledOutcome.LastEnabledCore ->
+                    cleared to setOf(UiEffect.Snackbar("Last enabled core component"))
+                SetEnabledOutcome.Removed ->
+                    cleared to setOf(UiEffect.Snackbar("Component removed"))
+                is SetEnabledOutcome.Failure ->
+                    cleared to setOf(UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}"))
             }
         }
 
@@ -426,6 +771,20 @@ class PerDictionaryComponentsReducer(
                         ) to emptySet()
                     }
                 }
+                // IS486 (spec §7.5, §7.8, §8): временно снеками — полноценная обработка
+                // (in-dialog ошибки пикера цели) появится с UI иерархии в блоке B.
+                EditOutcome.CycleDetected ->
+                    state.copy(isEditing = false, editDialog = null) to setOf(
+                        UiEffect.Snackbar("Dependency cycle detected"),
+                    )
+                EditOutcome.MultiForbiddenForChoice ->
+                    state.copy(isEditing = false, editDialog = null) to setOf(
+                        UiEffect.Snackbar("Multiple values forbidden for choice"),
+                    )
+                EditOutcome.LastEnabledCore ->
+                    state.copy(isEditing = false, editDialog = null) to setOf(
+                        UiEffect.Snackbar("Last enabled core component"),
+                    )
                 EditOutcome.TemplateImmutable ->
                     state.copy(isEditing = false, editDialog = null) to setOf(
                         UiEffect.Snackbar("Template cannot be changed"),
@@ -459,4 +818,28 @@ class PerDictionaryComponentsReducer(
         // ===== No-op =====
         Msg.Empty -> state to emptySet()
     }
+
+    /**
+     * IS486: общий submit-эффект Edit (прямой путь без смены цели и путь через
+     * rebind-конфирм): EditComponent с целью/ядром + батч опций (В2).
+     */
+    private fun submitEditEffect(
+        state: PerDictionaryComponentsScreenState,
+        dlg: EditDialogState,
+    ): Pair<PerDictionaryComponentsScreenState, Set<Effect>> =
+        state.copy(isEditing = true) to setOf(
+            DatasourceEffect.EditComponent(
+                epochId = dlg.epochId,
+                typeId = dlg.typeId,
+                name = dlg.name,
+                template = dlg.template,
+                isMultiple = dlg.isMultiple,
+                target = dlg.target,
+                core = dlg.core,
+                optionRenames = dlg.existingOptions
+                    .filter { it.label.trim() != it.originalLabel.orEmpty() && it.label.isNotBlank() }
+                    .map { it.optionId to it.label.trim() },
+                optionAdds = dlg.newOptionDrafts.map { it.trim() }.filter { it.isNotBlank() },
+            ),
+        )
 }

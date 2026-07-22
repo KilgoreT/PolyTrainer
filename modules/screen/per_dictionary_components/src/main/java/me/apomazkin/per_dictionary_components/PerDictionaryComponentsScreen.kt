@@ -37,14 +37,23 @@ import me.apomazkin.component_widgets.dialogs.DeleteComponentConfirmDialog
 import me.apomazkin.component_widgets.dialogs.DeletionImpactRef
 import me.apomazkin.component_widgets.dialogs.EditComponentDialog
 import me.apomazkin.component_widgets.dialogs.HostVariant
+import me.apomazkin.component_widgets.dialogs.OptionDeleteConfirmDialog
+import me.apomazkin.component_widgets.dialogs.RebindConfirmDialog
+import me.apomazkin.component_widgets.dialogs.TargetPickerItem
 import me.apomazkin.component_widgets.widgets.ComponentsEmptyStateWidget
 import me.apomazkin.component_widgets.widgets.CreateComponentFab
 import me.apomazkin.component_widgets.widgets.PerDictRowWidget
+import me.apomazkin.component_widgets.widgets.componentDisplayName
+import me.apomazkin.component_widgets.widgets.optionDisplayLabel
 import me.apomazkin.core_resources.R
 import me.apomazkin.di.viewModelFactory
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.per_dictionary_components.mate.EditNameError
 import me.apomazkin.per_dictionary_components.mate.ImpactedLexemesPreview
 import me.apomazkin.per_dictionary_components.mate.Msg
+import me.apomazkin.per_dictionary_components.mate.PerDictRow
+import me.apomazkin.per_dictionary_components.mate.createsCycle
 import me.apomazkin.per_dictionary_components.mate.isEmpty
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.formBackground
@@ -147,7 +156,7 @@ fun PerDictionaryComponentsScreen(
                         items(items = rows, key = { it.typeId.id }) { row ->
                             PerDictRowWidget(
                                 typeId = row.typeId,
-                                name = row.name,
+                                name = componentDisplayName(systemKey = row.systemKey, name = row.name),
                                 template = row.template,
                                 isMultiple = row.isMultiple,
                                 isGlobal = row.isGlobal,
@@ -159,6 +168,14 @@ fun PerDictionaryComponentsScreen(
                                 },
                                 onEdit = { viewModel.accept(Msg.OpenEditDialog(it)) },
                                 onDelete = { viewModel.accept(Msg.OpenDeleteConfirm(it)) },
+                                // IS486 (В3): builtin — только свитч; чипы состояния.
+                                isBuiltIn = row.systemKey != null,
+                                enabled = row.enabled,
+                                degraded = row.degraded,
+                                enabledTogglePending = row.typeId in state.pendingEnabledToggles,
+                                onToggleEnabled = { typeId, enabled ->
+                                    viewModel.accept(Msg.ToggleEnabled(typeId, enabled))
+                                },
                             )
                         }
                     }
@@ -185,6 +202,18 @@ fun PerDictionaryComponentsScreen(
             onDictionaryToggle = { /* no-op */ },
             onSubmit = { viewModel.accept(Msg.SubmitCreate) },
             onDismiss = { viewModel.accept(Msg.CloseCreateDialog) },
+            // IS486 (В1): пикер цели — все живые компоненты словаря + опции CHOICE.
+            targetItems = targetPickerItems(rows = state.items, excludeTypeId = null),
+            selectedTarget = dialog.target,
+            core = dialog.core,
+            onTargetSelect = { viewModel.accept(Msg.CreateTargetChange(it)) },
+            onCoreToggle = { viewModel.accept(Msg.CreateCoreToggle(it)) },
+            // IS486 (В2): варианты CHOICE.
+            optionDrafts = dialog.optionDrafts,
+            optionsError = dialog.optionsError,
+            onOptionAdd = { viewModel.accept(Msg.CreateOptionAdd) },
+            onOptionChange = { index, value -> viewModel.accept(Msg.CreateOptionChange(index, value)) },
+            onOptionRemove = { viewModel.accept(Msg.CreateOptionRemove(it)) },
         )
     }
     state.deleteConfirm?.let { dialog ->
@@ -228,6 +257,9 @@ fun PerDictionaryComponentsScreen(
             }
         }
         val context = androidx.compose.ui.platform.LocalContext.current
+        // IS486: dirty от иерархии/опций — цель, ядро, rename существующих, новые черновики.
+        val optionsDirty = dialog.existingOptions.any { it.label != it.originalLabel.orEmpty() } ||
+            dialog.newOptionDrafts.any { it.isNotBlank() }
         EditComponentDialog(
             name = dialog.name,
             template = dialog.template,
@@ -249,9 +281,91 @@ fun PerDictionaryComponentsScreen(
             onShowAllImpacted = { /* TBD: drill-in destination — backlog */ },
             onSubmit = { viewModel.accept(Msg.SubmitEdit) },
             onDismiss = { viewModel.accept(Msg.CloseEditDialog) },
+            // IS486 (В1): пикер цели — без самого редактируемого компонента и его опций.
+            targetItems = targetPickerItems(rows = state.items, excludeTypeId = dialog.typeId),
+            selectedTarget = dialog.target,
+            core = dialog.core,
+            onTargetSelect = { viewModel.accept(Msg.EditTargetChange(it)) },
+            onCoreToggle = { viewModel.accept(Msg.EditCoreToggle(it)) },
+            // IS486 (В2): варианты CHOICE.
+            existingOptions = dialog.existingOptions.map { it.optionId to it.label },
+            newOptionDrafts = dialog.newOptionDrafts,
+            onOptionLabelChange = { optionId, value ->
+                viewModel.accept(Msg.EditOptionLabelChange(optionId, value))
+            },
+            onOptionDeleteClick = { viewModel.accept(Msg.EditOptionDeleteRequest(it)) },
+            onOptionDraftAdd = { viewModel.accept(Msg.EditOptionDraftAdd) },
+            onOptionDraftChange = { index, value ->
+                viewModel.accept(Msg.EditOptionDraftChange(index, value))
+            },
+            onOptionDraftRemove = { viewModel.accept(Msg.EditOptionDraftRemove(it)) },
+            extraDirty = dialog.target != dialog.originalTarget ||
+                dialog.core != dialog.originalCore ||
+                optionsDirty,
         )
+
+        // IS486 (В2): вложенный конфирм удаления опции — поверх Edit-диалога.
+        dialog.optionDeleteConfirm?.let { confirm ->
+            OptionDeleteConfirmDialog(
+                label = confirm.label,
+                valueCount = confirm.impact?.valueCount,
+                descendantValueCount = confirm.impact?.descendantValueCount,
+                degradedCount = confirm.impact?.degradedComponents?.size,
+                isLoadingImpact = confirm.isLoadingImpact,
+                isSubmitting = dialog.isDeletingOption,
+                onConfirm = { viewModel.accept(Msg.ConfirmOptionDelete) },
+                onDismiss = { viewModel.accept(Msg.CloseOptionDeleteConfirm) },
+            )
+        }
+
+        // IS486 умный сброс: обязательный конфирм перепривязки — поверх Edit-диалога.
+        dialog.rebindConfirm?.let { confirm ->
+            RebindConfirmDialog(
+                valueCount = confirm.impact?.valueCount,
+                descendantValueCount = confirm.impact?.descendantValueCount,
+                isLoadingImpact = confirm.isLoadingImpact,
+                isSubmitting = state.isEditing,
+                onConfirm = { viewModel.accept(Msg.ConfirmRebind) },
+                onDismiss = { viewModel.accept(Msg.CloseRebindConfirm) },
+            )
+        }
     }
 }
+
+/**
+ * IS486 (В1): кандидаты цели зависимости — все живые компоненты словаря
+ * (builtin включая; зависимость от «Части речи» и её опций — ключевой сценарий)
+ * + вложенные опции CHOICE. [excludeTypeId] — сам редактируемый компонент и его
+ * опции (самозависимость бессмысленна).
+ *
+ * Решение 2026-07-21 (C2): цели, создающие цикл, — задизейблены с подписью
+ * «нельзя — цикл» (компонент-ряд; его опции просто приглушены).
+ */
+@Composable
+private fun targetPickerItems(
+    rows: List<PerDictRow>?,
+    excludeTypeId: ComponentTypeId?,
+): List<TargetPickerItem> = rows.orEmpty()
+    .filter { it.typeId != excludeTypeId }
+    .flatMap { row ->
+        val cyclic = excludeTypeId != null &&
+            createsCycle(rows.orEmpty(), excludeTypeId, DependencyTarget.Component(row.typeId))
+        val componentItem = TargetPickerItem(
+            target = DependencyTarget.Component(row.typeId),
+            label = componentDisplayName(systemKey = row.systemKey, name = row.name),
+            enabled = !cyclic,
+            showCycleHint = cyclic,
+        )
+        val optionItems = row.options.map { option ->
+            TargetPickerItem(
+                target = DependencyTarget.Option(option.optionId),
+                label = optionDisplayLabel(systemKey = option.systemKey, label = option.label),
+                indent = true,
+                enabled = !cyclic,
+            )
+        }
+        listOf(componentItem) + optionItems
+    }
 
 /**
  * IS481 phase 2 — local маппинг [EditNameError] → StringRes.

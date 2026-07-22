@@ -2,14 +2,17 @@ package me.apomazkin.core_db_api
 
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
+import me.apomazkin.core_db_api.entity.ComponentOptionApiEntity
 import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
 import me.apomazkin.core_db_api.entity.CreateComponentOutcome
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.DictionaryTypesSnapshot
 import me.apomazkin.core_db_api.entity.EditComponentOutcome
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
+import me.apomazkin.core_db_api.entity.OptionCrudOutcome
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
 import me.apomazkin.core_db_api.entity.RenameComponentOutcome
+import me.apomazkin.core_db_api.entity.SetEnabledComponentOutcome
 import me.apomazkin.core_db_api.entity.SoftDeleteComponentOutcome
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.TranslationApiEntity
@@ -149,6 +152,11 @@ interface CoreDbApi {
         suspend fun getComponentTypes(dictionaryId: Long): List<ComponentTypeApiEntity>
 
         /**
+         * IS486: живые опции CHOICE-компонента (по position). Для не-CHOICE — пусто.
+         */
+        suspend fun getComponentOptions(componentTypeId: Long): List<ComponentOptionApiEntity>
+
+        /**
          * IS481: реактивный поток ВСЕХ active типов словаря (built-in global +
          * per-dict user-defined) — driver для WordCard ChipsRow. Делегат к
          * `ComponentTypeDao.flowTypesForDictionary` (built-in включён, `dictionary_id IS NULL`).
@@ -169,9 +177,10 @@ interface CoreDbApi {
         fun flowAllUserDefinedTypesWithUsage(): Flow<UserDefinedTypesUsageSnapshot>
 
         /**
-         * Реактивная подписка на active user-defined types применимые к словарю:
-         * `(dictionary_id = :dictId OR dictionary_id IS NULL) AND system_key IS NULL
-         *  AND removed_at IS NULL` + valueCount within dict.
+         * Реактивная подписка на active types применимые к словарю:
+         * `(dictionary_id = :dictId OR dictionary_id IS NULL) AND removed_at IS NULL`
+         * + valueCount within dict. IS486 фаза 3: builtin-строки ВКЛЮЧЕНЫ
+         * (рубильник enabled в конструкторе), optionsByType — живые опции CHOICE.
          */
         fun flowUserDefinedTypesForDictionary(dictionaryId: Long): Flow<DictionaryTypesSnapshot>
 
@@ -187,6 +196,13 @@ interface CoreDbApi {
             template: ComponentTemplate,
             isMultiple: Boolean,
             scope: Scope,
+            // IS486 фаза 3: иерархия при создании. Дефолты = legacy-семантика (spec §11):
+            // цель-лексема + ядро. XOR: заполнена максимум одна depends-ссылка.
+            core: Boolean = true,
+            dependsOnTypeId: Long? = null,
+            dependsOnOptionId: Long? = null,
+            // IS486: стартовые варианты CHOICE (лейблы); для не-CHOICE игнорируются.
+            optionLabels: List<String> = emptyList(),
         ): CreateComponentOutcome
 
         /**
@@ -227,7 +243,62 @@ interface CoreDbApi {
             name: String,
             template: ComponentTemplate,
             isMultiple: Boolean,
+            // IS486 фаза 3: перепривязка цели. null-пара = цель-лексема (+core).
+            // Умный сброс (решение 2026-07-21, spec §9.4): гаснут только значения
+            // лексем, где НОВОЕ условие не выполнено (+ их поддеревья).
+            core: Boolean = true,
+            dependsOnTypeId: Long? = null,
+            dependsOnOptionId: Long? = null,
         ): EditComponentOutcome
+
+        /**
+         * IS486: рубильник enabled (spec §6). Выключение последнего включённого
+         * ядра словаря — [SetEnabledComponentOutcome.LastEnabledCore] (spec §7.8).
+         * Каскадов нет: disable только убирает компонент из предложений.
+         */
+        suspend fun setComponentEnabled(
+            typeId: Long,
+            enabled: Boolean,
+        ): SetEnabledComponentOutcome
+
+        /** IS486 К1: добавить опцию CHOICE-компонента (label, в конец списка). */
+        suspend fun addComponentOption(
+            componentTypeId: Long,
+            label: String,
+        ): OptionCrudOutcome
+
+        /** IS486 К2: переименовать опцию (label-override; id устойчив). */
+        suspend fun renameComponentOption(
+            optionId: Long,
+            label: String,
+        ): OptionCrudOutcome
+
+        /**
+         * IS486 К3–К5: soft-delete опции + комбинированный каскад (значения-выборы +
+         * поддеревья зависимых; зависимые компоненты становятся degraded вычисляемо).
+         */
+        suspend fun deleteComponentOption(optionId: Long): OptionCrudOutcome
+
+        /**
+         * IS486: read-only preview удаления опции — dry-run комбинированного каскада
+         * (значения-выборы + поддеревья зависимых) + деградирующие компоненты.
+         * `null` — опция не найдена / уже removed.
+         */
+        suspend fun previewOptionDeletionImpact(optionId: Long): DeletionImpact?
+
+        /**
+         * IS486 (умный сброс, решение 2026-07-21): read-only preview перепривязки —
+         * dry-run плана `TargetRebound` по графу с подменённой целью. Сбрасываются
+         * только значения лексем, где новое условие не выполнено (+ их поддеревья);
+         * `valueCount` — значения самого типа, `descendantValueCount` — потомки.
+         * Нулевой impact = «безопасно». `null` — тип не найден / removed / builtin.
+         */
+        suspend fun previewRebindImpact(
+            typeId: Long,
+            core: Boolean,
+            dependsOnTypeId: Long?,
+            dependsOnOptionId: Long?,
+        ): DeletionImpact?
 
         /**
          * Read-only preview: valueCount + dictionariesWithValues + affectedQuizConfigs +
@@ -245,23 +316,10 @@ interface CoreDbApi {
          */
         suspend fun softDeleteComponentType(typeId: Long): SoftDeleteComponentOutcome
 
-        // ===== Translation @Deprecated shim (A3) =====
-
-        @Deprecated("Use addLexemeWithBuiltInComponent")
-        suspend fun addLexemeWithTranslation(
-            wordId: Long,
-            dictionaryId: Long,
-            translation: TranslationApiEntity,
-        ): Long
-
-        @Deprecated("Use updateComponentValue via generic path")
-        suspend fun updateLexemeTranslation(
-            id: Long,
-            translation: TranslationApiEntity?,
-        ): Long?
-
         // addLexemeWithDefinition / updateLexemeDefinition — УДАЛЕНЫ (AGG-6).
         // addLexeme(wordId, translation) / addLexeme(wordId, definition) overloads — УДАЛЕНЫ.
+        // addLexemeWithTranslation / updateLexemeTranslation — УДАЛЕНЫ (IS486, фаза 1):
+        // внешних вызовов не было; builtin пословарные, глобальный lookup не существует.
     }
 
     interface QuizApi {

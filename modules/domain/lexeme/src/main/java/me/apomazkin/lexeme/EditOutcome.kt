@@ -24,6 +24,16 @@ sealed interface EditOutcome {
     data object SameScopeCollision : EditOutcome
     data object CrossScopeCollision : EditOutcome
     data class CardinalityDowngradeBlocked(val impactedLexemeIds: List<Long>) : EditOutcome
+
+    /** IS486: перепривязка `dependsOn` создала бы цикл (spec §8). */
+    data object CycleDetected : EditOutcome
+
+    /** IS486: isMultiple = true для шаблона CHOICE запрещён (spec §7.5). */
+    data object MultiForbiddenForChoice : EditOutcome
+
+    /** IS486: перепривязка последнего включённого ядра словаря на не-лексему (spec §7.8). */
+    data object LastEnabledCore : EditOutcome
+
     data object TemplateImmutable : EditOutcome
     data object BuiltInProtected : EditOutcome
     data object Removed : EditOutcome

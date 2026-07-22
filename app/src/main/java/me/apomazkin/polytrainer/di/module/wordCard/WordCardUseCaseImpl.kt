@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.flags.CountryProvider
+import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
@@ -19,6 +20,7 @@ import me.apomazkin.polytrainer.mapper.toDomain
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.wordcard.LogTags
 import me.apomazkin.wordcard.deps.AddComponentValueResult
+import me.apomazkin.wordcard.deps.AvailableComponents
 import me.apomazkin.wordcard.deps.RemoveComponentResult
 import me.apomazkin.wordcard.deps.RemoveLexemeResult
 import me.apomazkin.wordcard.deps.WordCardUseCase
@@ -105,14 +107,11 @@ class WordCardUseCaseImpl @Inject constructor(
         componentValueId: ComponentValueId,
         lexemeId: Long,
     ): RemoveComponentResult? = try {
-        val before = lexemeApi.getLexemeById(lexemeId)?.toDomain() ?: return null
-        val remaining = lexemeApi.deleteComponentValue(componentValueId.id)
-        if (remaining > 0) {
-            lexemeApi.getLexemeById(lexemeId)?.toDomain()?.let { RemoveComponentResult.ComponentRemoved(it) }
-        } else {
-            lexemeApi.deleteLexeme(lexemeId)
-            RemoveComponentResult.LexemeCascadeRemoved(before)
-        }
+        // IS486 фаза 3 (spec §9.1, В4): лексема живёт всегда — потеря последнего
+        // значения деградирует её в черновик, каскадное удаление лексемы упразднено.
+        lexemeApi.deleteComponentValue(componentValueId.id)
+        lexemeApi.getLexemeById(lexemeId)?.toDomain()
+            ?.let { RemoveComponentResult.ComponentRemoved(it) }
     } catch (e: Exception) {
         logger.e(tag = LogTags.WORDCARD, message = "deleteComponentValue failed: ${e.message}")
         null
@@ -131,8 +130,19 @@ class WordCardUseCaseImpl @Inject constructor(
         null
     }
 
-    override fun flowAvailableComponentTypes(dictionaryId: Long): Flow<List<ComponentType>> =
-        lexemeApi.flowTypesForDictionary(dictionaryId).map { list -> list.map { it.toDomain() } }
+    // IS486 фаза 2: времянка-фильтр CHOICE снят — карточка получила пикер значений.
+    // Девайс-баг 2026-07-21: опции идут единым реактивным снапшотом
+    // (flowUserDefinedTypesForDictionary) — CRUD опций в конструкторе пере-эмитит
+    // пикер карточки; разовый getComponentOptions на эмит types оставлял stale.
+    override fun flowAvailableComponentTypes(dictionaryId: Long): Flow<AvailableComponents> =
+        lexemeApi.flowUserDefinedTypesForDictionary(dictionaryId).map { snapshot ->
+            AvailableComponents(
+                types = snapshot.types.map { it.toDomain() },
+                optionsByType = snapshot.optionsByType
+                    .mapKeys { me.apomazkin.lexeme.ComponentTypeId(it.key) }
+                    .mapValues { (_, options) -> options.map { it.toDomain() } },
+            )
+        }
 
     private fun TemplateValues.trimmed(): TemplateValues =
         (this as? TextValues)?.let { TextValues(Primitive.Text(it.value.value.trim())) } ?: this

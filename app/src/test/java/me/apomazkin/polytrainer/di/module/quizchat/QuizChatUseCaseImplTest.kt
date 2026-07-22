@@ -183,6 +183,21 @@ class QuizChatUseCaseImplTest {
         assertTrue(useCase.getAvailableTypes(1L).isEmpty())
     }
 
+    // IS486: CHOICE в квизах v1 не участвует (spec §9.6) — пикер не предлагает.
+    @Test
+    fun `getAvailableTypes filters choice template`() = runTest {
+        coEvery { lexemeApi.getComponentTypes(1L) } returns listOf(
+            ctApi(1L, BuiltInComponent.TRANSLATION, null, 0),
+            ctApi(2L, BuiltInComponent.PART_OF_SPEECH, null, 1).copy(template = ComponentTemplate.CHOICE),
+            ctApi(3L, null, "Definition", 2),
+        )
+
+        val result = useCase.getAvailableTypes(1L)
+
+        assertEquals(2, result.size)
+        assertTrue(result.none { it.template == ComponentTemplate.CHOICE })
+    }
+
     @Test
     fun `getQuizPickerSelection decodes builtin translation`() = runTest {
         coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "builtin:translation"

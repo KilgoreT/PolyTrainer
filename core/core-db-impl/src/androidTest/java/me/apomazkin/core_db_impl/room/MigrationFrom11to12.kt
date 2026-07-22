@@ -206,7 +206,9 @@ class MigrationFrom11to12 {
         assertEquals(0, v12.countWhere("lexemes", "1=1"))
         assertEquals(0, v12.countWhere("component_values", "1=1"))
         assertEquals(0, v12.countWhere("component_types", "dictionary_id=1"))
-        assertEquals(1, v12.countWhere("component_types", "system_key='translation'"))
+        // IS486: builtin пословарные — перевод словаря умирает вместе со словарём.
+        assertEquals(0, v12.countWhere("component_types", "system_key='translation'"))
+        assertEquals(0, v12.countWhere("component_options", "1=1"))
         assertEquals(0, v12.countWhere("quiz_configs", "dictionary_id=1"))
         v12.close()
     }
@@ -399,6 +401,169 @@ class MigrationFrom11to12 {
         )
         assertEquals(0, v12.countWhere("sqlite_master", "name='index_component_values_lexeme_id_component_type_id'"))
         assertEquals(0, v12.countWhere("sqlite_master", "name='index_component_types_dictionary_id_name'"))
+        v12.close()
+    }
+
+    // ============================================================
+    // IS486 (collapsed в тот же переход): иерархия компонентов,
+    // пословарные builtin, опции части речи. phase1_plan.md § Зона B.
+    // ============================================================
+
+    // === Case Q — v12-схема: новые колонки, индексы, не-UNIQUE system_key ===
+    @Test
+    fun caseQ_is486Schema() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "EN")
+        }
+        val v12 = migrate()
+        assertEquals(1, v12.countWhere("sqlite_master", "type='table' AND name='component_options'"))
+        listOf("core", "enabled", "depends_on_type_id", "depends_on_option_id").forEach { col ->
+            assertEquals("missing column $col", 1, v12.countWhere("pragma_table_info('component_types')", "name='$col'"))
+        }
+        assertEquals(1, v12.countWhere("pragma_table_info('component_values')", "name='option_id'"))
+        val indexSql = v12.scalarText("SELECT sql FROM sqlite_master WHERE name='index_component_types_system_key'")
+        assertTrue("system_key index must not be UNIQUE", !indexSql.uppercase().contains("UNIQUE"))
+        listOf(
+            "index_component_types_depends_on_type_id",
+            "index_component_types_depends_on_option_id",
+            "index_component_values_option_id",
+            "index_component_options_component_type_id",
+        ).forEach { idx ->
+            assertEquals("missing index $idx", 1, v12.countWhere("sqlite_master", "type='index' AND name='$idx'"))
+        }
+        v12.close()
+    }
+
+    // === Case R — пословарные builtin: перевод-ядро + часть речи с опциями на каждый словарь ===
+    @Test
+    fun caseR_perDictionaryBuiltIns() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "ES")
+            v11.insertDictionary(id = 2, name = "EN")
+        }
+        val v12 = migrate()
+        // Перевод: по строке на словарь, ядро, включён, цель-лексема; глобальной нет.
+        assertEquals(2, v12.countWhere("component_types", "system_key='translation'"))
+        assertEquals(0, v12.countWhere("component_types", "system_key='translation' AND dictionary_id IS NULL"))
+        assertEquals(
+            2,
+            v12.countWhere(
+                "component_types",
+                "system_key='translation' AND core=1 AND enabled=1 " +
+                    "AND depends_on_type_id IS NULL AND depends_on_option_id IS NULL",
+            ),
+        )
+        // Часть речи: CHOICE, не-ядро, по строке на словарь.
+        assertEquals(
+            2,
+            v12.countWhere(
+                "component_types",
+                "system_key='part_of_speech' AND template_key='choice' AND core=0 AND enabled=1",
+            ),
+        )
+        // 6 опций-ключей на каждый словарь, label NULL, позиции стабильны.
+        listOf(1L, 2L).forEach { dictId ->
+            val posTypeId = v12.scalarLong(
+                "SELECT id FROM component_types WHERE system_key='part_of_speech' AND dictionary_id=$dictId",
+            )
+            assertEquals(6, v12.countWhere("component_options", "component_type_id=$posTypeId"))
+            assertEquals(
+                6,
+                v12.countWhere(
+                    "component_options",
+                    "component_type_id=$posTypeId AND label IS NULL AND system_key IN " +
+                        "('noun','verb','adjective','adverb','preposition','phrase')",
+                ),
+            )
+            assertEquals(
+                "noun",
+                v12.scalarText("SELECT system_key FROM component_options WHERE component_type_id=$posTypeId AND position=0"),
+            )
+        }
+        v12.close()
+    }
+
+    // === Case S — перевязка значений перевода на строку своего словаря ===
+    @Test
+    fun caseS_translationValuesPerDictionary() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "ES")
+            v11.insertDictionary(id = 2, name = "EN")
+            v11.insertWord(id = 1, dictionaryId = 1, value = "gato")
+            v11.insertWord(id = 2, dictionaryId = 2, value = "cat")
+            v11.insertLexeme(id = 1, wordId = 1, translation = "кот", definition = null)
+            v11.insertLexeme(id = 2, wordId = 2, translation = "кошка", definition = null)
+        }
+        val v12 = migrate()
+        val d1TranslationId = v12.scalarLong("SELECT id FROM component_types WHERE system_key='translation' AND dictionary_id=1")
+        val d2TranslationId = v12.scalarLong("SELECT id FROM component_types WHERE system_key='translation' AND dictionary_id=2")
+        assertEquals(d1TranslationId, v12.scalarLong("SELECT component_type_id FROM component_values WHERE lexeme_id=1"))
+        assertEquals(d2TranslationId, v12.scalarLong("SELECT component_type_id FROM component_values WHERE lexeme_id=2"))
+        v12.close()
+    }
+
+    // === Case T — backfill: Definition-ядро при лексеме с definition без translation ===
+    @Test
+    fun caseT_definitionCoreWhenUsedAlone() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "EN")
+            v11.insertWord(id = 1, dictionaryId = 1, value = "cat")
+            // Лексема с definition БЕЗ translation → Definition фактически используется сам.
+            v11.insertLexeme(id = 1, wordId = 1, translation = null, definition = "def")
+        }
+        val v12 = migrate()
+        assertEquals(
+            1,
+            v12.countWhere(
+                "component_types",
+                "name='Definition' AND dictionary_id=1 AND core=1 " +
+                    "AND depends_on_type_id IS NULL AND depends_on_option_id IS NULL AND enabled=1",
+            ),
+        )
+        v12.close()
+    }
+
+    // === Case U — backfill: Definition-зависимость от перевода, когда все def-лексемы с переводом ===
+    @Test
+    fun caseU_definitionDependsOnTranslationWhenAlwaysPaired() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "EN")
+            v11.insertWord(id = 1, dictionaryId = 1, value = "cat")
+            v11.insertLexeme(id = 1, wordId = 1, translation = "кошка", definition = "pet")
+        }
+        val v12 = migrate()
+        val translationId = v12.scalarLong("SELECT id FROM component_types WHERE system_key='translation' AND dictionary_id=1")
+        assertEquals(
+            1,
+            v12.countWhere(
+                "component_types",
+                "name='Definition' AND dictionary_id=1 AND core=0 AND depends_on_type_id=$translationId",
+            ),
+        )
+        v12.close()
+    }
+
+    // === Case V — вырожденная БД: 0 словарей — builtin сеять некуда ===
+    @Test
+    fun caseV_zeroDictionaries() {
+        helper.createDatabase(11).use { }
+        val v12 = migrate()
+        assertEquals(0, v12.countWhere("component_types", "1=1"))
+        assertEquals(0, v12.countWhere("component_options", "1=1"))
+        v12.close()
+    }
+
+    // === Case W — словарь без лексем: builtin сеются, значений нет ===
+    @Test
+    fun caseW_emptyDictionarySeeded() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "EN")
+        }
+        val v12 = migrate()
+        assertEquals(1, v12.countWhere("component_types", "system_key='translation' AND dictionary_id=1 AND core=1"))
+        assertEquals(1, v12.countWhere("component_types", "system_key='part_of_speech' AND dictionary_id=1"))
+        assertEquals(6, v12.countWhere("component_options", "1=1"))
+        assertEquals(0, v12.countWhere("component_values", "1=1"))
         v12.close()
     }
 

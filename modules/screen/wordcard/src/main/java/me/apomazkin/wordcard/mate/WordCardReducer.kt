@@ -1,6 +1,8 @@
 package me.apomazkin.wordcard.mate
 
 import me.apomazkin.core_resources.R
+import me.apomazkin.lexeme.ChoiceValues
+import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.toRef
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
@@ -85,6 +87,9 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             // ===== Datasource load =====
             is Msg.WordLoaded -> {
                 val w = message.word
+                // Решение 2026-07-21: черновик живёт только в открытой карточке —
+                // сохранённые пустые лексемы не показываются и тихо удаляются.
+                val (empty, alive) = w.lexemeList.partition { it.components.isEmpty() }
                 state.copy(
                     isLoading = false,
                     isPendingDbOp = false,
@@ -95,8 +100,11 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                         added = w.addedDate,
                         value = w.word.value,
                     ),
-                    lexemeList = w.lexemeList.map { it.toLexemeState() },
-                ) to setOf(DatasourceEffect.LoadAvailableComponentTypes(w.dictionaryId))
+                    lexemeList = alive.map { it.toLexemeState() },
+                ) to buildSet {
+                    add(DatasourceEffect.LoadAvailableComponentTypes(w.dictionaryId))
+                    empty.forEach { add(DatasourceEffect.PurgeEmptyLexeme(w.wordId.id, it.lexemeId.id)) }
+                }
             }
 
             is Msg.WordNotFound ->
@@ -147,7 +155,6 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 }
             }
 
-            is Msg.LexemeCascadeRemoved -> removeLexemeWithUndo(state, message.removedLexeme)
             is Msg.LexemeRemoved -> removeLexemeWithUndo(state, message.removedLexeme)
 
             is Msg.UndoRestoreLexeme -> {
@@ -198,8 +205,14 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             is Msg.CommitComponentValueEdit -> reduceCommitComponentValueEdit(state, message)
             is Msg.RemoveComponentValueRequested -> reduceRemoveComponentValue(state, message)
 
+            // ===== IS486: CHOICE-пикер =====
+            is Msg.SelectComponentOption -> reduceSelectComponentOption(state, message)
+
             // ===== Component types stream =====
-            is Msg.ComponentTypesLoaded -> state.copy(availableComponentTypes = message.types) to emptySet()
+            is Msg.ComponentTypesLoaded -> state.copy(
+                availableComponentTypes = message.available.types,
+                optionsByType = message.available.optionsByType,
+            ) to emptySet()
             is Msg.ComponentTypesLoadFailed -> state to setOf(
                 UiEffect.ShowSnackbarWithRetry(
                     messageRes = R.string.word_card_error_load_component_types,
@@ -223,7 +236,17 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             is Msg.OperationFailed -> reduceOperationFailed(state, message)
             is Msg.NavigateBack -> {
                 if (state.isExiting) state to emptySet()
-                else state.copy(isExiting = true).commitAndCloseAllEdits()
+                else {
+                    val (next, effects) = state.copy(isExiting = true).commitAndCloseAllEdits()
+                    // Решение 2026-07-21: черновик живёт только в открытой карточке —
+                    // выход тихо удаляет сохранённые пустые лексемы (best-effort).
+                    val wordId = (next.wordState as? WordState.Loaded)?.id
+                    val purge = if (wordId == null) emptySet() else next.lexemeList
+                        .filter { it.id != NOT_IN_DB && it.components.isEmpty() }
+                        .map { DatasourceEffect.PurgeEmptyLexeme(wordId, it.id) }
+                        .toSet()
+                    next to (effects + purge)
+                }
             }
         }
     }
@@ -345,7 +368,11 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 message.key,
             ) to emptySet()
 
-            cv.origin.isEmpty() -> state.updateLexeme(message.lexemeId) { it.removeComponent(message.key) } to emptySet()
+            // «Пустой origin = локальный мусор» — только для текстовых шаблонов (IS481).
+            // У CHOICE origin пуст ВСЕГДА (payload в selectedOptionId) — сохранённое
+            // значение обязано удаляться через БД (девайс-баг 2026-07-21).
+            cv.origin.isEmpty() && cv.template != ComponentTemplate.CHOICE ->
+                state.updateLexeme(message.lexemeId) { it.removeComponent(message.key) } to emptySet()
             else -> {
                 val cvId = cv.componentValueId!!
                 state.copy(isPendingDbOp = true).updateLexeme(message.lexemeId) {
@@ -368,17 +395,20 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         val savedComps = message.components.map { domain ->
             val existing = existingByCvId[domain.id]
             val newOrigin = domain.data.asText().orEmpty()
+            // IS486: origin CHOICE — id опции.
+            val newOptionId = (domain.data as? me.apomazkin.lexeme.ChoiceValues)?.optionId
             when {
                 existing == null -> domain.toComponentValueState()
                 existing.isCommitting -> existing.copy(
                     origin = newOrigin,
+                    selectedOptionId = newOptionId,
                     isEdit = false,
                     isCommitting = false,
                     edited = "",
                 )
 
-                existing.isEdit -> existing.copy(origin = newOrigin)
-                else -> existing.copy(origin = newOrigin, isEdit = false)
+                existing.isEdit -> existing.copy(origin = newOrigin, selectedOptionId = newOptionId)
+                else -> existing.copy(origin = newOrigin, selectedOptionId = newOptionId, isEdit = false)
             }
         }
         val pristineTail = target.components.filter { it.isPristine }
@@ -439,6 +469,52 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         return state.copy(isPendingDbOp = false, lexemeList = newList) to effects
     }
 
+    /**
+     * IS486: выбор опции CHOICE — прямой коммит без edit-режима, ТОЛЬКО добавление.
+     * Смена опции как операция упразднена (решение 2026-07-21: тело чипа глухое,
+     * смена = удалить + добавить заново) — пикер открывается только с чипа
+     * добавления, который скрыт при существующем значении. Существующее значение
+     * типа (guard) и in-flight pristine → игнор. Драфт (NOT_IN_DB) — недостижим
+     * правилом участия (CHOICE не ядро), guard на всякий случай.
+     */
+    private fun reduceSelectComponentOption(
+        state: WordCardState,
+        message: Msg.SelectComponentOption,
+    ): ReducerResult<WordCardState, Effect> {
+        val loaded = state.wordState as? WordState.Loaded ?: return state to emptySet()
+        val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId }
+            ?: return state to emptySet()
+        if (lex.id == NOT_IN_DB) return state to emptySet()
+        val type = state.availableComponentTypes.firstOrNull { it.id == message.typeId }
+            ?: return state to emptySet()
+        // Значение типа уже есть (сохранённое или in-flight pristine) — игнор:
+        // single-CHOICE не плодится, смена только через удалить+добавить.
+        if (lex.components.any { it.componentTypeId == message.typeId }) {
+            return state to emptySet()
+        }
+        val pristine = ComponentValueState(
+            key = ComponentValueKey.Pristine(state.nextPristineKey),
+            componentTypeId = type.id,
+            componentTypeRef = type.toRef(),
+            isMultiple = type.isMultiple,
+            template = type.template,
+            isCommitting = true,
+            selectedOptionId = message.optionId,
+        )
+        return state.copy(isPendingDbOp = true, nextPristineKey = state.nextPristineKey + 1)
+            .updateLexeme(lex.id) { it.appendPristine(pristine) } to setOf(
+            DatasourceEffect.UpsertComponentValue.AddValue(
+                wordId = loaded.id,
+                dictionaryId = loaded.dictionaryId,
+                lexemeId = lex.id,
+                pristineKey = pristine.pristineKey!!,
+                componentTypeId = type.id,
+                componentTypeRef = type.toRef(),
+                data = ChoiceValues(message.optionId),
+            ),
+        )
+    }
+
     private fun reduceOperationFailed(
         state: WordCardState,
         message: Msg.OperationFailed,
@@ -447,7 +523,13 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             isPendingDbOp = false,
             isExiting = false,
             lexemeList = state.lexemeList.map { lex ->
-                lex.copy(components = lex.components.map { if (it.isCommitting) it.copy(isCommitting = false) else it })
+                lex.copy(
+                    components = lex.components
+                        // Осиротевший CHOICE-pristine после провала AddValue — мусорный
+                        // чип без пользовательского ввода: удалить (девайс-баг 2026-07-21).
+                        .filterNot { it.isPristine && it.isCommitting && it.template == ComponentTemplate.CHOICE }
+                        .map { if (it.isCommitting) it.copy(isCommitting = false) else it },
+                )
             },
         )
         return cleared to setOf(UiEffect.ShowErrorSnackbar(message.messageRes))
@@ -511,6 +593,7 @@ private fun Msg.isGuardedByPending(): Boolean = when (this) {
     is Msg.CommitComponentValueEdit,
     is Msg.RemoveComponentValueRequested,
     is Msg.EnterComponentValueEditMode,
+    is Msg.SelectComponentOption,
     Msg.OpenTopBarMenu,
     Msg.OpenDeleteWordDialog,
     is Msg.OpenDeleteLexemeDialog,

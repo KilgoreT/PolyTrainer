@@ -12,6 +12,7 @@ import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
+import me.apomazkin.wordcard.deps.AvailableComponents
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -32,14 +33,14 @@ class AvailableComponentTypesFlowHandlerTest {
     private val tr = ctype(50L, TR)
     private val ex = ctype(51L, ComponentTypeRef.UserDefined("Example"))
 
-    private fun fake(flowImpl: (Long) -> Flow<List<ComponentType>>): WordCardUseCase =
+    private fun fake(flowImpl: (Long) -> Flow<AvailableComponents>): WordCardUseCase =
         object : WordCardUseCase by NotImplementedUseCase {
             override fun flowAvailableComponentTypes(dictionaryId: Long) = flowImpl(dictionaryId)
         }
 
     @Test
     fun `runEffect without subscribe is no-op`() = runTest {
-        val handler = AvailableComponentTypesFlowHandler(fake { flowOf(listOf(tr)) }, NoopLogger)
+        val handler = AvailableComponentTypesFlowHandler(fake { flowOf(AvailableComponents(listOf(tr))) }, NoopLogger)
         val msgs = mutableListOf<Msg>()
         handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(1L)) { msgs += it }
         advanceUntilIdle()
@@ -48,12 +49,12 @@ class AvailableComponentTypesFlowHandlerTest {
 
     @Test
     fun `happy path emits ComponentTypesLoaded`() = runTest {
-        val handler = AvailableComponentTypesFlowHandler(fake { flowOf(listOf(tr, ex)) }, NoopLogger)
+        val handler = AvailableComponentTypesFlowHandler(fake { flowOf(AvailableComponents(listOf(tr, ex))) }, NoopLogger)
         val msgs = mutableListOf<Msg>()
         handler.subscribe(this) { msgs += it }
         handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(1L)) { msgs += it }
         advanceUntilIdle()
-        assertEquals(listOf<Msg>(Msg.ComponentTypesLoaded(listOf(tr, ex))), msgs)
+        assertEquals(listOf<Msg>(Msg.ComponentTypesLoaded(AvailableComponents(listOf(tr, ex)))), msgs)
         handler.unsubscribe()
     }
 
@@ -87,8 +88,8 @@ class AvailableComponentTypesFlowHandlerTest {
 
     @Test
     fun `resubscribe cancels previous job`() = runTest {
-        val d1 = MutableSharedFlow<List<ComponentType>>(replay = 0)
-        val d2 = MutableSharedFlow<List<ComponentType>>(replay = 0)
+        val d1 = MutableSharedFlow<AvailableComponents>(replay = 0)
+        val d2 = MutableSharedFlow<AvailableComponents>(replay = 0)
         val handler = AvailableComponentTypesFlowHandler(
             fake { dictId -> if (dictId == 1L) d1 else d2 },
             NoopLogger,
@@ -97,14 +98,14 @@ class AvailableComponentTypesFlowHandlerTest {
         handler.subscribe(this) { msgs += it }
 
         handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(1L)) { msgs += it }
-        d1.emit(listOf(tr)); advanceUntilIdle()
+        d1.emit(AvailableComponents(listOf(tr))); advanceUntilIdle()
 
         handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(2L)) { msgs += it }
-        d1.emit(listOf(ex)); advanceUntilIdle()   // старый job отменён → НЕ получен
-        d2.emit(listOf(tr, ex)); advanceUntilIdle()
+        d1.emit(AvailableComponents(listOf(ex))); advanceUntilIdle()   // старый job отменён → НЕ получен
+        d2.emit(AvailableComponents(listOf(tr, ex))); advanceUntilIdle()
 
         val loaded = msgs.filterIsInstance<Msg.ComponentTypesLoaded>()
-        assertEquals("эмиссия на d1 после переподписки проигнорирована", listOf(listOf(tr), listOf(tr, ex)), loaded.map { it.types })
+        assertEquals("эмиссия на d1 после переподписки проигнорирована", listOf(listOf(tr), listOf(tr, ex)), loaded.map { it.available.types })
         handler.unsubscribe()
     }
 }

@@ -11,6 +11,7 @@ package me.apomazkin.lexeme
 enum class ComponentTemplate(val key: String) {
     TEXT("text"),
     IMAGE("image"),
+    CHOICE("choice"),   // IS486: выбор одной опции из набора; значение — ссылка option_id
     // composite — добавляются в будущих фичах
     ;
 
@@ -18,6 +19,7 @@ enum class ComponentTemplate(val key: String) {
         get() = when (this) {
             TEXT -> listOf(Field("value", PrimitiveType.TEXT))
             IMAGE -> listOf(Field("value", PrimitiveType.IMAGE))
+            CHOICE -> emptyList()   // значение выражено ссылкой на опцию, вне fields-модели
         }
 
     companion object {

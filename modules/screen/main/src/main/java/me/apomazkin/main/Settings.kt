@@ -8,7 +8,6 @@ import androidx.navigation.navArgument
 
 private const val ABOUT_APP_ROUTE = "about_app"
 private const val WEBVIEW_ROUTE = "webview/{pageKey}"
-private const val COMPONENTS_MANAGER_ROUTE = "components_manager"
 
 fun NavGraphBuilder.settings(
     navController: NavHostController,
@@ -21,7 +20,6 @@ fun NavGraphBuilder.settings(
             onLangManagementClick = openDictionaryList,
             onAboutAppClick = { navController.goToAboutApp() },
             onPrivacyPolicyClick = { navController.goToWebView("privacy_policy") },
-            onComponentsManagerClick = { navController.goToComponentsManager() },
         )
     }
 
@@ -46,12 +44,8 @@ fun NavGraphBuilder.settings(
         )
     }
 
-    composable(route = COMPONENTS_MANAGER_ROUTE) {
-        compositionRoot.ComponentsManagerScreenDep(
-            onBackPress = { navController.backPress() },
-        )
-    }
-
+    // IS486 фаза 4 (spec §20): роут components_manager выпилен — Manager недостижим
+    // из навигации; модуль остаётся в коде как консервированный контракт.
 }
 
 private fun NavHostController.goToAboutApp() {
@@ -62,12 +56,6 @@ private fun NavHostController.goToAboutApp() {
 
 private fun NavHostController.goToWebView(pageKey: String) {
     navigate(route = "webview/$pageKey") {
-        launchSingleTop = true
-    }
-}
-
-private fun NavHostController.goToComponentsManager() {
-    navigate(route = COMPONENTS_MANAGER_ROUTE) {
         launchSingleTop = true
     }
 }

@@ -40,6 +40,13 @@ interface ComponentsManagerUseCase {
         template: ComponentTemplate,
         isMultiple: Boolean,
         scope: Scope,
+        // IS486 фаза 3: иерархия при создании. Дефолты = legacy-семантика
+        // (цель-лексема + ядро); manager-экран их не передаёт.
+        core: Boolean = true,
+        dependsOnTypeId: Long? = null,
+        dependsOnOptionId: Long? = null,
+        // Стартовые варианты CHOICE (лейблы); для не-CHOICE игнорируются.
+        optionLabels: List<String> = emptyList(),
     ): CreateOutcome
 
     /**
@@ -79,6 +86,10 @@ interface ComponentsManagerUseCase {
         name: String,
         template: ComponentTemplate,
         isMultiple: Boolean,
+        // IS486 фаза 3: перепривязка цели. null-пара = цель-лексема (+core).
+        core: Boolean = true,
+        dependsOnTypeId: Long? = null,
+        dependsOnOptionId: Long? = null,
     ): EditOutcome
 
     /**

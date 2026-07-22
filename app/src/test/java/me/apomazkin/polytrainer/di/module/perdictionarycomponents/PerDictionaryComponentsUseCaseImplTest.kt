@@ -40,6 +40,14 @@ class PerDictionaryComponentsUseCaseImplTest {
     private val useCase = PerDictionaryComponentsUseCaseImpl(
         lexemeApi = lexemeApi,
         sharedCrud = sharedCrud,
+        logger = object : me.apomazkin.logger.LexemeLogger {
+            override fun log(
+                level: me.apomazkin.logger.LogLevel,
+                tag: String,
+                message: String,
+                throwable: Throwable?,
+            ) {}
+        },
     )
 
     private val createdAt = Date(1_700_000_000_000L)

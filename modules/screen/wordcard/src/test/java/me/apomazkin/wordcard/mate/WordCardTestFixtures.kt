@@ -33,7 +33,7 @@ internal object NotImplementedUseCase : me.apomazkin.wordcard.deps.WordCardUseCa
     override suspend fun updateComponentValue(componentValueId: ComponentValueId, lexemeId: Long, data: me.apomazkin.lexeme.TemplateValues): Lexeme? = TODO()
     override suspend fun deleteComponentValue(componentValueId: ComponentValueId, lexemeId: Long): me.apomazkin.wordcard.deps.RemoveComponentResult? = TODO()
     override suspend fun restoreLexemeWithComponents(wordId: Long, dictionaryId: Long, snapshot: Lexeme): Lexeme? = TODO()
-    override fun flowAvailableComponentTypes(dictionaryId: Long): kotlinx.coroutines.flow.Flow<List<ComponentType>> = TODO()
+    override fun flowAvailableComponentTypes(dictionaryId: Long): kotlinx.coroutines.flow.Flow<me.apomazkin.wordcard.deps.AvailableComponents> = TODO()
 }
 
 /**

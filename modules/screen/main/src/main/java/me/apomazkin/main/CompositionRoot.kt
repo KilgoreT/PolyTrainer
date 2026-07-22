@@ -41,7 +41,6 @@ interface CompositionRoot {
             onLangManagementClick: () -> Unit,
             onAboutAppClick: () -> Unit,
             onPrivacyPolicyClick: () -> Unit,
-            onComponentsManagerClick: () -> Unit,
     )
 
     @Composable
@@ -52,11 +51,6 @@ interface CompositionRoot {
     @Composable
     fun WebViewScreenDep(
             pageKey: String,
-            onBackPress: () -> Unit,
-    )
-
-    @Composable
-    fun ComponentsManagerScreenDep(
             onBackPress: () -> Unit,
     )
 

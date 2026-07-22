@@ -65,11 +65,26 @@ class ComponentsManagerUseCaseImpl @Inject constructor(
         template: ComponentTemplate,
         isMultiple: Boolean,
         scope: Scope,
+        core: Boolean,
+        dependsOnTypeId: Long?,
+        dependsOnOptionId: Long?,
+        optionLabels: List<String>,
     ): CreateOutcome {
         val trimmed = name.trim()
         if (trimmed.isBlank()) return CreateOutcome.NameEmpty
         return try {
-            when (val r = lexemeApi.createUserDefinedComponent(trimmed, template, isMultiple, scope)) {
+            when (
+                val r = lexemeApi.createUserDefinedComponent(
+                    name = trimmed,
+                    template = template,
+                    isMultiple = isMultiple,
+                    scope = scope,
+                    core = core,
+                    dependsOnTypeId = dependsOnTypeId,
+                    dependsOnOptionId = dependsOnOptionId,
+                    optionLabels = optionLabels,
+                )
+            ) {
                 is CreateComponentOutcome.Success ->
                     CreateOutcome.Success(r.types.map { it.toDomain() })
                 CreateComponentOutcome.SameScopeCollision -> CreateOutcome.SameScopeCollision
@@ -115,6 +130,9 @@ class ComponentsManagerUseCaseImpl @Inject constructor(
             }
             SoftDeleteComponentOutcome.BuiltInProtected -> DeleteOutcome.BuiltInProtected
             SoftDeleteComponentOutcome.Removed -> DeleteOutcome.Removed
+            // IS486: manager оперирует user-defined типами (не ядрами), но ветка обязана
+            // маппиться — защита data-слоя от потери последнего ядра (spec §7.8).
+            SoftDeleteComponentOutcome.LastEnabledCore -> DeleteOutcome.LastEnabledCore
         }
     }
 
@@ -123,16 +141,34 @@ class ComponentsManagerUseCaseImpl @Inject constructor(
         name: String,
         template: ComponentTemplate,
         isMultiple: Boolean,
+        core: Boolean,
+        dependsOnTypeId: Long?,
+        dependsOnOptionId: Long?,
     ): EditOutcome {
         val trimmed = name.trim()
         if (trimmed.isBlank()) return EditOutcome.NameEmpty
         return try {
-            when (val r = lexemeApi.editComponentType(typeId.id, trimmed, template, isMultiple)) {
+            when (
+                val r = lexemeApi.editComponentType(
+                    typeId = typeId.id,
+                    name = trimmed,
+                    template = template,
+                    isMultiple = isMultiple,
+                    core = core,
+                    dependsOnTypeId = dependsOnTypeId,
+                    dependsOnOptionId = dependsOnOptionId,
+                )
+            ) {
                 is EditComponentOutcome.Success -> EditOutcome.Success(r.type.toDomain())
                 EditComponentOutcome.SameScopeCollision -> EditOutcome.SameScopeCollision
                 EditComponentOutcome.CrossScopeCollision -> EditOutcome.CrossScopeCollision
                 is EditComponentOutcome.CardinalityDowngradeBlocked ->
                     EditOutcome.CardinalityDowngradeBlocked(r.impactedLexemeIds)
+                // IS486: manager не задаёт dependsOn/CHOICE — ветки практически недостижимы,
+                // но маппинг обязателен (data-слой единый для manager и per-dict конструктора).
+                EditComponentOutcome.CycleDetected -> EditOutcome.CycleDetected
+                EditComponentOutcome.MultiForbiddenForChoice -> EditOutcome.MultiForbiddenForChoice
+                EditComponentOutcome.LastEnabledCore -> EditOutcome.LastEnabledCore
                 EditComponentOutcome.TemplateImmutable -> EditOutcome.TemplateImmutable
                 EditComponentOutcome.BuiltInProtected -> EditOutcome.BuiltInProtected
                 EditComponentOutcome.Removed -> EditOutcome.Removed

@@ -96,6 +96,30 @@ interface ComponentValueDao {
     suspend fun softDeleteByTypeId(typeId: Long, now: Date): Int
 
     /**
+     * IS486, каскад-модуль: живые значения набора типов — вход планировщика
+     * (`planCascade`), собирается внутри транзакции softDelete.
+     */
+    @Query(
+        """
+        SELECT * FROM component_values
+        WHERE component_type_id IN (:typeIds) AND removed_at IS NULL
+        """
+    )
+    suspend fun getActiveByTypeIds(typeIds: List<Long>): List<ComponentValueDb>
+
+    /**
+     * IS486, каскад-модуль: исполнение плана — soft-delete значений по id одним UPDATE.
+     */
+    @Query(
+        """
+        UPDATE component_values
+        SET removed_at = :now, updated_at = :now
+        WHERE id IN (:ids) AND removed_at IS NULL
+        """
+    )
+    suspend fun softDeleteByIds(ids: List<Long>, now: Date): Int
+
+    /**
      * COUNT active values для типа (preview deletion impact).
      */
     @Query(
@@ -165,6 +189,19 @@ interface ComponentValueDao {
         """
     )
     suspend fun aggregatedValueCountPerTypeForDict(dictId: Long): List<TypeIdCount>
+
+    /** IS486: реактивная версия — снапшот конструктора обновляет счётчики значений. */
+    @Query(
+        """
+        SELECT cv.component_type_id AS typeId, COUNT(*) AS count
+        FROM component_values cv
+        JOIN lexemes l ON l.id = cv.lexeme_id
+        JOIN words w ON w.id = l.word_id
+        WHERE cv.removed_at IS NULL AND w.dictionary_id = :dictId
+        GROUP BY cv.component_type_id
+        """
+    )
+    fun flowAggregatedValueCountPerTypeForDict(dictId: Long): kotlinx.coroutines.flow.Flow<List<TypeIdCount>>
 
     /**
      * Distinct (type, dictionary) пары — для `UserDefinedTypesUsageSnapshot.dictionaryIdsByType`.

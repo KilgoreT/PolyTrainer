@@ -49,5 +49,13 @@ fun ComponentByTemplate(
                 // Empty content slot — IMAGE рендер в будущей фиче.
             }
         }
+
+        ComponentTemplate.CHOICE -> {
+            // IS486 фаза 2: пикер значения CHOICE в карточке. В фазе 1 CHOICE
+            // отфильтрован из выдачи WordCard (времянка) — ветка недостижима.
+            ComponentBlock(type = type) {
+                // Empty content slot — CHOICE рендер в фазе 2.
+            }
+        }
     }
 }

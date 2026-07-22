@@ -31,6 +31,11 @@ internal fun ComponentChoiceItem(
             BuiltInComponent.TRANSLATION -> stringResource(
                 id = R.string.chat_menu_item_component_translation,
             )
+            // IS486: CHOICE отфильтрован из пикера (v1) — ветка недостижима,
+            // exhaustive-when требует. Display из общего builtin-ресурса.
+            BuiltInComponent.PART_OF_SPEECH -> stringResource(
+                id = me.apomazkin.core_resources.R.string.builtin_component_part_of_speech,
+            )
         }
         is ComponentTypeRef.UserDefined -> ref.name
     }

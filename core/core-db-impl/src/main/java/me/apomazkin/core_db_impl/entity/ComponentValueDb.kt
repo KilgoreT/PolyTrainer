@@ -35,10 +35,18 @@ import java.util.Date
             childColumns = ["component_type_id"],
             onDelete = ForeignKey.CASCADE,
         ),
+        // IS486: выбранная опция CHOICE-значения (spec §10).
+        ForeignKey(
+            entity = ComponentOptionDb::class,
+            parentColumns = ["id"],
+            childColumns = ["option_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index("component_type_id"),
         Index("lexeme_id"),
+        Index("option_id"),
     ],
 )
 data class ComponentValueDb(
@@ -47,6 +55,9 @@ data class ComponentValueDb(
     @ColumnInfo(name = "lexeme_id") val lexemeId: Long,
     @ColumnInfo(name = "component_type_id") val componentTypeId: Long,
     @ColumnInfo(name = "value") val value: String,
+    // IS486: выбранная опция CHOICE-значения; для остальных шаблонов NULL.
+    // Строка values — факт «компонент заполнен»: у CHOICE payload здесь, JSON — пустой envelope.
+    @ColumnInfo(name = "option_id") val optionId: Long? = null,
     @ColumnInfo(name = "created_at") val createdAt: Date,
     @ColumnInfo(name = "updated_at") val updatedAt: Date,
     @ColumnInfo(name = "removed_at") val removedAt: Date? = null,

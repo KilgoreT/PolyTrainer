@@ -1,10 +1,12 @@
 package me.apomazkin.polytrainer.mapper
 
+import me.apomazkin.core_db_api.entity.ComponentOptionApiEntity
 import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
 import me.apomazkin.core_db_api.entity.ComponentValueApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
 import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.ComponentOption
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentValue
@@ -33,8 +35,21 @@ fun ComponentTypeApiEntity.toDomain(): ComponentType = ComponentType(
     template = template,
     position = position,
     isMultiple = isMultiple,
+    core = core,               // IS486
+    enabled = enabled,         // IS486
+    dependsOn = dependsOn,     // IS486
     createdAt = createdAt,
     updatedAt = updatedAt,
+    removedAt = removedAt,
+)
+
+/** IS486: API → Domain для опции CHOICE-компонента. */
+fun ComponentOptionApiEntity.toDomain(): ComponentOption = ComponentOption(
+    id = id,
+    componentTypeId = ComponentTypeId(componentTypeId),
+    systemKey = systemKey,
+    label = label,
+    position = position,
     removedAt = removedAt,
 )
 

@@ -43,8 +43,8 @@ class AvailableComponentTypesFlowHandler @Inject constructor(
         // (иначе эмиссия до первого dispatch теряется — §9.4 resubscribe).
         job = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
-                useCase.flowAvailableComponentTypes(load.dictionaryId).collect { types ->
-                    send(Msg.ComponentTypesLoaded(types))
+                useCase.flowAvailableComponentTypes(load.dictionaryId).collect { available ->
+                    send(Msg.ComponentTypesLoaded(available))
                 }
             } catch (c: CancellationException) {
                 throw c

@@ -5,8 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
-import me.apomazkin.components_manager.ComponentsManagerScreen
-import me.apomazkin.components_manager.ComponentsManagerViewModel
 import me.apomazkin.dictionaryappbar.DictionaryAppBar
 import me.apomazkin.dictionaryappbar.DictionaryAppBarViewModel
 import me.apomazkin.dictionarytab.deps.DictionaryTabUiDeps
@@ -19,7 +17,6 @@ import me.apomazkin.per_dictionary_components.PerDictionaryComponentsViewModel
 import me.apomazkin.polytrainer.LogTags
 import me.apomazkin.polytrainer.env.EnvParams
 import me.apomazkin.polytrainer.navigator.ChatNavigatorImpl
-import me.apomazkin.polytrainer.navigator.ComponentsManagerNavigatorImpl
 import me.apomazkin.polytrainer.navigator.DictionaryAppBarNavigatorImpl
 import me.apomazkin.polytrainer.navigator.PerDictionaryComponentsNavigatorImpl
 import me.apomazkin.polytrainer.navigator.QuizTabNavigatorImpl
@@ -51,7 +48,6 @@ class CompositionRootImpl(
     private val quizTabViewModelFactory: QuizTabViewModel.Factory,
     private val statisticViewModelFactory: StatisticViewModel.Factory,
     private val settingsTabViewModelFactory: SettingsTabViewModel.Factory,
-    private val componentsManagerViewModelFactory: ComponentsManagerViewModel.Factory,
     private val perDictionaryComponentsViewModelFactory: PerDictionaryComponentsViewModel.Factory,
     private val envParams: EnvParams,
     private val logger: LexemeLogger,
@@ -169,13 +165,11 @@ class CompositionRootImpl(
         onLangManagementClick: () -> Unit,
         onAboutAppClick: () -> Unit,
         onPrivacyPolicyClick: () -> Unit,
-        onComponentsManagerClick: () -> Unit,
     ) {
         val navigator = remember(
             onLangManagementClick,
             onAboutAppClick,
             onPrivacyPolicyClick,
-            onComponentsManagerClick,
         ) {
             SettingsNavigatorImpl(
                 onOpenLangManagement = onLangManagementClick,
@@ -184,24 +178,10 @@ class CompositionRootImpl(
                     logger.log(tag = me.apomazkin.settingstab.LogTags.SETTINGS, message = "navigate: $pageKey")
                     onPrivacyPolicyClick()
                 },
-                onOpenComponentsManager = onComponentsManagerClick,
             )
         }
         SettingsTabScreen(
             factory = settingsTabViewModelFactory,
-            navigator = navigator,
-        )
-    }
-
-    @Composable
-    override fun ComponentsManagerScreenDep(
-        onBackPress: () -> Unit,
-    ) {
-        val navigator = remember(onBackPress) {
-            ComponentsManagerNavigatorImpl(onBack = onBackPress)
-        }
-        ComponentsManagerScreen(
-            factory = componentsManagerViewModelFactory,
             navigator = navigator,
         )
     }

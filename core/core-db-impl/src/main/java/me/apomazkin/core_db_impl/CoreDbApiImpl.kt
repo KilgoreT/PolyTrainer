@@ -17,15 +17,18 @@ import me.apomazkin.core_db_api.entity.CreateComponentOutcome
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.DictionaryTypesSnapshot
 import me.apomazkin.core_db_api.entity.EditComponentOutcome
+import me.apomazkin.core_db_api.entity.ComponentOptionApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
+import me.apomazkin.core_db_api.entity.OptionCrudOutcome
 import me.apomazkin.core_db_api.entity.RenameComponentOutcome
+import me.apomazkin.core_db_api.entity.SetEnabledComponentOutcome
 import me.apomazkin.core_db_api.entity.SoftDeleteComponentOutcome
 import me.apomazkin.core_db_api.entity.TermApiEntity
-import me.apomazkin.core_db_api.entity.TranslationApiEntity
 import me.apomazkin.core_db_api.entity.UserDefinedTypesUsageSnapshot
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
+import me.apomazkin.core_db_impl.entity.ComponentOptionDb
 import me.apomazkin.core_db_impl.entity.ComponentTypeDb
 import me.apomazkin.core_db_impl.entity.ComponentValueDb
 import me.apomazkin.core_db_impl.entity.DictionaryDb
@@ -38,14 +41,30 @@ import me.apomazkin.core_db_impl.mapper.toComponentTypeRefList
 import me.apomazkin.core_db_impl.mapper.toJson
 import me.apomazkin.core_db_impl.room.Database
 import me.apomazkin.core_db_impl.room.WordDao
+import me.apomazkin.core_db_impl.room.dao.ComponentOptionDao
 import me.apomazkin.core_db_impl.room.dao.ComponentTypeDao
 import me.apomazkin.core_db_impl.room.dao.ComponentValueDao
 import me.apomazkin.core_db_impl.room.dao.QuizConfigDao
+import me.apomazkin.lexeme.AcyclicityCheck
 import me.apomazkin.lexeme.AffectedQuizConfig
 import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.CascadeEvent
+import me.apomazkin.lexeme.CascadeValue
+import me.apomazkin.lexeme.ChoiceValues
+import me.apomazkin.lexeme.ComponentGraph
+import me.apomazkin.lexeme.ComponentOption
 import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.ComponentType
+import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.CoreLossCheck
 import me.apomazkin.lexeme.DeletionImpact
+import me.apomazkin.lexeme.DependencyTarget
+import me.apomazkin.lexeme.checkAcyclic
+import me.apomazkin.lexeme.checkCoreLoss
+import me.apomazkin.lexeme.isDegraded
+import me.apomazkin.lexeme.planCascade
+import me.apomazkin.lexeme.PartOfSpeechOption
 import me.apomazkin.lexeme.Primitive
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.lexeme.TemplateValues
@@ -101,18 +120,81 @@ class CoreDbApiImpl @Inject constructor(
     }
 
     class DictionaryApiImpl @Inject constructor(
+        private val database: Database,
         private val wordDao: WordDao,
+        private val componentTypeDao: ComponentTypeDao,
+        private val componentOptionDao: ComponentOptionDao,
     ) : CoreDbApi.DictionaryApi {
 
+        /**
+         * IS486: словарь рождается вместе со своими builtin-компонентами (spec §9.5) —
+         * атомарно, в одной транзакции: перевод (TEXT, ядро) + часть речи (CHOICE,
+         * не-ядро) с опциями-ключами из домена ([PartOfSpeechOption]).
+         * Идемпотентность — проверка «(ключ, словарь)» перед вставкой
+         * (UNIQUE(system_key) дропнут, spec §11).
+         */
         override suspend fun addDictionary(name: String, numericCode: Int?): Long {
-            val currentDate = Date(System.currentTimeMillis())
-            return wordDao.addDictionary(
-                DictionaryDb(
-                    numericCode = numericCode,
-                    name = name,
-                    addDate = currentDate,
+            val now = Date(System.currentTimeMillis())
+            return database.useWriterConnection { transactor ->
+                transactor.immediateTransaction {
+                    val dictId = wordDao.addDictionary(
+                        DictionaryDb(
+                            numericCode = numericCode,
+                            name = name,
+                            addDate = now,
+                        )
+                    )
+                    seedBuiltInsForDictionary(dictId, now)
+                    dictId
+                }
+            }
+        }
+
+        private suspend fun seedBuiltInsForDictionary(dictId: Long, now: Date) {
+            if (componentTypeDao.getBySystemKeyForDictionary(BuiltInComponent.TRANSLATION.key, dictId) == null) {
+                componentTypeDao.insert(
+                    ComponentTypeDb(
+                        systemKey = BuiltInComponent.TRANSLATION.key,
+                        dictionaryId = dictId,
+                        name = null,
+                        templateKey = ComponentTemplate.TEXT.key,
+                        position = 0,
+                        isMultiple = false,
+                        core = true,
+                        enabled = true,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
                 )
-            )
+            }
+            if (componentTypeDao.getBySystemKeyForDictionary(BuiltInComponent.PART_OF_SPEECH.key, dictId) == null) {
+                val posTypeId = componentTypeDao.insert(
+                    ComponentTypeDb(
+                        systemKey = BuiltInComponent.PART_OF_SPEECH.key,
+                        dictionaryId = dictId,
+                        name = null,
+                        templateKey = ComponentTemplate.CHOICE.key,
+                        position = 1,
+                        isMultiple = false,
+                        core = false,
+                        enabled = true,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+                )
+                PartOfSpeechOption.entries.forEach { option ->
+                    componentOptionDao.insert(
+                        ComponentOptionDb(
+                            componentTypeId = posTypeId,
+                            systemKey = option.key,
+                            label = null,
+                            position = option.ordinal,
+                            createdAt = now,
+                            updatedAt = now,
+                        )
+                    )
+                }
+            }
         }
 
         override suspend fun getDictionary(numericCode: Int): DictionaryApiEntity? {
@@ -227,6 +309,7 @@ class CoreDbApiImpl @Inject constructor(
         private val wordDao: WordDao,
         private val componentTypeDao: ComponentTypeDao,
         private val componentValueDao: ComponentValueDao,
+        private val componentOptionDao: ComponentOptionDao,
         private val quizConfigDao: QuizConfigDao,
         private val logger: LexemeLogger,
     ) : CoreDbApi.LexemeApi {
@@ -258,8 +341,9 @@ class CoreDbApiImpl @Inject constructor(
             data: TemplateValues,
         ): Long = database.useWriterConnection { transactor ->
             transactor.immediateTransaction {
-                val typeDb = componentTypeDao.getBySystemKey(systemKey.key)
-                    ?: error("Built-in component type not found for systemKey=${systemKey.key}")
+                // IS486: builtin пословарные — lookup в рамках словаря лексемы.
+                val typeDb = componentTypeDao.getBySystemKeyForDictionary(systemKey.key, dictionaryId)
+                    ?: error("Built-in component type not found for systemKey=${systemKey.key} in dictionary=$dictionaryId")
                 // F170 guard: built-in активны по contract'у getBySystemKey (removed_at IS NULL),
                 // повтор check не требуется. Но для symmetry / defensive coding оставим.
                 check(typeDb.removedAt == null) {
@@ -329,8 +413,9 @@ class CoreDbApiImpl @Inject constructor(
                     val typesInDict = componentTypeDao.getTypesForDictionary(dictionaryId)
                     val resolvedPairs = components.map { (ref, data) ->
                         val typeDb = when (ref) {
+                            // IS486: builtin пословарные — резолв из типов словаря.
                             is ComponentTypeRef.BuiltIn ->
-                                componentTypeDao.getBySystemKey(ref.key.key)
+                                typesInDict.firstOrNull { it.systemKey == ref.key.key }
 
                             is ComponentTypeRef.UserDefined ->
                                 typesInDict.firstOrNull { it.systemKey == null && it.name == ref.name }
@@ -392,6 +477,8 @@ class CoreDbApiImpl @Inject constructor(
                         lexemeId = lexemeId,
                         componentTypeId = componentTypeId,
                         value = data.toJson(),
+                        // IS486: payload CHOICE — колонка option_id (JSON — пустой envelope).
+                        optionId = (data as? ChoiceValues)?.optionId,
                         createdAt = now,
                         updatedAt = now,
                     ),
@@ -413,22 +500,61 @@ class CoreDbApiImpl @Inject constructor(
                     "Cannot update ComponentValue for soft-deleted type ${existing.componentTypeId}"
                 }
                 val now = Date(System.currentTimeMillis())
+                val newOptionId = (data as? ChoiceValues)?.optionId
+                // IS486 value-триггер (spec §9.2): смена значения = деактивация старого
+                // состояния → каскад поддерева (для TEXT план пуст — no-op; для CHOICE
+                // умирают зависимые от старой опции). Само значение живёт — исключаем из плана.
+                if (existing.optionId != newOptionId) {
+                    cascadeResetValues(
+                        dictionaryId = type.dictionaryId,
+                        event = CascadeEvent.ValueRemoved(existing.id),
+                        now = now,
+                        excludeIds = setOf(existing.id),
+                    )
+                }
                 componentValueDao.update(
-                    existing.copy(value = data.toJson(), updatedAt = now)
+                    existing.copy(value = data.toJson(), optionId = newOptionId, updatedAt = now)
                 )
                 1
             }
         }
 
-        override suspend fun deleteComponentValue(componentValueId: Long): Int {
-            val existing = componentValueDao.getById(componentValueId) ?: return 0
-            val lexemeId = existing.lexemeId
-            componentValueDao.delete(componentValueId)
-            return componentValueDao.countForLexeme(lexemeId)
-        }
+        override suspend fun deleteComponentValue(componentValueId: Long): Int =
+            database.useWriterConnection { transactor ->
+                transactor.immediateTransaction {
+                    val existing = componentValueDao.getById(componentValueId)
+                        ?: return@immediateTransaction 0
+                    val lexemeId = existing.lexemeId
+                    val type = componentTypeDao.getById(existing.componentTypeId)
+                    // IS486 value-триггер (spec §9.2): смерть значения → каскад поддерева
+                    // (мульти-цель гаснет последним значением — планировщик это учитывает).
+                    // Каскадные потомки — soft delete; само значение — существующий путь.
+                    cascadeResetValues(
+                        dictionaryId = type?.dictionaryId,
+                        event = CascadeEvent.ValueRemoved(existing.id),
+                        now = Date(System.currentTimeMillis()),
+                        excludeIds = setOf(existing.id),
+                    )
+                    componentValueDao.delete(componentValueId)
+                    componentValueDao.countForLexeme(lexemeId)
+                }
+            }
 
         override suspend fun getComponentTypes(dictionaryId: Long): List<ComponentTypeApiEntity> {
             return componentTypeDao.getTypesForDictionary(dictionaryId).mapNotNull { it.toApiEntity() }
+        }
+
+        override suspend fun getComponentOptions(componentTypeId: Long): List<ComponentOptionApiEntity> {
+            return componentOptionDao.getForType(componentTypeId).map { row ->
+                ComponentOptionApiEntity(
+                    id = row.id,
+                    componentTypeId = row.componentTypeId,
+                    systemKey = row.systemKey,
+                    label = row.label,
+                    position = row.position,
+                    removedAt = row.removedAt,
+                )
+            }
         }
 
         override suspend fun getQuizConfig(
@@ -463,15 +589,26 @@ class CoreDbApiImpl @Inject constructor(
         override fun flowUserDefinedTypesForDictionary(
             dictionaryId: Long,
         ): Flow<DictionaryTypesSnapshot> =
-            componentTypeDao.flowUserDefinedForDictionary(dictionaryId).map { types ->
+            // IS486 фаза 3: builtin включены (рубильник в конструкторе, spec §4).
+            // combine трёх flow — снапшот пере-эмитится и при CRUD опций, и при
+            // изменении значений (девайс-баг 2026-07-21: наблюдение только
+            // component_types оставляло UI со stale-опциями после их удаления).
+            combine(
+                componentTypeDao.flowTypesForDictionary(dictionaryId),
+                componentOptionDao.flowForDictionary(dictionaryId),
+                componentValueDao.flowAggregatedValueCountPerTypeForDict(dictionaryId),
+            ) { types, options, counts ->
                 val typesApi = types.mapNotNull { it.toApiEntity() }
-                val counts = componentValueDao.aggregatedValueCountPerTypeForDict(dictionaryId)
                 val dictName = wordDao.getDictionaryById(dictionaryId)?.name.orEmpty()
+                val optionsByType = options
+                    .groupBy { it.componentTypeId }
+                    .mapValues { (_, rows) -> rows.map { it.toOptionApi() } }
                 DictionaryTypesSnapshot(
                     dictionaryId = dictionaryId,
                     dictionaryName = dictName,
                     types = typesApi,
                     valueCountByType = counts.associate { it.typeId to it.count },
+                    optionsByType = optionsByType,
                 )
             }
 
@@ -487,6 +624,10 @@ class CoreDbApiImpl @Inject constructor(
             template: ComponentTemplate,
             isMultiple: Boolean,
             scope: Scope,
+            core: Boolean,
+            dependsOnTypeId: Long?,
+            dependsOnOptionId: Long?,
+            optionLabels: List<String>,
         ): CreateComponentOutcome {
             // 1. two-prong SELECT (per aspect userdefined_identity_invariant)
             val sameScope = when (scope) {
@@ -506,6 +647,7 @@ class CoreDbApiImpl @Inject constructor(
             // 2. INSERT N rows (atomic в одной транзакции)
             val now = Date(System.currentTimeMillis())
             val newRows: List<ComponentTypeDb> = when (scope) {
+                // IS486: цель/ядро приходят параметрами (дефолты = legacy-семантика spec §11).
                 Scope.Global -> listOf(
                     ComponentTypeDb(
                         systemKey = null,
@@ -514,6 +656,10 @@ class CoreDbApiImpl @Inject constructor(
                         templateKey = template.key,
                         position = 0,
                         isMultiple = isMultiple,
+                        core = core,
+                        enabled = true,
+                        dependsOnTypeId = dependsOnTypeId,
+                        dependsOnOptionId = dependsOnOptionId,
                         createdAt = now,
                         updatedAt = now,
                     )
@@ -527,6 +673,10 @@ class CoreDbApiImpl @Inject constructor(
                         templateKey = template.key,
                         position = 0,
                         isMultiple = isMultiple,
+                        core = core,
+                        enabled = true,
+                        dependsOnTypeId = dependsOnTypeId,
+                        dependsOnOptionId = dependsOnOptionId,
                         createdAt = now,
                         updatedAt = now,
                     )
@@ -536,6 +686,21 @@ class CoreDbApiImpl @Inject constructor(
                 transactor.immediateTransaction {
                     newRows.map { row ->
                         val id = componentTypeDao.insert(row)
+                        // IS486: стартовые варианты CHOICE — в той же транзакции.
+                        if (template == ComponentTemplate.CHOICE) {
+                            optionLabels.forEachIndexed { index, label ->
+                                componentOptionDao.insert(
+                                    ComponentOptionDb(
+                                        componentTypeId = id,
+                                        systemKey = null,
+                                        label = label,
+                                        position = index,
+                                        createdAt = now,
+                                        updatedAt = now,
+                                    )
+                                )
+                            }
+                        }
                         row.copy(id = id)
                     }
                 }
@@ -589,6 +754,9 @@ class CoreDbApiImpl @Inject constructor(
             name: String,
             template: ComponentTemplate,
             isMultiple: Boolean,
+            core: Boolean,
+            dependsOnTypeId: Long?,
+            dependsOnOptionId: Long?,
         ): EditComponentOutcome {
             val existing = componentTypeDao.getById(typeId)
                 ?: return EditComponentOutcome.BuiltInProtected
@@ -603,10 +771,12 @@ class CoreDbApiImpl @Inject constructor(
             // Defense-in-depth (F017): UseCase обычно перехватывает раньше.
             if (oldTemplate != template) return EditComponentOutcome.TemplateImmutable
 
+            // IS486 (spec §7.5): CHOICE всегда single.
+            if (template == ComponentTemplate.CHOICE && isMultiple) {
+                return EditComponentOutcome.MultiForbiddenForChoice
+            }
+
             // Cardinality downgrade SELECT (F018) — только при true → false.
-            // Real per-lexeme SELECT (data sub-flow #2): возвращает lexeme_id для
-            // тех, у кого активных values >1. Empty list → downgrade legitimate
-            // (один lexeme с одним value не блокируется).
             if (existing.isMultiple && !isMultiple) {
                 val impacted = componentValueDao.findLexemesWithMultipleValuesForType(typeId)
                 if (impacted.isNotEmpty()) {
@@ -633,13 +803,49 @@ class CoreDbApiImpl @Inject constructor(
                 if (crossScope) return EditComponentOutcome.CrossScopeCollision
             }
 
+            // IS486 фаза 3: перепривязка цели (spec §9.4).
+            val targetChanged = existing.core != core ||
+                existing.dependsOnTypeId != dependsOnTypeId ||
+                existing.dependsOnOptionId != dependsOnOptionId
+            val newTarget = when {
+                dependsOnTypeId != null -> DependencyTarget.Component(ComponentTypeId(dependsOnTypeId))
+                dependsOnOptionId != null -> DependencyTarget.Option(dependsOnOptionId)
+                else -> DependencyTarget.Lexeme
+            }
+            if (targetChanged && existing.dictionaryId != null) {
+                val graph = loadGraph(existing.dictionaryId)
+                // Потеря ядра (ядро → не-лексема/не-ядро): запрет для последнего (spec §7.8).
+                val losesCore = existing.core && !core
+                if (losesCore && graph.checkCoreLoss(ComponentTypeId(typeId)) == CoreLossCheck.LastEnabledCore) {
+                    return EditComponentOutcome.LastEnabledCore
+                }
+                // Ацикличность (spec §8) — только для не-лексемных целей.
+                if (newTarget != DependencyTarget.Lexeme &&
+                    graph.checkAcyclic(ComponentTypeId(typeId), newTarget) == AcyclicityCheck.CycleDetected
+                ) {
+                    return EditComponentOutcome.CycleDetected
+                }
+            }
+
             val now = Date(System.currentTimeMillis())
             database.useWriterConnection { transactor ->
                 transactor.immediateTransaction {
+                    if (targetChanged && existing.dictionaryId != null) {
+                        // IS486 умный сброс (решение 2026-07-21, spec §9.4): гаснут только
+                        // значения лексем, где НОВОЕ условие не выполнено (+ поддеревья) —
+                        // fixpoint по графу с подменённой целью, начальных жертв нет.
+                        val plan = rebindCascadePlan(existing.dictionaryId, typeId, newTarget, core)
+                        if (plan.isNotEmpty()) {
+                            componentValueDao.softDeleteByIds(plan.toList(), now)
+                        }
+                    }
                     componentTypeDao.update(
                         existing.copy(
                             name = name,
                             isMultiple = isMultiple,
+                            core = core,
+                            dependsOnTypeId = dependsOnTypeId,
+                            dependsOnOptionId = dependsOnOptionId,
                             updatedAt = now,
                         )
                     )
@@ -653,6 +859,169 @@ class CoreDbApiImpl @Inject constructor(
                 ?: return EditComponentOutcome.BuiltInProtected
             return EditComponentOutcome.Success(updatedApi)
         }
+
+        /** IS486: граф словаря (включая removed — ссылки не зануляются). */
+        private suspend fun loadGraph(dictionaryId: Long): ComponentGraph {
+            val typeRows = componentTypeDao.getAllForDictionaryWithRemoved(dictionaryId)
+            val optionRows = componentOptionDao.getAllForTypes(typeRows.map { it.id })
+            return ComponentGraph(
+                types = typeRows.mapNotNull { it.toDomainType() },
+                options = optionRows.map { row ->
+                    ComponentOption(
+                        id = row.id,
+                        componentTypeId = ComponentTypeId(row.componentTypeId),
+                        systemKey = row.systemKey,
+                        label = row.label,
+                        position = row.position,
+                        removedAt = row.removedAt,
+                    )
+                },
+            )
+        }
+
+        // ===== IS486 фаза 3: рубильник + CRUD опций =====
+
+        override suspend fun setComponentEnabled(
+            typeId: Long,
+            enabled: Boolean,
+        ): SetEnabledComponentOutcome {
+            val existing = componentTypeDao.getById(typeId)
+                ?: return SetEnabledComponentOutcome.Removed
+            if (existing.removedAt != null) return SetEnabledComponentOutcome.Removed
+            if (existing.enabled == enabled) {
+                val api = existing.toApiEntity() ?: return SetEnabledComponentOutcome.Removed
+                return SetEnabledComponentOutcome.Success(api)
+            }
+            // Выключение последнего включённого ядра — отказ (spec §7.8).
+            if (!enabled && existing.core && existing.dictionaryId != null) {
+                val graph = loadGraph(existing.dictionaryId)
+                if (graph.checkCoreLoss(ComponentTypeId(typeId)) == CoreLossCheck.LastEnabledCore) {
+                    return SetEnabledComponentOutcome.LastEnabledCore
+                }
+            }
+            val now = Date(System.currentTimeMillis())
+            componentTypeDao.update(existing.copy(enabled = enabled, updatedAt = now))
+            val api = componentTypeDao.getById(typeId)?.toApiEntity()
+                ?: return SetEnabledComponentOutcome.Removed
+            return SetEnabledComponentOutcome.Success(api)
+        }
+
+        override suspend fun addComponentOption(
+            componentTypeId: Long,
+            label: String,
+        ): OptionCrudOutcome {
+            val type = componentTypeDao.getById(componentTypeId) ?: return OptionCrudOutcome.Removed
+            if (type.removedAt != null) return OptionCrudOutcome.Removed
+            // Решение §21.2: опции builtin нередактируемы (defense-in-depth).
+            if (type.systemKey != null) return OptionCrudOutcome.BuiltInProtected
+            val now = Date(System.currentTimeMillis())
+            val position = componentOptionDao.nextPosition(componentTypeId)
+            val id = componentOptionDao.insert(
+                ComponentOptionDb(
+                    componentTypeId = componentTypeId,
+                    systemKey = null,
+                    label = label,
+                    position = position,
+                    createdAt = now,
+                    updatedAt = now,
+                )
+            )
+            val row = componentOptionDao.getById(id) ?: return OptionCrudOutcome.Removed
+            return OptionCrudOutcome.Success(row.toOptionApi())
+        }
+
+        override suspend fun renameComponentOption(
+            optionId: Long,
+            label: String,
+        ): OptionCrudOutcome {
+            val existing = componentOptionDao.getById(optionId) ?: return OptionCrudOutcome.Removed
+            if (existing.removedAt != null) return OptionCrudOutcome.Removed
+            // Решение §21.2: опции builtin нередактируемы (defense-in-depth).
+            if (componentTypeDao.getById(existing.componentTypeId)?.systemKey != null) {
+                return OptionCrudOutcome.BuiltInProtected
+            }
+            componentOptionDao.updateLabel(optionId, label, Date(System.currentTimeMillis()))
+            val row = componentOptionDao.getById(optionId) ?: return OptionCrudOutcome.Removed
+            return OptionCrudOutcome.Success(row.toOptionApi())
+        }
+
+        override suspend fun deleteComponentOption(optionId: Long): OptionCrudOutcome {
+            val existing = componentOptionDao.getById(optionId) ?: return OptionCrudOutcome.Removed
+            if (existing.removedAt != null) return OptionCrudOutcome.Removed
+            val owner = componentTypeDao.getById(existing.componentTypeId)
+            // Решение §21.2: опции builtin нередактируемы (defense-in-depth).
+            if (owner?.systemKey != null) return OptionCrudOutcome.BuiltInProtected
+            val dictionaryId = owner?.dictionaryId
+            // Полный impact как в preview (ревью 2026-07-21): деградирующие потомки +
+            // разбивка свои/потомки — до транзакции, по живому состоянию.
+            val degraded = if (dictionaryId == null) emptyList() else {
+                loadGraph(dictionaryId).types.filter { t ->
+                    t.removedAt == null && (t.dependsOn as? DependencyTarget.Option)?.optionId == optionId
+                }.map { it.id }
+            }
+            val directChoiceCount = componentValueDao.getActiveByTypeIds(listOf(existing.componentTypeId))
+                .count { it.optionId == optionId }
+            val now = Date(System.currentTimeMillis())
+            var resetCount = 0
+            database.useWriterConnection { transactor ->
+                transactor.immediateTransaction {
+                    // Комбинированный каскад К4+К5 (spec §9.3): значения-выборы + поддеревья
+                    // зависимых; зависимые компоненты становятся degraded вычисляемо.
+                    resetCount = cascadeResetValuesCounting(
+                        dictionaryId = dictionaryId,
+                        event = CascadeEvent.OptionRemoved(optionId),
+                        now = now,
+                    )
+                    componentOptionDao.softDelete(optionId, now)
+                }
+            }
+            return OptionCrudOutcome.Deleted(
+                DeletionImpact(
+                    valueCount = directChoiceCount,
+                    dictionariesWithValues = listOfNotNull(dictionaryId),
+                    affectedQuizConfigs = emptyList(),
+                    affectedPrefs = emptyList(),
+                    degradedComponents = degraded,
+                    descendantValueCount = (resetCount - directChoiceCount).coerceAtLeast(0),
+                )
+            )
+        }
+
+        override suspend fun previewOptionDeletionImpact(optionId: Long): DeletionImpact? {
+            val option = componentOptionDao.getById(optionId) ?: return null
+            if (option.removedAt != null) return null
+            val owner = componentTypeDao.getById(option.componentTypeId) ?: return null
+            val dictionaryId = owner.dictionaryId ?: return null
+
+            // Dry-run комбинированного каскада (spec §9.3): значения-выборы + поддеревья.
+            val plan = cascadePlan(dictionaryId, CascadeEvent.OptionRemoved(optionId))
+            // Деградирующие компоненты: живые типы, зависящие от этой опции.
+            val graph = loadGraph(dictionaryId)
+            val degraded = graph.types.filter { t ->
+                t.removedAt == null && (t.dependsOn as? DependencyTarget.Option)?.optionId == optionId
+            }.map { it.id }
+            // Прямые выборы опции — для разбивки valueCount vs descendantValueCount.
+            val directChoiceCount = componentValueDao.getActiveByTypeIds(listOf(option.componentTypeId))
+                .count { it.optionId == optionId }
+
+            return DeletionImpact(
+                valueCount = directChoiceCount,
+                dictionariesWithValues = listOf(dictionaryId),
+                affectedQuizConfigs = emptyList(),
+                affectedPrefs = emptyList(),
+                degradedComponents = degraded,
+                descendantValueCount = (plan.size - directChoiceCount).coerceAtLeast(0),
+            )
+        }
+
+        private fun ComponentOptionDb.toOptionApi() = ComponentOptionApiEntity(
+            id = id,
+            componentTypeId = componentTypeId,
+            systemKey = systemKey,
+            label = label,
+            position = position,
+            removedAt = removedAt,
+        )
 
         /**
          * Cascade rename — все configs где `user:<oldName>` появляется получают
@@ -698,11 +1067,33 @@ class CoreDbApiImpl @Inject constructor(
                 } else null
             }
 
+            // IS486 (spec §5): деградирующие потомки + счётчик каскада вниз (dry-run плана).
+            var degraded: List<ComponentTypeId> = emptyList()
+            var descendantCount = 0
+            if (type.dictionaryId != null) {
+                val graph = loadGraph(type.dictionaryId)
+                val optionIds = graph.options
+                    .filter { it.componentTypeId == ComponentTypeId(typeId) }
+                    .map { it.id }
+                    .toSet()
+                degraded = graph.types.filter { t ->
+                    t.removedAt == null && when (val target = t.dependsOn) {
+                        is DependencyTarget.Component -> target.typeId == ComponentTypeId(typeId)
+                        is DependencyTarget.Option -> target.optionId in optionIds
+                        DependencyTarget.Lexeme -> false
+                    }
+                }.map { it.id }
+                val plan = cascadePlan(type.dictionaryId, CascadeEvent.ComponentRemoved(ComponentTypeId(typeId)))
+                descendantCount = (plan.size - valueCount).coerceAtLeast(0)
+            }
+
             return DeletionImpact(
                 valueCount = valueCount,
                 dictionariesWithValues = dictIds,
                 affectedQuizConfigs = affectedConfigs,
                 affectedPrefs = affectedConfigs.map { it.dictionaryId }.distinct(),
+                degradedComponents = degraded,
+                descendantValueCount = descendantCount,
             )
         }
 
@@ -714,6 +1105,14 @@ class CoreDbApiImpl @Inject constructor(
             if (type.removedAt != null) return SoftDeleteComponentOutcome.Removed
             if (type.systemKey != null) return SoftDeleteComponentOutcome.BuiltInProtected
 
+            // IS486 (spec §7.8): удаление последнего включённого ядра словаря — отказ.
+            if (type.core && type.enabled && type.dictionaryId != null) {
+                val graph = loadGraph(type.dictionaryId)
+                if (graph.checkCoreLoss(ComponentTypeId(typeId)) == CoreLossCheck.LastEnabledCore) {
+                    return SoftDeleteComponentOutcome.LastEnabledCore
+                }
+            }
+
             val impact = previewDeletionImpact(typeId)
                 ?: return SoftDeleteComponentOutcome.BuiltInProtected
 
@@ -722,7 +1121,14 @@ class CoreDbApiImpl @Inject constructor(
             database.useWriterConnection { transactor ->
                 transactor.immediateTransaction {
                     componentTypeDao.softDelete(typeId, now)
-                    componentValueDao.softDeleteByTypeId(typeId, now)
+                    // IS486 каскад-модуль: план сбросов по всему поддереву зависимых
+                    // (spec §9.4) — вместо точечного softDeleteByTypeId.
+                    // Дети-компоненты НЕ удаляются: degraded вычисляется по ссылке.
+                    cascadeResetValues(
+                        dictionaryId = type.dictionaryId,
+                        event = CascadeEvent.ComponentRemoved(ComponentTypeId(typeId)),
+                        now = now,
+                    )
                     if (oldName != null) {
                         quizConfigDao.getAllConfigs().forEach { config ->
                             val refs = config.componentRefs.toComponentTypeRefList()
@@ -745,60 +1151,145 @@ class CoreDbApiImpl @Inject constructor(
             return SoftDeleteComponentOutcome.Success(impact)
         }
 
-        // ===== @Deprecated shim — A3 =====
+        // IS486: deprecated-шимы addLexemeWithTranslation / updateLexemeTranslation
+        // выпилены (phase1_plan § Зона C) — внешних вызовов не было, а глобального
+        // getBySystemKey с пословарными builtin больше не существует.
 
-        @Deprecated("Use addLexemeWithBuiltInComponent")
-        override suspend fun addLexemeWithTranslation(
-            wordId: Long,
-            dictionaryId: Long,
-            translation: TranslationApiEntity,
-        ): Long = addLexemeWithBuiltInComponent(
-            wordId = wordId,
-            dictionaryId = dictionaryId,
-            systemKey = BuiltInComponent.TRANSLATION,
-            data = TextValues(Primitive.Text(translation.value)),
-        )
+        /**
+         * IS486 каскад-исполнитель (фаза 1): собирает граф словаря (включая
+         * removed — ссылки не зануляются), строит план чистым планировщиком
+         * ([planCascade]) и исполняет одним UPDATE. Вызывается СТРОГО внутри
+         * открытой транзакции. Value-триггеры (смена/удаление значения) — фаза 2.
+         */
+        private suspend fun cascadeResetValues(
+            dictionaryId: Long?,
+            event: CascadeEvent,
+            now: Date,
+            excludeIds: Set<Long> = emptySet(),
+        ) {
+            cascadeResetValuesCounting(dictionaryId, event, now, excludeIds)
+        }
 
-        @Deprecated("Use updateComponentValue via generic path")
-        override suspend fun updateLexemeTranslation(
-            id: Long,
-            translation: TranslationApiEntity?,
-        ): Long? {
-            val builtIn = componentTypeDao.getBySystemKey(BuiltInComponent.TRANSLATION.key)
-                ?: return null
-            val existing = componentValueDao.getForLexemeAndType(id, builtIn.id)
-            val now = Date(System.currentTimeMillis())
-            return when {
-                translation == null -> {
-                    if (existing != null) {
-                        componentValueDao.delete(existing.id)
-                    }
-                    id
-                }
-
-                existing == null -> {
-                    componentValueDao.insert(
-                        ComponentValueDb(
-                            lexemeId = id,
-                            componentTypeId = builtIn.id,
-                            value = TextValues(Primitive.Text(translation.value)).toJson(),
-                            createdAt = now,
-                            updatedAt = now,
-                        )
-                    )
-                    id
-                }
-
-                else -> {
-                    componentValueDao.update(
-                        existing.copy(
-                            value = TextValues(Primitive.Text(translation.value)).toJson(),
-                            updatedAt = now,
-                        )
-                    )
-                    id
-                }
+        /** Как [cascadeResetValues], но возвращает число сброшенных значений (impact). */
+        private suspend fun cascadeResetValuesCounting(
+            dictionaryId: Long?,
+            event: CascadeEvent,
+            now: Date,
+            excludeIds: Set<Long> = emptySet(),
+        ): Int {
+            if (dictionaryId == null) {
+                // Глобальных кастомов в проде не существует (spec §11); defensive skip.
+                logger.e(
+                    tag = LogTags.DB,
+                    message = "cascadeResetValues: global component (dictionaryId=null) — cascade skipped",
+                )
+                return 0
             }
+            val plan = cascadePlan(dictionaryId, event) - excludeIds
+            if (plan.isNotEmpty()) {
+                componentValueDao.softDeleteByIds(plan.toList(), now)
+            }
+            return plan.size
+        }
+
+        /**
+         * IS486 умный сброс (решение 2026-07-21): план перепривязки — граф словаря
+         * с УЖЕ подменённой целью узла + fixpoint без начальных жертв
+         * ([CascadeEvent.TargetRebound]). Возвращает id значений к сбросу.
+         */
+        private suspend fun rebindCascadePlan(
+            dictionaryId: Long,
+            typeId: Long,
+            newTarget: DependencyTarget,
+            newCore: Boolean,
+        ): Set<Long> {
+            val graph = loadGraph(dictionaryId)
+            val rebound = ComponentGraph(
+                types = graph.types.map {
+                    if (it.id == ComponentTypeId(typeId)) it.copy(dependsOn = newTarget, core = newCore) else it
+                },
+                options = graph.options,
+            )
+            val typeRows = componentTypeDao.getAllForDictionaryWithRemoved(dictionaryId)
+            val values = componentValueDao.getActiveByTypeIds(typeRows.map { it.id })
+                .map { row ->
+                    CascadeValue(
+                        id = row.id,
+                        lexemeId = row.lexemeId,
+                        typeId = ComponentTypeId(row.componentTypeId),
+                        optionId = row.optionId,
+                    )
+                }
+            return rebound.planCascade(values, CascadeEvent.TargetRebound(ComponentTypeId(typeId)))
+        }
+
+        override suspend fun previewRebindImpact(
+            typeId: Long,
+            core: Boolean,
+            dependsOnTypeId: Long?,
+            dependsOnOptionId: Long?,
+        ): DeletionImpact? {
+            val type = componentTypeDao.getById(typeId) ?: return null
+            if (type.removedAt != null || type.systemKey != null) return null
+            val dictionaryId = type.dictionaryId ?: return null
+            val newTarget = when {
+                dependsOnTypeId != null -> DependencyTarget.Component(ComponentTypeId(dependsOnTypeId))
+                dependsOnOptionId != null -> DependencyTarget.Option(dependsOnOptionId)
+                else -> DependencyTarget.Lexeme
+            }
+            val plan = rebindCascadePlan(dictionaryId, typeId, newTarget, core)
+            val ownCount = if (plan.isEmpty()) 0 else {
+                componentValueDao.getActiveByTypeIds(listOf(typeId)).count { it.id in plan }
+            }
+            return DeletionImpact(
+                valueCount = ownCount,
+                dictionariesWithValues = if (plan.isEmpty()) emptyList() else listOf(dictionaryId),
+                affectedQuizConfigs = emptyList(),
+                affectedPrefs = emptyList(),
+                descendantValueCount = (plan.size - ownCount).coerceAtLeast(0),
+            )
+        }
+
+        /** IS486: план каскада (dry-run) — без исполнения; для impact-превью. */
+        private suspend fun cascadePlan(dictionaryId: Long, event: CascadeEvent): Set<Long> {
+            val typeRows = componentTypeDao.getAllForDictionaryWithRemoved(dictionaryId)
+            val graph = loadGraph(dictionaryId)
+            val values = componentValueDao.getActiveByTypeIds(typeRows.map { it.id })
+                .map { row ->
+                    CascadeValue(
+                        id = row.id,
+                        lexemeId = row.lexemeId,
+                        typeId = ComponentTypeId(row.componentTypeId),
+                        optionId = row.optionId,
+                    )
+                }
+            return graph.planCascade(values, event)
+        }
+
+        /** Db → domain для планировщика; fail-soft на нелегальном XOR/шаблоне. */
+        private fun ComponentTypeDb.toDomainType(): ComponentType? {
+            val tpl = ComponentTemplate.fromKey(templateKey) ?: return null
+            val target = when {
+                dependsOnTypeId != null && dependsOnOptionId != null -> return null
+                dependsOnTypeId != null -> DependencyTarget.Component(ComponentTypeId(dependsOnTypeId))
+                dependsOnOptionId != null -> DependencyTarget.Option(dependsOnOptionId)
+                else -> DependencyTarget.Lexeme
+            }
+            return ComponentType(
+                id = ComponentTypeId(id),
+                systemKey = systemKey?.let(BuiltInComponent::fromKey),
+                dictionaryId = dictionaryId,
+                name = name,
+                template = tpl,
+                position = position,
+                isMultiple = isMultiple,
+                core = core,
+                enabled = enabled,
+                dependsOn = target,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
+                removedAt = removedAt,
+            )
         }
     }
 

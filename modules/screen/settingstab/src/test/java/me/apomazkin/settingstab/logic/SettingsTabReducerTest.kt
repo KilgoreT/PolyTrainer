@@ -10,10 +10,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Test cases for SettingsTabReducer (IS481 — Msg.OpenComponentsManager nav-effect).
+ * Test cases for SettingsTabReducer.
  *
- * === Msg.OpenComponentsManager ===
- * 1. Standard: OpenComponentsManager → state immutable, emit SettingsNavigationEffect.OpenComponentsManager
+ * IS486 фаза 4 (spec §20): вход в ComponentsManager из Settings выпилен —
+ * тест `Msg.OpenComponentsManager` удалён вместе с Msg/эффектом.
  */
 class SettingsTabReducerTest {
 
@@ -23,19 +23,13 @@ class SettingsTabReducerTest {
         }
     )
 
-    // === Msg.OpenComponentsManager ===
-
     @Test
-    fun `should emit OpenComponentsManager nav effect when Msg OpenComponentsManager received`() {
-        // Test case 1: Standard - IS481, юзер тапает «Конструктор компонентов» в SettingsTab
-        // Given
+    fun `should emit OpenLangManagement nav effect when Msg OpenLangManagement received`() {
         val initialState = SettingsTabState()
 
-        // When
-        val result = reducer.testReduce(initialState, Msg.OpenComponentsManager)
+        val result = reducer.testReduce(initialState, Msg.OpenLangManagement)
 
-        // Then
         assertEquals("state should be unchanged", initialState, result.state())
-        result.assertEffects(setOf(SettingsNavigationEffect.OpenComponentsManager))
+        result.assertEffects(setOf(SettingsNavigationEffect.OpenLangManagement))
     }
 }

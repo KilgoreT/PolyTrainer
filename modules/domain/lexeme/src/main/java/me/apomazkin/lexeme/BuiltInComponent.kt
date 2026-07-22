@@ -9,7 +9,9 @@ package me.apomazkin.lexeme
  * без миграции схемы.
  */
 enum class BuiltInComponent(val key: String) {
-    TRANSLATION("translation");
+    TRANSLATION("translation"),
+    PART_OF_SPEECH("part_of_speech"),   // IS486: Часть речи — CHOICE, зависит от лексемы, не ядро
+    ;
 
     companion object {
         /** Unknown key → null (user-defined fallback на уровне маппера). */

@@ -21,6 +21,9 @@ data class ComponentType(
     val template: ComponentTemplate,
     val position: Int,
     val isMultiple: Boolean = false,         // NEW (M13)
+    val core: Boolean = false,               // IS486: ядро — оформляет лексему; валиден только при dependsOn = Lexeme
+    val enabled: Boolean = true,             // IS486: рубильник — false: не предлагается для новых значений
+    val dependsOn: DependencyTarget = DependencyTarget.Lexeme,  // IS486: цель зависимости (дефолт — compile-safety существующих call-site)
     val createdAt: Date,                  // NEW (M13)
     val updatedAt: Date,                  // NEW (M13)
     val removedAt: Date? = null,          // RENAME removeDate → removedAt (M13)

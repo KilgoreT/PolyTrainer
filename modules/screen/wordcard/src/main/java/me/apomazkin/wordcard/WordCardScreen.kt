@@ -46,6 +46,7 @@ import me.apomazkin.wordcard.mate.LexemeState
 import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.NOT_IN_DB
 import me.apomazkin.wordcard.mate.WordCardState
+import me.apomazkin.wordcard.mate.addableTypeIdsFor
 import me.apomazkin.wordcard.mate.WordState
 import me.apomazkin.wordcard.widget.AddLexemeWidget
 import me.apomazkin.wordcard.widget.ConfirmDeleteLexemeWidget
@@ -160,10 +161,14 @@ internal fun WordCardScreen(
                     ) {
                         state.lexemeList.forEach { lexemeState ->
                             key(lexemeState.id) {
-                                LexemeCard(isDraft = lexemeState.id == NOT_IN_DB) {
+                                // IS486 фаза 3 (В4): пустая сохранённая лексема — тоже черновик
+                                // (значения умерли, карточка с чипами и Draft-бейджем живёт).
+                                LexemeCard(isDraft = lexemeState.id == NOT_IN_DB || lexemeState.components.isEmpty()) {
                                     LexemeComponentsBlock(
                                         lexemeState = lexemeState,
                                         availableTypes = state.availableComponentTypes,
+                                        optionsByType = state.optionsByType,
+                                        addableTypeIds = state.addableTypeIdsFor(lexemeState),
                                         enabled = !state.isPendingDbOp && !state.isExiting,
                                         sendMessage = sendMessage,
                                     )

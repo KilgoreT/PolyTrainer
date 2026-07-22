@@ -24,18 +24,21 @@ import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 
 /**
- * Ряд chip'ов для добавления значений. P3: только TEXT-шаблоны (image — вне скоупа).
- * Non-multi уже добавленные (в addedNonMultipleTypeIds) скрыты; multi всегда видим.
+ * Ряд chip'ов для добавления значений. IMAGE — вне скоупа.
+ * IS486: видимость чипов — правило участия (явное поле [addableTypeIds],
+ * пересчитывается reducer'ом): черновик — только ядра; зависимые открываются
+ * по мере активации целей. CHOICE-чип открывает пикер опций (onAddChoice).
  */
 @Composable
 internal fun ComponentChipsRow(
     availableTypes: List<ComponentType>,
-    addedNonMultipleTypeIds: Set<ComponentTypeId>,
+    addableTypeIds: Set<ComponentTypeId>,
     enabled: Boolean,
     onAddComponent: (ComponentTypeId) -> Unit,
+    onAddChoice: (ComponentType) -> Unit,
 ) {
     val chips = availableTypes.filter {
-        it.template == ComponentTemplate.TEXT && it.id !in addedNonMultipleTypeIds
+        it.template != ComponentTemplate.IMAGE && it.id in addableTypeIds
     }
     if (chips.isEmpty()) return
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -56,7 +59,10 @@ internal fun ComponentChipsRow(
                     label = componentLabelOf(type),
                     iconRes = R.drawable.ic_add,
                     enabled = enabled,
-                    onClick = { onAddComponent(type.id) },
+                    onClick = {
+                        if (type.template == ComponentTemplate.CHOICE) onAddChoice(type)
+                        else onAddComponent(type.id)
+                    },
                 )
             }
         }

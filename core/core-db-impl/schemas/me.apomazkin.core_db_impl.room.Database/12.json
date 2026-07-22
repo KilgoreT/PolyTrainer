@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 12,
-    "identityHash": "b023fc352b42973f93eead2b72fbd525",
+    "identityHash": "4a76be1eeb557c56c08dbbee39c06550",
     "entities": [
       {
         "tableName": "words",
@@ -356,7 +356,7 @@
       },
       {
         "tableName": "component_types",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `system_key` TEXT, `dictionary_id` INTEGER, `name` TEXT, `template_key` TEXT NOT NULL, `position` INTEGER NOT NULL, `is_multiple` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `removed_at` INTEGER, FOREIGN KEY(`dictionary_id`) REFERENCES `dictionaries`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `system_key` TEXT, `dictionary_id` INTEGER, `name` TEXT, `template_key` TEXT NOT NULL, `position` INTEGER NOT NULL, `is_multiple` INTEGER NOT NULL, `core` INTEGER NOT NULL DEFAULT 0, `enabled` INTEGER NOT NULL DEFAULT 1, `depends_on_type_id` INTEGER, `depends_on_option_id` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `removed_at` INTEGER, FOREIGN KEY(`dictionary_id`) REFERENCES `dictionaries`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`depends_on_type_id`) REFERENCES `component_types`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`depends_on_option_id`) REFERENCES `component_options`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -398,6 +398,30 @@
             "notNull": true
           },
           {
+            "fieldPath": "core",
+            "columnName": "core",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "dependsOnTypeId",
+            "columnName": "depends_on_type_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dependsOnOptionId",
+            "columnName": "depends_on_option_id",
+            "affinity": "INTEGER"
+          },
+          {
             "fieldPath": "createdAt",
             "columnName": "created_at",
             "affinity": "INTEGER",
@@ -433,12 +457,30 @@
           },
           {
             "name": "index_component_types_system_key",
-            "unique": true,
+            "unique": false,
             "columnNames": [
               "system_key"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_component_types_system_key` ON `${TABLE_NAME}` (`system_key`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_component_types_system_key` ON `${TABLE_NAME}` (`system_key`)"
+          },
+          {
+            "name": "index_component_types_depends_on_type_id",
+            "unique": false,
+            "columnNames": [
+              "depends_on_type_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_component_types_depends_on_type_id` ON `${TABLE_NAME}` (`depends_on_type_id`)"
+          },
+          {
+            "name": "index_component_types_depends_on_option_id",
+            "unique": false,
+            "columnNames": [
+              "depends_on_option_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_component_types_depends_on_option_id` ON `${TABLE_NAME}` (`depends_on_option_id`)"
           }
         ],
         "foreignKeys": [
@@ -452,12 +494,34 @@
             "referencedColumns": [
               "id"
             ]
+          },
+          {
+            "table": "component_types",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "depends_on_type_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "component_options",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "depends_on_option_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
           }
         ]
       },
       {
         "tableName": "component_values",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `lexeme_id` INTEGER NOT NULL, `component_type_id` INTEGER NOT NULL, `value` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `removed_at` INTEGER, FOREIGN KEY(`lexeme_id`) REFERENCES `lexemes`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`component_type_id`) REFERENCES `component_types`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `lexeme_id` INTEGER NOT NULL, `component_type_id` INTEGER NOT NULL, `value` TEXT NOT NULL, `option_id` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `removed_at` INTEGER, FOREIGN KEY(`lexeme_id`) REFERENCES `lexemes`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`component_type_id`) REFERENCES `component_types`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`option_id`) REFERENCES `component_options`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -482,6 +546,11 @@
             "columnName": "value",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "optionId",
+            "columnName": "option_id",
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "createdAt",
@@ -525,6 +594,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_component_values_lexeme_id` ON `${TABLE_NAME}` (`lexeme_id`)"
+          },
+          {
+            "name": "index_component_values_option_id",
+            "unique": false,
+            "columnNames": [
+              "option_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_component_values_option_id` ON `${TABLE_NAME}` (`option_id`)"
           }
         ],
         "foreignKeys": [
@@ -539,6 +617,98 @@
               "id"
             ]
           },
+          {
+            "table": "component_types",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "component_type_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "component_options",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "option_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "component_options",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `component_type_id` INTEGER NOT NULL, `system_key` TEXT, `label` TEXT, `position` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `removed_at` INTEGER, FOREIGN KEY(`component_type_id`) REFERENCES `component_types`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "componentTypeId",
+            "columnName": "component_type_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "systemKey",
+            "columnName": "system_key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "removedAt",
+            "columnName": "removed_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_component_options_component_type_id",
+            "unique": false,
+            "columnNames": [
+              "component_type_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_component_options_component_type_id` ON `${TABLE_NAME}` (`component_type_id`)"
+          }
+        ],
+        "foreignKeys": [
           {
             "table": "component_types",
             "onDelete": "CASCADE",
@@ -625,7 +795,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b023fc352b42973f93eead2b72fbd525')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4a76be1eeb557c56c08dbbee39c06550')"
     ]
   }
 }

@@ -48,11 +48,28 @@ interface ComponentTypeDao {
     @Query("SELECT * FROM component_types WHERE system_key IS NOT NULL AND removed_at IS NULL")
     suspend fun getBuiltInTypes(): List<ComponentTypeDb>
 
-    @Query("SELECT * FROM component_types WHERE system_key = :key AND removed_at IS NULL")
-    suspend fun getBySystemKey(key: String): ComponentTypeDb?
+    /**
+     * IS486: builtin пословарные — lookup строго в рамках словаря.
+     * Глобальный getBySystemKey удалён: с пословарными строками он возвращал
+     * произвольную из N и ломал привязку значений.
+     */
+    @Query(
+        """
+        SELECT * FROM component_types
+        WHERE system_key = :key AND dictionary_id = :dictionaryId AND removed_at IS NULL
+        """
+    )
+    suspend fun getBySystemKeyForDictionary(key: String, dictionaryId: Long): ComponentTypeDb?
 
     @Query("SELECT * FROM component_types WHERE id = :id")
     suspend fun getById(id: Long): ComponentTypeDb?
+
+    /**
+     * IS486, каскад-модуль: полный граф словаря ВКЛЮЧАЯ soft-deleted —
+     * ссылки зависимостей не зануляются, планировщику нужен весь лес (spec §8).
+     */
+    @Query("SELECT * FROM component_types WHERE dictionary_id = :dictionaryId")
+    suspend fun getAllForDictionaryWithRemoved(dictionaryId: Long): List<ComponentTypeDb>
 
     @Insert
     suspend fun insert(type: ComponentTypeDb): Long
