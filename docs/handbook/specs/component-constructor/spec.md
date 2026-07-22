@@ -1,223 +1,836 @@
-# Component Constructor — конструктор пользовательских компонентов
+# Спецификация: компоненты лексемы и иерархия зависимостей
 
-Конструктор user-defined компонентов словаря.
-
-**Phase 1** (released): CRUD (create / rename / soft-delete) с двумя независимыми точками входа — глобальный `ComponentsManagerScreen` из `SettingsTab` и per-dictionary `PerDictionaryComponentsScreen`, открываемый из `DictionaryAppBar` по icon-button «молоток».
-
-**Phase 2** (IS481 phase 2): Edit family (rename + cardinality toggle) с template-immutability gate и cardinality-downgrade guard; multi-dict scope picker в Create-диалоге Manager-экрана; Removed-semantics ветка в Rename / Delete / Edit; reactive подписка на dictionaries с stale-filter для chip-selection.
+Единая спека системы компонентов: концепция иерархии (IS486) + реализация конструктора (IS481 phase 2 + редизайн IS485) + карточка слова.
+Статус: **canonical handbook-спека** (переехала из `docs/features/IS486_choice_component/` 2026-07-21, полностью заменив прежнюю component-constructor spec; важные куски прежней перенесены в §17–§18). Разделы 1–12 — домен и механика, разделы 13–19 — экранный слой; синхронизирована с кодом по ревью 2026-07-21 (включая девайс-решения: глухой CHOICE-чип, purge черновика, умный сброс с конфирмом, дизейбл цикловых целей).
 
 ---
 
-## Бизнес-описание
+## 1. Концепция
 
-Component Constructor расширяет модель словаря: помимо built-in компонентов (Translation, Definition и т.п.) пользователь сам определяет компоненты для лексем — задавая имя, шаблон (template) и cardinality (`is_multi` — один или несколько values на лексему). Компоненты живут в одной из двух scope:
+**Лексема** — значение слова. Содержимое лексемы полностью описывается **компонентами**: перевод, часть речи, примеры, определение — всё это компоненты, различающиеся шаблоном и местом в иерархии.
 
-- **Global** (`dictionary_id IS NULL`) — компонент применим ко всем словарям.
-- **Per-dictionary** — компонент привязан к конкретному словарю (или к нескольким — создание N rows из одного диалога).
+**Компонент** (тип, `ComponentType`) — определение «что можно заполнить у лексемы»: имя, шаблон содержимого, кардинальность, место в иерархии. **Значение компонента** (`ComponentValue`) — конкретное наполнение у конкретной лексемы.
 
-Конструктор доступен из двух точек входа: **общий менеджер** (`SettingsTab → ComponentsManagerScreen`) показывает aggregated view всех user-defined компонентов из всех словарей с usage badge, **per-dictionary view** (`DictionaryAppBar → молоток → PerDictionaryComponentsScreen`) фильтрует только компоненты применимые к открытому словарю (global + own per-dict). Built-in компоненты в обоих экранах **не показываются** — это территория конструктора пользовательских компонентов.
+**Иерархия.** Каждый компонент зависит ровно от одного узла. Узел — одно из трёх:
 
-Soft-delete не уничтожает данные: `component_types.removed_at` ставит timestamp, существующие `component_values` остаются в БД, но скрываются на чтении (фильтр `WHERE removed_at IS NULL` / JOIN на parent). Перед удалением показывается preview impact: сколько values скрываются, в каких словарях, какие quiz-конфиги затронуты, какие prefs сбросятся. Cascade-эффекты атомарны: soft-delete component_type → cleanup `quiz_configs.component_refs` (одна транзакция) → reset `quiz_picker_dict_<id>` prefs (UseCase composition, prefs живут в DataStore вне Room).
+- **лексема** — супер-корень; все деревья компонентов растут из неё;
+- **компонент** — «доступен, когда у парента есть значение» (Пример → Перевод);
+- **опция** CHOICE-компонента — «доступен при конкретном значении» (Род → «существительное»).
 
-Имя компонента уникально в рамках своего scope **и одновременно cross-scope**: global "Foo" исключает per-dict "Foo" в любом словаре и наоборот (инвариант `userdefined_identity_invariant`). Уникальность enforce'ится в UseCase через two-prong SELECT перед INSERT (UNIQUE-индекс из БД убран ради поддержки пересоздания имени после soft-delete). Имя — произвольной длины, лимита нет.
+**Закон доступности:** компонент доступен для заполнения ⇔ его цель активна:
 
-**Phase 2 расширения**:
+- лексема активна ⇔ оформлена (не черновик);
+- компонент активен ⇔ у лексемы есть его значение;
+- опция активна ⇔ у лексемы выбрана именно она.
 
-- **Edit** existing user-defined компонента с template-immutability (template после релиза менять нельзя — отбивается на UseCase-уровне без обращения к data API) и cardinality-downgrade guard (`isMultiple: true → false` блокируется если есть лексемы с count>1; preview top-3 затронутых лексем inline + drill-in кнопка если > 3).
-- **Multi-dict scope picker** в Create-диалоге Manager-экрана: reactive подписка на список словарей, chip-selection нескольких словарей одним диалогом, live-фильтрация stale selections при out-of-band удалении словаря.
-- **Removed-semantics** — отдельная ветка outcome для soft-deleted типов (`removed_at IS NOT NULL`) в Rename / Delete / новом Edit, отличная от `BuiltInProtected`. Сообщение «Компонент удалён» — race с параллельным soft-delete не путается с попыткой редактировать built-in.
-- Cascade на rename name — parity с existing rename-flow (UPDATE `quiz_configs.component_refs` в одной транзакции).
+**Ядро (core)** — флаг, возможный только у зависимых от лексемы. Ядро доступно всегда (включая черновик) и оформляет лексему. Единственное исключение из закона доступности — по определению: ядра — то, из чего лексема строится; остальное — то, что на неё навешивается.
 
----
-
-## User Stories
-
-### Phase 1
-
-- **Как пользователь**, я хочу из настроек видеть все мои пользовательские компоненты из всех словарей сразу — чтобы понимать что у меня есть и где это применяется.
-- **Как пользователь**, я хочу создать новый компонент с указанием имени, шаблона (text / image / …), cardinality (single / multi) и scope (global / выбранные словари) — чтобы расширить модель лексемы под мои нужды.
-- **Как пользователь**, я хочу из appbar'а словаря быстро открыть список компонентов именно этого словаря — чтобы не искать нужный среди всех моих компонентов.
-- **Как пользователь**, я хочу при создании компонента из per-dictionary view получить scope преднастроенным на текущий словарь — чтобы не задумываться о scope в общем случае.
-- **Как пользователь**, я хочу переименовать пользовательский компонент — чтобы исправить ошибку в имени без потери данных.
-- **Как пользователь**, я хочу видеть **до подтверждения удаления** сколько values скроется, в каких словарях, какие quiz-конфиги это затронет — чтобы принять информированное решение.
-- **Как пользователь**, я хочу что бы удаление было обратимым на data-уровне (soft-delete) — без явного UI recovery в этой фиче, но без потери данных.
-- **Как пользователь**, я хочу получать понятное сообщение об ошибке при коллизии имени (same-scope vs cross-scope) — чтобы понимать что нужно поменять.
-- **Как пользователь**, я хочу что бы после удаления компонента quiz продолжал работать корректно — чтобы конфиги не ссылались на несуществующий тип, а выбор компонента в picker'е словаря не воскрешал удалённый ref.
-- **Как пользователь**, я хочу что бы кнопка submit блокировалась пока операция в полёте — чтобы случайным двойным тапом не создать два одинаковых компонента.
-
-### Phase 2
-
-- **Как пользователь**, я хочу при создании компонента в Manager-экране выбрать **несколько** словарей одним диалогом — чтобы не повторять одно и то же создание для каждого словаря отдельно.
-- **Как пользователь**, я хочу **отредактировать** имя и cardinality (single/multi) существующего пользовательского компонента — чтобы исправить ошибку без потери данных.
-- **Как пользователь**, я хочу что бы попытка переключить компонент с multi на single при наличии лексем с несколькими values была заблокирована с превью затронутых лексем — чтобы я мог сначала почистить данные или передумать.
-- **Как пользователь**, я хочу что бы при превью я видел inline top-3 затронутых лексем и кнопку «Показать все» если их больше — чтобы быстро оценить масштаб не открывая отдельный экран.
-- **Как пользователь**, я хочу получать понятное сообщение «Компонент удалён» когда я пытаюсь переименовать / удалить / отредактировать компонент который был soft-deleted в другой сессии — чтобы понять что именно произошло (не путать с «встроенный нельзя трогать»).
-- **Как пользователь**, я хочу что бы chip-selection словарей в Create-диалоге автоматически очищался от только что удалённых словарей — чтобы я не отправил submit с битыми ссылками.
+**Черновик.** Лексема оформлена ⇔ заполнено хотя бы одно ядро. Не-ядра (в т.ч. зависимые от лексемы, как Часть речи) черновик не закрывают.
 
 ---
 
-## State
+## 2. Термины
 
-### Package partitioning
+- **Компонент** — тип (`ComponentType`); **значение** — наполнение у лексемы (`ComponentValue`).
+- **Шаблон** (`ComponentTemplate`) — форма содержимого: TEXT | IMAGE | CHOICE.
+- **Опция** (`ComponentOption`) — один из предопределённых вариантов CHOICE-компонента.
+- **Узел / цель** (`DependencyTarget`) — то, от чего зависит компонент: Lexeme | Component | Option.
+- **Ядро (core)** — зависимый от лексемы компонент, оформляющий её.
+- **Предки** — цепочка целей от компонента вверх до лексемы.
+- **Участие** — компонент показывается и заполняется в лексемах (см. правило участия).
+- **Degraded** — вычисляемое состояние: цель компонента удалена.
+- **Disabled** — `enabled = false`, ручной рубильник: компонент не предлагается для добавления новых значений; существующие значения живут.
+- **Черновик** — лексема без единого заполненного ядра.
 
-Domain-shared types живут в `:modules:domain:lexeme` (package `me.apomazkin.lexeme`):
+---
 
-- `Scope` (sealed interface)
-- `NameError` (sealed) — используется в State обоих экранов для Create/Rename
-- `CreateOutcome` / `RenameOutcome` / `DeleteOutcome` / `EditOutcome` (sealed)
-- `UserDefinedTypesSnapshot` (data class)
-- `ComponentUsage` (data class)
-- `DeletionImpact` (data class)
-- `AffectedQuizConfig` (data class)
-- `PerDictionarySnapshot` (data class)
+## 3. Шаблоны
 
-Screen-specific (State / Msg / Effect / UiMsg / Reducer / FlowHandler) — в соответствующих screen-packages:
-- `me.apomazkin.components_manager.logic` для `ComponentsManagerScreen`
-- `me.apomazkin.per_dictionary_components.logic` для `PerDictionaryComponentsScreen`
+| Шаблон | Содержимое значения | Мульти | Статус |
+|---|---|---|---|
+| TEXT | текст (JSON `TemplateValues`) | разрешён | released |
+| IMAGE | изображение (JSON) | разрешён | в UI задизейблен (IS485, фича картинок не готова) |
+| CHOICE | ссылка на опцию (`option_id`) | **запрещён** | IS486, новый |
 
-### `ComponentsManagerScreenState`
+**Правило мульти:** запрет привязан к шаблону, не к зависимости — структура CHOICE подразумевает выбор одной вершины из набора. Запрет мягкий: валидация UseCase/UI, схема хранения single не зашивает (значения CHOICE — та же таблица values, constraint «одна строка» в валидации). Разрешить multiple позже = снять валидацию, без миграции. Зависимость мульти не запрещает: «Пример» (TEXT, мульти) может зависеть от перевода.
 
-Aggregated state для глобального менеджера компонентов.
+**Template immutability** (существующее правило, сохраняется): шаблон компонента после создания менять нельзя — `EditOutcome.TemplateImmutable` на UseCase-уровне, без обращения к data API.
+
+---
+
+## 4. Builtin-набор
+
+**Builtin — пословарные** (решение 2026-07-17): при создании словаря к нему seed'ятся дефолтные builtin-строки. У каждого словаря — **свои** строки перевода и части речи: свой рубильник `enabled`, свои опции. Глобальных компонентов в продукте нет — builtin-слой и есть «глобальный» в смысле «есть в каждом словаре» (потенциальный настоящий global-охват — см. §20).
+
+Официальных builtin два:
+
+- **Перевод** (`system_key = 'translation'`) — TEXT, ядро, зависит от лексемы. Особый для тренировок: тренится симметрично (слово-перевод и перевод-слово). Ядерность других компонентов симметричных тренировок не даёт.
+- **Часть речи** (`system_key = 'part_of_speech'`) — CHOICE, зависит от лексемы, НЕ ядро. Стартовый набор опций (решение 2026-07-17): **существительное, глагол, прилагательное, наречие, предлог, фраза**. Опции пословарные (набор seed'ится каждому словарю), но **нередактируемы** (РЕШЕНО 2026-07-20, §21.2): ни add, ни rename, ни delete — builtin как есть.
+
+Builtin-правила:
+
+- rename / delete / смена шаблона — запрещены (`BuiltInProtected`, существующее); опции builtin — тоже (`OptionCrudOutcome.BuiltInProtected`, §21.2);
+- **disable — можно, пословарно** (мотивирующий кейс: словарь «только определения» — создаёшь кастомное ядро «Определение», выключаешь перевод этого словаря). Ограничение — общий инвариант §7.8: нельзя потерять последнее включённое ядро словаря;
+- builtin **показываются в per-dict конструкторе** с единственным действием — свитч enable/disable (без кнопок Edit/Delete). Раньше builtin скрывались полностью — с пословарным рубильником это больше невозможно;
+- builtin участвуют как **цели** зависимостей — видимы в пикере цели.
+
+---
+
+## 5. Доменная модель
+
+Всё в `:modules:domain:lexeme` (package `me.apomazkin.lexeme`). Типы даны в **итоговом** виде (после IS486).
+
+### Примитивы и поля
 
 ```kotlin
-package me.apomazkin.components_manager.logic
+/**
+ * Примитивное значение — атом содержимого компонента.
+ *
+ * - [Text] — строка; пример: `Text("собака")`.
+ * - [Image] — URI изображения; пример: `Image("content://media/external/images/42")`.
+ * - [Color] — hex-цвет; пример: `Color("#4A49BC")`. Зарезервирован, шаблонами пока не используется.
+ */
+sealed interface Primitive {
+    data class Text(val value: String) : Primitive
+    data class Image(val uri: String) : Primitive
+    data class Color(val hex: String) : Primitive
+}
 
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.Scope
-import me.apomazkin.lexeme.NameError
-import me.apomazkin.lexeme.DeletionImpact
+/**
+ * Поле шаблона — именованный слот в JSON-envelope значения.
+ *
+ * [name] — имя поля внутри envelope; пример: `"value"`.
+ * [type] — тип примитива в этом поле; пример: `PrimitiveType.TEXT`.
+ */
+data class Field(
+    val name: String,
+    val type: PrimitiveType,
+)
 
-data class ComponentsManagerScreenState(
-    // ===== Loaded data =====
-    val userDefinedTypes: List<UserDefinedRow>? = null,    // null = ещё не загружено
-    val availableDictionaries: List<DictionaryApiEntity> = emptyList(),  // phase 2
+/** Тип примитива поля: TEXT — строка, IMAGE — URI картинки, COLOR — hex-цвет (резерв). */
+enum class PrimitiveType { TEXT, IMAGE, COLOR }
+```
 
-    // ===== UI flags (explicit) =====
-    val isLoading: Boolean = false,                        // initial load / refresh
-    val isCreating: Boolean = false,                       // submit in flight
-    val isRenaming: Boolean = false,                       // submit in flight
-    val isDeleting: Boolean = false,                       // soft-delete in flight
-    val isEditing: Boolean = false,                        // phase 2: edit submit in flight
+### Шаблон
 
-    // ===== Dialogs =====
-    val createDialog: CreateDialogState? = null,
-    val renameDialog: RenameDialogState? = null,
-    val deleteConfirm: DeleteConfirmState? = null,
-    val editDialog: EditDialogState? = null,               // phase 2
+```kotlin
+/**
+ * Шаблон содержимого компонента — определяет, чем выражено значение.
+ *
+ * [key] — стабильный строковый ключ для БД (`component_types.template_key`); пример: `"choice"`.
+ * [fields] — состав JSON-envelope значения: TEXT/IMAGE — одно поле `"value"`;
+ *   CHOICE — пусто, значение выражено ссылкой `option_id` (вне fields-модели).
+ */
+enum class ComponentTemplate(val key: String) {
+    TEXT("text"),
+    IMAGE("image"),
+    CHOICE("choice"),   // IS486
+    ;
 
-    // ===== Snackbar (single source of truth для UI feedback) =====
-    val snackbarState: SnackbarState? = null,
+    val fields: List<Field> get() = when (this) {
+        TEXT -> listOf(Field("value", PrimitiveType.TEXT))
+        IMAGE -> listOf(Field("value", PrimitiveType.IMAGE))
+        CHOICE -> emptyList()   // значение — ссылка на опцию, вне fields-модели
+    }
+
+    companion object {
+        /** Fail-soft парсинг: unknown key → null + caller логирует в Crashlytics. */
+        fun fromKey(key: String): ComponentTemplate? = entries.firstOrNull { it.key == key }
+    }
+}
+```
+
+### Значения
+
+```kotlin
+/** Типизированное по шаблону значение компонента у лексемы. */
+sealed interface TemplateValues
+
+/** Текстовое значение; пример: `TextValues(Primitive.Text("перевод слова"))`. */
+data class TextValues(val value: Primitive.Text) : TemplateValues
+
+/** Значение-картинка; пример: `ImageValues(Primitive.Image("content://..."))`. */
+data class ImageValues(val value: Primitive.Image) : TemplateValues
+
+/**
+ * IS486: значение CHOICE — выбранная опция.
+ * [optionId] — id строки `component_options`; пример: `ChoiceValues(optionId = 7)` — «существительное».
+ * Сама опция и есть значение — текст лейбла не копируется.
+ */
+data class ChoiceValues(val optionId: Long) : TemplateValues
+```
+
+### Компонент, опция, зависимость
+
+```kotlin
+/**
+ * Определение компонента — «что можно заполнить у лексемы».
+ *
+ * [id] — идентификатор типа.
+ * [systemKey] — ключ builtin (TRANSLATION / PART_OF_SPEECH); null → user-defined.
+ * [dictionaryId] — словарь-владелец; null → global (возможность в коде, в UI не используется).
+ * [name] — имя; у builtin null (display из enum), у user-defined обязательно; пример: `"Род"`.
+ * [template] — шаблон содержимого; пример: `CHOICE`.
+ * [position] — порядок в списках.
+ * [isMultiple] — несколько значений на лексему; пример: true у «Пример». Для CHOICE всегда false (§3).
+ * [core] — IS486: ядро — оформляет лексему, доступно в черновике; валиден только при
+ *   [dependsOn] = Lexeme; пример: true у Перевода, false у «Части речи».
+ * [enabled] — IS486: рубильник; false → компонент не предлагается для добавления новых значений,
+ *   существующие значения живут (§6). Разрешён любому, включая ядро/builtin;
+ *   запрет один — последнее включённое ядро словаря (§7.8).
+ * [dependsOn] — IS486: цель зависимости; пример: `Option(7)` у «Рода» — доступен при «существительное».
+ * [createdAt] / [updatedAt] — audit; при создании равны (§10).
+ * [removedAt] — soft-delete; null → живой.
+ */
+data class ComponentType(
+    val id: ComponentTypeId,
+    val systemKey: BuiltInComponent?,
+    val dictionaryId: Long?,
+    val name: String?,
+    val template: ComponentTemplate,
+    val position: Int,
+    val isMultiple: Boolean = false,
+    val core: Boolean = false,
+    val enabled: Boolean = true,
+    val dependsOn: DependencyTarget,
+    val createdAt: Date,
+    val updatedAt: Date,
+    val removedAt: Date? = null,
+)
+
+/**
+ * IS486: цель зависимости — узел, при активности которого компонент доступен (§1).
+ *
+ * - [Lexeme] — сама лексема: доступен у оформленной; пример: «Часть речи».
+ * - [Component] — другой компонент: доступен, когда у того есть значение;
+ *   [Component.typeId] — его id; пример: «Пример» → Перевод.
+ * - [Option] — опция CHOICE-компонента: доступен при конкретном выборе;
+ *   [Option.optionId] — id опции; пример: «Род» → «существительное».
+ */
+sealed interface DependencyTarget {
+    data object Lexeme : DependencyTarget
+    data class Component(val typeId: ComponentTypeId) : DependencyTarget
+    data class Option(val optionId: Long) : DependencyTarget
+}
+
+/**
+ * IS486: опция CHOICE-компонента.
+ *
+ * [id] — адрес опции; на него ссылаются зависимости ([DependencyTarget.Option]) и значения ([ChoiceValues]).
+ * [componentTypeId] — чья опция; пример: id «Части речи».
+ * [systemKey] — ключ builtin-опции (`"noun"`, `"verb"`, ...); null у пользовательских.
+ *   Display builtin-опции локализуется ресурсом по ключу; опции builtin нередактируемы (§21.2).
+ * [label] — текст пользовательской опции; пример: `"мужской"`. У builtin-опций null
+ *   (display = `label ?: ресурс(systemKey)`). Переименование (К2) меняет только его.
+ * [position] — порядок в списке опций.
+ * [removedAt] — soft-delete (К3–К5); ссылки зависимостей не зануляются.
+ */
+data class ComponentOption(
+    val id: Long,
+    val componentTypeId: ComponentTypeId,
+    val systemKey: String? = null,
+    val label: String? = null,
+    val position: Int,
+    val removedAt: Date? = null,
+)
+
+/**
+ * Builtin-компоненты. [key] — стабильный ключ в `component_types.system_key`.
+ *
+ * - [TRANSLATION] — Перевод: TEXT, ядро; особый для тренировок (симметричный квиз).
+ * - [PART_OF_SPEECH] — IS486: Часть речи: CHOICE, зависит от лексемы, не ядро.
+ */
+enum class BuiltInComponent(val key: String) {
+    TRANSLATION("translation"),
+    PART_OF_SPEECH("part_of_speech"),
+}
+```
+
+### Impact и снапшоты
+
+```kotlin
+/**
+ * Превью каскада удаления компонента (read-only; показывается в confirm-диалоге).
+ *
+ * [valueCount] — сколько живых значений компонента скроется; пример: 23.
+ * [dictionariesWithValues] — id словарей, где у компонента есть значения; пример: `[1, 4]`.
+ * [affectedQuizConfigs] — квиз-конфиги, ссылающиеся на компонент (будут почищены каскадом).
+ * [affectedPrefs] — id словарей, чьи prefs квиз-пикера сбросятся.
+ * [degradedComponents] — IS486: компоненты, которые станут degraded (их цель умирает);
+ *   пример: удаляем «Часть речи» → `[id «Рода»]`.
+ * [descendantValueCount] — IS486: значения потомков по цепочке вниз, которые сбросятся каскадом;
+ *   пример: 5 значений «Рода» у лексем.
+ */
+data class DeletionImpact(
+    val valueCount: Int,
+    val dictionariesWithValues: List<Long>,
+    val affectedQuizConfigs: List<AffectedQuizConfig>,
+    val affectedPrefs: List<Long>,
+    val degradedComponents: List<ComponentTypeId>,
+    val descendantValueCount: Int,
+)
+
+/**
+ * Затронутый квиз-конфиг.
+ *
+ * [dictionaryId] — словарь, которому принадлежит конфиг.
+ * [quizMode] — режим квиза; пример: `"write"`.
+ */
+data class AffectedQuizConfig(
+    val dictionaryId: Long,
+    val quizMode: String,
+)
+
+/**
+ * Снапшот экрана компонентов словаря.
+ *
+ * [dictionaryId] — словарь-контекст экрана.
+ * [dictionaryName] — его имя (для заголовка); пример: `"Английский"`.
+ * [types] — компоненты словаря (IS486: включая builtin-строки словаря).
+ * [valueCountByType] — живые значения по типам в этом словаре; пример: `{3: 7}`.
+ * [optionsByType] — IS486: опции CHOICE-типов; пример: `{5: [существительное, глагол]}`.
+ *   Отдельная map — [ComponentType] не раздувается списком опций.
+ */
+data class PerDictionarySnapshot(
+    val dictionaryId: Long,
+    val dictionaryName: String,
+    val types: List<ComponentType>,
+    val valueCountByType: Map<ComponentTypeId, Int>,
+    val optionsByType: Map<ComponentTypeId, List<ComponentOption>>,
 )
 ```
 
-#### Per-field
+Manager-типы (`UserDefinedTypesSnapshot`, `ComponentUsage`) — §20 (потенциальная фича).
 
-| Поле | Что | Почему |
-|---|---|---|
-| `userDefinedTypes` | Список aggregated row'ов user-defined типов из всех словарей | `null` = ещё не загружено (initial), `emptyList` = загружено и пусто (показ empty state). Built-in в список не входят. |
-| `availableDictionaries` (phase 2) | Список словарей для multi-dict scope picker | Source-of-truth снаружи диалога; live-обновляется через `DictionariesFlowHandler`. Тип элемента — existing `DictionaryApiEntity` из `core-db-api`. |
-| `isLoading` | Initial load / refresh in flight | Explicit флаг, не выводится из `userDefinedTypes == null`. |
-| `isCreating` / `isRenaming` / `isDeleting` / `isEditing` | Submit в полёте | Блокирует submit-кнопку в соответствующем диалоге, защищает от двойного тапа. |
-| `createDialog` / `renameDialog` / `deleteConfirm` / `editDialog` | Per-dialog state (visible iff `!= null`) | Простая модель видимости диалога — null/non-null. Один диалог одновременно (см. инварианты). |
-| `snackbarState` | Текущий snackbar (текст) | Reducer выставляет на success/error результаты; UI consumes и сбрасывает через `DismissSnackbar`. |
-
-#### Shared domain types (`:modules:domain:lexeme`)
+### Outcomes
 
 ```kotlin
-package me.apomazkin.lexeme
-
-sealed interface Scope {
-    data object Global : Scope                                  // dictionaryId IS NULL
-    data class PerDictionaries(val ids: List<Long>) : Scope     // одна или несколько привязок
+/** Результат создания компонента. */
+sealed interface CreateOutcome {
+    /** Создано N rows (по одному на словарь; в UI всегда 1 — создание на один словарь). */
+    data class Success(val created: List<ComponentType>) : CreateOutcome
+    /** Имя пустое после trim — валидация UseCase, без обращения к data API. */
+    data object NameEmpty : CreateOutcome
+    /** Имя занято живым типом в том же scope (тот же словарь / global). */
+    data object SameScopeCollision : CreateOutcome
+    /** Имя занято в противоположном scope: global против per-dict (инвариант §7.2). */
+    data object CrossScopeCollision : CreateOutcome
+    /** IS486: нарушение инварианта создания §7.1 — цель отсутствует/мертва, core при не-лексеме, обе ссылки. */
+    data object InvalidTarget : CreateOutcome
+    /** IS486: isMultiple = true для шаблона CHOICE запрещён. */
+    data object MultiForbiddenForChoice : CreateOutcome
+    /** Exception data-слоя (try-catch на UseCaseImpl; CancellationException re-throw). */
+    data class Failure(val cause: Throwable) : CreateOutcome
+    // Removed не моделируется — Create не оперирует existing id; коллизия с soft-deleted
+    // именем покрывается SameScope/CrossScope (фильтр removed_at IS NULL).
 }
 
-sealed interface NameError {
-    data object Empty : NameError                               // name.isBlank()
-    data object SameScopeCollision : NameError                  // active rows в том же scope
-    data object CrossScopeCollision : NameError                 // global ⊥ per-dict invariant
+/** Результат soft-delete компонента. */
+sealed interface DeleteOutcome {
+    /** Удалено; [impact] — фактический каскад (для snackbar «N values hidden»). */
+    data class Success(val impact: DeletionImpact) : DeleteOutcome
+    /** Попытка удалить builtin — запрещено. */
+    data object BuiltInProtected : DeleteOutcome
+    /** IS486: попытка удалить последнее включённое ядро словаря (§7.8). */
+    data object LastEnabledCore : DeleteOutcome
+    /** removed_at IS NOT NULL — повторный soft-delete (race с параллельным удалением). */
+    data object Removed : DeleteOutcome
+    /** Exception data-слоя. */
+    data class Failure(val cause: Throwable) : DeleteOutcome
+}
+
+/** IS486: результат enable/disable компонента. */
+sealed interface EnableOutcome {
+    /** Флаг переключён. */
+    data class Success(val updated: ComponentType) : EnableOutcome
+    /** Попытка выключить последнее включённое ядро словаря (§7.8). */
+    data object LastEnabledCore : EnableOutcome
+    /** removed_at IS NOT NULL — компонент удалён параллельно. */
+    data object Removed : EnableOutcome
+    /** Exception data-слоя. */
+    data class Failure(val cause: Throwable) : EnableOutcome
+}
+
+/** Результат редактирования компонента (имя / кардинальность / цель). */
+sealed interface EditOutcome {
+    /** UPDATE прошёл; cascade quiz_configs.component_refs выполнен если name изменился. */
+    data class Success(val updated: ComponentType) : EditOutcome
+    /** Имя пустое после trim — валидация UseCase, без обращения к data API. */
+    data object NameEmpty : EditOutcome
+    /** Name занят в том же scope (dictionary_id + system_key IS NULL + removed_at IS NULL). */
+    data object SameScopeCollision : EditOutcome
+    /** Name занят в global / другом dict (cross-scope invariant). */
+    data object CrossScopeCollision : EditOutcome
+    /**
+     * Downgrade isMultiple true → false заблокирован — есть лексемы с count > 1.
+     * impactedLexemeIds — полный список, deterministic sort
+     * (ORDER BY component_values.updated_at DESC, lexeme_id ASC).
+     * Reducer делит: InlineOnly (size ≤ 3) | InlineWithDrillIn (size > 3, inline = take(3)).
+     */
+    data class CardinalityDowngradeBlocked(val impactedLexemeIds: List<Long>) : EditOutcome
+    /** Попытка изменить template — возврат БЕЗ обращения к data API. */
+    data object TemplateImmutable : EditOutcome
+    /** Попытка редактировать builtin — запрещено. */
+    data object BuiltInProtected : EditOutcome
+    /** removed_at IS NOT NULL — soft-deleted (race с параллельным удалением). */
+    data object Removed : EditOutcome
+    /** IS486: перепривязка создала бы цикл (алгоритм §8). */
+    data object CycleDetected : EditOutcome
+    /** IS486: isMultiple = true для шаблона CHOICE запрещён. */
+    data object MultiForbiddenForChoice : EditOutcome
+    /** IS486: перепривязка последнего включённого ядра на не-лексему (§7.8). */
+    data object LastEnabledCore : EditOutcome
+    /** Exception data-слоя. */
+    data class Failure(val cause: Throwable) : EditOutcome
 }
 ```
 
-#### Nested state (screen-package)
+CRUD опций (К1–К5) — новое семейство outcome, контракт фиксируется при дизайне data API: Success | LabelEmpty | Removed | Failure; удаление опции с живыми ссылками — через impact-превью (К4/К5).
+
+**Dead path:** rename-флоу удалён в IS485, переименование — через Edit. Оставшиеся в data-слое `renameComponentType` / `RenameOutcome` — на выпил (зафиксировано в Backlog).
+
+---
+
+## 6. Состояния компонента
+
+- **Активный** — цель жива, `enabled = true`.
+- **Degraded** — вычисляемое состояние: цель указывает на удалённый (`removed_at`) узел. Ссылки при деградации **не зануляются** — restore цели автоматически оживляет компонент. В списке компонентов помечается, в лексемах не участвует.
+- **Disabled** — `enabled = false` (решение 2026-07-17, мягкая семантика): компонент **не предлагается для добавления новых значений** — и только. Существующие значения живут, видны и не сбрасываются; оформленность лексем не меняется; каскадов и impact-превью при disable нет. Юзер сам переделывает лексемы, если хочет. Re-enable возвращает компонент в предложения.
+  - Дизейблить можно любой компонент, включая ядро и builtin (пословарно). Единственный запрет — §7.8: последнее включённое ядро словаря не потерять.
+  - Дети disabled-компонента специальной логики не требуют: у старых лексем значение парента есть → дети доступны; у новых парента не заполнить → дети не откроются сами, по общему закону доступности.
+  - Квизы disabled не замечают — гоняют существующие значения как обычно (поведение квизов при иерархии — отдельное рассмотрение, вне v1).
+
+Состояния независимы: компонент может быть degraded и disabled одновременно.
+
+**Правило участия** — компонент участвует в лексеме (показывается и заполняется), когда:
+
+- цепочка предков доходит до лексемы по живым (не удалённым) узлам;
+- для не-ядер дополнительно: лексема оформлена.
+
+`enabled` в правило участия **не входит** — он влияет только на предложение компонента для добавления нового значения. Дети degraded-компонента выпадают автоматически — отдельный флаг им не нужен.
+
+### Переходы
+
+| Событие | Результат |
+|---|---|
+| создание | активный (инвариант создания гарантирует цель) |
+| цель удалена (soft-delete компонента-парента / опции) | degraded (вычисляемо) |
+| цель восстановлена | активный (вычисляемо, автоматически) |
+| перепривязка degraded | активный (без подтверждения — терять нечего) |
+| `enabled = false` | disabled — выпадает из предложений (запрещено последнему включённому ядру словаря — §7.8) |
+| `enabled = true` | снова предлагается (активный/degraded по цели) |
+| soft-delete самого компонента | удалён (existing семантика `removed_at`; последнему включённому ядру запрещён — §7.8) |
+
+---
+
+## 7. Инварианты
+
+1. **Инвариант создания** (UseCase-валидация; Room не умеет CHECK — дом-стиль M13):
+   - при создании компонент обязан иметь цель: лексема | компонент | опция;
+   - создать сразу degraded нельзя;
+   - `core = true` валиден только при цели-лексеме;
+   - обе depends-ссылки заполнены одновременно — нелегально.
+2. **Уникальность имени** (существующее, сохраняется): имя уникально в своём scope и cross-scope (`userdefined_identity_invariant`); enforce через two-prong SELECT перед INSERT (UNIQUE-индекса нет — поддержка пересоздания после soft-delete).
+3. **Ацикличность** (см. §8).
+4. **Инвариант значений:** пустых значений не существует — значение либо живое и непустое, либо удалено (`removed_at`).
+5. **Мульти:** CHOICE всегда single (мягкий запрет, §3).
+6. **Template immutability** (существующее): шаблон после создания не меняется.
+7. **Кросс-границы:** кросс-словарные зависимости запрещены на уровне домена — дерево всегда целиком внутри словаря. С пословарными builtin (§4) исключений нет: зависимость от перевода — ссылка на строку перевода **своего** словаря.
+8. **Минимум одно включённое ядро словаря** (расширено 2026-07-17): последнее включённое ядро нельзя потерять **ни одним из трёх путей** — disable (`enabled = false`), soft-delete, перепривязка на не-лексему (снимает core-флаг). Иначе словарь мёртв: новые лексемы нечем оформить. UseCase-валидация во всех трёх операциях, отказ с понятным сообщением.
+
+---
+
+## 8. Ацикличность
+
+**Инвариант.** У каждого компонента одна цель, лес растёт из лексемы. Цикл возможен только назначением цели, делающим компонент предком самого себя.
+
+**Алгоритм проверки** (назначаем компоненту C цель P):
+
+1. Нормализация: если P — опция, `P := компонент-владелец опции` (ловит и перепривязку к собственной опции).
+2. `X := P`; пока X — компонент: если `X == C` → отказ (цикл); иначе `X :=` цель X (для опции-цели — её владелец).
+3. Дошли до лексемы, не встретив C → допустимо.
+
+Сложность O(глубины цепочки). При создании проверка не нужна — у нового компонента нет потомков. **UI пикера цели (решение 2026-07-21):** сам C и его опции исключаются из списка; цели, создающие цикл (поддерево C), — **показываются задизейбленными** (приглушение, не тапаются) с красной подписью «Нельзя выбрать — возникнет цикл зависимостей» (проверка `createsCycle` — тот же подъём по предкам на state-слое). Data-проверка `CycleDetected` на Submit — подстраховка.
+
+**Подъём идёт по ссылкам независимо от removed-статуса узлов** (2026-07-17): degraded — вычисляемое состояние, ссылки не зануляются, любой мёртвый узел может ожить restore'ом — значит граф зависимостей это всегда все ссылки, живые и мёртвые. Кольцо через мёртвое звено — тоже `CycleDetected`.
+
+---
+
+## 9. Кейсы поведения
+
+### 9.1 Жизненный цикл лексемы
+
+- **Создание (черновик):** доступны для заполнения только ядра.
+- **Оформление:** заполнено первое ядро → лексема оформлена; открываются зависимые от лексемы не-ядра (Часть речи) и далее вглубь по мере активации целей.
+- **Деградация в черновик:** удалено значение последнего заполненного ядра → лексема снова черновик; значения зависимых от лексемы не-ядер сбрасываются по общему закону каскада (цель «лексема» деактивировалась). Запретов на удаление нет.
+- Существующая механика WordCard «удалён последний компонент → лексема удаляется» **заменяется** деградацией в черновик; каскадное удаление лексемы — только явным действием пользователя.
+- **Черновик живёт только пока карточка открыта** (решение 2026-07-21): сохранённая
+  пустая лексема тихо удаляется (`PurgeEmptyLexeme`, без undo-снека) при выходе с
+  карточки (flush-on-back, best-effort) и при входе (WordLoaded не показывает пустые
+  и чистит их). «Вышел-зашёл — черновика нет»; черновик — рабочее состояние экрана,
+  не персистентная сущность.
+
+### 9.2 Значения
+
+- **Добавление:** только у участвующих компонентов при активной цели. CHOICE — выбор одной опции (`option_id`).
+- **Изменение TEXT/IMAGE:** обычный edit, каскадов нет (значение остаётся живым — цель детей активна).
+- **Смена значения CHOICE** (решение 2026-07-21, ЗАМЕНЯЕТ in-place смену): операции
+  «сменить опцию» в UI не существует — тело чипа-значения глухое, смена = **удалить
+  значение крестиком + добавить заново** через чип добавления (пикер открывается
+  только с него, преселекта нет). Каскадно это удаление значения (см. ниже) +
+  добавление нового. In-place-путь (`UpdateValue` с частичным каскадом по старой
+  опции) из UI-слоя выпилен; частичный каскад смены опции в data-слое
+  (`updateComponentValue` + `ValueRemoved` c excludeIds) остаётся подстраховкой
+  для программных вызовов.
+- **Удаление значения:** цель деактивировалась → сброс зависимых от неё по цепочке вниз. Для мульти-компонента цель-компонент деактивируется только удалением **последнего** живого значения (уточнено 2026-07-17): удалил один пример из трёх — зависимые живут. Если умерло последнее значение последнего заполненного ядра — деградация лексемы в черновик (§9.1).
+- **Сброс = soft delete** (`removed_at` в values); для приложения значение исчезло.
+
+### 9.3 Опции (К1–К5)
+
+- **К1. Добавление** — свободно, опция сразу доступна.
+- **К2. Переименование** — свободно; id устойчив, значения не трогаются, лейбл меняется везде задним числом.
+- **К3. Удаление без ссылок** (никто не выбрал, никто не зависит) — свободно.
+- **К4. Удаление с живыми значениями** — impact-превью («выбрана у N лексем, значения будут удалены. Продолжить?») + каскадный сброс значений по цепочке вниз.
+- **К5. Удаление опции с зависимым компонентом** — опция soft-delete; зависимый компонент становится degraded вычисляемо (ссылка живёт, указывает на удалённую опцию). Restore опции — компонент ожил. Деградация никогда не меняет доступность молча (отвергнуты «повысить до ядра» и «расширить до любого значения парента»).
+- **К4 и К5 — один кейс удаления опции**, комбинируются: у опции одновременно могут быть и выбранные значения, и зависимые компоненты. Impact — единой структурой `DeletionImpact` (счётчик значений + degraded-компоненты + descendant-счётчики), не «одним COUNT».
+- **UI-флоу удаления опции (решение 2026-07-21):** удаление — немедленная самостоятельная
+  операция из Edit-диалога: крестик → конфирм с impact → подтверждение применяет каскад
+  сразу и **закрывает Edit-диалог целиком** (снек с числом скрытых значений). Rename и
+  добавление опций — батчем на «Сохранить»; удаление в батч не входит.
+- **Опции builtin нередактируемы** (§21.2): add/rename/delete отбиваются
+  (`BuiltInProtected`); UI Edit-диалог для builtin закрыт.
+
+### 9.4 Компоненты
+
+- **Создание:** имя + шаблон + цель (+ опции для CHOICE, + core при цели-лексеме). Только на **один словарь** (multi-dict путь в коде остаётся, из UI уходит; валидация: «несколько словарей + зависимость» не поддерживается). Инвариант создания §7.1; коллизии имён — существующие ветки.
+- **Редактирование (Edit):** имя (с коллизиями), кардинальность (с `CardinalityDowngradeBlocked` и превью затронутых лексем), шаблон — immutable. Для CHOICE: мульти запрещён (`MultiForbiddenForChoice`).
+- **Перепривязка (смена цели):** разрешена с валидацией ацикличности (§8); перепривязка ядра на не-лексему снимает core-флаг → последнему включённому ядру запрещена (§7.8, `EditOutcome.LastEnabledCore`):
+  - **умный сброс** (решение 2026-07-21, заменяет прежний полный): сбрасываются ТОЛЬКО
+    значения в лексемах, где **новое** условие не выполнено (цель-лексема — выполнено
+    всегда; цель-компонент — есть живое значение цели; цель-опция — выбран именно этот
+    вариант); сброшенные тянут своё поддерево обычным каскадом, уцелевшие живут.
+    Пример: пример-компонент «Самостоятельный → от Перевода» — безопасно (перевод есть
+    в каждой оформленной лексеме); «→ от опции „муж.“» — сброс только в лексемах без
+    этого выбора. Механика: fixpoint-планировщик по графу с уже подменённой целью
+    (`CascadeEvent.TargetRebound`), начальных жертв нет;
+  - **impact-конфирм обязателен при любой смене цели** (решение 2026-07-21): перед
+    применением показывается превью — «безопасно, ничего не сбросится» либо «будет
+    скрыто N значений» (dry-run того же плана, `previewRebindImpact`);
+  - degraded — перепривязка тем же флоу; терять нечего, превью покажет «безопасно».
+- **Disable / enable:** §6 — мягкая семантика: только убирает из предложений, значения живут, каскадов и impact нет. Можно любому, включая ядро и builtin; запрет один — последнее включённое ядро словаря (§7.8). Контракт: `setComponentEnabled(typeId, enabled)`: API — `SetEnabledComponentOutcome` (`Success | LastEnabledCore | Removed`), domain — `SetEnabledOutcome` (+`Failure` — try-catch на UseCaseImpl).
+- **Удаление (soft-delete):** impact-превью + подтверждение; последнему включённому ядру — запрещено (§7.8, `DeleteOutcome.LastEnabledCore`). `DeletionImpact` расширяется: деградирующие потомки (список), счётчики значений по цепочке. Каскад существующий (cleanup quiz-конфигов + prefs, одна транзакция) сохраняется; дети НЕ удаляются и НЕ повышаются — становятся degraded вычисляемо; их значения сбрасываются по общему каскаду.
+- **Restore компонента** (data-уровень, без UI): дети-degraded оживают автоматически (вычисляемое состояние). Значения детей НЕ восстанавливаются (были сброшены каскадом).
+- **CRUD опций** — отдельные операции Edit-флоу CHOICE-компонента (К1–К5).
+
+### 9.5 Словари
+
+- **Создание словаря:** seed **пословарных** builtin-строк — свой «Перевод» (ядро) + своя «Часть речи» (CHOICE, не ядро) со стартовым набором опций. Дефолтный состав нового словаря — только builtin.
+- **Удаление словаря:** все компоненты словаря (кастомные и builtin-строки) умирают вместе с ним (FK CASCADE); вопросов деградации не возникает — дерево целиком внутри словаря (§7.7).
+
+### 9.6 Квизы
+
+- **Чистка конфигов — только при удалении** компонента (существующий каскад). Disabled/degraded — обратимые состояния: конфиги живут.
+- **Disabled квизы не замечают** (решение 2026-07-17): значения живы и видимы — тренировки продолжаются как обычно. Поведение квизов при иерархии (degraded, зависимые, CHOICE) — **отдельное рассмотрение, вне v1**.
+- **CHOICE в v1 в квизах не участвует**; задел держать.
+- Резолв name-based `ComponentTypeRef` → тип — единой функцией (миграция refs на id — Backlog).
+
+---
+
+## 10. Хранение
+
+Конвенция audit-полей (все таблицы): при создании `created_at` и `updated_at` получают одно и то же значение `now`; `updated_at` меняется только при UPDATE. Инвариант: `updated_at == created_at` ⇔ сущность ни разу не редактировалась.
+
+### `component_types`
+
+- `id` — PK autoincrement; идентификатор компонента.
+- `system_key` — стабильный ключ builtin (`'translation'`, `'part_of_speech'`); null → user-defined. IMMUTABLE после INSERT. IS486: UNIQUE-индекс по одному ключу **дропается** (builtin пословарные — по строке на словарь); уникальность «(ключ, словарь)» — UseCase-валидация (дом-стиль M13).
+- `dictionary_id` — FK → `dictionaries.id`, CASCADE. IS486: у builtin-строк заполнен (пословарные). null = global — в продукте не используется, остаётся для потенциального global-охвата (§20).
+- `name` — имя компонента; null допустим для builtin (display из enum), user-defined требует name. Уникальность — в UseCase (§7.2).
+- `template_key` — ключ шаблона: `"text"` / `"image"` / `"choice"`.
+- `position` — порядок в списках.
+- `is_multiple` — кардинальность; true → несколько значений на лексему. Для CHOICE всегда false (валидация).
+- `core` — **IS486**: флаг ядра; валиден только при цели-лексеме.
+- `enabled` — **IS486**: рубильник, дефолт true.
+- `depends_on_type_id` — **IS486**: ссылка на компонент-цель (FK → `component_types.id`), nullable.
+- `depends_on_option_id` — **IS486**: ссылка на опцию-цель (FK → `component_options.id`), nullable.
+- `created_at` / `updated_at` — audit timestamps.
+- `removed_at` — soft-delete; null → живой.
+
+Состояния depends-ссылок: обе пустые → цель «лексема»; заполнена одна → зависимый от компонента / от опции; обе → нелегально (UseCase-валидация).
+
+### `component_options` (новая, IS486)
+
+- `id` — PK autoincrement; адрес опции, на него ссылаются зависимости и значения.
+- `component_type_id` — FK → `component_types.id`, CASCADE; какому CHOICE-компоненту принадлежит.
+- `system_key` — ключ builtin-опции (`noun`/`verb`/...), nullable; display локализуется
+  ресурсом; опции builtin нередактируемы (§21.2, `BuiltInProtected`).
+- `label` — текст пользовательской опции («мужской»), nullable (у builtin — NULL);
+  переименование меняет только его.
+- `position` — порядок в списке.
+- `created_at` / `updated_at` — audit timestamps.
+- `removed_at` — soft-delete; null → живая.
+
+### `component_values`
+
+- `id` — PK autoincrement.
+- `lexeme_id` — FK → `lexemes.id`, CASCADE; чья лексема.
+- `component_type_id` — FK → `component_types.id`, CASCADE; какой компонент заполнен.
+- `value` — JSON-сериализованный `TemplateValues` (envelope `{"fields": {...}}`); для CHOICE — пустой envelope (колонка NOT NULL сохраняется).
+- `option_id` — **IS486**: FK → `component_options.id`, nullable; выбранная опция CHOICE-значения. Строка values — факт «компонент у лексемы заполнен»; сама опция и есть значение, копий лейбла нет. Счётчик значений опции — COUNT по `option_id` (в составе комбинированного impact §9.3).
+- `created_at` / `updated_at` — audit timestamps.
+- `removed_at` — soft-delete; null → живое. Каскадные сбросы значений пишут сюда (§9.2).
+
+**FK-поведение новых ссылок:** `depends_on_type_id`, `depends_on_option_id`, `option_id` — все `onDelete = CASCADE`. Безопасно: hard-delete целей случается только при удалении словаря (§9.5), а дерево целиком внутри словаря (§7.7); во всех остальных сценариях удаление — soft (`removed_at`), FK не срабатывает, degraded вычисляется.
+
+**Индексы:** существующие — `lexeme_id`, `component_type_id` на values; `dictionary_id` на types (UNIQUE `system_key` дропается — §11; UNIQUE `(lexeme_id, component_type_id)` снят ещё в M13). Новые — на каждую новую FK-колонку: `depends_on_type_id`, `depends_on_option_id` (types), `option_id` (values), `component_type_id` (options) — требование Room-lint для FK.
+
+Перевод и Часть речи — обычные строки `component_types` (`system_key`); зависимость от них — обычные ссылки.
+
+---
+
+## 11. Миграция 11→12 (collapsed)
+
+> **РЕАЛИЗОВАНО ИНАЧЕ (решение 2026-07-19):** отдельной миграции «12→13» не существует.
+> Деплой-тег `0.1.5` = схема v11, поэтому вся IS486-схема схлопнута в единую
+> `Migration_011_to_012` — v12 создаётся сразу в финальной форме (таблицы v12-вида,
+> никаких ALTER/DROP-UNIQUE поверх промежуточной v12). Описанные ниже шаги остаются
+> верными по СОДЕРЖАНИЮ (что должно получиться), но исполняются одной миграцией
+> 11→12 из 14 шагов (`MigrationTestFailureException` + `failAfterStep` — контракт
+> идемпотентность-тестов). Defensive-проверка глобальных кастомов не нужна:
+> в v11 таблицы `component_types` ещё нет.
+
+### Схема
+
+- Таблица `component_options`; `core`, `enabled`, `depends_on_type_id`, `depends_on_option_id` в types; `option_id` в values; индексы на новые FK (§10).
+- **UNIQUE-индекса `system_key` в v12 нет** (builtin пословарные). Идемпотентность seed — явная проверка `WHERE NOT EXISTS (ключ, словарь)`.
+
+### Размножение builtin
+
+- Единственная глобальная строка translation заменяется пословарными — по строке «Перевод» на каждый существующий словарь; значения лексем перевязываются на строку своего словаря (UPDATE через JOIN values → lexemes → words → dictionary_id; паттерн уже есть в `migrateDefinitionData`).
+- Seed «Части речи» — по строке на словарь + стартовые опции: **существительное, глагол, прилагательное, наречие, предлог, фраза**.
+
+### Backfill
+
+- Строки «Перевод» — ядро (`core = true`).
+- Кастомный компонент, имеющий хоть одно значение в лексеме без перевода (фактически используется сам — Definition), — ядро (цель — лексема).
+- Остальные кастомные — зависимость от перевода **своего словаря** (`depends_on_type_id`).
+- `enabled = true` всем.
+- **Глобальные кастомные (`dictionary_id IS NULL`):** считаем, что их не существует (решение 2026-07-17, пользователь один); defensive-проверка в миграции — если найдётся, fail с логом, а не молчаливая порча.
+- **Legacy-create (фазы 1–2):** старый диалог создания не знает про цель/ядро — `createUserDefinedComponent` пишет дефолт: цель = лексема, `core = true` (эквивалент старой семантики «компонент держит лексему»).
+
+### Резолв builtin по ключу — становится пословарным
+
+Глобальный lookup `ComponentTypeDao.getBySystemKey(key)` с пословарными builtin возвращает произвольную из N строк — **ломает создание лексем**, не только квизы. Заменить на `getBySystemKeyForDictionary(key, dictionaryId)` во всех call-site:
+
+- `addLexemeWithBuiltInComponent` (CoreDbApiImpl);
+- `addLexemeWithComponents` (CoreDbApiImpl);
+- restore-путь лексемы (CoreDbApiImpl);
+- квиз-refs: формат хранения — JSON `{"type":"builtin","key":"translation"}` (`ComponentTypeRefJson`), в prefs квиз-пикера — префикс `builtin:`; резолв ключа — в рамках словаря конфига.
+
+### Seed-точка
+
+- **Реализовано:** seed живёт в транзакции создания словаря — `DictionaryApiImpl.addDictionary`
+  → `seedBuiltInsForDictionary` (CoreDbApiImpl): создание словаря атомарно включает вставку
+  его builtin-строк + опций части речи. Идемпотентность — `WHERE NOT EXISTS (ключ, словарь)`.
+  Прежний `RoomModule.onCreate → SeedBuiltIns` удалён (для пословарных builtin не работал:
+  словари создаются позже БД).
+- Покрыть и обходные пути создания словаря (restore/import), если они минуют `addDictionary`.
+- Destructive-fallback путь seed — известная дыра из Backlog, при переносе seed-точки закрывается естественно (seed больше не висит на `onCreate`).
+
+### Прочее
+
+- Побочный эффект принят: пользователь один, иерархию донастроит руками перепривязкой.
+- Migration-тесты по образцу `MigrationFrom11to12`: размножение builtin, перевязка значений, backfill ядер/зависимостей, seed опций, defensive-проверка глобальных кастомов.
+
+---
+
+## 12. Влияние на существующую реализацию
+
+- **Каскад-модуль** — новый, единый, рекурсивный, транзакционный (уровень LexemeApi, обход дерева в памяти внутри `immediateTransaction`). Триггеры: смена/удаление значения парента, удаление опции, удаление компонента, перепривязка. Dry-run режим = impact-превью.
+- **WordCard:**
+  - «удалён последний компонент → лексема удаляется» → деградация в черновик (§9.1);
+  - `ComponentValueState` текстоцентричен → typed-контент (sealed Text | Choice), `ChoiceValues` в `TemplateValues`, коммит/`CommitOutcome` ветвится по шаблону;
+  - фильтрация чипсов по правилу участия — явными полями state, заполняемыми в reducer (дом-правило: явные флаги, не вычисления в composable);
+  - draft-anchor обязан быть ядром (закрывается фильтрацией: не-ядра в черновик не попадают).
+- **Impact-превью** (`previewDeletionImpact`) — расширяется полями деградирующих потомков и счётчиками по цепочке; UI-механика превью/подтверждения переиспользуется.
+- **Квизы** — фильтр участия при сборке quiz item (`QuizGameImpl`) и в пикере компонентов; graceful skip уже есть.
+- **Конструктор (экран компонентов):** Create/Edit-диалоги получают пикер цели и CRUD опций; список помечает degraded/disabled; builtin-строки словаря показываются с ограниченными действиями (§4) и участвуют как кандидаты-цели.
+- **Manager-экран:** вход из Settings (`ComponentsManageWidget`) удаляется; модуль `components_manager` остаётся в коде как консерв потенциальной фичи (§20), из навигации недостижим.
+- **Spec-правки:** component-constructor spec — CHOICE, пикер цели, опции, расширенный impact, новые ветки EditOutcome, запрет мульти для CHOICE; lexeme-domain spec — устарел (плоские translation/definition), владелец lifecycle-правил лексемы — эта спека.
+
+---
+
+## 13. Экран и точка входа
+
+Разделы 13–19 описывают экранный слой (IS481 phase 2 + редизайн IS485, rename-флоу удалён; IS486-расширения — §12: пикер цели, CRUD опций, degraded/disabled-метки, builtin-строки в списке).
+
+Конструктор компонентов — **один экран**:
+
+- **`PerDictionaryComponentsScreen`** — компоненты словаря. Вход: `DictionaryAppBar` → icon-button «молоток» (`ComponentsToolsIconButton`, `ic_hammer`, виден при выбранном словаре).
+- Список: кастомные компоненты словаря + builtin-строки словаря (с ограниченными действиями — §4). До IS486 builtin скрывались.
+- Scaffold с `formBackground`, прозрачный TopAppBar (IS485), snackbar host, FAB «Создать»; состояния контента: loading (`CircularProgressIndicator`) / error (`ErrorStateWidget` + retry) / empty (`ComponentsEmptyStateWidget` с CTA) / список (`LazyColumn` строк-карточек).
+
+`ComponentsManagerScreen` (aggregated view из Settings) — **убран из продукта** вместе с глобальным охватом; описание — §20 (потенциальная фича).
+
+## 14. State (экранный слой)
+
+Domain-shared типы (`:modules:domain:lexeme`): `Scope`, `NameError`, outcomes, снапшот, `DeletionImpact` (§5). Screen-specific — в пакете `me.apomazkin.per_dictionary_components.mate` (Manager-пакет — §20).
+
+> **РЕАЛИЗАЦИЯ РАСШИРИЛА (фаза 3 + решения 2026-07-21)** — листинги ниже это базовый
+> IS481-каркас; фактический state дополнен (актуальный источник — `mate/State.kt`):
+> - `PerDictionaryComponentsScreenState.pendingEnabledToggles: Set<ComponentTypeId>` —
+>   guard double-tap рубильника enabled (write-операция БЕЗ диалога);
+> - `PerDictRow` + `systemKey / core / enabled / dependsOn / degraded / options: List<OptionRow>`;
+>   `OptionRow(optionId, systemKey, label, position)`;
+> - `CreateDialogState` + `target: DependencyTarget / core / optionDrafts / optionsError`
+>   (пикер цели В1 + черновики вариантов CHOICE В2);
+> - `EditDialogState` + `originalTarget / originalCore / target / core / existingOptions:
+>   List<EditOptionRow> / newOptionDrafts / optionDeleteConfirm / isDeletingOption /
+>   rebindConfirm` — иерархия и опции в Edit;
+> - вложенные конфирмы ПОВЕРХ Edit-диалога (не мьютекс с ним):
+>   `OptionDeleteConfirmState(optionId, label, impact, isLoadingImpact)` — немедленное
+>   удаление опции; `RebindConfirmState(impact, isLoadingImpact)` — обязательный конфирм
+>   перепривязки (умный сброс §9.4);
+> - `createsCycle(items, selfId, target)` — state-функция раннего цикл-чека (§8):
+>   дизейбл цикловых целей в пикере + подстраховочный guard reducer'а;
+> - корреляция: epoch — у `Create/Edit/Delete/OptionDelete Result`; impact-превью
+>   (`ImpactPreviewLoaded/OptionImpactLoaded/RebindImpactLoaded`) и `SetEnabledResult`
+>   коррелируют по `typeId`/`optionId` (превью привязано к сущности, не к сессии диалога).
 
 ```kotlin
-package me.apomazkin.components_manager.logic
-
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.Scope
-import me.apomazkin.lexeme.NameError
-import me.apomazkin.lexeme.DeletionImpact
+/**
+ * Охват компонента при создании.
+ *
+ * - [Global] — компонент для всех словарей (`dictionary_id IS NULL`); в UI не используется, живёт в коде.
+ * - [PerDictionaries] — привязка к словарям; [PerDictionaries.ids] — их id;
+ *   в UI всегда один словарь (решение Д); пример: `PerDictionaries(listOf(1))`.
+ */
+sealed interface Scope {
+    data object Global : Scope
+    data class PerDictionaries(val ids: List<Long>) : Scope
+}
 
 /**
- * Aggregated UI row для одного user-defined component_type из любого словаря.
- * Built-in компоненты в этот список НЕ попадают.
+ * Ошибка имени в Create-диалоге (показывается под полем ввода).
+ *
+ * - [Empty] — имя пустое после trim.
+ * - [SameScopeCollision] — имя занято живым типом в том же scope.
+ * - [CrossScopeCollision] — имя занято в противоположном scope (global против per-dict).
  */
-data class UserDefinedRow(
+sealed interface NameError {
+    data object Empty : NameError
+    data object SameScopeCollision : NameError
+    data object CrossScopeCollision : NameError
+}
+```
+
+### `PerDictionaryComponentsScreenState`
+
+```kotlin
+/**
+ * State экрана компонентов словаря.
+ *
+ * [dictionaryId] — словарь-контекст (init-параметр экрана).
+ * [dictionaryName] — имя словаря для заголовка; null пока не загружено.
+ * [items] — строки списка; null = не загружено (initial loading),
+ *   emptyList = загружено и пусто (empty state).
+ * [isLoading] — initial load / refresh в полёте. Explicit-флаг, не вычисляется из null-данных.
+ * [isCreating] / [isDeleting] / [isEditing] — submit соответствующей операции в полёте;
+ *   блокируют кнопку от двойного тапа (дом-правило: явные флаги, не вычисления в composable).
+ * [createDialog] / [deleteConfirm] / [editDialog] — состояние диалога; видим ⇔ != null;
+ *   одновременно открыт максимум один (инварианты ниже).
+ * [snackbarState] — единственный источник UI-фидбека; UI показывает и сбрасывает `DismissSnackbar`.
+ * [nextEpoch] — монотонный счётчик корреляции: каждый `Open*Dialog` выдаёт диалогу `epochId = nextEpoch`
+ *   и инкрементирует счётчик; submit переиспользует epochId своего диалога (НЕ инкрементирует).
+ *   `*Result` со stale epochId (диалог переоткрыт) игнорируется.
+ */
+data class PerDictionaryComponentsScreenState(
+    val dictionaryId: Long,
+    val dictionaryName: String? = null,
+    val items: List<PerDictRow>? = null,
+    val isLoading: Boolean = false,
+    val isCreating: Boolean = false,
+    val isDeleting: Boolean = false,
+    val isEditing: Boolean = false,
+    val createDialog: CreateDialogState? = null,
+    val deleteConfirm: DeleteConfirmState? = null,
+    val editDialog: EditDialogState? = null,
+    val snackbarState: SnackbarState? = null,
+    val nextEpoch: Long = 0L,
+)
+```
+
+### Nested state
+
+```kotlin
+/**
+ * Строка списка компонентов словаря.
+ *
+ * [typeId] — id типа (для onEdit/onDelete).
+ * [name] — имя; пример: `"Синонимы"`.
+ * [template] — шаблон (для чипа «Текст»).
+ * [isMultiple] — кардинальность; в UI IS485 бейдж скрыт, данные живут.
+ * [isGlobal] — компонент global-охвата; в продукте всегда false (глобалов нет — §20), поле живёт.
+ * [valueCount] — живые значения в этом словаре; пример: 7 → «Значений: 7».
+ */
+data class PerDictRow(
     val typeId: ComponentTypeId,
     val name: String,
     val template: ComponentTemplate,
     val isMultiple: Boolean,
-    val scope: Scope,                       // Global / PerDictionaries(list)
-    val usageCount: Int,                    // суммарно активных values по словарям
-    val dictionaryNames: List<String>,      // в каких словарях виден (badge)
+    val isGlobal: Boolean,
+    val valueCount: Int,
 )
 
+/**
+ * State Create-диалога (per-dict вариант; Manager-вариант с multi-dict пикером — §20).
+ *
+ * [name] — вводимое имя.
+ * [template] — выбранный шаблон; дефолт TEXT.
+ * [isMultiple] — чекбокс «Несколько значений».
+ * [scope] — охват; обязательный параметр без дефолта, `OpenCreateDialog` ставит
+ *   `PerDictionaries(listOf(dictionaryId))` — текущий словарь.
+ * [nameError] — ошибка имени под полем; сбрасывается `CreateNameChange` (только им).
+ * [epochId] — корреляция: выдаётся при открытии из `nextEpoch` (см. state).
+ */
 data class CreateDialogState(
     val name: String = "",
-    val template: ComponentTemplate = ComponentTemplate.TEXT,   // MVP: только TEXT
+    val template: ComponentTemplate = ComponentTemplate.TEXT,
     val isMultiple: Boolean = false,
-    val scope: Scope = Scope.Global,                            // дефолт на aggregated view
+    val scope: Scope,
     val nameError: NameError? = null,
-    val selectedDictionaryIds: Set<Long> = emptySet(),          // phase 2: multi-dict picker
+    val epochId: Long,
 )
 
-data class RenameDialogState(
-    val typeId: ComponentTypeId,
-    val originalName: String,
-    val editedName: String,
-    val nameError: NameError? = null,
-)
-
+/**
+ * State confirm-диалога удаления.
+ *
+ * [typeId] — что удаляем.
+ * [name] — имя для заголовка «Удалить „Синонимы"?».
+ * [impact] — превью каскада; null пока грузится или не запрошен.
+ * [isLoadingImpact] — превью в полёте; `impact == null && !isLoadingImpact` — «не запрошен».
+ * [epochId] — корреляция: выдаётся при открытии из `nextEpoch` (см. state).
+ */
 data class DeleteConfirmState(
     val typeId: ComponentTypeId,
     val name: String,
-    val impact: DeletionImpact? = null,    // null пока preview грузится / не запрошен
+    val impact: DeletionImpact? = null,
     val isLoadingImpact: Boolean = false,
+    val epochId: Long,
 )
 
-data class SnackbarState(
-    val text: String,
-)
-```
-
-#### Computed properties
-
-```kotlin
-val ComponentsManagerScreenState.isEmpty: Boolean
-    get() = userDefinedTypes?.isEmpty() == true && !isLoading
-
-val CreateDialogState.canSubmit: Boolean
-    get() = name.trim().isNotEmpty() && when (scope) {
-        Scope.Global -> true
-        is Scope.PerDictionaries -> selectedDictionaryIds.isNotEmpty()
-    }
-```
-
-#### Инварианты
-
-- `[shape]` Одновременно открыт **не более одного** диалога: `createDialog ⊕ renameDialog ⊕ deleteConfirm ⊕ editDialog`. Enforced в reducer'е: любой `Open*Dialog` Msg закрывает остальные.
-- `[shape]` Одновременно in-flight **не более одной** write-операции: `isCreating ⊕ isRenaming ⊕ isDeleting ⊕ isEditing`.
-- `[shape]` `isCreating == true` → `createDialog != null` (submit подразумевает открытый диалог). Аналогично для `isRenaming` / `isDeleting` / `isEditing`.
-- `[shape]` `deleteConfirm?.impact == null && deleteConfirm?.isLoadingImpact == false` — preview ещё не запросили (отдельное состояние от «грузится»).
-- `[transition]` после `Msg.ConfirmDelete` reducer выставляет `isDeleting=true` и dispatch `SoftDeleteComponent` ровно один раз; повторный `ConfirmDelete` при `isDeleting=true` игнорируется.
-- `[transition]` `OpenCreateDialog` / `OpenRenameDialog` / `OpenDeleteConfirm` / `OpenEditDialog` сбрасывают соответствующие in-flight флаги до `false` (старый submit-индикатор не должен висеть на новом диалоге); закрывают остальные диалоги.
-- `[transition]` `Msg.DictionariesLoaded(updated)` фильтрует `createDialog.selectedDictionaryIds ∩ updated.ids`; поля `editDialog` НЕ мутируются.
-
-#### `EditDialogState` (phase 2)
-
-```kotlin
+/**
+ * State Edit-диалога.
+ *
+ * [typeId] — редактируемый тип.
+ * [originalName] / [originalTemplate] / [originalIsMultiple] — snapshot на момент открытия:
+ *   diff на submit (template-immutability проверяется по нему на UseCase).
+ * [name] / [template] / [isMultiple] — текущий ввод.
+ * [nameError] — ошибка имени под полем.
+ * [impactedLexemesPreview] — превью блокировки cardinality-downgrade; null = не показывается.
+ * [epochId] — корреляция: выдаётся при открытии из `nextEpoch` (см. state); submit переиспользует;
+ *   `EditResult` со stale epoch (диалог переоткрыт) игнорируется.
+ */
 data class EditDialogState(
     val typeId: ComponentTypeId,
     val originalName: String,
@@ -228,1479 +841,211 @@ data class EditDialogState(
     val isMultiple: Boolean,
     val nameError: EditNameError? = null,
     val impactedLexemesPreview: ImpactedLexemesPreview? = null,
-    val epochId: Long = 0L,                  // correlation id для submit Edit
+    val epochId: Long = 0L,
 )
-```
 
-`originalName / originalTemplate / originalIsMultiple` — snapshot для diff на submit (template-immutability check на UseCaseImpl). `name / template / isMultiple` — current input. `template` остаётся в UI state (control остаётся видим), но любая попытка submit'нуть его изменённым отбивается на UseCase без обращения к data API.
-
-`epochId` живёт внутри `EditDialogState` (а не в outer `ComponentsManagerScreenState`) — каждый submit ↑ epoch, `EditResult(epoch, …)` с устаревшим epoch игнорируется reducer'ом. (Эта схема — parity с `Create` / `Rename` / `Delete` epoch correlation, см. existing reducer.)
-
-#### `ImpactedLexemesPreview` (phase 2)
-
-Explicit sealed-flag для cardinality downgrade preview:
-
-```kotlin
+/**
+ * Превью лексем, блокирующих cardinality-downgrade.
+ *
+ * [impactedLexemeIds] — полный список id затронутых лексем (deterministic sort с data-уровня).
+ *
+ * - [InlineOnly] — 1..3 лексемы: показываются все, drill-in кнопка скрыта.
+ * - [InlineWithDrillIn] — больше 3: [InlineWithDrillIn.inlineIds] — top-3 для inline,
+ *   drill-in кнопка «Показать все (N)» видна.
+ */
 sealed interface ImpactedLexemesPreview {
     val impactedLexemeIds: List<Long>
-
-    /** 1 ≤ size ≤ 3 — inline preview всех; drill-in кнопка скрыта. */
     data class InlineOnly(override val impactedLexemeIds: List<Long>) : ImpactedLexemesPreview
-
-    /** size > 3 — top-3 в `inlineIds`, full в `impactedLexemeIds`; drill-in видна. */
     data class InlineWithDrillIn(
         override val impactedLexemeIds: List<Long>,
         val inlineIds: List<Long>,
     ) : ImpactedLexemesPreview
 }
-```
 
-`inlineIds` хранится explicitly (top-3 по deterministic sort с data-уровня — `ORDER BY component_values.updated_at DESC, lexeme_id ASC`); reducer не пересортирует. `size == 0` не моделируется как ветка (downgrade проходит → `EditOutcome.Success`, preview не показывается).
-
-#### `EditNameError` (phase 2)
-
-```kotlin
+/**
+ * Ошибка имени в Edit-диалоге (зеркало [NameError]; отдельный тип — живёт в mate-пакете экрана).
+ *
+ * - [NameEmpty] — имя пустое после trim.
+ * - [SameScopeCollision] / [CrossScopeCollision] — коллизии имён (§7.2).
+ */
 sealed interface EditNameError {
     data object NameEmpty : EditNameError
     data object SameScopeCollision : EditNameError
     data object CrossScopeCollision : EditNameError
 }
+
+/** Snackbar-состояние. [text] — готовый текст сообщения. */
+data class SnackbarState(val text: String)
 ```
 
-`CardinalityDowngradeBlocked` / `TemplateImmutable` / `BuiltInProtected` / `Removed` / `Failure` НЕ через `nameError` — обрабатываются top-level UI reactions (snackbar + close dialog либо preview-ветка).
+- `ImpactedLexemesPreview` с `size == 0` веткой не моделируется — downgrade в этом случае проходит → `Success`, превью не показывается. Reducer `inlineIds` не пересортировывает.
+- `CardinalityDowngradeBlocked` / `TemplateImmutable` / `BuiltInProtected` / `Removed` / `Failure` идут НЕ через `nameError` — top-level реакции (snackbar + закрытие диалога либо preview-ветка).
 
----
+Manager-state (`ComponentsManagerScreenState`, `UserDefinedRow`, `availableDictionaries`) — §20.
 
-### `PerDictionaryComponentsScreenState`
-
-Scoped state — фильтр по `dictionaryId`. Видны user-defined компоненты применимые к словарю: global (`dictionaryId IS NULL`) + per-dict с `dictionaryId == this.id`.
+### Computed properties
 
 ```kotlin
-package me.apomazkin.per_dictionary_components.logic
+/** Empty state: данные загружены и пусты (не путать с initial loading, где список null). */
+val isEmpty: Boolean get() = items?.isEmpty() == true && !isLoading
 
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.Scope
-import me.apomazkin.lexeme.NameError
-import me.apomazkin.lexeme.DeletionImpact
-
-data class PerDictionaryComponentsScreenState(
-    // ===== Init context =====
-    val dictionaryId: Long,
-    val dictionaryName: String? = null,
-
-    // ===== Loaded data =====
-    val items: List<PerDictRow>? = null,
-
-    // ===== UI flags (explicit) =====
-    val isLoading: Boolean = false,
-    val isCreating: Boolean = false,
-    val isRenaming: Boolean = false,
-    val isDeleting: Boolean = false,
-    val isEditing: Boolean = false,                       // phase 2
-
-    // ===== Dialogs =====
-    val createDialog: CreateDialogState? = null,
-    val renameDialog: RenameDialogState? = null,
-    val deleteConfirm: DeleteConfirmState? = null,
-    val editDialog: EditDialogState? = null,              // phase 2
-
-    // ===== Snackbar =====
-    val snackbarState: SnackbarState? = null,
-)
-
-/**
- * Per-dictionary view row. `scope` упрощён до Boolean.
- */
-data class PerDictRow(
-    val typeId: ComponentTypeId,
-    val name: String,
-    val template: ComponentTemplate,
-    val isMultiple: Boolean,
-    val isGlobal: Boolean,           // dictionaryId IS NULL
-    val valueCount: Int,             // активные values в данном словаре
-)
 ```
 
-`CreateDialogState` / `RenameDialogState` / `DeleteConfirmState` / `EditDialogState` / `ImpactedLexemesPreview` / `EditNameError` / `SnackbarState` / `NameError` — переиспользуются из `components_manager.logic` (или дублируются точечно — конкретное решение на design level).
+`canSubmit` (проверка выбранных словарей) — Manager-специфика, §20. В per-dict доступность submit — непустое имя; blank-имя дополнительно ловится reducer-guard'ом на `SubmitCreate` (см. §15).
 
-**Отличия PerDict от Manager**:
+### Инварианты state
 
-- Дефолт `CreateDialogState.scope = Scope.PerDictionaries(listOf(dictionaryId))` (открытие из контекста словаря — логично прибиндить к нему). Пользователь может переключить на Global.
-- `availableDictionaries` **отсутствует** — multi-dict scope picker не применим (scope hardcoded к текущему словарю). `CreateDialogState` в PerDict **не расширяется** полем `selectedDictionaryIds` (либо игнорирует его).
+- `[shape]` открыт не более одного ВЕРХНЕУРОВНЕВОГО диалога: `createDialog ⊕ deleteConfirm ⊕ editDialog`; любой `Open*Dialog` закрывает остальные. **Уточнение (2026-07-21):** `optionDeleteConfirm` и `rebindConfirm` — вложенные слои ВНУТРИ `editDialog` (рендерятся поверх него), мьютекс на них не распространяется.
+- `[shape]` in-flight не более одной write-операции из диалоговых: `isCreating ⊕ isDeleting ⊕ isEditing`; флаг подразумевает открытый соответствующий диалог. **Уточнение (2026-07-21):** `pendingEnabledToggles` (рубильник, без диалога, множественные параллельные) и `isDeletingOption` (внутри editDialog) — отдельные write-каналы вне этого ⊕.
+- `[shape]` `deleteConfirm.impact == null && !isLoadingImpact` — валидное состояние «preview не запрошен» (отдельное от «грузится»).
+- `[transition]` `ConfirmDelete` → `isDeleting=true` + dispatch ровно один раз; повтор при `isDeleting=true` игнорируется.
+- `[transition]` `Open*Dialog` сбрасывает in-flight флаги в false.
 
-Инварианты `[shape]` те же, что у `ComponentsManagerScreenState`.
+## 15. Msg и reducer-контракт
 
----
+Msg-семейства (multi-dict семейство Manager-экрана — §20):
 
-## UI Messages
+- **Lifecycle:** `ItemsLoaded(snapshot)` / `ItemsLoadFailed(cause)` — из flow-handler'а.
+- **Create:** `OpenCreateDialog`, `CloseCreateDialog`, `CreateNameChange`, `CreateTemplateChange`, `CreateMultiToggle`, `CreateScopeChange`, `SubmitCreate`, `CreateResult(epochId, outcome)`.
+- **Delete:** `OpenDeleteConfirm(typeId)`, `CloseDeleteConfirm`, `ImpactPreviewLoaded(typeId, impact)`, `ImpactPreviewFailed(typeId, cause)`, `ConfirmDelete`, `DeleteResult(epochId, outcome)`.
+- **Edit:** `OpenEditDialog(typeId)`, `CloseEditDialog`, `EditNameChange`, `EditTemplateChange`, `EditMultiToggle`, `SubmitEdit`, `EditResult(epochId, outcome)`.
+- **Прочее:** `DismissSnackbar`, `RequestBack`, `OnRetryClick`, `Empty`; `UiMsg.Snackbar(text)`.
 
-### `Msg` для `ComponentsManagerScreen`
+Ключевые reducer-реакции:
 
-```kotlin
-package me.apomazkin.components_manager.logic
-
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.Scope
-import me.apomazkin.lexeme.CreateOutcome
-import me.apomazkin.lexeme.RenameOutcome
-import me.apomazkin.lexeme.DeleteOutcome
-import me.apomazkin.lexeme.EditOutcome
-import me.apomazkin.lexeme.DeletionImpact
-import me.apomazkin.lexeme.UserDefinedTypesSnapshot
-
-sealed interface Msg {
-
-    // ===== Lifecycle / data =====
-    data class TypesLoaded(val snapshot: UserDefinedTypesSnapshot) : Msg
-    data class TypesLoadFailed(val cause: Throwable) : Msg
-
-    // ===== Create dialog =====
-    data object OpenCreateDialog : Msg
-    data object CloseCreateDialog : Msg
-    data class CreateNameChange(val value: String) : Msg
-    data class CreateTemplateChange(val template: ComponentTemplate) : Msg
-    data class CreateMultiToggle(val isMultiple: Boolean) : Msg
-    data class CreateScopeChange(val scope: Scope) : Msg
-    data object SubmitCreate : Msg
-    data class CreateResult(val epochId: Long, val outcome: CreateOutcome) : Msg
-
-    // ===== Rename dialog =====
-    data class OpenRenameDialog(val typeId: ComponentTypeId) : Msg
-    data object CloseRenameDialog : Msg
-    data class RenameTextChange(val value: String) : Msg
-    data object SubmitRename : Msg
-    data class RenameResult(val epochId: Long, val outcome: RenameOutcome) : Msg
-
-    // ===== Delete dialog =====
-    data class OpenDeleteConfirm(val typeId: ComponentTypeId) : Msg
-    data object CloseDeleteConfirm : Msg
-    data class ImpactPreviewLoaded(val typeId: ComponentTypeId, val impact: DeletionImpact) : Msg
-    data class ImpactPreviewFailed(val typeId: ComponentTypeId, val cause: Throwable?) : Msg
-    data object ConfirmDelete : Msg
-    data class DeleteResult(val epochId: Long, val outcome: DeleteOutcome) : Msg
-
-    // ===== Edit dialog (phase 2) =====
-    data class OpenEditDialog(val typeId: ComponentTypeId) : Msg
-    data object CloseEditDialog : Msg
-    data class EditNameChange(val value: String) : Msg
-    data class EditTemplateChange(val template: ComponentTemplate) : Msg
-    data class EditMultiToggle(val isMultiple: Boolean) : Msg
-    data object SubmitEdit : Msg
-    data class EditResult(val epochId: Long, val outcome: EditOutcome) : Msg
-
-    // ===== Multi-dict scope picker (phase 2) =====
-    data class CreateDictionaryToggle(val dictionaryId: Long) : Msg
-    data class DictionariesLoaded(val dictionaries: List<DictionaryApiEntity>) : Msg
-
-    // ===== Snackbar =====
-    data object DismissSnackbar : Msg
-
-    // ===== Navigation =====
-    data object RequestBack : Msg
-
-    // ===== Error retry =====
-    data object OnRetryClick : Msg
-
-    // ===== No-op =====
-    data object Empty : Msg
-}
-
-/**
- * UI feedback (snackbar). Top-level `UiMsg : Msg` (parity с existing convention).
- */
-sealed interface UiMsg : Msg {
-    data class Snackbar(val text: String) : UiMsg
-}
-```
-
-### Категории Msg
-
-- **Lifecycle / data** — `TypesLoaded`, `TypesLoadFailed` — приходят из flow-handler'а.
-- **Dialog open/close + field edit** — `Open*Dialog` / `Close*Dialog` / `*Change` / `*Toggle` — управление UI state без IO.
-- **Submit** — `SubmitCreate`, `SubmitRename`, `ConfirmDelete`, `SubmitEdit` — триггерят datasource effect.
-- **Result** — `CreateResult`, `RenameResult`, `DeleteResult`, `EditResult` с `epochId` correlation, `ImpactPreviewLoaded/Failed` с `typeId` correlation; stale (epoch ≠ current / typeId ≠ open dialog) игнорируются reducer'ом.
-- **Multi-dict** — `CreateDictionaryToggle`, `DictionariesLoaded` — управление chip-selection в Create-диалоге Manager-экрана.
-- **Snackbar** — `DismissSnackbar` сбрасывает `state.snackbarState = null` после consume в UI.
-- **Navigation** — `RequestBack`.
-- **UiMsg** — внутренний UI feedback (snackbar text без флага видимости).
-
-### Per-Msg reducer reaction (выборочно)
-
-| Msg | State change | Effect |
+| Msg | State | Effect |
 |---|---|---|
-| `TypesLoaded(snapshot)` | `userDefinedTypes = snapshot.toRows(), isLoading=false` | `∅` |
-| `OpenCreateDialog` | `createDialog = CreateDialogState()`; остальные dialogs `null`; in-flight flags = false | `∅` |
-| `CreateNameChange(v)` | `createDialog?.copy(name=v, nameError=null)` | `∅` |
-| `CreateScopeChange(Global)` | `createDialog?.copy(scope=Global, selectedDictionaryIds=emptySet())` (phase 2: очистка selection при switch) | `∅` |
-| `CreateScopeChange(PerDictionaries(_))` | `createDialog?.copy(scope=PerDictionaries(...))` | `∅` |
-| `SubmitCreate` | `isCreating=true; epochId++` | `DatasourceEffect.CreateComponent(epochId, name, template, isMultiple, scope)` |
-| `CreateResult(epoch, Success(types))` (current epoch) | `isCreating=false, createDialog=null, snackbarState=Snackbar("Created ${types.size}")` | `∅` |
-| `CreateResult(epoch, SameScopeCollision)` | `isCreating=false, createDialog.copy(nameError=NameError.SameScopeCollision)` | `∅` |
-| `CreateResult(epoch, CrossScopeCollision)` | `isCreating=false, createDialog.copy(nameError=NameError.CrossScopeCollision)` | `∅` |
-| `CreateResult` (stale epoch) | без изменений | `∅` |
-| `OpenDeleteConfirm(id)` | `deleteConfirm = DeleteConfirmState(id, name, isLoadingImpact=true)`; остальные dialogs `null` | `DatasourceEffect.LoadImpact(id)` |
-| `ImpactPreviewLoaded(typeId, i)` (typeId == open) | `deleteConfirm?.copy(impact=i, isLoadingImpact=false)` | `∅` |
-| `ImpactPreviewLoaded` (stale typeId) | без изменений | `∅` |
-| `ImpactPreviewFailed(typeId, cause)` (typeId == open) | `deleteConfirm?.copy(isLoadingImpact=false); snackbarState = Snackbar(failureLabel(cause))` | `∅` |
-| `ImpactPreviewFailed` (dialog closed) | silent | `∅` |
-| `ConfirmDelete` | `isDeleting=true; epochId++` | `DatasourceEffect.SoftDeleteComponent(epochId, id)` |
-| `DeleteResult(epoch, Success(impact))` | `isDeleting=false, deleteConfirm=null, snackbarState=Snackbar("${impact.valueCount} values hidden")` | `∅` |
-| `DeleteResult(epoch, Removed)` | `isDeleting=false, deleteConfirm=null, snackbarState=Snackbar("Компонент удалён")` (phase 2) | `∅` |
-| `RenameResult(epoch, Removed)` | `isRenaming=false, renameDialog=null, snackbarState=Snackbar("Компонент удалён")` (phase 2) | `∅` |
-| `OpenEditDialog(typeId)` (phase 2) | `editDialog = EditDialogState(typeId, originalName, originalTemplate, originalIsMultiple, name=originalName, template=originalTemplate, isMultiple=originalIsMultiple)`; остальные dialogs `null`; in-flight flags = false | `∅` |
-| `EditNameChange(v)` | `editDialog?.copy(name=v, nameError=null)` | `∅` |
-| `EditTemplateChange(t)` | `editDialog?.copy(template=t)` (UI control; immutability check on submit) | `∅` |
-| `EditMultiToggle(b)` | `editDialog?.copy(isMultiple=b, impactedLexemesPreview=null)` | `∅` |
-| `SubmitEdit` (guard: `!isEditing`) | `isEditing=true; editDialog.epochId++` | `DatasourceEffect.EditComponent(epochId, typeId, name, template, isMultiple)` |
-| `EditResult(epoch, Success(type))` | `isEditing=false, editDialog=null, snackbarState=Snackbar("Updated")` | `∅` |
-| `EditResult(epoch, NameEmpty)` | `isEditing=false, editDialog?.copy(nameError=EditNameError.NameEmpty)` | `∅` |
-| `EditResult(epoch, SameScopeCollision)` | `isEditing=false, editDialog?.copy(nameError=EditNameError.SameScopeCollision)` | `∅` |
-| `EditResult(epoch, CrossScopeCollision)` | `isEditing=false, editDialog?.copy(nameError=EditNameError.CrossScopeCollision)` | `∅` |
-| `EditResult(epoch, CardinalityDowngradeBlocked(ids))` | `isEditing=false, editDialog?.copy(impactedLexemesPreview = if (ids.size <= 3) InlineOnly(ids) else InlineWithDrillIn(ids, inlineIds=ids.take(3)))` | `∅` |
-| `EditResult(epoch, TemplateImmutable)` | `isEditing=false, editDialog=null, snackbarState=Snackbar(<template-immutable text>)` | `∅` |
-| `EditResult(epoch, BuiltInProtected)` | `isEditing=false, editDialog=null, snackbarState=Snackbar(<built-in text>)` | `∅` |
-| `EditResult(epoch, Removed)` | `isEditing=false, editDialog=null, snackbarState=Snackbar("Компонент удалён")` | `∅` |
-| `EditResult(epoch, Failure(cause))` | `isEditing=false, editDialog=null, snackbarState=Snackbar(failureLabel(cause))` | `∅` |
-| `EditResult` (stale epoch) | без изменений | `∅` |
-| `CloseEditDialog` | `editDialog=null, isEditing=false` | `∅` |
-| `CreateDictionaryToggle(id)` | `createDialog?.copy(selectedDictionaryIds = if (id in current) current - id else current + id)` | `∅` |
-| `DictionariesLoaded(list)` | `availableDictionaries = list`; `createDialog?.copy(selectedDictionaryIds = current ∩ list.ids)`; `editDialog` НЕ мутируется | `∅` |
-| `DismissSnackbar` | `snackbarState = null` | `∅` |
-| `OnRetryClick` | `userDefinedTypes=null → isLoading=true` | emit `DatasourceEffect.LoadAllUserDefinedTypes` |
-| `RequestBack` | без изменений | `NavigationEffect.Back` |
+| `ItemsLoaded(s)` | `items = s.toRows(), dictionaryName = s.dictionaryName, isLoading=false` | — |
+| `OpenCreateDialog` | `createDialog = CreateDialogState(scope = PerDictionaries(listOf(dictionaryId)), epochId = nextEpoch)`; `nextEpoch++`; остальные диалоги null; in-flight false | — |
+| `SubmitCreate` | guard: `!isCreating`; blank-имя → `nameError = Empty` локально, без effect; иначе `isCreating=true` | `CreateComponent(createDialog.epochId, name, template, isMultiple, scope)` |
+| `CreateResult(Success)` | `isCreating=false, createDialog=null`, snackbar | — |
+| `CreateResult(Same/CrossScopeCollision)` | `nameError` в диалоге, диалог НЕ закрывается | — |
+| `OpenDeleteConfirm(id)` | guard: строка есть в items, не тот же открытый typeId; `deleteConfirm(isLoadingImpact=true, epochId = nextEpoch)`; `nextEpoch++`; остальные null | `LoadImpact(id)` |
+| `ImpactPreviewLoaded` (typeId == открытый) | `impact`, `isLoadingImpact=false` | — |
+| `ConfirmDelete` | guard: `!isDeleting && !isLoadingImpact`; `isDeleting=true` | `SoftDeleteComponent(deleteConfirm.epochId, id)` |
+| `DeleteResult(Success/Removed)` | закрыть диалог, snackbar | — |
+| `OpenEditDialog(id)` | guard: строка есть в items; `editDialog` из snapshot строки, `epochId = nextEpoch`; `nextEpoch++`; остальные null | — |
+| `EditMultiToggle(b)` | `isMultiple=b`, `impactedLexemesPreview=null` | — |
+| `SubmitEdit` | guard: `!isEditing`; blank-имя → `nameError = NameEmpty` локально, без effect; иначе `isEditing=true` | `EditComponent(editDialog.epochId, id, name, template, isMultiple)` |
+| `EditResult(CardinalityDowngradeBlocked(ids))` | preview: `InlineOnly` (≤3) / `InlineWithDrillIn` (>3, take(3)); диалог открыт | — |
+| `EditResult(TemplateImmutable/BuiltInProtected/Removed/Failure)` | закрыть диалог, snackbar | — |
+| `OnRetryClick` | `isLoading=true` | re-subscribe effect |
+| `RequestBack` | — | `NavigationEffect.Back` |
 
-### Guard'ы
+Guards (уточнено 2026-07-17 по факту кода): submit-сообщения — только при соответствующем in-flight == false; blank-имя ловится **локально в reducer** (nameError без похода в UseCase); `nameError` сбрасывают только `CreateNameChange`/`EditNameChange` (не Template/Multi/Scope-change); `EditMultiToggle` сбрасывает preview; `Open*` игнорируется, если строки нет в items; `*Result` со stale epoch и `ImpactPreview*` с чужим typeId — игнорируются.
 
-- `SubmitCreate` обрабатывается только при `isCreating == false`.
-- `SubmitRename` — только при `isRenaming == false`.
-- `ConfirmDelete` — только при `isDeleting == false`.
-- `SubmitEdit` — только при `isEditing == false`.
-- `Create*Change` / `Rename*Change` / `EditNameChange` сбрасывают `nameError = null`.
-- `EditMultiToggle` сбрасывает `impactedLexemesPreview = null`.
-- `*Result` с stale `epochId` — ignored.
-- `ImpactPreviewLoaded/Failed` с typeId ≠ open dialog typeId — ignored.
+## 16. IO (эффекты и подписки)
 
-### Msg для `PerDictionaryComponentsScreen`
+### DatasourceEffect
 
-Зеркальный sealed `Msg` — те же события Create / Rename / Delete / Edit. Отличие в lifecycle-сообщении: `ItemsLoaded(snapshot: PerDictionarySnapshot)` / `ItemsLoadFailed(cause: Throwable)` вместо `TypesLoaded` / `TypesLoadFailed`.
+- `CreateComponent(epochId, name, template, isMultiple, scope)` → `useCase.createUserDefinedComponent` → `CreateResult`.
+- `LoadImpact(typeId)` → `useCase.previewDeletionImpact` → non-null: `ImpactPreviewLoaded`; null: `ImpactPreviewFailed(cause=null)`.
+- `SoftDeleteComponent(epochId, typeId)` → `useCase.softDeleteComponent` → `DeleteResult`.
+- `EditComponent(epochId, typeId, name, template, isMultiple)` → `useCase.editComponent` → `EditResult`.
+- `LoadComponentsForDictionary` — re-subscribe триггер retry-флоу.
 
-`CreateDictionaryToggle` / `DictionariesLoaded` **отсутствуют** (multi-dict scope не применим к PerDict).
+**Handler-инвариант:** `catch (e: Throwable)` c re-throw `CancellationException` (structured concurrency); остальные exceptions → `Failure`-outcome / `ImpactPreviewFailed`.
 
----
+`UiEffect.Snackbar(text)`; `NavigationEffect` — только Back.
 
-## UI Layout
+### FlowHandlers
 
-> Финальный snapshot phase 2. Базируется на `docs/features/IS481_component_constructor_phase2/ui_layout.md` (UI design) с корректировками от ui_implement (см. блок «Корректировки от implement» ниже). Phase 1 поправки (F158 multi-dict в Manager, F161 i18n value_count, F162 LexemeRadioRow, F163 ErrorStateWidget) интегрированы по умолчанию.
+- `ComponentsForDictionaryFlowHandler`: `flowComponentsForDictionary(dictId)` → `ItemsLoaded` / `ItemsLoadFailed`; init-trigger + re-subscribe.
 
-### Легенда
+Manager-эффекты и handlers (`SubscribeDictionaries`, `AllUserDefinedTypesFlowHandler`, `DictionariesFlowHandler`) — §20.
 
-- **⚙️** — системный Material3 / Compose (Scaffold, Column, FlowRow, FilterChip, AssistChip, LazyColumn, Checkbox).
-- **❇️** — новый кастомный виджет (введён в этой фиче).
-- **🔄** — кастомный, меняется в этой фиче.
-- **📌** — кастомный, не меняется в этой фиче.
-- **ℹ️** — обычная пояснительная заметка.
+`failureLabel(cause)` — общий helper (`:modules:core:tools`) для snackbar-текстов.
 
-Phase 2 не использует Figma (Case A — feature_has_figma=false).
-
----
-
-### Карта экрана
-
-#### Экран 1 — `ComponentsManagerScreen` (drill-in из Settings)
-
-```
-⚙️ Scaffold
-├─ ⚙️ TopAppBar                                  title=R.string.components_manager_title, navigation=back-arrow
-├─ ↘️ snackbarHost                               state-driven, ∀ state.snackbarState != null
-└─ ⚙️ Box (content)                              padding=paddings, fillMaxSize
-   ├─ ∀ state.isLoading && state.userDefinedTypes == null:
-   │  └─ ⚙️ CircularProgressIndicator            align=Center
-   ├─ ∀ !state.isLoading && state.userDefinedTypes == null:
-   │  └─ 📌 <ErrorStateWidget>                   message=R.string.components_manager_load_failed, retryLabel=R.string.components_error_retry, onRetry→Msg.OnRetryClick
-   ├─ ∀ state.isEmpty:
-   │  └─ 🔄 <ComponentsEmptyStateWidget>         centered, with create-CTA (extracted → :modules:widget:component_widgets)
-   ├─ ∀ state.userDefinedTypes != null && !state.isEmpty:
-   │  └─ ⚙️ LazyColumn (× N rows)                contentPadding=h:16 v:8  spacing=8
-   │     └─ 🔄 <UserDefinedRowWidget>            (плоский API: typeId, name, template, isMultiple, isGlobal, usageCount, dictionaryNames)  onEdit→Msg.OpenEditDialog  onDelete→Msg.OpenDeleteConfirm
-   ↘️ FAB-slot                                   pos=BottomEnd, padding=16
-   └─ 🔄 <CreateComponentFab>                    visible=always, onClick→Msg.OpenCreateDialog
-   ↘️ Dialog-overlay slots                       ∀ соответствующий dialog != null
-   ├─ 🔄 <CreateComponentDialog>                 ∀ createDialog != null    (Manager variant — hostVariant=Manager, scope_slot виден)
-   ├─ 🔄 <RenameComponentDialog>                 ∀ renameDialog != null
-   ├─ 🔄 <DeleteComponentConfirmDialog>          ∀ deleteConfirm != null
-   └─ ❇️ <EditComponentDialog>                   ∀ editDialog != null                            (phase 2 NEW)
-```
-
-#### Экран 2 — `PerDictionaryComponentsScreen` (drill-in по «молоток» из `DictionaryAppBar`)
-
-```
-⚙️ Scaffold
-├─ ⚙️ TopAppBar                                  title=state.dictionaryName ?: R.string.per_dict_components_title, navigation=back-arrow
-├─ ↘️ snackbarHost                               state-driven
-└─ ⚙️ Box (content)                              padding=paddings, fillMaxSize
-   ├─ ∀ state.isLoading && state.items == null:
-   │  └─ ⚙️ CircularProgressIndicator            align=Center
-   ├─ ∀ !state.isLoading && state.items == null:
-   │  └─ 📌 <ErrorStateWidget>                   message=R.string.components_per_dict_load_failed
-   ├─ ∀ state.isEmpty:
-   │  └─ 🔄 <ComponentsEmptyStateWidget>         variant=per-dict (headlineRes/bodyRes — переключаются хостом)
-   ├─ ∀ state.items != null && !state.isEmpty:
-   │  └─ ⚙️ LazyColumn (× N rows)
-   │     └─ 🔄 <PerDictRowWidget>                (плоский API: typeId, name, template, isMultiple, isGlobal, valueCount)  onEdit→Msg.OpenEditDialog  onDelete→Msg.OpenDeleteConfirm
-   ↘️ FAB-slot                                   pos=BottomEnd, padding=16
-   └─ 🔄 <CreateComponentFab>                    onClick→Msg.OpenCreateDialog
-   ↘️ Dialog-overlay slots
-   ├─ 🔄 <CreateComponentDialog>                 hostVariant=PerDict (scope_slot скрыт, scope hardcoded reducer-side)
-   ├─ 🔄 <RenameComponentDialog>
-   ├─ 🔄 <DeleteComponentConfirmDialog>
-   └─ ❇️ <EditComponentDialog>                   ∀ editDialog != null                            (phase 2 NEW)
-```
-
-#### Точка касания 3 — `SettingsTabScreen` (новый entry-row)
-
-```
-⚙️ Scaffold (existing)
-└─ ⚙️ LazyColumn                                 contentPadding=h:16  spacing=8
-   └─ item: 📌 <SettingsSectionWidget> (existing)
-      ├─ 📌 <LangManageWidget>                   (existing)
-      ├─ ❇️ <ComponentsManageWidget>             onClick → Msg.OpenComponentsManager
-      ├─ 📌 <ExportDataWidget>                   (existing)
-      └─ 📌 <ImportDataWidget>                   (existing)
-```
-
-#### Точка касания 4 — `DictionaryAppBar` (новый icon «молоток»)
-
-```
-⚙️ TopAppBar (existing, shared 3 tabs)
-├─ title: 📌 <AppBarTitleWidget>                 (existing)
-└─ actions:
-   ∀ state.isLoading: ⚙️ CircularProgressIndicator
-   ∀ !state.isLoading:
-   ├─ ∀ state.currentDict != null:
-   │  └─ ❇️ <ComponentsToolsIconButton>          iconRes=ic_hammer, onClick→Msg.OpenPerDictionaryComponents(currentDict.id)
-   └─ 📌 <DictDropDownWidget>                    (existing)
-```
-
-#### Subscreen — `EditComponentDialog` (phase 2 NEW) — детализация поверх `LexemeDialog`
-
-```
-❇️ <EditComponentDialog>                        container=📌 <LexemeDialog>
-└─ ⚙️ Column                                     padding=24  spacing=16
-   ├─ title_slot:    ⚙️ Text                     source=R.string.components_edit_dialog_title
-   ├─ name_slot:     ⚙️ Column                   spacing=4
-   │                   ├─ ⚙️ Text                source=R.string.components_edit_field_name
-   │                   ├─ 📌 <LexemeTextFieldWidget>  value=editDialog.name, onValueChange=onNameChange
-   │                   └─ ∀ nameErrorRes != null:
-   │                      └─ ⚙️ Text             source=nameErrorRes  color=error
-   ├─ template_slot: ⚙️ Column                   spacing=4
-   │                   ├─ ⚙️ Text                source=R.string.components_edit_field_template
-   │                   └─ ∀ ComponentTemplate.entries:
-   │                      └─ 📌 <LexemeRadioRow> selected=(t==editDialog.template), onClick=onTemplateSelect(t)  (clickable — immutability gate в UseCase)
-   ├─ multi_slot:    ⚙️ Row                      spacing=8
-   │                   ├─ ⚙️ Checkbox            checked=editDialog.isMultiple, onCheckedChange=onMultiToggle
-   │                   └─ ⚙️ Text                source=R.string.components_edit_field_is_multi
-   ├─ preview_slot:  ∀ previewInlineIds != null:
-   │                   └─ ❇️ <CardinalityDowngradePreviewWidget>  inlineIds, totalCount, showAllVisible, lexemeLabel, onShowAll
-   └─ actions_slot:  ⚙️ Row                      spacing=12
-                       ├─ 📌 <CancelButtonWidget>     onClick=onDismiss
-                       └─ 📌 <PrimaryFullButtonWidget> enabled=canSubmit, onClick=onSubmit
-```
-
----
-
-### Анализ виджетов (ключевые)
-
-Все 8 phase 1 виджетов вынесены в shared module `:modules:widget:component_widgets` (3 dialogs + 2 row widgets + 2 helpers + EmptyState + FAB + 2 extensions). Phase 2 добавляет 6 новых артефактов в тот же module (1 dialog + 1 preview + 1 resolver + 1 block-wrapper + 1 per-template TEXT + reuse phase 1 extensions). `EditNameError → labelRes` mapping остался **host-local** (private extension в каждом screen) — `EditNameError` живёт в двух разных package'ах mate-state'ов и в shared widget не выносится.
-
-#### 🔄 `<UserDefinedRowWidget>` (changed — extract + onEdit semantic + плоский API)
-
-```
-   • structure:
-       row spacing=12  padding=h:16 v:12  container=Surface  shape=rounded-12
-         leading_slot: icon  variant=IconBoxed  iconRes=ic_components  size=24
-         content_slot:
-           column spacing=4  weight=1
-             title_slot: text  source=name  style=LexemeStyle.BodyL
-             meta_slot:
-               row spacing=8
-                 template_chip:    chip  variant=AssistChip  label=template.labelRes
-                 cardinality_chip: chip  variant=AssistChip  label=R.string.components_chip_multi|single
-                 global_chip:      chip  variant=AssistChip  label=R.string.components_chip_global  visible=∀ isGlobal
-             usage_text: text  source="usageCount · {dict1, dict2}"  style=LexemeStyle.BodyS  color=gray
-         trailing_slot:   icon  variant=IconBoxed  iconRes=ic_edit   size=44  onClick=onEdit
-         trailing_slot_2: icon  variant=IconBoxed  iconRes=ic_trash  size=44  onClick=onDelete
-   • params (плоский API — без mate UserDefinedRow):
-       – typeId: ComponentTypeId
-       – name: String
-       – template: ComponentTemplate
-       – isMultiple: Boolean
-       – isGlobal: Boolean
-       – usageCount: Int
-       – dictionaryNames: List<String>
-       – onEdit: (ComponentTypeId) -> Unit
-       – onDelete: (ComponentTypeId) -> Unit
-   • callbacks:
-       – onEdit → Msg.OpenEditDialog(typeId)        (phase 2: now opens Edit, not Rename)
-       – onDelete → Msg.OpenDeleteConfirm(typeId)
-   • notes:
-       ℹ️ Извлечён в `:modules:widget:component_widgets`. Hosts (Manager screen) раскладывают mate `UserDefinedRow` → плоские примитивы на mount-site (Dependency Rule: shared widget не знает screen-specific row type).
-```
-
-#### 🔄 `<PerDictRowWidget>` (changed — extract + onEdit semantic + плоский API)
-
-```
-   • structure: (parity с UserDefinedRow, но global_chip — в title row)
-       row spacing=12  padding=h:16 v:12  container=Surface  shape=rounded-12
-         leading_slot: icon  variant=IconBoxed  iconRes=ic_components
-         content_slot:
-           column spacing=4  weight=1
-             title_slot:
-               row spacing=8
-                 name_text:   text  source=name  style=LexemeStyle.BodyL
-                 global_chip: chip  variant=AssistChip  label=R.string.components_chip_global  visible=∀ isGlobal
-             meta_slot:
-               row spacing=8
-                 template_chip:    chip  variant=AssistChip  label=template.labelRes
-                 cardinality_chip: chip  variant=AssistChip  label=R.string.components_chip_multi|single
-             usage_text: text  source=R.string.per_dict_row_value_count (formatted, F161)  arg=valueCount  style=LexemeStyle.BodyS  color=gray
-         trailing_slot:   icon  variant=IconBoxed  iconRes=ic_edit   size=44  onClick=onEdit
-         trailing_slot_2: icon  variant=IconBoxed  iconRes=ic_trash  size=44  onClick=onDelete
-   • params (плоский API):
-       – typeId, name, template, isMultiple, isGlobal, valueCount, onEdit, onDelete
-   • callbacks: onEdit → Msg.OpenEditDialog(typeId); onDelete → Msg.OpenDeleteConfirm(typeId)
-   • notes:
-       ℹ️ Извлечён в shared module. Отличие от UserDefinedRow: global_chip в title row + usage_text использует formatted i18n строку.
-```
-
-#### 🔄 `<CreateComponentDialog>` (changed — extract + phase 2 multi-dict picker + плоский API)
-
-```
-   • structure:
-       column spacing=16  padding=24  container=LexemeDialog
-         title_slot: text  source=R.string.components_create_dialog_title
-         name_slot:
-           column spacing=4
-             label: text  source=R.string.components_create_field_name
-             input: input  variant=LexemeTextFieldWidget  value=name
-             error: text  source=nameError.labelRes  visible=∀ nameError != null
-         template_slot:
-           column spacing=4
-             label: text  source=R.string.components_create_field_template
-             options:
-               column spacing=0
-                 ∀ ComponentTemplate.entries:
-                   option_row: button  variant=LexemeRadioRow  isSelected=(t == template)
-         multi_slot:
-           row spacing=8
-             checkbox: button  variant=M3-Checkbox  checked=isMultiple
-             label: text  source=R.string.components_create_field_is_multi
-         scope_slot (∀ hostVariant == Manager):
-           column spacing=8
-             label: text  source=R.string.components_create_field_scope
-             scope_radio_global:   button  variant=LexemeRadioRow  isSelected=(scope is Global)        onClick=Msg.CreateScopeChange(Global)
-             scope_radio_per_dict: button  variant=LexemeRadioRow  isSelected=(scope is PerDictionaries) onClick=Msg.CreateScopeChange(PerDictionaries(emptyList()))
-             ∀ scope is PerDictionaries:
-               chip_group:
-                 ⚙️ FlowRow spacing=8
-                   ∀ dict in availableDictionaries:
-                     chip: button  variant=FilterChip  selected=(dict.id in selectedDictionaryIds)  label=dict.name  onClick=Msg.CreateDictionaryToggle(dict.id)
-         actions_slot:
-           row spacing=12
-             cancel_btn: button variant=CancelButtonWidget       onClick=onDismiss
-             submit_btn: button variant=PrimaryFullButtonWidget  enabled=canSubmit  onClick=onSubmit
-   • params (плоский API — без CreateDialogState coupling):
-       – name: String
-       – template: ComponentTemplate
-       – isMultiple: Boolean
-       – scope: Scope
-       – nameError: NameError?
-       – isSubmitting: Boolean
-       – availableDictionaries: List<DictionaryRef>            (display-only DTO: id + name; маппится из DictionaryApiEntity.name на mount-site)
-       – selectedDictionaryIds: Set<Long>
-       – hostVariant: HostVariant                              (enum Manager | PerDict — управляет видимостью scope_slot; declared в том же файле что и dialog)
-       – onNameChange / onTemplateSelect / onMultiToggle / onScopeChange / onDictionaryToggle / onSubmit / onDismiss
-   • behavior:
-       canSubmit = name.trim().isNotEmpty() && nameError == null && !isSubmitting
-                  && (scope is Global || selectedDictionaryIds.isNotEmpty()).
-       hostVariant=Manager → scope_slot виден; hostVariant=PerDict → scope_slot полностью скрыт (scope hardcoded reducer-side; PerDict host передаёт availableDictionaries=emptyList + selectedDictionaryIds=emptySet + no-op onScopeChange/onDictionaryToggle).
-       isCreating → submit_btn disabled (защита от двойного тапа).
-       M3 `ChipPicker` (existing single-select) не подходит → inline `FlowRow + FilterChip`.
-   • notes:
-       ℹ️ DictionaryRef и HostVariant declared в том же файле что и dialog (один dialog = один файл с display-only DTO'шками).
-```
-
-#### 🔄 `<RenameComponentDialog>` (changed — extract + плоский API)
-
-```
-   • structure:
-       column spacing=16  padding=24  container=LexemeDialog
-         title_slot: text  source=R.string.components_rename_dialog_title
-         original_slot:
-           row spacing=8
-             label: text  source=R.string.components_rename_field_original
-             value: text  source=originalName  style=LexemeStyle.BodyL
-         input_slot:
-           column spacing=4
-             label: text  source=R.string.components_rename_field_new
-             input: input  variant=LexemeTextFieldWidget  value=editedName
-             error: text  source=nameError.labelRes  visible=∀ nameError != null
-         actions_slot:
-           row spacing=12
-             cancel_btn: button variant=CancelButtonWidget       onClick=onDismiss
-             submit_btn: button variant=PrimaryFullButtonWidget  enabled=canSubmit  onClick=onSubmit
-   • params (плоский API):
-       – originalName, editedName, nameError, isSubmitting, onNameChange, onSubmit, onDismiss
-   • behavior:
-       canSubmit = editedName.isNotBlank() && editedName != originalName && nameError == null && !isSubmitting.
-   • notes:
-       ℹ️ Render идентичен phase 1, переезд в shared module + API rewrite на плоские примитивы (без RenameDialogState coupling).
-```
-
-#### 🔄 `<DeleteComponentConfirmDialog>` (changed — extract + плоский API + lightweight DTO)
-
-```
-   • structure:
-       column spacing=16  padding=24  container=LexemeDialog
-         title_slot:  text  source=R.string.components_delete_dialog_title  arg=name
-         impact_slot:
-           ∀ isLoadingImpact:
-             progress: ⚙️ CircularProgressIndicator  size=small
-           ∀ impact != null:
-             column spacing=4
-               line_values:  text  source=R.string.components_delete_impact_values  arg=impact.valueCount   visible=∀ impact.valueCount > 0
-               line_dicts:   text  source=R.string.components_delete_impact_dicts   arg=impact.dictCount    visible=∀ impact.dictCount > 0
-               line_quiz:    text  source=R.string.components_delete_impact_quiz    arg=impact.quizCount    visible=∀ impact.quizCount > 0
-               line_prefs:   text  source=R.string.components_delete_impact_prefs   arg=impact.prefsCount   visible=∀ impact.prefsCount > 0
-           ∀ !isLoadingImpact && impact == null:
-             text  source=R.string.components_delete_impact_unavailable
-         actions_slot:
-           row spacing=12
-             cancel_btn:  button variant=CancelButtonWidget   onClick=onDismiss
-             confirm_btn: button variant=AlarmButtonWidget    enabled=!isSubmitting  onClick=onConfirm
-   • params (плоский API):
-       – name: String
-       – impact: DeletionImpactRef?         (lightweight display-only DTO: valueCount, dictCount, quizCount, prefsCount — declared в том же файле; избегаем import full DeletionImpact в shared widget — Dependency Rule)
-       – isLoadingImpact: Boolean
-       – isSubmitting: Boolean
-       – onConfirm, onDismiss
-   • behavior: 3-way conditional (loading | impact | unavailable). confirm_btn disabled when isSubmitting. Host маппит domain `DeletionImpact` → `DeletionImpactRef` (counts only) на mount-site.
-   • notes:
-       ℹ️ Render идентичен phase 1, переезд в shared module + API rewrite.
-```
-
-#### ❇️ `<EditComponentDialog>` (phase 2 NEW — composite form-dialog поверх LexemeDialog)
-
-```
-   • structure:
-       column spacing=16  padding=24  container=LexemeDialog
-         title_slot: text  source=R.string.components_edit_dialog_title  style=LexemeStyle.H6
-         name_slot:
-           column spacing=4
-             label: text  source=R.string.components_edit_field_name  style=LexemeStyle.BodyS         (fallback: LabelM отсутствует в LexemeStyle)
-             input: input  variant=LexemeTextFieldWidget  value=editDialog.name  onValueChange=onNameChange
-             error: text  source=nameErrorRes  visible=∀ nameErrorRes != null  color=error
-         template_slot:
-           column spacing=4
-             label: text  source=R.string.components_edit_field_template
-             options: (radio group — UI control видим, но immutability gate на UseCase submit)
-               ∀ ComponentTemplate.entries:
-                 option_row: button  variant=LexemeRadioRow  isSelected=(t == editDialog.template)  onClick=onTemplateSelect(t)
-         multi_slot:
-           row spacing=8
-             checkbox: button variant=M3-Checkbox checked=editDialog.isMultiple  onCheckedChange=onMultiToggle
-             label: text source=R.string.components_edit_field_is_multi
-         preview_slot (∀ previewInlineIds != null):
-           ❇️ <CardinalityDowngradePreviewWidget>  inlineIds=previewInlineIds, totalCount=previewTotalCount, showAllVisible=previewShowAllVisible, lexemeLabel, onShowAll=onShowAllImpacted
-         actions_slot:
-           row spacing=12
-             cancel_btn: button variant=CancelButtonWidget       onClick=onDismiss
-             submit_btn: button variant=PrimaryFullButtonWidget  enabled=canSubmit  onClick=onSubmit
-   • params (плоский API — без EditDialogState coupling):
-       – name, template, isMultiple
-       – originalName, originalTemplate, originalIsMultiple       (для dirty-check на canSubmit)
-       – nameErrorRes: Int?                                    (host маппит EditNameError → StringRes через private extension)
-       – previewInlineIds: List<Long>?                         (null = preview скрыт; non-null = блок виден)
-       – previewTotalCount: Int                                (передаётся в drill-in label)
-       – previewShowAllVisible: Boolean                        (показ drill-in кнопки)
-       – lexemeLabel: (Long) -> String                         (host-supplied; resolves id → display label)
-       – isSubmitting: Boolean                                 (= state.isEditing)
-       – onNameChange / onTemplateSelect / onMultiToggle / onShowAllImpacted / onSubmit / onDismiss
-   • behavior:
-       canSubmit = name.trim().isNotBlank() && nameErrorRes == null && !isSubmitting
-                  && (name != originalName || isMultiple != originalIsMultiple || template != originalTemplate).
-       Template change на UI разрешён (radio clickable) — immutability гасится UseCase'ом (EditOutcome.TemplateImmutable → snackbar + close).
-       previewInlineIds != null → preview_slot виден; диалог остаётся открытым (не закрывается на CardinalityDowngradeBlocked).
-       onShowAllImpacted — в phase 2 **no-op** в обоих screen'ах (drill-in destination — backlog: bottom-sheet или отдельный screen).
-   • notes:
-       ℹ️ `EditNameError` mapping локален каждому screen (private `EditNameError.toLabelRes()` extension; не выносится в shared module ради избегания cross-package mate-coupling).
-       ℹ️ `lexemeLabel` — placeholder резолвер `R.string.components_edit_lexeme_label` ("Lexeme #%1$d" / "Лексема №%1$d") через `context.getString(id, lexemeId)` (lambda вызывается из non-@Composable scope). Backlog: реальный label через UseCase query `getLexemesByIds`.
-   • source: phase 2 — composite form-dialog mirrors phase 1 CreateComponentDialog с заменой fields на edit semantics.
-```
-
-#### ❇️ `<CardinalityDowngradePreviewWidget>` (phase 2 NEW)
-
-```
-   • structure:
-       column padding=h:8 v:8  spacing=8  background=errorContainer  shape=rounded-12
-         title_slot:  text  source=R.string.components_edit_cardinality_blocked_title  style=LexemeStyle.BodyLBold  (fallback: LabelL отсутствует)
-         ∀ id in inlineIds:
-           lexeme_row: text  source=lexemeLabel(id)  style=LexemeStyle.BodyM  color=onErrorContainer
-         ∀ showAllVisible:
-           drill_in_btn: ⚙️ TextButton (M3)  label=stringResource(R.string.components_edit_show_all, totalCount)  onClick=onShowAll
-   • params (плоский API):
-       – inlineIds: List<Long>                (top-3 ids; deterministic sort с data-уровня)
-       – totalCount: Int                      (counter для drill-in label)
-       – showAllVisible: Boolean              (true iff totalCount > inlineIds.size)
-       – lexemeLabel: (Long) -> String        (host-supplied resolver)
-       – onShowAll: () -> Unit                (visible iff showAllVisible)
-   • behavior:
-       InlineOnly (totalCount ≤ 3) → only inline rows; drill_in_btn скрыт.
-       InlineWithDrillIn (totalCount > 3) → top-3 inline + drill_in_btn видна с count.
-       Reducer (host) маппит `ImpactedLexemesPreview` sealed → 3 плоских параметра (inlineIds, totalCount, showAllVisible).
-   • notes:
-       ℹ️ Размещается inline внутри EditComponentDialog preview_slot.
-       ℹ️ `PrimaryTextButtonWidget` не поддерживает StringRes с args → fallback на M3 `TextButton` + `stringResource(id, totalCount)`. Backlog: добавить overload PrimaryTextButtonWidget(title: Int, vararg formatArgs: Any).
-   • source: проектное решение — UX requirement из concept ui_placement.md ("inline top-3 + drill-in если больше").
-```
-
-#### ❇️ `<ComponentByTemplate>` / `<ComponentBlock>` / `<TextWidget>` (phase 2 NEW — per-template architecture)
-
-```
-   • <ComponentByTemplate>: exhaustive `when (type.template)` resolver
-       ∀ TEXT: ComponentBlock(type) { TextWidget(value=values.value.text, editable, onValueChange) }
-       ∀ IMAGE: ComponentBlock(type) { /* пусто — backlog */ }
-   • <ComponentBlock>: structural wrapper
-       column spacing=4
-         name_slot: text  source=type.name  style=LexemeStyle.BodyS  color=onSurfaceVariant   (fallback: LabelM отсутствует в LexemeStyle)
-         content_slot: composite slot (lambda)
-   • <TextWidget>: per-template Tier-2 composable
-       ∀ !editable: text  source=value  style=LexemeStyle.BodyL
-       ∀ editable:  input variant=LexemeTextFieldWidget  value=value  onValueChange=onValueChange
-   • params (ComponentByTemplate):
-       – type: ComponentType
-       – values: TemplateValues       (sealed: TextValues | ImageValues)
-       – editable: Boolean = false
-       – onValueChange: (TemplateValues) -> Unit = {}
-   • notes:
-       ℹ️ Фундамент per-template architecture (concept typed_views.md Tier 2). MVP: только TEXT template имеет рендер; IMAGE — backlog.
-       ℹ️ Зависит от `:modules:domain:lexeme` (ComponentTemplate, ComponentType, TemplateValues, Primitive).
-   • source: проектное решение — concept typed_views.md.
-```
-
-#### 🔄 `<ComponentsEmptyStateWidget>` / `<CreateComponentFab>` (changed — extract в shared module)
-
-```
-   • <ComponentsEmptyStateWidget>:
-       column padding=32  spacing=16  align=center
-         icon_slot: icon iconRes=ic_components size=64
-         headline_slot: text source=headlineRes style=LexemeStyle.H6
-         body_slot: text source=bodyRes style=LexemeStyle.BodyL color=gray
-         cta_slot: button variant=PrimaryFullButtonWidget titleRes=ctaRes onClick=onCreate
-       Hosts передают разные headlineRes/bodyRes (Manager vs PerDict variants).
-   • <CreateComponentFab>:
-       thin wrapper над PrimaryLongFabWidget (iconRes=ic_add, titleRes=R.string.components_create_cta).
-   • notes:
-       ℹ️ Render 1-в-1 phase 1 — переезд в shared module без изменений.
-```
-
-#### 📌 `<ComponentTemplateLabel>` / `<NameErrorLabel>` (extract — top-level internal extensions)
-
-```
-   • notes:
-       ℹ️ `internal fun ComponentTemplate.labelRes(): Int` + `internal fun NameError.labelRes(): Int` переехали в shared module как top-level internal extensions (не composables).
-       ℹ️ `EditNameError.labelRes()` — НЕ выносится: живёт private в каждом screen ради избегания cross-package mate-coupling. Strings те же что для NameError (NameEmpty/SameScope/CrossScope).
-```
-
-#### 📌 Existing baseline primitives (unchanged)
-
-`<LexemeDialog>`, `<LexemeRadioRow>` (F162), `<LexemeTextFieldWidget>`, `<CancelButtonWidget>`, `<PrimaryFullButtonWidget>`, `<AlarmButtonWidget>`, `<PrimaryLongFabWidget>`, `<PrimaryTextButtonWidget>`, `<IconBoxed>`, `<ErrorStateWidget>` (F163) — переиспользуются из `:modules:core:ui` без изменений.
-
----
-
-### Новые виджеты (summary)
-
-Phase 1 (released):
-- `<UserDefinedRowWidget>`, `<PerDictRowWidget>`, `<ComponentsEmptyStateWidget>`, `<CreateComponentFab>`, `<CreateComponentDialog>`, `<RenameComponentDialog>`, `<DeleteComponentConfirmDialog>`, `<ComponentsManageWidget>`, `<ComponentsToolsIconButton>`, `LexemeRadioRow`, `ErrorStateWidget`.
-
-Phase 2 (NEW):
-- `<EditComponentDialog>` — name + template (gated) + isMultiple + impacted-lexemes preview.
-- `<CardinalityDowngradePreviewWidget>` — inline top-3 + drill-in кнопка (через 3 плоских параметра).
-- `<ComponentByTemplate>` / `<ComponentBlock>` / `<TextWidget>` — per-template architecture (Tier 2, concept typed_views.md).
-- Multi-dict chip-group внутри `<CreateComponentDialog>` (FlowRow + FilterChip over `availableDictionaries`).
-
-### Меняем (ключевое)
-
-- `<UserDefinedRowWidget>` / `<PerDictRowWidget>` — `onEdit` callback теперь триггерит `Msg.OpenEditDialog` вместо `OpenRenameDialog` (Rename как отдельный flow остаётся в шторке backlog cleanup); переезд в shared module + плоский API.
-- `<CreateComponentDialog>` — добавлены scope_slot + chip-group для Manager-варианта (hostVariant=Manager); API rewrite на плоские примитивы (с display-only `DictionaryRef` + `HostVariant` declared inline).
-- `<RenameComponentDialog>` / `<DeleteComponentConfirmDialog>` — переезд в shared module + плоские примитивы (display-only `DeletionImpactRef` для Delete).
-- `<ComponentsEmptyStateWidget>` / `<CreateComponentFab>` — переезд в shared module (рендер 1-в-1).
-- `ComponentsManagerScreen` / `PerDictionaryComponentsScreen` — добавлен mount `<EditComponentDialog>`; все widget import paths переключены на `:modules:widget:component_widgets.{dialogs|widgets|templates}.*`; раскладка mate state на плоские примитивы выполнена на mount-site; private `EditNameError.toLabelRes()` в каждом screen.
-
-### Удалено (с миграцией)
-
-Все 16 файлов (8 widgets × 2 screen-модуля) удалены через `rm`; пустые `widget/` директории убраны через `rmdir`. Build PASS подтверждает отсутствие dangling references. Миграция в shared module 1:1 с переименованием API на плоские примитивы.
-
-### Корректировки от implement
-
-Финальный snapshot отличается от `ui_layout.md` (UI design) по следующим nontrivial решениям, принятым на implement-стадии:
-
-1. **`lexemeLabel` placeholder** — `lexemeLabel: (Long) -> String` lambda вызывается из non-@Composable scope → host резолвит через `context.getString(R.string.components_edit_lexeme_label, id)` = "Lexeme #N" / "Лексема №N". Backlog: реальный label через UseCase query `getLexemesByIds`.
-2. **`onShowAllImpacted` — no-op** в обоих screen'ах (drill-in destination — bottom-sheet или отдельный screen — оставлен в backlog).
-3. **`DictionaryRef.name` field** — verified Read'ом из `core-db-api/.../DictionaryApiEntity.kt:8` (не `.title` как было в design tree). Mapping исправлен.
-4. **`HostVariant` enum** (Manager | PerDict) — declared в том же файле что и `CreateComponentDialog` (один dialog = один файл с display-only DTO'шками). PerDict передаёт `availableDictionaries=emptyList + selectedDictionaryIds=emptySet + no-op callbacks`.
-5. **Плоские примитивы для всех Tier 1/2 widgets** — `UserDefinedRowWidget`, `PerDictRowWidget`, `RenameComponentDialog`, `DeleteComponentConfirmDialog`, `CreateComponentDialog`, `EditComponentDialog` принимают плоские примитивы (не mate state-объекты). Dependency Rule: shared widget не coupled на screen-specific state shape.
-6. **`DeletionImpactRef` display-only DTO** (valueCount, dictCount, quizCount, prefsCount) declared в файле `DeleteComponentConfirmDialog.kt` — host маппит full domain `DeletionImpact` → counts.
-7. **`EditNameError.toLabelRes()` host-local** — private extension в каждом screen (не выносится в shared module). `EditNameError` живёт в двух разных package'ах mate-state'ов; strings те же что для `NameError`.
-8. **`LexemeStyle.LabelM/LabelL` fallback** — `LexemeStyle` содержит H1-H6 + BodyXL/L/M/S (+ Bold), но не Label-семейство. Fallback: label → `BodyS`, label-large → `BodyLBold` (семантика сохранена).
-9. **`PrimaryTextButtonWidget` без StringRes args** — drill-in label с `%1$d` placeholder использует fallback M3 `TextButton` + `stringResource(id, totalCount)`. Backlog: overload `PrimaryTextButtonWidget(title: Int, vararg formatArgs: Any)`.
-10. **`ImpactedLexemesPreview` sealed → 3 плоских параметра на widget-уровне** — `inlineIds`, `totalCount`, `showAllVisible`. Reducer (host) маппит sealed в плоский набор на mount-site (`CardinalityDowngradePreviewWidget` не знает domain sealed).
-
-### Иконки к импорту
-
-Phase 2 не добавляет новых иконок. Используются existing phase 1:
-
-- `ic_hammer.xml` — vector «молоток» для `ComponentsToolsIconButton`.
-- `ic_components.xml` — vector «компоненты» для Settings entry, row leading icons, EmptyState.
-- `ic_edit.xml` — trailing edit button в Row widgets (callback в phase 2 меняется на OpenEditDialog).
-- `ic_trash.xml` — trailing delete button.
-- `ic_add.xml` — FAB.
-
-### Палитра
-
-Phase 2 не вводит новых color tokens:
-
-- `MaterialTheme.colorScheme.surface` / `.onSurface` — dialog containers + Row widgets.
-- `MaterialTheme.colorScheme.errorContainer` / `.onErrorContainer` — `CardinalityDowngradePreviewWidget` background.
-- `MaterialTheme.colorScheme.secondaryContainer` — FilterChip selected state.
-- `MaterialTheme.colorScheme.error` — name error text.
-
-### Новые strings (phase 2)
-
-`core/core-resources/.../strings.xml`:
-- `components_edit_dialog_title` — title EditDialog.
-- `components_edit_field_name` / `components_edit_field_template` / `components_edit_field_is_multi` — labels.
-- `components_edit_cardinality_blocked_title` — title preview block.
-- `components_edit_show_all` ("Show all (%1$d)") — drill-in label с counter (formatted).
-- `components_edit_lexeme_label` ("Lexeme #%1$d") — fallback resolver (placeholder; backlog: real label).
-- `components_create_field_scope` / `components_create_scope_global` / `components_create_scope_per_dict` — scope picker labels (Manager variant).
-
----
-
-## IO
-
-### Effects
-
-#### `ComponentsManagerDatasourceEffect`
-
-```kotlin
-package me.apomazkin.components_manager.logic
-
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.Scope
-
-sealed interface ComponentsManagerDatasourceEffect : Effect {
-
-    // Initial subscribe — `init`-trigger в `MateFlowHandler.subscribe(scope, send)`.
-
-    data class CreateComponent(
-        val epochId: Long,
-        val name: String,
-        val template: ComponentTemplate,
-        val isMultiple: Boolean,
-        val scope: Scope,
-    ) : ComponentsManagerDatasourceEffect
-
-    data class RenameComponent(
-        val epochId: Long,
-        val typeId: ComponentTypeId,
-        val newName: String,
-    ) : ComponentsManagerDatasourceEffect
-
-    data class LoadImpact(val typeId: ComponentTypeId) : ComponentsManagerDatasourceEffect
-
-    data class SoftDeleteComponent(
-        val epochId: Long,
-        val typeId: ComponentTypeId,
-    ) : ComponentsManagerDatasourceEffect
-
-    /** Phase 2: Edit existing user-defined component_type. */
-    data class EditComponent(
-        val epochId: Long,
-        val typeId: ComponentTypeId,
-        val name: String,
-        val template: ComponentTemplate,
-        val isMultiple: Boolean,
-    ) : ComponentsManagerDatasourceEffect
-
-    // F163: re-subscribe trigger для Retry flow.
-    data object LoadAllUserDefinedTypes : ComponentsManagerDatasourceEffect
-
-    /** Phase 2: re-subscribe trigger для DictionariesFlowHandler (parity с LoadAllUserDefinedTypes). */
-    data object SubscribeDictionaries : ComponentsManagerDatasourceEffect
-}
-```
-
-**Reducer mapping для datasource:**
-
-| Effect | UseCase call | Msg back |
-|---|---|---|
-| `CreateComponent` | `useCase.createUserDefinedComponent(name, template, isMultiple, scope)` → `CreateOutcome` | `Msg.CreateResult(epochId, outcome)` |
-| `RenameComponent` | `useCase.renameComponent(typeId, newName)` → `RenameOutcome` | `Msg.RenameResult(epochId, outcome)` |
-| `LoadImpact` | `useCase.previewDeletionImpact(typeId)` → `DeletionImpact?` | non-null → `Msg.ImpactPreviewLoaded(typeId, impact)`; null → `Msg.ImpactPreviewFailed(typeId, cause=null)` |
-| `SoftDeleteComponent` | `useCase.softDeleteComponent(typeId)` → `DeleteOutcome` | `Msg.DeleteResult(epochId, outcome)` |
-| `EditComponent` (phase 2) | `useCase.editComponent(typeId, name, template, isMultiple)` → `EditOutcome` | `Msg.EditResult(epochId, outcome)` |
-| `SubscribeDictionaries` (phase 2) | handler: cancel + re-subscribe `flowDictionaries()` | flow emits `Msg.DictionariesLoaded(list)` |
-
-**Handler-level invariant:** все datasource handler'ы делают `catch (e: Throwable) { if (e is CancellationException) throw e; ... }` — `CancellationException` re-throw'ится ради корректной structured concurrency, остальные exceptions конвертятся в `Failure`-outcome / `ImpactPreviewFailed`. Для `editComponent` exception → `Msg.EditResult(epoch, EditOutcome.Failure(cause))`.
-
-#### `ComponentsManagerUiEffect`
-
-```kotlin
-sealed interface ComponentsManagerUiEffect : Effect {
-    data class Snackbar(val text: String) : ComponentsManagerUiEffect
-}
-```
-
-#### `ComponentsManagerNavigationEffect`
-
-```kotlin
-sealed interface ComponentsManagerNavigationEffect : NavigationEffect {
-    // Только Back.
-}
-```
-
-#### `PerDictionaryComponentsScreen` — те же три категории
-
-Отличие в datasource:
-- Initial subscribe — `init`-trigger в `MateFlowHandler.subscribe(scope, send)` (`ComponentsForDictionaryFlowHandler` с `dictionaryId`). `LoadComponentsForDictionary` Effect для re-subscribe (F163).
-- `CreateComponent` / `RenameComponent` / `LoadImpact` / `SoftDeleteComponent` / `EditComponent` (phase 2) — те же signature с `epochId`.
-- `SubscribeDictionaries` **отсутствует** — нет multi-dict picker в PerDict.
-
-### Subscribers
-
-#### `AllUserDefinedTypesFlowHandler` (ComponentsManagerScreen)
-
-Подписывается на `useCase.flowAllUserDefinedTypes(): Flow<UserDefinedTypesSnapshot>`, emit'ит:
-- `Msg.TypesLoaded(snapshot)` — на каждый emit Flow;
-- `Msg.TypesLoadFailed(cause)` — на ошибку collect.
-
-Триггерится при init Mate. Re-subscribe через `DatasourceEffect.LoadAllUserDefinedTypes` (F163).
-
-#### `DictionariesFlowHandler` (ComponentsManagerScreen, phase 2)
-
-Подписывается на `useCase.flowDictionaries(): Flow<List<DictionaryApiEntity>>`, emit'ит:
-- `Msg.DictionariesLoaded(list)` — на каждый emit Flow.
-- При ошибке в collect — emit `Msg.DictionariesLoaded(emptyList())` (chip-list скрывается, scope picker degrade'ит к Global only).
-
-Триггерится автоматически при init Mate. Re-subscribe — через `DatasourceEffect.SubscribeDictionaries`.
-
-**PerDict — без нового FlowHandler:** `PerDictionaryComponentsScreen` не показывает multi-dict picker.
-
-#### `ComponentsForDictionaryFlowHandler` (PerDictionaryComponentsScreen)
-
-Подписывается на `useCase.flowComponentsForDictionary(dictionaryId): Flow<PerDictionarySnapshot>`, emit'ит:
-- `Msg.ItemsLoaded(snapshot)`;
-- `Msg.ItemsLoadFailed(cause)`.
-
-### Shared утилиты
-
-`failureLabel(cause: Throwable?): String` — общий helper в `:modules:core:tools` (`ThrowableExt.kt`) для перевода causes в snackbar-текст; переиспользуется обоими reducer'ами.
-
----
-
-## UseCase
-
-### Domain типы
-
-Все типы ниже живут в `:modules:domain:lexeme` (package `me.apomazkin.lexeme`).
-
-#### `Primitive` (sealed)
-
-```kotlin
-sealed interface Primitive {
-    data class Text(val value: String) : Primitive
-    data class Image(val uri: String) : Primitive
-    data class Color(val hex: String) : Primitive
-}
-```
-
-#### `Field` + `PrimitiveType`
-
-```kotlin
-data class Field(
-    val name: String,
-    val type: PrimitiveType,
-)
-
-enum class PrimitiveType { TEXT, IMAGE, COLOR }
-```
-
-#### `ComponentTemplate`
-
-```kotlin
-enum class ComponentTemplate(val key: String) {
-    TEXT("text"),
-    IMAGE("image"),
-    ;
-
-    val fields: List<Field> get() = when (this) {
-        TEXT -> listOf(Field("value", PrimitiveType.TEXT))
-        IMAGE -> listOf(Field("value", PrimitiveType.IMAGE))
-    }
-
-    companion object {
-        /** Fail-soft парсинг: unknown key → null + caller логирует в Crashlytics. */
-        fun fromKey(key: String): ComponentTemplate? = entries.firstOrNull { it.key == key }
-    }
-}
-```
-
-#### `TemplateValues` (sealed)
-
-```kotlin
-sealed interface TemplateValues
-
-data class TextValues(val value: Primitive.Text) : TemplateValues
-data class ImageValues(val value: Primitive.Image) : TemplateValues
-```
-
-#### `ComponentType`
-
-```kotlin
-data class ComponentType(
-    val id: ComponentTypeId,
-    val systemKey: BuiltInComponent?,    // null для user-defined
-    val dictionaryId: Long?,             // null для global
-    val name: String?,
-    val template: ComponentTemplate,
-    val position: Int,
-    val isMultiple: Boolean = false,
-    val createdAt: Date,
-    val updatedAt: Date,
-    val removedAt: Date? = null,
-)
-```
-
-#### `DeletionImpact`
-
-```kotlin
-data class DeletionImpact(
-    val valueCount: Int,
-    val dictionariesWithValues: List<Long>,
-    val affectedQuizConfigs: List<AffectedQuizConfig>,
-    val affectedPrefs: List<Long>,
-)
-
-data class AffectedQuizConfig(
-    val dictionaryId: Long,
-    val quizMode: String,
-)
-```
-
-#### `ComponentUsage`
-
-```kotlin
-data class ComponentUsage(
-    val valueCountByType: Map<ComponentTypeId, Int>,
-    val dictionaryIdsByType: Map<ComponentTypeId, Set<Long>>,
-    val dictionaryNames: Map<Long, String>,
-)
-```
-
-#### `UserDefinedTypesSnapshot`
-
-```kotlin
-data class UserDefinedTypesSnapshot(
-    val types: List<ComponentType>,
-    val usage: ComponentUsage,
-)
-```
-
-#### `PerDictionarySnapshot`
-
-```kotlin
-data class PerDictionarySnapshot(
-    val dictionaryId: Long,
-    val dictionaryName: String,
-    val types: List<ComponentType>,
-    val valueCountByType: Map<ComponentTypeId, Int>,
-)
-```
-
-#### `CreateOutcome` / `RenameOutcome` / `DeleteOutcome` / `EditOutcome`
-
-```kotlin
-sealed interface CreateOutcome {
-    /**
-     * Создано N rows. Для Scope.Global или Scope.PerDictionaries(listOf(x)) — list length = 1;
-     * для Scope.PerDictionaries(listOf(d1, d2, ...)) — list length = N (по одному row per dictionary).
-     */
-    data class Success(val created: List<ComponentType>) : CreateOutcome
-    data object NameEmpty : CreateOutcome
-    data object SameScopeCollision : CreateOutcome
-    data object CrossScopeCollision : CreateOutcome
-    data class Failure(val cause: Throwable) : CreateOutcome
-    // Note: Removed не моделируется — Create не оперирует existing id; soft-deleted name-коллизия
-    // покрывается SameScopeCollision / CrossScopeCollision (фильтр removed_at IS NULL).
-}
-
-sealed interface RenameOutcome {
-    data class Success(val type: ComponentType) : RenameOutcome
-    data object NameEmpty : RenameOutcome
-    data object SameScopeCollision : RenameOutcome
-    data object CrossScopeCollision : RenameOutcome
-    /** Попытка переименовать built-in запрещена. */
-    data object BuiltInProtected : RenameOutcome
-    /** Phase 2: type.removed_at IS NOT NULL — soft-deleted; не путать с BuiltInProtected. */
-    data object Removed : RenameOutcome
-    data class Failure(val cause: Throwable) : RenameOutcome
-}
-
-sealed interface DeleteOutcome {
-    data class Success(val impact: DeletionImpact) : DeleteOutcome
-    data object BuiltInProtected : DeleteOutcome
-    /** Phase 2: type.removed_at IS NOT NULL — повторный soft-delete. */
-    data object Removed : DeleteOutcome
-    data class Failure(val cause: Throwable) : DeleteOutcome
-}
-
-/** Phase 2 — Edit existing user-defined component_type. */
-sealed interface EditOutcome {
-    /** UPDATE прошёл; cascade quiz_configs.component_refs выполнен если name изменился. */
-    data class Success(val updated: ComponentType) : EditOutcome
-
-    /** Валидация на UseCaseImpl: trim().isBlank(). */
-    data object NameEmpty : EditOutcome
-
-    /** Name занят в том же scope (dictionary_id + system_key IS NULL + removed_at IS NULL). */
-    data object SameScopeCollision : EditOutcome
-
-    /** Name занят в global / другом dict (cross-scope invariant). */
-    data object CrossScopeCollision : EditOutcome
-
-    /**
-     * Downgrade isMultiple: true → false заблокирован — есть лексемы с count > 1.
-     * impactedLexemeIds — полный список в deterministic sort
-     * (ORDER BY component_values.updated_at DESC, lexeme_id ASC на data-уровне).
-     * Reducer делит на InlineOnly (size ≤ 3) либо InlineWithDrillIn (size > 3, inlineIds=take(3)).
-     */
-    data class CardinalityDowngradeBlocked(val impactedLexemeIds: List<Long>) : EditOutcome
-
-    /** Попытка изменить template — UseCaseImpl возвращает БЕЗ обращения к data API. */
-    data object TemplateImmutable : EditOutcome
-
-    /** type.systemKey IS NOT NULL — нельзя редактировать встроенный. */
-    data object BuiltInProtected : EditOutcome
-
-    /** type.removed_at IS NOT NULL — soft-deleted (асимметрия с CreateOutcome). */
-    data object Removed : EditOutcome
-
-    /** Exception на data layer (try-catch на UseCaseImpl). */
-    data class Failure(val cause: Throwable) : EditOutcome
-}
-```
-
-### `ComponentsManagerUseCase`
-
-```kotlin
-package me.apomazkin.components_manager.deps
-
-import kotlinx.coroutines.flow.Flow
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.Scope
-import me.apomazkin.lexeme.CreateOutcome
-import me.apomazkin.lexeme.RenameOutcome
-import me.apomazkin.lexeme.DeleteOutcome
-import me.apomazkin.lexeme.EditOutcome
-import me.apomazkin.lexeme.DeletionImpact
-import me.apomazkin.lexeme.UserDefinedTypesSnapshot
-
-interface ComponentsManagerUseCase {
-
-    /**
-     * Реактивная подписка на все user-defined component_types (built-in исключены)
-     * + aggregated usage по всем словарям. Один snapshot — без N+1 запросов из reducer.
-     *
-     * Subscribed by: AllUserDefinedTypesFlowHandler.
-     */
-    fun flowAllUserDefinedTypes(): Flow<UserDefinedTypesSnapshot>
-
-    /**
-     * Создать user-defined component_type. Внутри:
-     *  1) валидация имени (non-blank);
-     *  2) two-prong SELECT (invariant userdefined_identity_invariant):
-     *     - same-scope active row;
-     *     - cross-scope (global ⊥ per-dict) inverse check;
-     *  3) INSERT row(s) — для Scope.PerDictionaries(N) создаётся N rows.
-     *
-     * Triggered by: ComponentsManagerDatasourceEffect.CreateComponent.
-     */
-    suspend fun createUserDefinedComponent(
-        name: String,
-        template: ComponentTemplate,
-        isMultiple: Boolean,
-        scope: Scope,
-    ): CreateOutcome
-
-    /**
-     * Переименовать user-defined component_type. Cascade UPDATE на quiz_configs.component_refs.
-     * Built-in protected на SQL-уровне.
-     *
-     * Triggered by: ComponentsManagerDatasourceEffect.RenameComponent.
-     */
-    suspend fun renameComponent(
-        typeId: ComponentTypeId,
-        newName: String,
-    ): RenameOutcome
-
-    /**
-     * Preview каскада soft-delete: valueCount + dictionariesWithValues +
-     * affectedQuizConfigs + affectedPrefs. Read-only.
-     *
-     * Triggered by: ComponentsManagerDatasourceEffect.LoadImpact.
-     */
-    suspend fun previewDeletionImpact(typeId: ComponentTypeId): DeletionImpact?
-
-    /**
-     * Soft-delete user-defined component_type + atomic cleanup:
-     *  1) UPDATE component_types SET removed_at = now() WHERE id = ? AND system_key IS NULL;
-     *  2) Cleanup quiz_configs.component_refs;
-     *  3) Cleanup quiz_picker_dict_<id> prefs (best-effort).
-     *
-     * Triggered by: ComponentsManagerDatasourceEffect.SoftDeleteComponent.
-     */
-    suspend fun softDeleteComponent(typeId: ComponentTypeId): DeleteOutcome
-
-    /**
-     * Phase 2 — Edit existing user-defined component_type: name / template / isMultiple.
-     *
-     * Business rules (UseCaseImpl-level):
-     *  - name.trim().isBlank() → EditOutcome.NameEmpty (без обращения к data API).
-     *  - template != current.template → EditOutcome.TemplateImmutable (без обращения к data API).
-     *  - exception (CancellationException re-throw) → EditOutcome.Failure(cause).
-     *
-     * API-level (LexemeApi.editComponentType):
-     *  - removed_at IS NOT NULL → EditOutcome.Removed.
-     *  - system_key IS NOT NULL → EditOutcome.BuiltInProtected.
-     *  - same/cross-scope collision → EditOutcome.SameScopeCollision / CrossScopeCollision.
-     *  - cardinality downgrade (isMultiple true→false при impacted lexemes) → CardinalityDowngradeBlocked(ids).
-     *  - success → EditOutcome.Success (cascade quiz_configs.component_refs если name изменился).
-     */
-    suspend fun editComponent(
-        typeId: ComponentTypeId,
-        name: String,
-        template: ComponentTemplate,
-        isMultiple: Boolean,
-    ): EditOutcome
-
-    /**
-     * Phase 2 — Reactive subscription на список словарей (для multi-dict scope picker
-     * в Create-диалоге Manager-экрана). Делегирует на dictionaryApi.flowDictionaryList().
-     */
-    fun flowDictionaries(): Flow<List<DictionaryApiEntity>>
-}
-```
+## 17. UseCase-интерфейсы и Data API
 
 ### `PerDictionaryComponentsUseCase`
 
-```kotlin
-package me.apomazkin.per_dictionary_components.deps
-
-import kotlinx.coroutines.flow.Flow
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.Scope
-import me.apomazkin.lexeme.CreateOutcome
-import me.apomazkin.lexeme.RenameOutcome
-import me.apomazkin.lexeme.DeleteOutcome
-import me.apomazkin.lexeme.EditOutcome
-import me.apomazkin.lexeme.DeletionImpact
-import me.apomazkin.lexeme.PerDictionarySnapshot
-
-interface PerDictionaryComponentsUseCase {
-
-    /**
-     * Подписка на active user-defined component_types применимых к словарю
-     * (global + per-dict с dictionaryId = :dictId).
-     *
-     * Subscribed by: ComponentsForDictionaryFlowHandler.
-     */
-    fun flowComponentsForDictionary(dictionaryId: Long): Flow<PerDictionarySnapshot>
-
-    /** Те же CRUD методы, что в ComponentsManagerUseCase. */
-    suspend fun createUserDefinedComponent(
-        name: String,
-        template: ComponentTemplate,
-        isMultiple: Boolean,
-        scope: Scope,
-    ): CreateOutcome
-
-    suspend fun renameComponent(typeId: ComponentTypeId, newName: String): RenameOutcome
-
-    suspend fun previewDeletionImpact(typeId: ComponentTypeId): DeletionImpact?
-
-    suspend fun softDeleteComponent(typeId: ComponentTypeId): DeleteOutcome
-
-    /** Phase 2 — те же business rules что в ComponentsManagerUseCase.editComponent. */
-    suspend fun editComponent(
-        typeId: ComponentTypeId,
-        name: String,
-        template: ComponentTemplate,
-        isMultiple: Boolean,
-    ): EditOutcome
-
-    // flowDictionaries отсутствует — нет multi-dict picker в PerDict.
-}
-```
-
-### Data API — `core/core-db-api`
-
-#### `EditComponentOutcome` (phase 2, в `entity/ComponentOutcomeApiEntity.kt`)
-
-```kotlin
-sealed interface EditComponentOutcome {
-    data class Success(val type: ComponentTypeApiEntity) : EditComponentOutcome
-    data object SameScopeCollision : EditComponentOutcome
-    data object CrossScopeCollision : EditComponentOutcome
-    data class CardinalityDowngradeBlocked(val impactedLexemeIds: List<Long>) : EditComponentOutcome
-    /** Defensive parity — основная проверка на UseCase, API возвращает defense-in-depth. */
-    data object TemplateImmutable : EditComponentOutcome
-    data object BuiltInProtected : EditComponentOutcome
-    data object Removed : EditComponentOutcome
-}
-```
-
-**НЕ входит в API** (валидация / try-catch на UseCaseImpl):
-- `NameEmpty` — `trimmed.isBlank()` → domain `EditOutcome.NameEmpty` без обращения к API.
-- `Failure(cause)` — try-catch → domain `EditOutcome.Failure(cause)`.
-
-#### `RenameComponentOutcome` / `SoftDeleteComponentOutcome` (phase 2 extension)
-
-Добавлен `data object Removed` в каждый.
-
-#### `LexemeApi.editComponentType` (phase 2 extension в `CoreDbApi.kt`)
-
-```kotlin
-interface LexemeApi {
-    // ... existing methods
-
-    /**
-     * Edit user-defined component_type — UPDATE name / template / isMultiple.
-     *
-     * Template принимается параметром — immutability check на UseCase уровне.
-     * Cascade quiz_configs.component_refs выполняется если name изменился.
-     * Cardinality downgrade SELECT запускается ТОЛЬКО при isMultiple=false AND current.isMultiple=true.
-     *
-     * Outcome ветки см. EditComponentOutcome.
-     */
-    suspend fun editComponentType(
-        typeId: Long,
-        name: String,
-        template: ComponentTemplate,
-        isMultiple: Boolean,
-    ): EditComponentOutcome
-}
-```
-
----
-
-## Тестовые сценарии
-
-### Phase 1
-
-#### Create — happy path
-
-- **Предусловие:** state без активных диалогов, существует словарь D1; user-defined типов с именем "Notes" нет.
-- **Действие:** `OpenCreateDialog` → `CreateNameChange("Notes")` → `CreateTemplateChange(TEXT)` → `CreateScopeChange(Scope.PerDictionaries(listOf(D1.id)))` → `SubmitCreate`.
-- **Ожидание:** `isCreating=true`, dispatch `DatasourceEffect.CreateComponent(epoch, "Notes", TEXT, false, PerDictionaries([D1.id]))`. После `CreateResult(epoch, Success(created=[type]))`: `isCreating=false`, `createDialog=null`, `snackbarState = Snackbar("Created 1")`.
-
-#### Create — same-scope collision
-
-- **Предусловие:** уже существует active user-defined per-dict "Notes" (`dictionary_id=D1, removed_at IS NULL`).
-- **Действие:** Open + Fill + Submit с тем же именем + scope `PerDictionaries([D1.id])`.
-- **Ожидание:** `CreateResult(epoch, SameScopeCollision)` → `isCreating=false`, `createDialog.nameError=NameError.SameScopeCollision`, диалог НЕ закрывается.
-
-#### Create — cross-scope collision (invariant)
-
-- **Предусловие:** существует active **global** "Notes" (`dictionary_id IS NULL, removed_at IS NULL`).
-- **Действие:** Submit per-dict "Notes" в любом словаре.
-- **Ожидание:** `CreateResult(epoch, CrossScopeCollision)` → `nameError=NameError.CrossScopeCollision`.
-
-#### Create — recreate after soft-delete
-
-- **Предусловие:** существует soft-deleted user-defined "Notes" (`removed_at IS NOT NULL`); активной "Notes" нет.
-- **Действие:** Submit "Notes" в том же scope.
-- **Ожидание:** `Success(created=[...])` — пересоздание разрешено.
-
-#### Create — stale result (epoch mismatch)
-
-- **Предусловие:** `SubmitCreate` (epoch=1) → dialog closed → reopened → новый `SubmitCreate` (epoch=2).
-- **Действие:** late `CreateResult(epoch=1, Success(...))` приходит после epoch=2 dispatched.
-- **Ожидание:** state не меняется (stale epoch dropped).
-
-#### Rename — happy path
-
-- **Предусловие:** существует user-defined type T с name "Notes"; в одном из quiz_configs есть ref `user:"Notes"`.
-- **Действие:** `OpenRenameDialog(T.id)` → `RenameTextChange("Annotations")` → `SubmitRename`.
-- **Ожидание:** `RenameResult(epoch, Success(type with name="Annotations"))`; в БД — атомарный UPDATE component_types + cascade UPDATE quiz_configs.component_refs.
-
-#### Rename — built-in protected
-
-- **Предусловие:** type T — built-in (`systemKey != null`).
-- **Действие:** `SubmitRename`.
-- **Ожидание:** `RenameResult(epoch, BuiltInProtected)`; `snackbarState = Snackbar(<error>)`; диалог закрывается.
-
-#### Delete — preview + confirm
-
-- **Предусловие:** type T (`isMultiple=true`) имеет 23 active values в 2 словарях; в 1 quiz_config есть ref; 1 dict pref ссылается на ref.
-- **Действие:** `OpenDeleteConfirm(T.id)` → жди `ImpactPreviewLoaded(T.id, impact)` → `ConfirmDelete`.
-- **Ожидание:** preview: `valueCount=23, dictionariesWithValues=[D1, D2], affectedQuizConfigs=[(D1, mode)], affectedPrefs=[D1]`. После `ConfirmDelete`: `DeleteResult(epoch, Success(impact))`, `snackbarState = Snackbar("23 values hidden")`.
-
-#### Delete — preview not-found
-
-- **Предусловие:** UseCase возвращает `null` (type был soft-deleted параллельным actor'ом).
-- **Действие:** `OpenDeleteConfirm(T.id)`.
-- **Ожидание:** `Msg.ImpactPreviewFailed(T.id, cause=null)` → reducer закрывает loading-флаг + snackbar.
-
-#### Delete — double-tap guard
-
-- **Предусловие:** `isDeleting=true`.
-- **Действие:** второй `ConfirmDelete`.
-- **Ожидание:** state не меняется, второй effect не dispatch'ится.
-
-#### CancellationException propagation
-
-- **Предусловие:** Datasource handler выполняет UseCase call; coroutine cancelled извне.
-- **Ожидание:** `CancellationException` re-throw'ится handler'ом (не конвертируется в `Failure`-Msg).
-
-#### Per-dictionary — create with preselect scope
-
-- **Предусловие:** `PerDictionaryComponentsScreenState(dictionaryId=D1, ...)`, диалог закрыт.
-- **Действие:** `OpenCreateDialog`.
-- **Ожидание:** `createDialog = CreateDialogState(scope = Scope.PerDictionaries(listOf(D1)))`.
-
-#### Per-dictionary — global components visible
-
-- **Предусловие:** существует active global "Tags"; открыт `PerDictionaryComponentsScreen(D1)`.
-- **Действие:** Initial load → `ItemsLoaded(snapshot)`.
-- **Ожидание:** `items` содержит row для "Tags" с `isGlobal=true`.
-
-#### Open dialog closes other dialogs (mutual exclusion invariant)
-
-- **Предусловие:** `renameDialog != null`.
-- **Действие:** `OpenCreateDialog`.
-- **Ожидание:** `createDialog != null && renameDialog == null && deleteConfirm == null && editDialog == null && in-flight flags == false`.
-
-### Phase 2
-
-#### Edit — happy path (rename only)
-
-- **Предусловие:** существует user-defined type T с name "Notes", `isMultiple=true`; имени "Annotations" нет.
-- **Действие:** `OpenEditDialog(T.id)` → `EditNameChange("Annotations")` → `SubmitEdit`.
-- **Ожидание:** `isEditing=true`, dispatch `DatasourceEffect.EditComponent(epoch, T.id, "Annotations", TEXT, true)`. После `EditResult(epoch, Success(type with name="Annotations"))`: `isEditing=false`, `editDialog=null`, `snackbarState=Snackbar("Updated")`. Cascade UPDATE `quiz_configs.component_refs` выполнен на data-уровне (name изменился).
-
-#### Edit — cardinality downgrade blocked (size ≤ 3)
-
-- **Предусловие:** type T (`isMultiple=true`) имеет 2 лексемы с count>1; user открыл EditDialog.
-- **Действие:** `EditMultiToggle(false)` → `SubmitEdit`.
-- **Ожидание:** `EditResult(epoch, CardinalityDowngradeBlocked(impactedLexemeIds=[L1, L2]))` → `editDialog.impactedLexemesPreview = InlineOnly([L1, L2])`, dialog остаётся открытым, drill-in кнопка скрыта.
-
-#### Edit — cardinality downgrade blocked (size > 3)
-
-- **Предусловие:** type T (`isMultiple=true`) имеет 7 лексем с count>1.
-- **Действие:** `EditMultiToggle(false)` → `SubmitEdit`.
-- **Ожидание:** `EditResult(epoch, CardinalityDowngradeBlocked(impactedLexemeIds=[L1..L7]))` → `editDialog.impactedLexemesPreview = InlineWithDrillIn(impactedLexemeIds=[L1..L7], inlineIds=[L1, L2, L3])`, drill-in кнопка видна.
-
-#### Edit — template immutability gate
-
-- **Предусловие:** type T с template=TEXT.
-- **Действие:** `EditTemplateChange(IMAGE)` → `SubmitEdit`.
-- **Ожидание:** UseCaseImpl сравнивает new.template vs current.template, возвращает `EditOutcome.TemplateImmutable` БЕЗ вызова `lexemeApi.editComponentType`. `EditResult(epoch, TemplateImmutable)` → `editDialog=null, snackbarState=Snackbar(<template-immutable text>)`.
-
-#### Edit — race with soft-delete (Removed)
-
-- **Предусловие:** EditDialog открыт для type T; параллельно (другой process / cascade) T получает `removed_at = now()`.
-- **Действие:** `SubmitEdit`.
-- **Ожидание:** API возвращает `EditComponentOutcome.Removed` → UseCaseImpl mapping → `EditOutcome.Removed`. `EditResult(epoch, Removed)` → `editDialog=null, snackbarState=Snackbar("Компонент удалён")`.
-
-#### Edit — same-scope collision
-
-- **Предусловие:** уже существует active per-dict "Annotations" в том же словаре.
-- **Действие:** Edit `T(name="Notes")` → `EditNameChange("Annotations")` → `SubmitEdit`.
-- **Ожидание:** `EditResult(epoch, SameScopeCollision)` → `editDialog.nameError=EditNameError.SameScopeCollision`, диалог НЕ закрывается.
-
-#### Edit — built-in protected
-
-- **Предусловие:** type T — built-in (`systemKey != null`).
-- **Действие:** `SubmitEdit`.
-- **Ожидание:** `EditResult(epoch, BuiltInProtected)` → `editDialog=null, snackbarState=Snackbar(<built-in text>)`.
-
-#### Edit — Failure handling
-
-- **Предусловие:** Datasource handler ловит exception при `editComponent`.
-- **Действие:** `SubmitEdit`.
-- **Ожидание:** `EditResult(epoch, Failure(cause))` → `editDialog=null, snackbarState=Snackbar(failureLabel(cause))`.
-
-#### Edit — stale result (epoch mismatch)
-
-- **Предусловие:** `SubmitEdit` (epoch=1) → dialog closed → reopened → новый `SubmitEdit` (epoch=2).
-- **Действие:** late `EditResult(epoch=1, Success(...))` приходит после epoch=2 dispatched.
-- **Ожидание:** state не меняется (stale epoch dropped).
-
-#### Edit — double-tap guard
-
-- **Предусловие:** `isEditing=true`.
-- **Действие:** второй `SubmitEdit`.
-- **Ожидание:** state не меняется, второй effect не dispatch'ится.
-
-#### Create — multi-dict scope happy path
-
-- **Предусловие:** Manager-экран, диалог закрыт; `availableDictionaries=[D1, D2, D3]`.
-- **Действие:** `OpenCreateDialog` → `CreateNameChange("Tags")` → `CreateScopeChange(PerDictionaries(emptyList()))` → `CreateDictionaryToggle(D1.id)` → `CreateDictionaryToggle(D2.id)` → `SubmitCreate`.
-- **Ожидание:** dispatch `DatasourceEffect.CreateComponent(epoch, "Tags", TEXT, false, PerDictionaries([D1.id, D2.id]))`. После `Success(created=[t1, t2])`: `snackbarState=Snackbar("Created 2")`.
-
-#### Create — submit disabled при пустом PerDictionaries selection
-
-- **Предусловие:** `createDialog` с `scope=PerDictionaries`, `selectedDictionaryIds=emptySet()`, `name="Tags"`.
-- **Действие:** computed `canSubmit`.
-- **Ожидание:** `canSubmit == false` (submit-кнопка disabled).
-
-#### Multi-dict — chip staleness filtering
-
-- **Предусловие:** `createDialog.selectedDictionaryIds=[D1.id, D2.id]`; параллельно D1 удалён → приходит `DictionariesLoaded(updated=[D2, D3])`.
-- **Действие:** `Msg.DictionariesLoaded(updated)`.
-- **Ожидание:** `availableDictionaries=[D2, D3]`, `createDialog.selectedDictionaryIds=[D2.id]` (stale D1 отфильтрован). Если selection опустеет → `canSubmit=false`.
-
-#### DictionariesLoaded не мутирует EditDialogState (инвариант)
-
-- **Предусловие:** `editDialog != null` (с current name/template/isMultiple/impactedLexemesPreview).
-- **Действие:** `Msg.DictionariesLoaded(updated)`.
-- **Ожидание:** `availableDictionaries` обновлён; `createDialog.selectedDictionaryIds` фильтруется; поля `editDialog` (name/template/isMultiple/impactedLexemesPreview/isEditing) **не меняются**.
-
-#### Mutual exclusion (Open*Dialog 4-way)
-
-- **Предусловие:** `renameDialog != null`.
-- **Действие:** `OpenEditDialog(T.id)`.
-- **Ожидание:** `editDialog != null && renameDialog == null && createDialog == null && deleteConfirm == null && isCreating == isRenaming == isDeleting == false`.
-
-#### Rename — Removed parity
-
-- **Предусловие:** RenameDialog открыт; type был soft-deleted параллельно.
-- **Действие:** `SubmitRename`.
-- **Ожидание:** `RenameResult(epoch, Removed)` → `renameDialog=null, snackbarState=Snackbar("Компонент удалён")`.
-
-#### Delete — Removed parity
-
-- **Предусловие:** DeleteConfirm открыт; type был soft-deleted параллельно.
-- **Действие:** `ConfirmDelete`.
-- **Ожидание:** `DeleteResult(epoch, Removed)` → `deleteConfirm=null, snackbarState=Snackbar("Компонент удалён")`.
-
-#### Cardinality downgrade SELECT precondition (UseCaseImpl-level)
-
-- **Предусловие:** type T (`current.isMultiple=true`), Edit с `new.isMultiple=true` (upgrade либо unchanged).
-- **Действие:** `useCase.editComponent(T.id, name, TEXT, isMultiple=true)`.
-- **Ожидание:** orchestration НЕ вызывает cardinality downgrade SELECT (verify на DAO method ни разу не вызван). Аналогично для edit only name (isMultiple unchanged).
+- `flowComponentsForDictionary(dictionaryId): Flow<PerDictionarySnapshot>` — реактивная подписка на компоненты словаря. IS486: включает builtin-строки словаря — **это изменение фазы 2**; в фазе 1 фильтр builtin сохраняется, чтобы старый список не показал их с edit/delete.
+- `createUserDefinedComponent(name, template, isMultiple, scope): CreateOutcome` — валидация имени → two-prong SELECT (same-scope + cross-scope) → INSERT (N строк для N словарей; в продукте — всегда 1, текущий словарь).
+- `previewDeletionImpact(typeId): DeletionImpact?` — read-only preview каскада; null = тип не найден/удалён.
+- `softDeleteComponent(typeId): DeleteOutcome` — атомарно: `removed_at`, cleanup `quiz_configs.component_refs` (одна Room-транзакция); затем cleanup prefs квиз-пикера — ключи `quiz_picker_dict_<id>` по `impact.affectedPrefs`. **Prefs — best-effort ВНЕ транзакции**: DataStore живёт вне Room, атомарности с soft-delete нет by design — per-pref ошибка логируется и глотается, outcome остаётся `Success`.
+- `editComponent(typeId, name, template, isMultiple, core, dependsOnTypeId, dependsOnOptionId): EditOutcome` — UseCase-уровень: `NameEmpty` и `TemplateImmutable` без обращения к API; try-catch → `Failure`. API-уровень: `Removed` / `BuiltInProtected` / коллизии / `CardinalityDowngradeBlocked` / `CycleDetected` / `MultiForbiddenForChoice` / `LastEnabledCore` / `Success` (+cascade refs при смене имени, умный сброс при смене цели §9.4).
+- `setComponentEnabled(typeId, enabled): SetEnabledOutcome` — рубильник с валидацией §7.8 (`LastEnabledCore`).
+- CRUD опций: `addOption(typeId, label)` / `renameOption(optionId, label)` / `deleteOption(optionId)` → `OptionOutcome`; `previewOptionDeletionImpact(optionId)` — конфирм К4/К5.
+- `previewRebindImpact(typeId, core, dependsOnTypeId, dependsOnOptionId): DeletionImpact?` — конфирм перепривязки (§9.4).
+
+`ComponentsManagerUseCase` (flowAllUserDefinedTypes, flowDictionaries) — §20.
+
+### Data API (`core/core-db-api`)
+
+- `LexemeApi.editComponentType(typeId, name, template, isMultiple, core, dependsOnTypeId, dependsOnOptionId): EditComponentOutcome` — ветки: Success / SameScopeCollision / CrossScopeCollision / CardinalityDowngradeBlocked(ids) / CycleDetected / MultiForbiddenForChoice / LastEnabledCore / TemplateImmutable (defense-in-depth) / BuiltInProtected / Removed. Cardinality-SELECT запускается только при downgrade (`true → false`).
+- `NameEmpty` и `Failure` в API не входят — UseCaseImpl-уровень.
+- IS486-методы API (реализованы): `setComponentEnabled`, `addComponentOption` / `renameComponentOption` / `deleteComponentOption` / `getComponentOptions` (все с `BuiltInProtected` для builtin-владельца, §21.2), `previewOptionDeletionImpact`, `previewRebindImpact`; снапшот `flowUserDefinedTypesForDictionary` — реактивный combine трёх запросов (типы + опции + счётчики значений: пере-эмит при любом их изменении).
+
+## 18. Виджеты, строки, иконки (актуальный набор после IS485)
+
+Shared-модуль `:modules:widget:component_widgets`:
+
+- **Строки списков:** `UserDefinedRowWidget` / `PerDictRowWidget` → общий `ComponentRowCard` (карточка: иконка типа `ComponentTypeIcon`, имя, «Значений: N», кнопки edit/delete `ComponentIconButton`, чип шаблона `TemplateChip`). Бейджи охвата/мульти/словарей скрыты (данные в сигнатурах живут).
+- **Диалоги:** `CreateComponentDialog` (hostVariant Manager — со scope-picker'ом; PerDict — без; + пикер цели `ComponentTargetPicker` и редактор вариантов `OptionListEditor` при CHOICE), `EditComponentDialog` (+`CardinalityDowngradePreviewWidget`, + те же секции иерархии/опций), `DeleteComponentConfirmDialog`, `OptionDeleteConfirmDialog`, `RebindConfirmDialog` — собраны из `ComponentDialogParts`/`HierarchyDialogParts` (лейблы, поле имени, радио-группа шаблонов с дизейблом IMAGE, чекбокс мульти, кнопки; destructive-вариант для удаления).
+- **Edit dirty-check (контракт кнопки, перенесено из IS481-спеки):** `canSubmit = name.trim().isNotBlank() && nameError == null && !isSubmitting && dirty`, где `dirty` = изменение name/template/isMultiple относительно `original*` ИЛИ `extraDirty` (IS486: смена цели/ядра, rename существующих опций, непустые новые черновики). Без изменений «Сохранить» задизейблена.
+- **`DeleteComponentConfirmDialog` — 3-way рендер impact** (перенесено из IS481-спеки): `isLoadingImpact` (прогресс) | `impact != null` (счётчики) | «unavailable» (preview упал); каждая строка счётчика (values/dicts/quiz/prefs) видна только при count > 0.
+- **Per-template виджеты значений (Tier-2, паттерн typed_views):** exhaustive-резолвер `ComponentByTemplate(when(template))` → структурная обёртка `ComponentBlock` (слот имени + content-лямбда) → per-template composable (`TextWidget`; CHOICE — пустой блок: значение живёт чипом опции в карточке, IMAGE — не реализован).
+- **Прочее:** `ComponentsEmptyStateWidget`, `CreateComponentFab`, `ErrorStateWidget` (core:ui), `BuiltInDisplay` (display-имена builtin и опций по ключу из ресурсов).
+- Display-only DTO у диалогов: `DictionaryRef(id, name)`, `DeletionImpactRef(counts)`, `HostVariant` — shared-виджеты не связаны с mate-state экранов (плоские примитивы). `EditNameError.toLabelRes()` — host-local в каждом экране.
+- Известные placeholder'ы (Backlog): `lexemeLabel` = "Лексема №N" (нет реального лейбла), `onShowAllImpacted` = no-op (drill-in не реализован); `PrimaryTextButtonWidget` не поддерживает StringRes с аргументами → fallback M3 `TextButton` + `stringResource(id, count)` (backlog: overload); `LexemeStyle` без Label-семейства → fallback label→`BodyS`, label-large→`BodyLBold`; `failureLabel` — `:modules:core:tools/ThrowableExt.kt`.
+- Известный долг: snackbar-тексты в reducer — хардкод английских литералов («Created N», «Component removed»...), не ресурсы `components_*`; локализация — при доработке экрана.
+
+Строки: семейство `components_*` (диалоги create/edit/delete, ошибки коллизий, scope-лейблы, cardinality-preview, empty/error states). Иконки: `ic_hammer`, `ic_components`, `ic_text_lines` (IS485), `ic_edit`, `ic_trash`, `ic_add`. Палитра — токены темы IS485 (`componentCardBorder`, `typeIconBg`, `iconButtonBg`, `templateChipBg/Text`, `dialogFieldBg`, `radioSelectedBg`, `radioBorderInactive`, `destructiveRed`, `formBackground`).
+
+## 19. Тестовые сценарии (поведенческий контракт)
+
+Rename-сценарии исключены (флоу удалён в IS485). Существующие тесты — неизменяемый контракт.
+
+**Create:** happy path (dispatch → Success → диалог закрыт, snackbar); same-scope collision (nameError, диалог открыт); cross-scope collision; recreate после soft-delete (разрешено); stale epoch (игнор).
+**Delete:** preview + confirm (impact-поля → Success → snackbar); preview not-found (null → `ImpactPreviewFailed`, snackbar); double-tap guard; Removed parity (параллельный soft-delete → «Компонент удалён»).
+**Edit:** happy path (rename-only → Success + cascade refs); cardinality downgrade blocked ≤3 (InlineOnly) и >3 (InlineWithDrillIn, take(3)); template immutability gate (без вызова API); race с soft-delete (Removed); same-scope collision (nameError, диалог открыт); built-in protected; Failure handling; stale epoch; double-tap guard; downgrade-SELECT precondition (не вызывается без downgrade).
+**Общие:** mutual exclusion диалогов (3-way после IS485); пре-селект scope текущим словарём; `CancellationException` re-throw.
+**Manager/multi-dict сценарии** (happy path на N словарей, chip staleness, `DictionariesLoaded`-инвариант, global-компоненты в per-dict списке) — §20; их тесты в коде остаются валидными, пока жив Manager-модуль.
+
+**IS486-сценарии — РЕАЛИЗОВАНЫ** (фазы 1–4 + девайс-фиксы 2026-07-21):
+- CHOICE (создание с опциями, выбор значения, запрет мульти) — `ChoiceTemplateTest`, `ParticipationAndChoiceTest`, `HierarchyReducerTest`, `Phase3ConstructorDataTest`;
+- зависимости (доступность по цели, каскады, ацикличность, умный сброс `TargetRebound`, перепривязка живого/degraded) — `CascadePlannerTest`, `AcyclicityCheckTest`, `CascadeExecutorTest`, `Phase3ConstructorDataTest` (P3.5/P3.5b/P3.5c);
+- degraded/disabled (вычисление, участие) — `DegradedPredicateTest`, `HierarchyReducerTest` (toPerDictRows), `ParticipationAndChoiceTest` (disabled-фильтр);
+- деградация лексемы в черновик + purge — `DegradationToDraftTest`, `WordCardScenarioTest` S11;
+- миграция 11→12 (backfill, seed, идемпотентность) — `MigrationFrom11to12`, `MigrationFrom11to12IdempotencyTest`, `Is486DataLayerTest`;
+- рубильник/опции/конфирмы конструктора — `HierarchyReducerTest`, `Phase3ConstructorDataTest`.
+Ручной девайс-чек-лист (27 сценариев) — `docs/features/IS486_choice_component/manual_test_checklist.md`, пройден 2026-07-21.
+
+## 20. Потенциальная фича: глобальный охват и Manager-экран (за скобками)
+
+Глобальных компонентов в продукте нет (решение 2026-07-17). Возможность **учитывается в коде**, но не поддерживается в UI. Эта секция — консервация контрактов на случай воскрешения.
+
+### Что остаётся в коде
+
+- `component_types.dictionary_id` — nullable: глобальная строка (NULL) выразима.
+- `Scope.Global` и ветки `CrossScopeCollision` — живут, из UI недостижимы.
+- Multi-dict путь создания (`Scope.PerDictionaries(N)` → N строк) — живёт, UI создаёт всегда на один словарь.
+- Модуль `components_manager` — остаётся в коде, вход из Settings удалён, из навигации недостижим.
+- Поле `PerDictRow.isGlobal` — живёт, в продукте всегда false. Manager-специфика (`selectedDictionaryIds`, `canSubmit` с проверкой словарей) существует только в Manager-state (см. контракт ниже).
+
+### Влияние пословарных builtin на глобалы
+
+- Схема готова: uniqueness builtin уже «(ключ, словарь)» в UseCase — глобальный builtin потом = строка с NULL-словарём, без миграции схемы.
+- Единственное решение при воскрешении: **кросс-охватные зависимости** (сейчас запрещены §7.7). Безопасное правило: per-dict может зависеть от global (глобал не умирает со словарём); global от per-dict — нет.
+- Manager-контракты ниже остаются концептуально валидными.
+
+### Manager-экран (консервированный контракт)
+
+- **Экран:** aggregated view всех user-defined компонентов из всех словарей; вход был: `SettingsTab` → `ComponentsManageWidget`.
+- **State:** `ComponentsManagerScreenState` — зеркало per-dict state (§14) с отличиями: данные — `userDefinedTypes: List<UserDefinedRow>?`; `availableDictionaries: List<DictionaryApiEntity>` для multi-dict пикера.
+- **`UserDefinedRow`:** `typeId, name, template, isMultiple, scope (Global | PerDictionaries), usageCount (суммарно по словарям), dictionaryNames (для бейджей)`.
+- **Msg:** lifecycle `TypesLoaded`/`TypesLoadFailed`; multi-dict семейство — `CreateDictionaryToggle(dictionaryId)` (toggle выбора), `DictionariesLoaded(list)` (обновление списка + фильтрация stale selection; `editDialog` НЕ мутируется — инвариант).
+- **IO:** `AllUserDefinedTypesFlowHandler` (`flowAllUserDefinedTypes()` → `TypesLoaded`), `DictionariesFlowHandler` (`flowDictionaries()` → `DictionariesLoaded`; ошибка collect → пустой список, picker деградирует к Global-only), effect `SubscribeDictionaries` для re-subscribe.
+- **UseCase:** `ComponentsManagerUseCase` — те же CRUD + `flowAllUserDefinedTypes(): Flow<UserDefinedTypesSnapshot>` + `flowDictionaries()`.
+- **Domain-типы:** `UserDefinedTypesSnapshot(types, usage, optionsByType)`; `ComponentUsage(valueCountByType, dictionaryIdsByType, dictionaryNames)` — aggregated-статистика (пример: `{3: 12}` — у типа 3 двенадцать значений суммарно).
+- **Тест-контракты:** multi-dict happy path (N словарей → N строк); submit disabled при пустом selection; chip staleness filtering; `DictionariesLoaded` не мутирует `EditDialogState`; global-компоненты видны в per-dict списке.
+
+## 21. Открытые вопросы
+
+1. **UX флоу создания компонента:** человек без знания механики создаёт компонент — галка «ядро»? Пре-селект цели «перевод»? Решить при UI-дизайне.
+2. ~~**Опции builtin «Часть речи»:** редактируемость опций builtin пользователем.~~
+   **РЕШЕНО (2026-07-20, фаза 4):** опции builtin **нередактируемы** — ни add,
+   ни rename, ни delete; builtin как есть. UI: Edit-диалог для builtin закрыт
+   (только рубильник enabled). Data: defense-in-depth —
+   `OptionCrudOutcome.BuiltInProtected` во всех трёх операциях.

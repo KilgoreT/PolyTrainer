@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.core_resources.R
@@ -23,6 +26,8 @@ import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.componentCardBorder
 import me.apomazkin.theme.destructiveRed
 import me.apomazkin.theme.formTextHint
+import me.apomazkin.theme.templateChipBg
+import me.apomazkin.theme.templateChipText
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.preview.PreviewWidget
 
@@ -32,6 +37,10 @@ import me.apomazkin.ui.preview.PreviewWidget
  *
  * IS485: бейджи охвата/«Несколько»/словарей не отображаются (терминология не финализирована);
  * параметры [isMultiple]/[isGlobal]/[dictionaryNames] остаются в сигнатуре — данные живут.
+ *
+ * IS486 (В3): одна лента builtin + кастомных. Builtin ([isBuiltIn]) — без edit/delete,
+ * только свитч [enabled]. Выключенный — приглушение + чип «Выключен»; деградировавший
+ * ([degraded], цель мертва) — чип «Не работает».
  */
 @Composable
 fun PerDictRowWidget(
@@ -44,14 +53,40 @@ fun PerDictRowWidget(
     onEdit: (ComponentTypeId) -> Unit,
     onDelete: (ComponentTypeId) -> Unit,
     dictionaryNames: List<String> = emptyList(),
+    isBuiltIn: Boolean = false,
+    enabled: Boolean = true,
+    degraded: Boolean = false,
+    enabledTogglePending: Boolean = false,
+    onToggleEnabled: (ComponentTypeId, Boolean) -> Unit = { _, _ -> },
 ) {
     ComponentRowCard(
         name = name,
         template = template,
         valueCount = valueCount,
+        showActions = !isBuiltIn,
+        enabled = enabled,
+        degraded = degraded,
+        enabledTogglePending = enabledTogglePending,
         onEdit = { onEdit(typeId) },
         onDelete = { onDelete(typeId) },
+        onToggleEnabled = { onToggleEnabled(typeId, it) },
     )
+}
+
+/** Чип состояния строки (IS486 В3): «Выключен» / «Не работает». */
+@Composable
+private fun RowStateChip(textRes: Int, destructive: Boolean) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = templateChipBg,
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            text = stringResource(id = textRes),
+            style = LexemeStyle.BodyS,
+            color = if (destructive) destructiveRed else templateChipText,
+        )
+    }
 }
 
 /** Общий облик строки компонента для обоих экранов (per-dict + Manager). */
@@ -62,6 +97,11 @@ internal fun ComponentRowCard(
     valueCount: Int,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    showActions: Boolean = true,
+    enabled: Boolean = true,
+    degraded: Boolean = false,
+    enabledTogglePending: Boolean = false,
+    onToggleEnabled: ((Boolean) -> Unit)? = null,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -73,7 +113,9 @@ internal fun ComponentRowCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(18.dp)
+                // IS486 (В3): выключенный компонент приглушён (контент, не свитч).
+                .alpha(if (enabled) 1f else 0.5f),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ComponentTypeIcon()
@@ -90,20 +132,45 @@ internal fun ComponentRowCard(
                         color = formTextHint,
                     )
                 }
-                ComponentIconButton(
-                    iconRes = R.drawable.ic_edit,
-                    tint = LexemeColor.secondary,
-                    onClick = onEdit,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                ComponentIconButton(
-                    iconRes = R.drawable.ic_trash,
-                    tint = destructiveRed,
-                    onClick = onDelete,
-                )
+                if (showActions) {
+                    ComponentIconButton(
+                        iconRes = R.drawable.ic_edit,
+                        tint = LexemeColor.secondary,
+                        onClick = onEdit,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ComponentIconButton(
+                        iconRes = R.drawable.ic_trash,
+                        tint = destructiveRed,
+                        onClick = onDelete,
+                    )
+                }
+                if (onToggleEnabled != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Switch(
+                        checked = enabled,
+                        enabled = !enabledTogglePending,
+                        onCheckedChange = onToggleEnabled,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = LexemeColor.primary,
+                        ),
+                    )
+                }
             }
             Spacer(modifier = Modifier.padding(top = 8.dp))
-            TemplateChip(template = template)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TemplateChip(template = template)
+                if (!enabled) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    RowStateChip(textRes = R.string.components_row_disabled, destructive = false)
+                }
+                if (degraded) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    RowStateChip(textRes = R.string.components_row_degraded, destructive = true)
+                }
+            }
         }
     }
 }
@@ -117,5 +184,20 @@ private fun Preview() {
         valueCount = 3,
         onEdit = {},
         onDelete = {},
+    )
+}
+
+@Composable
+@PreviewWidget
+private fun PreviewBuiltInDisabled() {
+    ComponentRowCard(
+        name = "Часть речи",
+        template = ComponentTemplate.CHOICE,
+        valueCount = 5,
+        showActions = false,
+        enabled = false,
+        onEdit = {},
+        onDelete = {},
+        onToggleEnabled = {},
     )
 }

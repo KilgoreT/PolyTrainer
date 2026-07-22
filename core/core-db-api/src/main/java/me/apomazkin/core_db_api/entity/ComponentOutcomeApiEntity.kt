@@ -34,8 +34,39 @@ sealed interface SoftDeleteComponentOutcome {
     data class Success(val impact: DeletionImpact) : SoftDeleteComponentOutcome
     data object BuiltInProtected : SoftDeleteComponentOutcome
 
+    /** IS486 (spec §7.8): удаление последнего включённого ядра словаря — отказ. */
+    data object LastEnabledCore : SoftDeleteComponentOutcome
+
     /** type.removed_at IS NOT NULL — повторный soft-delete (IS481 phase 2, F004). */
     data object Removed : SoftDeleteComponentOutcome
+}
+
+/** IS486: outcome рубильника enabled (spec §6, §7.8). */
+sealed interface SetEnabledComponentOutcome {
+    data class Success(val type: ComponentTypeApiEntity) : SetEnabledComponentOutcome
+
+    /** Попытка выключить последнее включённое ядро словаря (spec §7.8). */
+    data object LastEnabledCore : SetEnabledComponentOutcome
+
+    /** type.removed_at IS NOT NULL. */
+    data object Removed : SetEnabledComponentOutcome
+}
+
+/** IS486: outcome CRUD опций CHOICE-компонента (К1–К5). */
+sealed interface OptionCrudOutcome {
+    data class Success(val option: ComponentOptionApiEntity) : OptionCrudOutcome
+
+    /** Удаление: фактический комбинированный каскад (значения + degraded-потомки). */
+    data class Deleted(val impact: DeletionImpact) : OptionCrudOutcome
+
+    /** Опция уже soft-deleted / не найдена. */
+    data object Removed : OptionCrudOutcome
+
+    /**
+     * Решение §21.2 (2026-07-20): опции builtin-компонентов нередактируемы —
+     * ни add, ни rename, ни delete. Defense-in-depth (UI и так не даёт).
+     */
+    data object BuiltInProtected : OptionCrudOutcome
 }
 
 /**
@@ -51,6 +82,15 @@ sealed interface EditComponentOutcome {
     data class Success(val type: ComponentTypeApiEntity) : EditComponentOutcome
     data object SameScopeCollision : EditComponentOutcome
     data object CrossScopeCollision : EditComponentOutcome
+
+    /** IS486: перепривязка создала бы цикл (spec §8). */
+    data object CycleDetected : EditComponentOutcome
+
+    /** IS486: isMultiple = true для шаблона CHOICE (spec §7.5). */
+    data object MultiForbiddenForChoice : EditComponentOutcome
+
+    /** IS486: перепривязка последнего включённого ядра на не-лексему (spec §7.8). */
+    data object LastEnabledCore : EditComponentOutcome
 
     /**
      * Downgrade `isMultiple: true → false` заблокирован — есть лексемы с count > 1.

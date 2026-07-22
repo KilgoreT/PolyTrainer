@@ -276,6 +276,14 @@
     <!-- Template labels -->
     <string name="components_template_text">Text</string>
     <string name="components_template_image">Image</string>
+    <string name="components_template_choice">Choice</string>
+    <string name="builtin_component_part_of_speech">Part of speech</string>
+    <string name="part_of_speech_option_noun">Noun</string>
+    <string name="part_of_speech_option_verb">Verb</string>
+    <string name="part_of_speech_option_adjective">Adjective</string>
+    <string name="part_of_speech_option_adverb">Adverb</string>
+    <string name="part_of_speech_option_preposition">Preposition</string>
+    <string name="part_of_speech_option_phrase">Phrase</string>
 
     <!-- Button labels -->
     <string name="components_button_create">Create</string>
@@ -294,5 +302,26 @@
     <string name="components_create_field_scope">Scope</string>
     <string name="components_create_scope_global">Global (all dictionaries)</string>
     <string name="components_create_scope_per_dict">Per-dictionary</string>
+
+    <!-- IS486: component hierarchy constructor -->
+    <string name="components_row_disabled">Disabled</string>
+    <string name="components_row_degraded">Not working</string>
+    <string name="components_field_dependency">Depends on</string>
+    <string name="components_target_lexeme">Standalone</string>
+    <string name="components_field_core">Core component</string>
+    <string name="components_field_options">Options</string>
+    <string name="components_option_add">Add option</string>
+    <string name="components_options_error">Add at least one option</string>
+    <string name="components_option_delete_title">Delete option?</string>
+    <string name="components_option_delete_message">Option \"%1$s\" will be deleted.</string>
+    <string name="components_option_delete_values">Values to be hidden: %1$d</string>
+    <string name="components_option_delete_degraded">Dependent components will stop working: %1$d</string>
+    <string name="components_target_cycle_hint">Cannot select — would create a dependency cycle</string>
+    <string name="components_rebind_title">Change dependency?</string>
+    <string name="components_rebind_safe">Safe: existing values will not be affected.</string>
+    <string name="components_rebind_values">Values to be hidden: %1$d</string>
+    <string name="components_error_cycle">Dependency cycle detected</string>
+    <string name="components_error_multi_choice">Multiple values are not allowed for choice</string>
+    <string name="components_error_last_core">Cannot disable the last core component</string>
 
 </resources>

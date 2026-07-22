@@ -13,5 +13,8 @@ sealed interface DeleteOutcome {
     /** type.removed_at IS NOT NULL — повторный soft-delete; не путать с BuiltInProtected (F004). */
     data object Removed : DeleteOutcome
 
+    /** IS486: удаление последнего включённого ядра словаря — отказ (spec §7.8). */
+    data object LastEnabledCore : DeleteOutcome
+
     data class Failure(val cause: Throwable) : DeleteOutcome
 }

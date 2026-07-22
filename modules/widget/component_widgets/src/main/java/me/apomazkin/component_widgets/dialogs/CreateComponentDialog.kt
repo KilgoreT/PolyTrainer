@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.component_widgets.widgets.labelRes
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.NameError
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.theme.LexemeStyle
@@ -57,6 +58,18 @@ fun CreateComponentDialog(
     onDictionaryToggle: (Long) -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
+    // ===== IS486: пикер цели (В1) — рендерится если targetItems != null (PerDict) =====
+    targetItems: List<TargetPickerItem>? = null,
+    selectedTarget: DependencyTarget = DependencyTarget.Lexeme,
+    core: Boolean = true,
+    onTargetSelect: (DependencyTarget) -> Unit = {},
+    onCoreToggle: (Boolean) -> Unit = {},
+    // ===== IS486: варианты CHOICE (В2) — рендерятся при template == CHOICE =====
+    optionDrafts: List<String> = emptyList(),
+    optionsError: Boolean = false,
+    onOptionAdd: () -> Unit = {},
+    onOptionChange: (Int, String) -> Unit = { _, _ -> },
+    onOptionRemove: (Int) -> Unit = {},
 ) {
     val canSubmit = name.trim().isNotEmpty() &&
         nameError == null &&
@@ -93,12 +106,39 @@ fun CreateComponentDialog(
                 ComponentTemplateRadioGroup(selected = template, onSelect = onTemplateSelect)
             }
 
-            // Multi toggle row
-            ComponentMultiToggle(
-                textRes = R.string.components_create_field_is_multi,
-                checked = isMultiple,
-                onToggle = onMultiToggle,
-            )
+            // IS486 (В2): варианты CHOICE — текст-поля + «Добавить вариант».
+            if (template == ComponentTemplate.CHOICE) {
+                OptionListEditor(
+                    existing = emptyList(),
+                    drafts = optionDrafts,
+                    showError = optionsError,
+                    onExistingChange = { _, _ -> },
+                    onExistingDelete = {},
+                    onDraftChange = onOptionChange,
+                    onDraftRemove = onOptionRemove,
+                    onDraftAdd = onOptionAdd,
+                )
+            }
+
+            // Multi toggle row (IS486: для CHOICE мульти запрещён — spec §7.5)
+            if (template != ComponentTemplate.CHOICE) {
+                ComponentMultiToggle(
+                    textRes = R.string.components_create_field_is_multi,
+                    checked = isMultiple,
+                    onToggle = onMultiToggle,
+                )
+            }
+
+            // IS486 (В1): пикер цели зависимости + галка «Ядро» (PerDict host).
+            if (targetItems != null) {
+                ComponentTargetPicker(
+                    items = targetItems,
+                    selected = selectedTarget,
+                    core = core,
+                    onTargetSelect = onTargetSelect,
+                    onCoreToggle = onCoreToggle,
+                )
+            }
 
             // Scope picker — Manager variant only (phase 2 NEW)
             if (hostVariant == HostVariant.Manager) {

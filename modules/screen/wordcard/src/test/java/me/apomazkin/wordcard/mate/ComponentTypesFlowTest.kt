@@ -2,6 +2,7 @@ package me.apomazkin.wordcard.mate
 
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.wordcard.deps.AvailableComponents
 import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertEffects
 import me.apomazkin.mate.test.assertNoEffects
@@ -21,7 +22,7 @@ class ComponentTypesFlowTest {
 
     @Test
     fun `ComponentTypesLoaded stores types`() {
-        val result = reducer.testReduce(loaded(availableTypes = emptyList()), Msg.ComponentTypesLoaded(listOf(t1, t2)))
+        val result = reducer.testReduce(loaded(availableTypes = emptyList()), Msg.ComponentTypesLoaded(AvailableComponents(listOf(t1, t2))))
         assertEquals(listOf(t1, t2), result.state().availableComponentTypes)
         result.assertNoEffects()
     }
@@ -29,7 +30,7 @@ class ComponentTypesFlowTest {
     @Test
     fun `ComponentTypesLoaded overwrites previous and keeps lexemeList`() {
         val initial = loaded(availableTypes = listOf(t1), lexemes = listOf(lexeme(1L, listOf(savedCv(5L)))))
-        val result = reducer.testReduce(initial, Msg.ComponentTypesLoaded(listOf(t2)))
+        val result = reducer.testReduce(initial, Msg.ComponentTypesLoaded(AvailableComponents(listOf(t2))))
         assertEquals(listOf(t2), result.state().availableComponentTypes)
         assertEquals(initial.lexemeList, result.state().lexemeList)
         result.assertNoEffects()
@@ -38,7 +39,7 @@ class ComponentTypesFlowTest {
     @Test
     fun `ComponentTypesLoaded does not touch pending (stays true)`() {
         val initial = loaded(isPendingDbOp = true, availableTypes = listOf(t1), lexemes = listOf(lexeme(1L, listOf(savedCv(5L)))))
-        val result = reducer.testReduce(initial, Msg.ComponentTypesLoaded(listOf(t2)))
+        val result = reducer.testReduce(initial, Msg.ComponentTypesLoaded(AvailableComponents(listOf(t2))))
         assertEquals(true, result.state().isPendingDbOp)
         assertEquals(initial.lexemeList, result.state().lexemeList)
     }
@@ -46,7 +47,7 @@ class ComponentTypesFlowTest {
     @Test
     fun `ComponentTypesLoaded empty clears list but keeps saved values rendered`() {
         val initial = loaded(availableTypes = listOf(t1), lexemes = listOf(lexeme(1L, listOf(savedCv(5L)))))
-        val result = reducer.testReduce(initial, Msg.ComponentTypesLoaded(emptyList()))
+        val result = reducer.testReduce(initial, Msg.ComponentTypesLoaded(AvailableComponents(emptyList())))
         assertEquals(emptyList<Any>(), result.state().availableComponentTypes)
         assertEquals(initial.lexemeList, result.state().lexemeList)
     }

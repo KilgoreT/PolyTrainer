@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import me.apomazkin.core_db_impl.converters.DateTimeConverter
+import me.apomazkin.core_db_impl.entity.ComponentOptionDb
 import me.apomazkin.core_db_impl.entity.ComponentTypeDb
 import me.apomazkin.core_db_impl.entity.ComponentValueDb
 import me.apomazkin.core_db_impl.entity.DictionaryDb
@@ -13,6 +14,7 @@ import me.apomazkin.core_db_impl.entity.QuizConfigDb
 import me.apomazkin.core_db_impl.entity.SampleDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
+import me.apomazkin.core_db_impl.room.dao.ComponentOptionDao
 import me.apomazkin.core_db_impl.room.dao.ComponentTypeDao
 import me.apomazkin.core_db_impl.room.dao.ComponentValueDao
 import me.apomazkin.core_db_impl.room.dao.QuizConfigDao
@@ -27,6 +29,7 @@ import me.apomazkin.core_db_impl.room.dao.QuizConfigDao
         DictionaryDb::class,
         ComponentTypeDb::class,
         ComponentValueDb::class,
+        ComponentOptionDb::class,
         QuizConfigDb::class,
     ],
     version = 12
@@ -36,5 +39,6 @@ abstract class Database : RoomDatabase() {
     abstract fun wordDao(): WordDao
     abstract fun componentTypeDao(): ComponentTypeDao
     abstract fun componentValueDao(): ComponentValueDao
+    abstract fun componentOptionDao(): ComponentOptionDao
     abstract fun quizConfigDao(): QuizConfigDao
 }

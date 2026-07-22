@@ -32,7 +32,6 @@ fun NavGraphBuilder.mainRouter(
                         quizTabViewModelFactory = context.appComponent.getQuizTabViewModelFactory(),
                         statisticViewModelFactory = context.appComponent.getStatisticViewModelFactory(),
                         settingsTabViewModelFactory = context.appComponent.getSettingsTabViewModelFactory(),
-                        componentsManagerViewModelFactory = context.appComponent.getComponentsManagerViewModelFactory(),
                         perDictionaryComponentsViewModelFactory = context.appComponent.getPerDictionaryComponentsViewModelFactory(),
                         envParams = context.appComponent.getEnvParams(),
                         logger = context.appComponent.getLogger(),

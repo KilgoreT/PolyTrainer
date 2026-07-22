@@ -204,15 +204,12 @@ class WordCardUseCaseImplTest {
         assertNull(useCase.updateComponentValue(ComponentValueId(50L), 100L, data("new")))
     }
 
-    // T11
+    // T11 (IS486 фаза 3: before-snapshot упразднён — delete → один after-reread)
     @Test
     fun `deleteComponentValue_ComponentRemoved_when_remaining`() = runTest {
         coEvery { lexemeApi.deleteComponentValue(50L) } returns 1
-        // before-snapshot = 2 comps, after-reread = 1 comp → size==1 доказывает, что взят after-reread
-        coEvery { lexemeApi.getLexemeById(100L) } returnsMany listOf(
-            lexemeEntity(100L, listOf(cvEntity(50L, 100L, "x"), cvEntity(61L, 100L, "rest"))),
-            lexemeEntity(100L, listOf(cvEntity(61L, 100L, "rest"))),
-        )
+        coEvery { lexemeApi.getLexemeById(100L) } returns
+            lexemeEntity(100L, listOf(cvEntity(61L, 100L, "rest")))
         val result = useCase.deleteComponentValue(ComponentValueId(50L), 100L)
         assertTrue(result is RemoveComponentResult.ComponentRemoved)
         assertEquals(1, (result as RemoveComponentResult.ComponentRemoved).lexeme.components.size)
@@ -228,24 +225,26 @@ class WordCardUseCaseImplTest {
         assertTrue("delete не валидирует removedAt типа — success", result is RemoveComponentResult.ComponentRemoved)
     }
 
-    // T12
+    // T12 (IS486 фаза 3, В4): remaining == 0 больше НЕ убивает лексему —
+    // она деградирует в черновик (ComponentRemoved с пустым списком компонентов).
     @Test
-    fun `deleteComponentValue_LexemeCascade_when_zero`() = runTest {
-        coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L, listOf(cvEntity(50L, 100L, "x")))
+    fun `deleteComponentValue_zero_remaining_degrades_to_draft`() = runTest {
         coEvery { lexemeApi.deleteComponentValue(50L) } returns 0
-        coEvery { lexemeApi.deleteLexeme(100L) } returns 1
+        coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L, emptyList())
         val result = useCase.deleteComponentValue(ComponentValueId(50L), 100L)
-        assertTrue(result is RemoveComponentResult.LexemeCascadeRemoved)
-        assertEquals(100L, (result as RemoveComponentResult.LexemeCascadeRemoved).removedLexeme.lexemeId.id)
-        coVerify { lexemeApi.deleteLexeme(100L) }
+        assertTrue(result is RemoveComponentResult.ComponentRemoved)
+        val lexeme = (result as RemoveComponentResult.ComponentRemoved).lexeme
+        assertEquals(100L, lexeme.lexemeId.id)
+        assertTrue("лексема пуста — черновик", lexeme.components.isEmpty())
+        coVerify(exactly = 0) { lexemeApi.deleteLexeme(any()) }
     }
 
-    // T14
+    // T14 (IS486 фаза 3: before-snapshot упразднён — null возможен только на after-reread)
     @Test
-    fun `deleteComponentValue_snapshot_null_returns_null`() = runTest {
+    fun `deleteComponentValue_reread_null_returns_null`() = runTest {
+        coEvery { lexemeApi.deleteComponentValue(50L) } returns 0
         coEvery { lexemeApi.getLexemeById(100L) } returns null
         assertNull(useCase.deleteComponentValue(ComponentValueId(50L), 100L))
-        coVerify(exactly = 0) { lexemeApi.deleteComponentValue(any()) }
     }
 
     // T15
@@ -271,15 +270,23 @@ class WordCardUseCaseImplTest {
         assertNull(useCase.restoreLexemeWithComponents(7L, 3L, snapshot))
     }
 
-    // T16
+    // T16 (IS486: контракт → AvailableComponents)
     @Test
     fun `flowAvailableComponentTypes_maps_domain`() = runTest {
-        every { lexemeApi.flowTypesForDictionary(10L) } returns
-            flowOf(listOf(typeEntity(1L, TR), typeEntity(2L, ComponentTypeRef.UserDefined("Example"), isMultiple = true)))
-        val types = useCase.flowAvailableComponentTypes(10L).first()
-        assertEquals(2, types.size)
-        assertEquals(BuiltInComponent.TRANSLATION, types[0].systemKey)
-        assertTrue(types[1].isMultiple)
+        // IS486 (девайс-баг 2026-07-21): источник — единый реактивный снапшот.
+        every { lexemeApi.flowUserDefinedTypesForDictionary(10L) } returns flowOf(
+            me.apomazkin.core_db_api.entity.DictionaryTypesSnapshot(
+                dictionaryId = 10L,
+                dictionaryName = "ES",
+                types = listOf(typeEntity(1L, TR), typeEntity(2L, ComponentTypeRef.UserDefined("Example"), isMultiple = true)),
+                valueCountByType = emptyMap(),
+            ),
+        )
+        val available = useCase.flowAvailableComponentTypes(10L).first()
+        assertEquals(2, available.types.size)
+        assertEquals(BuiltInComponent.TRANSLATION, available.types[0].systemKey)
+        assertTrue(available.types[1].isMultiple)
+        assertTrue(available.optionsByType.isEmpty())
     }
 
     // T17
@@ -298,5 +305,44 @@ class WordCardUseCaseImplTest {
         coEvery { lexemeApi.getLexemeById(100L) } returns lexemeEntity(100L)
         useCase.addComponentValue(100L, ComponentTypeId(50L), data("  v  "))
         coVerify { lexemeApi.addComponentValue(100L, 50L, match { (it as TextValues).value.value == "v" }) }
+    }
+
+    // IS486 фаза 2: времянка-фильтр снят — CHOICE доезжает вместе с опциями.
+    @Test
+    fun `flowAvailableComponentTypes_delivers_choice_with_options`() = runTest {
+        val choiceType = ComponentTypeApiEntity(
+            id = 3L,
+            systemKey = BuiltInComponent.PART_OF_SPEECH,
+            dictionaryId = 10L,
+            name = null,
+            template = ComponentTemplate.CHOICE,
+            position = 1,
+            createdAt = D0,
+            updatedAt = D0,
+        )
+        every { lexemeApi.flowUserDefinedTypesForDictionary(10L) } returns flowOf(
+            me.apomazkin.core_db_api.entity.DictionaryTypesSnapshot(
+                dictionaryId = 10L,
+                dictionaryName = "ES",
+                types = listOf(typeEntity(1L, TR), choiceType),
+                valueCountByType = emptyMap(),
+                optionsByType = mapOf(
+                    3L to listOf(
+                        me.apomazkin.core_db_api.entity.ComponentOptionApiEntity(
+                            id = 601L, componentTypeId = 3L, systemKey = "noun", label = null, position = 0,
+                        ),
+                        me.apomazkin.core_db_api.entity.ComponentOptionApiEntity(
+                            id = 602L, componentTypeId = 3L, systemKey = "verb", label = null, position = 1,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val available = useCase.flowAvailableComponentTypes(10L).first()
+
+        assertEquals(2, available.types.size)
+        val options = available.optionsByType[ComponentTypeId(3L)]
+        assertEquals(listOf("noun", "verb"), options?.map { it.systemKey })
     }
 }

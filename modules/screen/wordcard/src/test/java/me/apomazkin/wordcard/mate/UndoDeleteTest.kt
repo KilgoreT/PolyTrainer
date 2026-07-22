@@ -20,23 +20,10 @@ class UndoDeleteTest {
 
     private val reducer = WordCardReducer()
 
-    @Test
-    fun `LexemeCascadeRemoved removes and emits undo`() {
-        val removed = domainLexeme(8L, listOf(domainCv(60L, 8L, "hi", ref = TR)))
-        val initial = loaded(lexemes = listOf(lexeme(8L, listOf(savedCv(60L))), lexeme(9L, listOf(savedCv(61L)))))
-        val result = reducer.testReduce(initial, Msg.LexemeCascadeRemoved(removed))
-        assertEquals(listOf(9L), result.state().lexemeList.map { it.id })
-        assertFalse(result.state().isPendingDbOp)
-        result.assertEffects(
-            setOf(
-                UiEffect.ShowSnackbarWithUndo(
-                    messageRes = R.string.word_card_snackbar_lexeme_deleted,
-                    actionLabelRes = R.string.word_card_snackbar_undo,
-                    undoMsg = Msg.UndoRestoreLexeme(removed),
-                ),
-            ),
-        )
-    }
+    // IS486 фаза 3 (В4): тест `LexemeCascadeRemoved removes and emits undo` удалён —
+    // каскадное удаление лексемы упразднено, потеря последнего значения деградирует
+    // лексему в черновик (RefreshLexemeComponents с пустым списком, покрыто в
+    // DegradationToDraftTest).
 
     @Test
     fun `LexemeRemoved removes and emits undo`() {
@@ -56,10 +43,10 @@ class UndoDeleteTest {
     }
 
     @Test
-    fun `cascade clears pending and is not guarded`() {
+    fun `remove result clears pending and is not guarded`() {
         val removed = domainLexeme(8L, listOf(domainCv(60L, 8L, "hi", ref = TR)))
         val initial = loaded(isPendingDbOp = true, lexemes = listOf(lexeme(8L, listOf(savedCv(60L)))))
-        val result = reducer.testReduce(initial, Msg.LexemeCascadeRemoved(removed))
+        val result = reducer.testReduce(initial, Msg.LexemeRemoved(removed))
         assertFalse(result.state().isPendingDbOp)
         assertTrue(result.state().lexemeList.isEmpty())
     }
@@ -121,13 +108,13 @@ class UndoDeleteTest {
      * слать undo-снек — экран тут же закрывается пост-шагом (`Back`), снек «Отменить» бесполезен.
      */
     @Test
-    fun `cascade during exit suppresses undo snackbar`() {
+    fun `remove during exit suppresses undo snackbar`() {
         val removed = domainLexeme(8L, listOf(domainCv(60L, 8L, "x", ref = TR)))
         val initial = loaded(
             isExiting = true,
             lexemes = listOf(lexeme(8L, listOf(savedCv(60L, isCommitting = true)))),
         )
-        val result = reducer.testReduce(initial, Msg.LexemeCascadeRemoved(removed))
+        val result = reducer.testReduce(initial, Msg.LexemeRemoved(removed))
         assertTrue("лексема удалена", result.state().lexemeList.isEmpty())
         result.assertEffects(setOf(NavigationEffect.Back))
     }

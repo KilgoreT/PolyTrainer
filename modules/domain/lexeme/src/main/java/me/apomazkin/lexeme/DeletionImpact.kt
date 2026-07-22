@@ -18,4 +18,8 @@ data class DeletionImpact(
     val dictionariesWithValues: List<Long>,
     val affectedQuizConfigs: List<AffectedQuizConfig>,
     val affectedPrefs: List<Long>,
+    /** IS486 (spec §5): компоненты, которые станут degraded (их цель умирает). */
+    val degradedComponents: List<ComponentTypeId> = emptyList(),
+    /** IS486 (spec §5): значения потомков по цепочке вниз, сбрасываемые каскадом. */
+    val descendantValueCount: Int = 0,
 )

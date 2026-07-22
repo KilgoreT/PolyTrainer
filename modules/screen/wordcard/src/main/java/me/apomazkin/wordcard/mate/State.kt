@@ -1,11 +1,15 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.compose.runtime.Stable
+import me.apomazkin.lexeme.ChoiceValues
+import me.apomazkin.lexeme.ComponentOption
+import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentValue
 import me.apomazkin.lexeme.ComponentValueId
+import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.lexeme.toRef
 import me.apomazkin.mate.Effect
@@ -25,6 +29,8 @@ data class WordCardState(
     val lexemeIdPendingDelete: Long? = null,
     /** Available component types словаря (driver для ChipsRow). */
     val availableComponentTypes: List<ComponentType> = emptyList(),
+    /** IS486: живые опции CHOICE-типов словаря (display: label ?: ресурс по systemKey). */
+    val optionsByType: Map<ComponentTypeId, List<ComponentOption>> = emptyMap(),
     /** Reducer-counter для уникальных pristine identity. */
     val nextPristineKey: Long = 1L,
 ) {
@@ -80,11 +86,15 @@ data class ComponentValueState(
     val componentTypeId: ComponentTypeId,
     val componentTypeRef: ComponentTypeRef,
     val isMultiple: Boolean,
+    /** IS486: шаблон компонента — ветвление рендера/коммита (TEXT-поле vs CHOICE-пикер). */
+    val template: ComponentTemplate = ComponentTemplate.TEXT,
     val isEdit: Boolean = false,
     /** A10-redesign: DB-операция в полёте + flush-on-back driver (hasInFlightCommits). */
     val isCommitting: Boolean = false,
     val origin: String = "",
     val edited: String = "",
+    /** IS486 CHOICE: сохранённый выбор (аналог origin) — id опции. */
+    val selectedOptionId: Long? = null,
 ) {
     val isPristine: Boolean get() = key is ComponentValueKey.Pristine
     val componentValueId: ComponentValueId? get() = (key as? ComponentValueKey.Saved)?.componentValueId
@@ -160,13 +170,48 @@ fun ComponentValue.toComponentValueState(): ComponentValueState = ComponentValue
     componentTypeId = type.id,
     componentTypeRef = type.toRef(),
     isMultiple = type.isMultiple,
+    template = type.template,
     origin = data.asText().orEmpty(),
+    selectedOptionId = (data as? ChoiceValues)?.optionId,
 )
 
 fun Lexeme.toLexemeState(): LexemeState = LexemeState(
     id = lexemeId.id,
     components = components.map { it.toComponentValueState() },
 )
+
+/**
+ * ###### IS486: ПРАВИЛО УЧАСТИЯ (spec §6) ######
+ * Модельная функция (дом-прецедент — computed addedNonMultipleTypeIds):
+ * typeId компонентов, доступных лексеме для добавления.
+ * Черновик (NOT_IN_DB): только ядра. Реальная лексема: цель типа активна:
+ * - Lexeme-цель: ядро — всегда; не-ядро — лексема оформлена (реальная);
+ * - Component(t): есть сохранённое значение типа t;
+ * - Option(o): есть сохранённый CHOICE-выбор опции o.
+ * Минус уже добавленные не-multi (существующее правило чипов).
+ * Минус disabled (spec §6: не предлагается для добавления новых значений;
+ * существующие значения живут — их State не трогает).
+ */
+fun WordCardState.addableTypeIdsFor(lexeme: LexemeState): Set<ComponentTypeId> =
+    availableComponentTypes.filter { type ->
+        type.enabled && isTargetActiveFor(lexeme, type) && type.id !in lexeme.addedNonMultipleTypeIds
+    }.map { it.id }.toSet()
+
+private fun isTargetActiveFor(lexeme: LexemeState, type: ComponentType): Boolean =
+    when (val target = type.dependsOn) {
+        DependencyTarget.Lexeme ->
+            if (type.core) true else lexeme.id != NOT_IN_DB
+
+        is DependencyTarget.Component ->
+            lexeme.id != NOT_IN_DB && lexeme.components.any {
+                it.componentTypeId == target.typeId && !it.isPristine
+            }
+
+        is DependencyTarget.Option ->
+            lexeme.id != NOT_IN_DB && lexeme.components.any {
+                !it.isPristine && it.selectedOptionId == target.optionId
+            }
+    }
 
 /**
  * ###### COMMIT ALL EDIT MODES ######

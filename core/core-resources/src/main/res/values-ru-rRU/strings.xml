@@ -265,6 +265,14 @@
     <!-- Template labels -->
     <string name="components_template_text">Текст</string>
     <string name="components_template_image">Изображение</string>
+    <string name="components_template_choice">Выбор</string>
+    <string name="builtin_component_part_of_speech">Часть речи</string>
+    <string name="part_of_speech_option_noun">Существительное</string>
+    <string name="part_of_speech_option_verb">Глагол</string>
+    <string name="part_of_speech_option_adjective">Прилагательное</string>
+    <string name="part_of_speech_option_adverb">Наречие</string>
+    <string name="part_of_speech_option_preposition">Предлог</string>
+    <string name="part_of_speech_option_phrase">Фраза</string>
 
     <!-- Button labels -->
     <string name="components_button_create">Создать</string>
@@ -283,6 +291,27 @@
     <string name="components_create_field_scope">Охват</string>
     <string name="components_create_scope_global">Общий (все словари)</string>
     <string name="components_create_scope_per_dict">Пословарный</string>
+
+    <!-- IS486: component hierarchy constructor -->
+    <string name="components_row_disabled">Выключен</string>
+    <string name="components_row_degraded">Не работает</string>
+    <string name="components_field_dependency">Зависимость</string>
+    <string name="components_target_lexeme">Самостоятельный</string>
+    <string name="components_field_core">Ядро словаря</string>
+    <string name="components_field_options">Варианты</string>
+    <string name="components_option_add">Добавить вариант</string>
+    <string name="components_options_error">Добавьте хотя бы один вариант</string>
+    <string name="components_option_delete_title">Удалить вариант?</string>
+    <string name="components_option_delete_message">Вариант «%1$s» будет удалён.</string>
+    <string name="components_option_delete_values">Будет скрыто значений: %1$d</string>
+    <string name="components_option_delete_degraded">Перестанут работать зависимых компонентов: %1$d</string>
+    <string name="components_target_cycle_hint">Нельзя выбрать — возникнет цикл зависимостей</string>
+    <string name="components_rebind_title">Сменить зависимость?</string>
+    <string name="components_rebind_safe">Безопасно: существующие значения не пострадают.</string>
+    <string name="components_rebind_values">Будет скрыто значений: %1$d</string>
+    <string name="components_error_cycle">Обнаружен цикл зависимостей</string>
+    <string name="components_error_multi_choice">Для выбора нельзя несколько значений</string>
+    <string name="components_error_last_core">Нельзя выключить последнее ядро словаря</string>
 
     <string name="settings_section_about_app_title">Lexeme — это приложение, которое позволяет создавать собственный словарь иностранных слов.\nМы — команда разработчиков, которая понимает на своём опыте, как важно держать иностранную лексику в порядке и постоянно её повторять.</string>
 

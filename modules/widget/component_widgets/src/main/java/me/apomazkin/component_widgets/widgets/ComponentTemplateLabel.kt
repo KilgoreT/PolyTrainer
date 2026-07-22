@@ -16,4 +16,5 @@ import me.apomazkin.lexeme.ComponentTemplate
 internal fun ComponentTemplate.labelRes(): Int = when (this) {
     ComponentTemplate.TEXT -> R.string.components_template_text
     ComponentTemplate.IMAGE -> R.string.components_template_image
+    ComponentTemplate.CHOICE -> R.string.components_template_choice   // IS486
 }

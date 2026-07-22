@@ -19,3 +19,12 @@ data class TextValues(
 data class ImageValues(
     val value: Primitive.Image,
 ) : TemplateValues
+
+/**
+ * IS486: значение CHOICE — выбранная опция.
+ * [optionId] — id строки `component_options`; сама опция и есть значение,
+ * текст лейбла не копируется.
+ */
+data class ChoiceValues(
+    val optionId: Long,
+) : TemplateValues

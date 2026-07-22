@@ -41,7 +41,8 @@ class DatasourceEffectHandlerTest {
         var deleteComponentValueImpl: suspend (ComponentValueId, Long) -> RemoveComponentResult? =
             { _, _ -> null },
         var restoreImpl: suspend (Long, Long, Lexeme) -> Lexeme? = { _, _, _ -> null },
-        var flowTypesImpl: (Long) -> Flow<List<ComponentType>> = { flowOf(emptyList()) },
+        var flowTypesImpl: (Long) -> Flow<me.apomazkin.wordcard.deps.AvailableComponents> =
+            { flowOf(me.apomazkin.wordcard.deps.AvailableComponents(emptyList())) },
     ) : WordCardUseCase {
         override suspend fun getTermById(wordId: Long): Term? = getTermByIdImpl(wordId)
         override suspend fun deleteWord(wordId: Long): Int = deleteWordImpl(wordId)
@@ -63,7 +64,7 @@ class DatasourceEffectHandlerTest {
         override suspend fun restoreLexemeWithComponents(
             wordId: Long, dictionaryId: Long, snapshot: Lexeme,
         ): Lexeme? = restoreImpl(wordId, dictionaryId, snapshot)
-        override fun flowAvailableComponentTypes(dictionaryId: Long): Flow<List<ComponentType>> =
+        override fun flowAvailableComponentTypes(dictionaryId: Long): Flow<me.apomazkin.wordcard.deps.AvailableComponents> =
             flowTypesImpl(dictionaryId)
     }
 
@@ -167,12 +168,14 @@ class DatasourceEffectHandlerTest {
         assertTrue(msgs.single() is Msg.RefreshLexemeComponents)
     }
 
+    // IS486 фаза 3 (В4): удаление последнего значения деградирует лексему в черновик —
+    // тот же ComponentRemoved-путь с пустым списком компонентов.
     @Test
-    fun `RemoveComponentValue Cascade yields LexemeCascadeRemoved`() {
-        val snapshot = domainLexeme(7L, listOf(domainCv(5L, 7L, "x")))
-        val uc = FakeUseCase(deleteComponentValueImpl = { _, _ -> RemoveComponentResult.LexemeCascadeRemoved(snapshot) })
+    fun `RemoveComponentValue last value yields Refresh with empty components`() {
+        val emptyLexeme = domainLexeme(7L, emptyList())
+        val uc = FakeUseCase(deleteComponentValueImpl = { _, _ -> RemoveComponentResult.ComponentRemoved(emptyLexeme) })
         val msgs = run(uc, DatasourceEffect.RemoveComponentValue(ComponentValueId(5L), 7L))
-        assertEquals(Msg.LexemeCascadeRemoved(snapshot), msgs.single())
+        assertEquals(Msg.RefreshLexemeComponents(7L, emptyList()), msgs.single())
     }
 
     @Test

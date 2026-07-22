@@ -2,6 +2,7 @@ package me.apomazkin.core_db_api.entity
 
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.DependencyTarget
 import java.util.Date
 
 /**
@@ -18,6 +19,9 @@ data class ComponentTypeApiEntity(
     val template: ComponentTemplate,
     val position: Int,
     val isMultiple: Boolean = false,
+    val core: Boolean = false,               // IS486: ядро
+    val enabled: Boolean = true,             // IS486: рубильник
+    val dependsOn: DependencyTarget = DependencyTarget.Lexeme,  // IS486: цель зависимости
     val createdAt: Date,
     val updatedAt: Date,
     val removedAt: Date? = null,

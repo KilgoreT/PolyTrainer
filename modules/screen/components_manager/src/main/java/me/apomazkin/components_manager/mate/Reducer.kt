@@ -295,6 +295,11 @@ class ComponentsManagerReducer(
                     state.copy(isDeleting = false, deleteConfirm = null) to setOf(
                         UiEffect.Snackbar("Component removed")
                     )
+                // IS486: защита data-слоя от потери последнего включённого ядра (spec §7.8).
+                DeleteOutcome.LastEnabledCore ->
+                    state.copy(isDeleting = false, deleteConfirm = null) to setOf(
+                        UiEffect.Snackbar("Last enabled core component")
+                    )
                 is DeleteOutcome.Failure ->
                     state.copy(isDeleting = false) to setOf(
                         UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}")
@@ -446,6 +451,20 @@ class ComponentsManagerReducer(
                         ) to emptySet()
                     }
                 }
+                // IS486: manager не задаёт dependsOn/CHOICE — ветки достижимы только через
+                // data-слой напрямую; закрываем диалог со снеком (spec §7.5, §7.8, §8).
+                EditOutcome.CycleDetected ->
+                    state.copy(isEditing = false, editDialog = null) to setOf(
+                        UiEffect.Snackbar("Dependency cycle detected"),
+                    )
+                EditOutcome.MultiForbiddenForChoice ->
+                    state.copy(isEditing = false, editDialog = null) to setOf(
+                        UiEffect.Snackbar("Multiple values forbidden for choice"),
+                    )
+                EditOutcome.LastEnabledCore ->
+                    state.copy(isEditing = false, editDialog = null) to setOf(
+                        UiEffect.Snackbar("Last enabled core component"),
+                    )
                 EditOutcome.TemplateImmutable ->
                     state.copy(isEditing = false, editDialog = null) to setOf(
                         UiEffect.Snackbar("Template cannot be changed"),

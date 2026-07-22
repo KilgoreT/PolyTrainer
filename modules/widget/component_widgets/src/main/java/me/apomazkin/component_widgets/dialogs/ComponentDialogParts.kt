@@ -244,8 +244,8 @@ internal fun ComponentDialogActions(
 }
 
 /**
- * TODO(IS485): временно недоступные для выбора шаблоны — фича картинок ещё не готова.
- * Снять дизейбл = убрать значение из набора.
+ * Временно недоступные для выбора шаблоны. Снять дизейбл = убрать значение из набора.
+ * - IMAGE — TODO(IS485): фича картинок не готова.
  */
 private val DISABLED_TEMPLATES = setOf(ComponentTemplate.IMAGE)
 

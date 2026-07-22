@@ -176,10 +176,14 @@ class MigrationFrom11to12IdempotencyTest {
                 ),
             )
 
-            // Built-in translation тип создан ровно один (UNIQUE на system_key).
+            // IS486: builtin пословарные — по строке перевода на каждый словарь.
             assertEquals(
-                1,
+                2,
                 v12.countWhere("component_types", "system_key='translation'"),
+            )
+            assertEquals(
+                0,
+                v12.countWhere("component_types", "system_key='translation' AND dictionary_id IS NULL"),
             )
 
             // User-defined Definition только в EN (где есть lexemes с definition).
@@ -230,11 +234,12 @@ class MigrationFrom11to12IdempotencyTest {
             )
 
             // Данные содержат правильные тексты в финальном M13-envelope (повторный INSERT не сломался).
+            // IS486: пословарный тип перевода — фильтр по словарю лексемы.
             assertEquals(
                 """{"fields":{"value":{"type":"text","value":"кошка"}}}""",
                 v12.scalarText(
                     "SELECT value FROM component_values WHERE lexeme_id=1 AND component_type_id=" +
-                            "(SELECT id FROM component_types WHERE system_key='translation')",
+                            "(SELECT id FROM component_types WHERE system_key='translation' AND dictionary_id=1)",
                 ),
             )
             assertEquals(

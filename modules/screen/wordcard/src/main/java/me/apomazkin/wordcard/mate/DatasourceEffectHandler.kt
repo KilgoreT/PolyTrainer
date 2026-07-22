@@ -25,6 +25,13 @@ sealed interface DatasourceEffect : Effect {
     data class UpdateWord(val wordId: Long, val value: String) : DatasourceEffect
     data class RemoveLexeme(val wordId: Long, val lexemeId: Long) : DatasourceEffect
 
+    /**
+     * Решение 2026-07-21: черновик живёт только пока карточка открыта — пустая
+     * сохранённая лексема удаляется ТИХО при входе (WordLoaded) и при выходе
+     * (flush-on-back). Без undo-снека и без ответных сообщений.
+     */
+    data class PurgeEmptyLexeme(val wordId: Long, val lexemeId: Long) : DatasourceEffect
+
     /** A3: три РАЗНЫЕ операции upsert значения компонента (impossible states impossible). */
     sealed interface UpsertComponentValue : DatasourceEffect {
         val wordId: Long
@@ -128,6 +135,16 @@ class DatasourceEffectHandler @Inject constructor(
                 }
             }
 
+            // Тихая чистка пустого черновика: результат не интересен (best-effort),
+            // ошибки только в лог — юзер эту лексему уже не видит.
+            is DatasourceEffect.PurgeEmptyLexeme -> try {
+                wordCardUseCase.deleteLexeme(effect.wordId, effect.lexemeId)
+            } catch (c: CancellationException) {
+                throw c
+            } catch (t: Throwable) {
+                logger.log(LogLevel.ERROR, TAG, "PurgeEmptyLexeme failed", t)
+            }
+
             is DatasourceEffect.UpsertComponentValue.CreateLexeme ->
                 guarded(consumer, R.string.word_card_error_generic) {
                     val lex = wordCardUseCase.addLexemeWithComponent(
@@ -158,10 +175,10 @@ class DatasourceEffectHandler @Inject constructor(
             is DatasourceEffect.RemoveComponentValue ->
                 guarded(consumer, R.string.word_card_error_remove_lexeme) {
                     when (val r = wordCardUseCase.deleteComponentValue(effect.componentValueId, effect.lexemeId)) {
+                        // IS486 фаза 3: лексема не удаляется — деградация в черновик
+                        // (пустой список компонентов = draft-представление в UI).
                         is RemoveComponentResult.ComponentRemoved ->
                             consumer(Msg.RefreshLexemeComponents(effect.lexemeId, r.lexeme.components))
-                        is RemoveComponentResult.LexemeCascadeRemoved ->
-                            consumer(Msg.LexemeCascadeRemoved(r.removedLexeme))
                         null -> consumer(Msg.OperationFailed(R.string.word_card_error_remove_lexeme))
                     }
                 }

@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -43,8 +45,11 @@ fun LexemeDialog(
             modifier = Modifier,
             shape = RoundedCornerShape(DEFAULT_ROUND_CORNER.dp),
         ) {
+            // IS486: контент длинных диалогов (конструктор: пикер цели, варианты)
+            // может превышать высоту окна — прокрутка обязательна.
             Column(
                 modifier = Modifier
+                    .verticalScroll(rememberScrollState())
                     .padding(DEFAULT_PADDING.dp)
             ) {
                 content.invoke(this)

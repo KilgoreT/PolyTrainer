@@ -1,11 +1,11 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.annotation.StringRes
-import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentValue
 import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.lexeme.Lexeme
+import me.apomazkin.wordcard.deps.AvailableComponents
 import me.apomazkin.wordcard.entity.Term
 
 sealed interface Msg {
@@ -36,8 +36,14 @@ sealed interface Msg {
     data class CommitComponentValueEdit(val lexemeId: Long, val key: ComponentValueKey) : Msg
     data class RemoveComponentValueRequested(val lexemeId: Long, val key: ComponentValueKey) : Msg
 
+    /**
+     * IS486: выбор опции CHOICE-компонента (пикер-диалог) — коммитит сразу, без edit-режима.
+     * Reducer сам решает: существующее значение типа → UpdateValue, нет → AddValue.
+     */
+    data class SelectComponentOption(val lexemeId: Long, val typeId: ComponentTypeId, val optionId: Long) : Msg
+
     // --- Component types stream ---
-    data class ComponentTypesLoaded(val types: List<ComponentType>) : Msg
+    data class ComponentTypesLoaded(val available: AvailableComponents) : Msg
     data class ComponentTypesLoadFailed(val error: Throwable) : Msg
     data object RetryLoadComponentTypes : Msg
 
@@ -54,7 +60,7 @@ sealed interface Msg {
     data class LexemeDraftPromoted(val newLexeme: Lexeme, val anchorPristineKey: Long) : Msg
 
     // --- Delete / undo ---
-    data class LexemeCascadeRemoved(val removedLexeme: Lexeme) : Msg
+    // IS486 фаза 3: LexemeCascadeRemoved упразднён (деградация в черновик, spec §9.1).
     data class LexemeRemoved(val removedLexeme: Lexeme) : Msg
     data class UndoRestoreLexeme(val lexeme: Lexeme) : Msg
     data class RestoreLexemeFailed(val snapshot: Lexeme) : Msg

@@ -7,6 +7,7 @@ import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.mate.state
 import me.apomazkin.mate.test.assertEffects
 import me.apomazkin.mate.test.testReduce
+import me.apomazkin.wordcard.deps.AvailableComponents
 import me.apomazkin.wordcard.mate.ComponentValueKey
 import me.apomazkin.wordcard.mate.DatasourceEffect
 import me.apomazkin.wordcard.mate.Msg
@@ -42,7 +43,7 @@ class WordCardScenarioTest {
     @Test
     fun `S1 new dictionary loads single translation chip`() {
         val s0 = loaded(availableTypes = emptyList(), lexemes = listOf(lexeme(1L, emptyList())))
-        val s1 = reducer.testReduce(s0, Msg.ComponentTypesLoaded(listOf(ctype(50L, TR)))).state()
+        val s1 = reducer.testReduce(s0, Msg.ComponentTypesLoaded(AvailableComponents(listOf(ctype(50L, TR))))).state()
         assertEquals(listOf(ctype(50L, TR)), s1.availableComponentTypes)
     }
 
@@ -141,24 +142,19 @@ class WordCardScenarioTest {
         committed.assertEffects(setOf(DatasourceEffect.RemoveComponentValue(ComponentValueId(5L), 7L)))
     }
 
+    /**
+     * IS486 фаза 3 (В4): удаление последнего значения больше не убивает лексему —
+     * она деградирует в черновик: RefreshLexemeComponents с пустым списком,
+     * карточка остаётся (draft-представление в UI), undo-снека нет.
+     */
     @Test
-    fun `S11 delete last cascade then undo restores`() {
-        var s = loaded(lexemes = listOf(lexeme(8L, listOf(savedCv(60L, origin = "x")))))
-        val removed = domainLexeme(8L, listOf(domainCv(60L, 8L, "x", ref = TR)))
-        val cascade = reducer.testReduce(s, Msg.LexemeCascadeRemoved(removed))
-        cascade.assertEffects(
-            setOf(
-                UiEffect.ShowSnackbarWithUndo(
-                    messageRes = R.string.word_card_snackbar_lexeme_deleted,
-                    actionLabelRes = R.string.word_card_snackbar_undo,
-                    undoMsg = Msg.UndoRestoreLexeme(removed),
-                ),
-            ),
-        )
-        s = cascade.state()
-        assertTrue(s.lexemeList.isEmpty())
-        val undo = reducer.testReduce(s, Msg.UndoRestoreLexeme(removed))
-        undo.assertEffects(setOf(DatasourceEffect.RestoreLexemeWithComponents(7L, 3L, removed)))
+    fun `S11 delete last value degrades lexeme to draft`() {
+        var s = loaded(lexemes = listOf(lexeme(8L, listOf(savedCv(60L, origin = "x", isCommitting = true)))))
+        val refreshed = reducer.testReduce(s, Msg.RefreshLexemeComponents(8L, emptyList()))
+        s = refreshed.state()
+        assertEquals(listOf(8L), s.lexemeList.map { it.id })
+        assertTrue("лексема стала пустым черновиком", s.lexemeList.single().components.isEmpty())
+        assertTrue(refreshed.second.isEmpty())
     }
 
     @Test
@@ -177,7 +173,7 @@ class WordCardScenarioTest {
         s = failed.state()
         val retry = reducer.testReduce(s, Msg.RetryLoadComponentTypes)
         retry.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
-        s = reducer.testReduce(retry.state(), Msg.ComponentTypesLoaded(listOf(ctype(50L, TR)))).state()
+        s = reducer.testReduce(retry.state(), Msg.ComponentTypesLoaded(AvailableComponents(listOf(ctype(50L, TR))))).state()
         assertEquals(1, s.availableComponentTypes.size)
     }
 

@@ -1,5 +1,14 @@
 # Lexeme Domain
 
+> **Пометка (IS486, 2026-07-20).** Доменная модель существенно расширена
+> фичей IS486: `ComponentType` получил `core` / `enabled` / `dependsOn`
+> (иерархия зависимостей), добавлены `ComponentOption`, `DependencyTarget`,
+> шаблон `CHOICE` (`ChoiceValues`), чистые модули иерархии
+> (`HierarchyChecks`, `CascadePlan`) и outcome-типы конструктора.
+> Актуальный источник контрактов доменной модели —
+> **[component-constructor/spec.md](../component-constructor/spec.md)** (§5; переехала из папки фичи 2026-07-21).
+> Ниже — исходная спека выноса модуля (IS482), исторически валидная.
+
 ## Бизнес-описание
 
 Модуль `modules/domain/lexeme` — единый источник доменной сущности `Lexeme` для всего приложения. Сейчас `Lexeme` дублируется в трёх местах: domain-классы в `wordcard` и `quiz/chat`, а в `dictionaryTab` domain-слоя нет вовсе — там сразу UI-модель `LexemeUiItem`. Маппинг `LexemeApiEntity → Lexeme` повторяется в трёх `UseCaseImpl` в `app/`.

@@ -1,5 +1,6 @@
 package me.apomazkin.core_db_impl.mapper
 
+import me.apomazkin.lexeme.ChoiceValues
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ImageValues
 import me.apomazkin.lexeme.Primitive
@@ -53,6 +54,9 @@ fun TemplateValues.toJson(): String = when (this) {
             )
         )
     }.toString()
+
+    // IS486: payload CHOICE живёт в колонке option_id, JSON — пустой envelope (value NOT NULL).
+    is ChoiceValues -> JSONObject().put("fields", JSONObject()).toString()
 }
 
 fun parseTemplateValues(
@@ -85,6 +89,16 @@ fun parseTemplateValues(
                 )
                 null
             }
+        }
+
+        // IS486: значение CHOICE не парсится из JSON — payload в option_id;
+        // вызов этой функции для CHOICE — ошибка call-site (fail-soft).
+        ComponentTemplate.CHOICE -> {
+            logger.e(
+                tag = TEMPLATE_VALUES_JSON_TAG,
+                message = "CHOICE value is stored via option_id, not JSON — wrong call-site"
+            )
+            null
         }
     }
 } catch (e: JSONException) {

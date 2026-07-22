@@ -11,21 +11,23 @@ import kotlinx.coroutines.Dispatchers
 import me.apomazkin.core_db_impl.LogTags
 import me.apomazkin.core_db_impl.room.Database
 import me.apomazkin.core_db_impl.room.WordDao
+import me.apomazkin.core_db_impl.room.dao.ComponentOptionDao
 import me.apomazkin.core_db_impl.room.dao.ComponentTypeDao
 import me.apomazkin.core_db_impl.room.dao.ComponentValueDao
 import me.apomazkin.core_db_impl.room.dao.QuizConfigDao
 import me.apomazkin.core_db_impl.room.migrations.Migration_011_to_012
-import me.apomazkin.core_db_impl.room.seedBuiltIns
 import me.apomazkin.logger.LexemeLogger
 import javax.inject.Singleton
 
 /**
- * Текущая схема — v12 (IS481). Одна миграция (collapsed):
- * - M11→M12 (`Migration_011_to_012.kt`) — create component_types / component_values /
- *   quiz_configs сразу в финальной форме (is_multiple + timestamps, без UNIQUE) +
- *   migrate translation/definition в финальный JSON-envelope. v12/v13 не релизились,
- *   поэтому две прежние миграции схлопнуты в одну. См.
- *   `docs/features/IS481_migration_collapse/brief.md`.
+ * Текущая схема — v12 (IS481+IS486 collapsed). Одна миграция:
+ * - M11→M12 (`Migration_011_to_012.kt`) — component_types / component_values /
+ *   component_options / quiz_configs сразу в финальной форме (иерархия
+ *   компонентов IS486: core / enabled / depends-ссылки; пословарные builtin
+ *   перевод + часть речи с опциями-ключами) + migrate translation/definition
+ *   из v11-колонок. Последний деплой-тег (0.1.5) — на v11; промежуточная
+ *   IS481-схема v12 не релизилась → IS486 схлопнут в тот же переход
+ *   (`docs/features/IS481_migration_collapse/brief.md` — прецедент).
  *
  * **Fallback на destructive migration**: если когда-то встретится install с БД
  * `user_version < 11` (pre-0.1.0 internal сборка) и без зарегистрированной миграции —
@@ -35,8 +37,9 @@ import javax.inject.Singleton
  * non-fatal в Firebase Crashlytics.
  *
  * **Fresh install path**: Room создаёт таблицы из `@Entity` annotations, миграция
- * не вызывается. Поэтому seed built-in translation типа выполняется в
- * `Callback.onCreate(connection)` (bundled driver path, B1).
+ * не вызывается. IS486: builtin — пословарные и рождаются вместе со словарём
+ * (seed в транзакции `addDictionary`, data-слой) — при создании БД сеять нечего,
+ * `Callback.onCreate`-seed удалён.
  */
 @Module
 class RoomModule {
@@ -54,12 +57,6 @@ class RoomModule {
             .addMigrations(Migration_011_to_012)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .addCallback(object : RoomDatabase.Callback() {
-                override fun onCreate(connection: SQLiteConnection) {
-                    // Fresh install: Room создаёт схему из @Entity. Seed built-in
-                    // translation + partial UNIQUE index выполняется здесь.
-                    seedBuiltIns(connection)
-                }
-
                 override fun onDestructiveMigration(connection: SQLiteConnection) {
                     logger.e(
                         tag = LogTags.DB,
@@ -87,6 +84,11 @@ class RoomModule {
     @Provides
     fun provideComponentValueDao(db: Database): ComponentValueDao {
         return db.componentValueDao()
+    }
+
+    @Provides
+    fun provideComponentOptionDao(db: Database): ComponentOptionDao {
+        return db.componentOptionDao()
     }
 
     @Provides

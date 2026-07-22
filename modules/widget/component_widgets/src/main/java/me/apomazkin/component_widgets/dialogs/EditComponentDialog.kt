@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.component_widgets.widgets.CardinalityDowngradePreviewWidget
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.blackColor
 import me.apomazkin.ui.dialog.base.LexemeDialog
@@ -52,10 +53,28 @@ fun EditComponentDialog(
     onShowAllImpacted: () -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
+    // ===== IS486: пикер цели (В1) — рендерится если targetItems != null (PerDict) =====
+    targetItems: List<TargetPickerItem>? = null,
+    selectedTarget: DependencyTarget = DependencyTarget.Lexeme,
+    core: Boolean = true,
+    onTargetSelect: (DependencyTarget) -> Unit = {},
+    onCoreToggle: (Boolean) -> Unit = {},
+    // ===== IS486: варианты CHOICE (В2). Существующие: rename на Submit, удаление
+    // немедленно (конфирм у host'а); новые черновики: add на Submit =====
+    existingOptions: List<Pair<Long, String>> = emptyList(),
+    newOptionDrafts: List<String> = emptyList(),
+    onOptionLabelChange: (Long, String) -> Unit = { _, _ -> },
+    onOptionDeleteClick: (Long) -> Unit = {},
+    onOptionDraftAdd: () -> Unit = {},
+    onOptionDraftChange: (Int, String) -> Unit = { _, _ -> },
+    onOptionDraftRemove: (Int) -> Unit = {},
+    /** IS486: доп. dirty от host'а (цель/ядро/опции изменились). */
+    extraDirty: Boolean = false,
 ) {
     val dirty = name != originalName ||
         template != originalTemplate ||
-        isMultiple != originalIsMultiple
+        isMultiple != originalIsMultiple ||
+        extraDirty
     val canSubmit = name.trim().isNotBlank() &&
         nameErrorRes == null &&
         !isSubmitting &&
@@ -88,12 +107,39 @@ fun EditComponentDialog(
                 ComponentTemplateRadioGroup(selected = template, onSelect = onTemplateSelect)
             }
 
-            // Multi toggle row
-            ComponentMultiToggle(
-                textRes = R.string.components_edit_field_is_multi,
-                checked = isMultiple,
-                onToggle = onMultiToggle,
-            )
+            // IS486 (В2): варианты CHOICE.
+            if (template == ComponentTemplate.CHOICE) {
+                OptionListEditor(
+                    existing = existingOptions,
+                    drafts = newOptionDrafts,
+                    showError = false,
+                    onExistingChange = onOptionLabelChange,
+                    onExistingDelete = onOptionDeleteClick,
+                    onDraftChange = onOptionDraftChange,
+                    onDraftRemove = onOptionDraftRemove,
+                    onDraftAdd = onOptionDraftAdd,
+                )
+            }
+
+            // Multi toggle row (IS486: для CHOICE мульти запрещён — spec §7.5)
+            if (template != ComponentTemplate.CHOICE) {
+                ComponentMultiToggle(
+                    textRes = R.string.components_edit_field_is_multi,
+                    checked = isMultiple,
+                    onToggle = onMultiToggle,
+                )
+            }
+
+            // IS486 (В1): пикер цели зависимости + галка «Ядро» (PerDict host).
+            if (targetItems != null) {
+                ComponentTargetPicker(
+                    items = targetItems,
+                    selected = selectedTarget,
+                    core = core,
+                    onTargetSelect = onTargetSelect,
+                    onCoreToggle = onCoreToggle,
+                )
+            }
 
             // Preview slot — cardinality downgrade blocked
             if (previewInlineIds != null) {

@@ -4,7 +4,6 @@ import android.content.Context
 import dagger.BindsInstance
 import dagger.Component
 import dagger.Module
-import me.apomazkin.components_manager.ComponentsManagerViewModel
 import me.apomazkin.core_db_api.CoreDbProvider
 import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.dictionary.form.DictionaryFormViewModel
@@ -69,7 +68,6 @@ interface AppComponent {
     fun getQuizTabViewModelFactory(): QuizTabViewModel.Factory
     fun getStatisticViewModelFactory(): StatisticViewModel.Factory
     fun getSettingsTabViewModelFactory(): SettingsTabViewModel.Factory
-    fun getComponentsManagerViewModelFactory(): ComponentsManagerViewModel.Factory
     fun getPerDictionaryComponentsViewModelFactory(): PerDictionaryComponentsViewModel.Factory
     fun getEnvParams(): EnvParams
     fun getLogger(): LexemeLogger

@@ -453,6 +453,19 @@
 
 ## Tech Debt
 
+- **[IS486: typed-отказы при создании компонента].**
+  Ревью спеки (2026-07-21) указало: спека §5/§7.1 обещает `CreateOutcome.InvalidTarget`
+  (мёртвая/чужая цель, core при не-лексеме) и `MultiForbiddenForChoice` при создании —
+  в коде веток нет, `checkSetup()` в домене есть, но не подключён к create-пути.
+  Почему не сделано сейчас: UI собрать невалидное не даёт, defensive-валидация data-слоя — отдельный скоуп.
+  Нужно: подключить `checkSetup()` в `createUserDefinedComponent` + ветки outcome + тесты.
+
+- **[IS486: LabelEmpty для CRUD опций].**
+  Ревью спеки (2026-07-21): спека §5 фиксирует `LabelEmpty` в outcome опций —
+  валидации пустого лейбла в data нет (UI фильтрует пустые черновики до отправки).
+  Почему не сделано сейчас: практический риск нулевой, та же категория defensive-валидации.
+  Нужно: trim-валидация в `addComponentOption`/`renameComponentOption` + ветка outcome.
+
 - **[40 TODO в кодовой базе].**
   Включая баг с именем БД (данные теряются), неработающий convention plugin, неоптимальная загрузка Flow (#377).
   Нужно: разобрать каждый TODO — или починить, или создать задачу, или удалить.
@@ -482,6 +495,11 @@
 ---
 
 ## ВекторныйПиздеж
+
+- **[IS486: `ComponentTypeRef.UserDefined(name)` — миграция name-based refs на id-based].**
+  Ревью-агент (совместимость IS486) указал: quiz_configs хранят refs по имени компонента, а зависимости/опции IS486 — по числовым id. Два параллельных адресных пространства: rename дешёвый в id-мире требует cascade в name-мире; фильтрация квизов по enabled/degraded вынуждена резолвить имя → тип на каждую сборку квиза.
+  Почему не сделано сейчас: out-of-scope IS486 — трогает формат хранения quiz_configs и cascade rename, отдельная миграция.
+  Нужно: единая функция резолва name→ComponentType при сборке квиза (в рамках IS486), затем отдельным брифом — миграция refs на id.
 
 - **[IS481: seed built-in типов не выполняется на destructive-fallback пути].**
   Расследование BUG-1 (docs/features/IS481_bugs/bugs.md) показало: seed `translation` висит только на `Callback.onCreate`, а Room после destructive-пересоздания зовёт `onDestructiveMigration`+`onOpen`, но НЕ `onCreate` (Room 2.8.4, `RoomConnectionManager.onMigrate`) → после fallback приложение остаётся без built-in типа навсегда.

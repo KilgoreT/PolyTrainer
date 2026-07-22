@@ -5,6 +5,7 @@ import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
 import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.QuizConfig
@@ -132,7 +133,10 @@ class QuizChatUseCaseImpl @Inject constructor(
     // ===== IS481 quiz picker (AGG-12) =====
 
     override suspend fun getAvailableTypes(dictionaryId: Long): List<ComponentType> {
-        return lexemeApi.getComponentTypes(dictionaryId).map { it.toDomain() }
+        return lexemeApi.getComponentTypes(dictionaryId)
+            .map { it.toDomain() }
+            // IS486: CHOICE в квизах v1 не участвует (spec §9.6) — пикер не предлагает.
+            .filter { it.template != ComponentTemplate.CHOICE }
     }
 
     override suspend fun getQuizPickerSelection(dictionaryId: Long): ComponentTypeRef? {
