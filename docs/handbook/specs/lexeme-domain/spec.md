@@ -6,7 +6,7 @@
 > шаблон `CHOICE` (`ChoiceValues`), чистые модули иерархии
 > (`HierarchyChecks`, `CascadePlan`) и outcome-типы конструктора.
 > Актуальный источник контрактов доменной модели —
-> **[docs/features/IS486_choice_component/spec.md](../../../features/IS486_choice_component/spec.md)** (§5).
+> **[component-constructor/spec.md](../component-constructor/spec.md)** (§5; переехала из папки фичи 2026-07-21).
 > Ниже — исходная спека выноса модуля (IS482), исторически валидная.
 
 ## Бизнес-описание
