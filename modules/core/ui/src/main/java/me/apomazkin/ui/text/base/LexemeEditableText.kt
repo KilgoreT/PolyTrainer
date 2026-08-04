@@ -55,6 +55,7 @@ fun LexemeEditableText(
     onFocusLost: (currentValue: String) -> Unit,
     textColor: Color,
     textStyle: TextStyle = defaultTextStyle,
+    modifier: Modifier = Modifier,
 ) {
 
     val focusRequester = remember { FocusRequester() }
@@ -79,7 +80,7 @@ fun LexemeEditableText(
         var hadFocus by remember { mutableStateOf(false) }
 
         BasicTextField(
-            modifier = Modifier
+            modifier = modifier
                 .focusRequester(focusRequester)
                 .onFocusChanged { focusState ->
                     if (focusState.isFocused) {
@@ -97,7 +98,7 @@ fun LexemeEditableText(
         )
     } else {
         Text(
-            modifier = Modifier.clickable { onOpenEditMode.invoke() },
+            modifier = modifier.clickable { onOpenEditMode.invoke() },
             text = originValue,
             color = textColor,
             style = textStyle,

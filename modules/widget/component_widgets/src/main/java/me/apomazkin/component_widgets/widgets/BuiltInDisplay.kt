@@ -13,6 +13,7 @@ import me.apomazkin.core_resources.R
 fun componentDisplayName(systemKey: String?, name: String): String = when (systemKey) {
     "translation" -> stringResource(id = R.string.word_card_bottom_translation)
     "part_of_speech" -> stringResource(id = R.string.builtin_component_part_of_speech)
+    "example" -> stringResource(id = R.string.builtin_component_example)   // IS491
     null -> name
     else -> systemKey
 }

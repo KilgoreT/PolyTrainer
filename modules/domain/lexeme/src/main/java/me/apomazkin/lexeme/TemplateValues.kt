@@ -28,3 +28,14 @@ data class ImageValues(
 data class ChoiceValues(
     val optionId: Long,
 ) : TemplateValues
+
+/**
+ * IS491: значение CAPTIONED_TEXT — пара «текст + подпись».
+ * [text] — основное многострочное содержимое (цитата/пример/правило), обязателен.
+ * [caption] — короткая подпись (источник/категория), опциональна; null — подписи нет
+ * (в JSON-envelope ключ `caption` при этом опускается).
+ */
+data class CaptionedTextValues(
+    val text: Primitive.Text,
+    val caption: Primitive.Text?,
+) : TemplateValues

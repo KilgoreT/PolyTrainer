@@ -12,7 +12,7 @@ enum class ComponentTemplate(val key: String) {
     TEXT("text"),
     IMAGE("image"),
     CHOICE("choice"),   // IS486: выбор одной опции из набора; значение — ссылка option_id
-    // composite — добавляются в будущих фичах
+    CAPTIONED_TEXT("captioned_text"),   // IS491: многострочный text + опциональный caption
     ;
 
     val fields: List<Field>
@@ -20,6 +20,10 @@ enum class ComponentTemplate(val key: String) {
             TEXT -> listOf(Field("value", PrimitiveType.TEXT))
             IMAGE -> listOf(Field("value", PrimitiveType.IMAGE))
             CHOICE -> emptyList()   // значение выражено ссылкой на опцию, вне fields-модели
+            CAPTIONED_TEXT -> listOf(
+                Field("text", PrimitiveType.TEXT),
+                Field("caption", PrimitiveType.TEXT),
+            )
         }
 
     companion object {

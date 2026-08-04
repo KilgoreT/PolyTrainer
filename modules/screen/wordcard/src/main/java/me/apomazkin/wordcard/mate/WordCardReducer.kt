@@ -197,10 +197,28 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                         c.copy(
                             isEdit = true,
                             edited = c.origin,
+                            editedCaption = c.originCaption,
                         )
                     }
                 } to effects
             }
+
+            // ===== IS491: captioned_text =====
+            is Msg.UpdateComponentCaptionInput -> {
+                val cv = state.lexemeList.firstOrNull { it.id == message.lexemeId }
+                    ?.findByKey(message.key)
+                if (cv == null || !cv.isEdit) state to emptySet()
+                else state.updateLexeme(message.lexemeId) {
+                    it.updateComponent(message.key) { c -> c.copy(editedCaption = message.caption) }
+                } to emptySet()
+            }
+
+            is Msg.LoadCaptionSuggestions ->
+                state to setOf(DatasourceEffect.LoadCaptionSuggestions(message.typeId))
+
+            is Msg.CaptionSuggestionsLoaded -> state.copy(
+                captionSuggestions = state.captionSuggestions + (message.typeId to message.suggestions),
+            ) to emptySet()
 
             is Msg.CommitComponentValueEdit -> reduceCommitComponentValueEdit(state, message)
             is Msg.RemoveComponentValueRequested -> reduceRemoveComponentValue(state, message)
@@ -287,6 +305,8 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             componentTypeId = type.id,
             componentTypeRef = type.toRef(),
             isMultiple = type.isMultiple,
+            // IS491: шаблон типа обязателен в pristine — рендер/коммит ветвятся по нему.
+            template = type.template,
             isEdit = true,
         )
         return when {
@@ -325,7 +345,9 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             CommitOutcome.NoOp ->
                 if (!cv.isEdit) state to emptySet()
                 else state.updateLexeme(message.lexemeId) {
-                    it.updateComponent(message.key) { c -> c.copy(isEdit = false, edited = "") }
+                    it.updateComponent(message.key) { c ->
+                        c.copy(isEdit = false, edited = "", editedCaption = null)
+                    }
                 } to emptySet()
 
             CommitOutcome.LocalRemove -> dropComponentMaybeCascade(
@@ -342,11 +364,11 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 ) to emptySet()
                 state.copy(isPendingDbOp = true).updateLexeme(message.lexemeId) {
                     it.updateComponent(message.key) { c -> c.copy(isCommitting = true) }
-                } to setOf(DatasourceEffect.RemoveComponentValue(cvId, lex.id))
+                } to setOf(DatasourceEffect.RemoveComponentValue(cvId, lex.id, cv.template))
             }
 
             is CommitOutcome.Update -> {
-                val effect = upsertEffect(loaded, lex, cv, outcome.text)
+                val effect = upsertEffect(loaded, lex, cv, outcome.text, outcome.caption)
                 state.copy(isPendingDbOp = true).updateLexeme(message.lexemeId) {
                     it.updateComponent(message.key) { c -> c.copy(isCommitting = true) }
                 } to setOf(effect)
@@ -368,16 +390,17 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 message.key,
             ) to emptySet()
 
-            // «Пустой origin = локальный мусор» — только для текстовых шаблонов (IS481).
-            // У CHOICE origin пуст ВСЕГДА (payload в selectedOptionId) — сохранённое
-            // значение обязано удаляться через БД (девайс-баг 2026-07-21).
-            cv.origin.isEmpty() && cv.template != ComponentTemplate.CHOICE ->
+            // «Пустой origin = локальный мусор» — только для шаблонов с редактируемым
+            // текстом (IS481). У CHOICE origin пуст ВСЕГДА (payload в selectedOptionId),
+            // у IMAGE и будущих не-текстовых — тоже: сохранённое значение обязано
+            // удаляться через БД (девайс-баг 2026-07-21; IS491 origin-lossy fix).
+            cv.origin.isEmpty() && cv.template.hasEditableText ->
                 state.updateLexeme(message.lexemeId) { it.removeComponent(message.key) } to emptySet()
             else -> {
                 val cvId = cv.componentValueId!!
                 state.copy(isPendingDbOp = true).updateLexeme(message.lexemeId) {
                     it.updateComponent(message.key) { c -> c.copy(isCommitting = true) }
-                } to setOf(DatasourceEffect.RemoveComponentValue(cvId, message.lexemeId))
+                } to setOf(DatasourceEffect.RemoveComponentValue(cvId, message.lexemeId, cv.template))
             }
         }
     }
@@ -395,20 +418,32 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         val savedComps = message.components.map { domain ->
             val existing = existingByCvId[domain.id]
             val newOrigin = domain.data.asText().orEmpty()
-            // IS486: origin CHOICE — id опции.
+            // IS486: origin CHOICE — id опции. IS491: originCaption captioned-значения.
             val newOptionId = (domain.data as? me.apomazkin.lexeme.ChoiceValues)?.optionId
+            val newCaption = domain.data.asCaption()
             when {
                 existing == null -> domain.toComponentValueState()
                 existing.isCommitting -> existing.copy(
                     origin = newOrigin,
                     selectedOptionId = newOptionId,
+                    originCaption = newCaption,
                     isEdit = false,
                     isCommitting = false,
                     edited = "",
+                    editedCaption = null,
                 )
 
-                existing.isEdit -> existing.copy(origin = newOrigin, selectedOptionId = newOptionId)
-                else -> existing.copy(origin = newOrigin, selectedOptionId = newOptionId, isEdit = false)
+                existing.isEdit -> existing.copy(
+                    origin = newOrigin,
+                    selectedOptionId = newOptionId,
+                    originCaption = newCaption,
+                )
+                else -> existing.copy(
+                    origin = newOrigin,
+                    selectedOptionId = newOptionId,
+                    originCaption = newCaption,
+                    isEdit = false,
+                )
             }
         }
         val pristineTail = target.components.filter { it.isPristine }
@@ -462,7 +497,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                 pristineKey = s.pristineKey!!,
                 componentTypeId = s.componentTypeId,
                 componentTypeRef = s.componentTypeRef,
-                data = textValuesOf(s.edited.trim()),
+                data = templateValuesOf(s.template, s.edited.trim(), s.editedCaption),
             )
         }.toSet()
         val newList = state.lexemeList.map { if (it.id == NOT_IN_DB) newLexeme else it }
@@ -553,6 +588,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
         lex: LexemeState,
         cv: ComponentValueState,
         text: String,
+        caption: String? = null,
     ): DatasourceEffect.UpsertComponentValue = when {
         lex.id == NOT_IN_DB -> DatasourceEffect.UpsertComponentValue.CreateLexeme(
             wordId = loaded.id,
@@ -560,7 +596,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             pristineKey = cv.pristineKey!!,
             componentTypeId = cv.componentTypeId,
             componentTypeRef = cv.componentTypeRef,
-            data = textValuesOf(text),
+            data = templateValuesOf(cv.template, text, caption),
         )
 
         cv.componentValueId != null -> DatasourceEffect.UpsertComponentValue.UpdateValue(
@@ -570,7 +606,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             componentValueId = cv.componentValueId!!,
             componentTypeId = cv.componentTypeId,
             componentTypeRef = cv.componentTypeRef,
-            data = textValuesOf(text),
+            data = templateValuesOf(cv.template, text, caption),
         )
 
         else -> DatasourceEffect.UpsertComponentValue.AddValue(
@@ -580,7 +616,7 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             pristineKey = cv.pristineKey!!,
             componentTypeId = cv.componentTypeId,
             componentTypeRef = cv.componentTypeRef,
-            data = textValuesOf(text),
+            data = templateValuesOf(cv.template, text, caption),
         )
     }
 }

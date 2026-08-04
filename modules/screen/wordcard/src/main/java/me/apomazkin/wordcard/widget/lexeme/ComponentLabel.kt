@@ -12,9 +12,11 @@ import me.apomazkin.lexeme.toRef
 /** Лейбл из ref (snapshot ИЛИ живой type.toRef()). */
 @Composable
 internal fun labelOfRef(ref: ComponentTypeRef): String = when (ref) {
-    is ComponentTypeRef.BuiltIn ->
-        if (ref.key == BuiltInComponent.TRANSLATION) stringResource(id = R.string.word_card_bottom_translation)
-        else ref.key.name
+    is ComponentTypeRef.BuiltIn -> when (ref.key) {
+        BuiltInComponent.TRANSLATION -> stringResource(id = R.string.word_card_bottom_translation)
+        BuiltInComponent.PART_OF_SPEECH -> stringResource(id = R.string.builtin_component_part_of_speech)
+        BuiltInComponent.EXAMPLE -> stringResource(id = R.string.builtin_component_example)   // IS491
+    }
     is ComponentTypeRef.UserDefined -> ref.name
 }
 
@@ -34,12 +36,7 @@ internal fun componentValueLabel(
 
 /** Лейбл для chip'а в ChipsRow — там всегда есть живой ComponentType. */
 @Composable
-internal fun componentLabelOf(type: ComponentType): String = when {
-    // IS486: builtin «Часть речи» — display из общего ресурса.
-    type.systemKey == BuiltInComponent.PART_OF_SPEECH ->
-        stringResource(id = R.string.builtin_component_part_of_speech)
-    else -> labelOfRef(type.toRef())
-}
+internal fun componentLabelOf(type: ComponentType): String = labelOfRef(type.toRef())
 
 /**
  * IS486: display-лейбл опции CHOICE — label-override ?: ресурс по systemKey ?: ключ.

@@ -198,6 +198,24 @@ class QuizChatUseCaseImplTest {
         assertTrue(result.none { it.template == ComponentTemplate.CHOICE })
     }
 
+    // IS491 (Д6/UC19): пикер — белый список TEXT; captioned (builtin «Пример» и
+    // кастомы) не участвуют, как и CHOICE/IMAGE.
+    @Test
+    fun `getAvailableTypes whitelists only text template`() = runTest {
+        coEvery { lexemeApi.getComponentTypes(1L) } returns listOf(
+            ctApi(1L, BuiltInComponent.TRANSLATION, null, 0),
+            ctApi(2L, BuiltInComponent.PART_OF_SPEECH, null, 1).copy(template = ComponentTemplate.CHOICE),
+            ctApi(3L, BuiltInComponent.EXAMPLE, null, 2).copy(template = ComponentTemplate.CAPTIONED_TEXT),
+            ctApi(4L, null, "Цитата", 3).copy(template = ComponentTemplate.CAPTIONED_TEXT),
+            ctApi(5L, null, "Definition", 4),
+        )
+
+        val result = useCase.getAvailableTypes(1L)
+
+        assertEquals(2, result.size)
+        assertTrue(result.all { it.template == ComponentTemplate.TEXT })
+    }
+
     @Test
     fun `getQuizPickerSelection decodes builtin translation`() = runTest {
         coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "builtin:translation"

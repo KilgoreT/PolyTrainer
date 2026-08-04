@@ -33,6 +33,8 @@ internal fun LexemeComponentsBlock(
     availableTypes: List<ComponentType>,
     optionsByType: Map<ComponentTypeId, List<ComponentOption>>,
     addableTypeIds: Set<ComponentTypeId>,
+    /** IS491: подсказки caption per captioned-тип (из state). */
+    captionSuggestions: Map<ComponentTypeId, List<String>>,
     enabled: Boolean,
     sendMessage: (Msg) -> Unit,
 ) {
@@ -66,6 +68,9 @@ internal fun LexemeComponentsBlock(
                     onCommitEdit = { sendMessage(Msg.CommitComponentValueEdit(lexemeState.id, cv.key)) },
                     onRemove = { sendMessage(Msg.RemoveComponentValueRequested(lexemeState.id, cv.key)) },
                     selectedOptionLabel = selectedOptionLabel,
+                    onCaptionChange = { sendMessage(Msg.UpdateComponentCaptionInput(lexemeState.id, cv.key, it)) },
+                    onCaptionFocused = { sendMessage(Msg.LoadCaptionSuggestions(cv.componentTypeId)) },
+                    captionSuggestions = captionSuggestions[cv.componentTypeId].orEmpty(),
                 )
             }
         }

@@ -111,7 +111,14 @@ class ParticipationAndChoiceTest {
         val result = reducer.testReduce(state, Msg.RemoveComponentValueRequested(8L, cv.key))
         assertTrue(result.state().isPendingDbOp)
         result.assertEffects(
-            setOf(DatasourceEffect.RemoveComponentValue(ComponentValueId(70L), 8L)),
+            // IS491: эффект несёт шаблон удаляемого значения (лог-контракт).
+            setOf(
+                DatasourceEffect.RemoveComponentValue(
+                    ComponentValueId(70L),
+                    8L,
+                    me.apomazkin.lexeme.ComponentTemplate.CHOICE,
+                ),
+            ),
         )
     }
 

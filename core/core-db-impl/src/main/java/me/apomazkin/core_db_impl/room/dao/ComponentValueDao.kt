@@ -217,6 +217,25 @@ interface ComponentValueDao {
         """
     )
     suspend fun typeDictPairs(): List<TypeDictPair>
+
+    /**
+     * IS491: подсказки caption для captioned_text-компонента (UC3, UC10–UC12).
+     * Distinct живые caption-значения СТРОГО этого типа (изоляция per-компонент);
+     * регистр значим — дедупа нет (решение Д4); сортировка по частоте DESC,
+     * tie-break — алфавит. One-shot (не Flow): combobox короткоживущий.
+     */
+    @Query(
+        """
+        SELECT json_extract(cv.value, '${'$'}.fields.caption.value') AS caption
+        FROM component_values cv
+        WHERE cv.component_type_id = :typeId AND cv.removed_at IS NULL
+          AND json_extract(cv.value, '${'$'}.fields.caption.value') IS NOT NULL
+          AND json_extract(cv.value, '${'$'}.fields.caption.value') != ''
+        GROUP BY caption
+        ORDER BY COUNT(*) DESC, caption ASC
+        """
+    )
+    suspend fun captionSuggestions(typeId: Long): List<String>
 }
 
 /** Вспомогательный DTO для aggregated value count per type. */

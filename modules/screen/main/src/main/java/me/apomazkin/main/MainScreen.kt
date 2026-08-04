@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.rememberNavController
 import me.apomazkin.main.widget.BottomBarWidget
 import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.SystemBarsWidget
@@ -19,12 +19,11 @@ enum class TabPoint(val route: String) {
 
 @Composable
 fun MainScreen(
+    navController: NavHostController,
     compositionRoot: CompositionRoot,
     openDictionaryCreate: () -> Unit,
     openDictionaryList: () -> Unit,
 ) {
-    val navController = rememberNavController()
-
     SystemBarsWidget(
         color = whiteColor,
     )

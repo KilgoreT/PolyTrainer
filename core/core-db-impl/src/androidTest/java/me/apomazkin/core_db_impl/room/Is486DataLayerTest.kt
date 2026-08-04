@@ -57,6 +57,7 @@ class Is486DataLayerTest {
             wordDao = db.wordDao(),
             componentTypeDao = db.componentTypeDao(),
             componentOptionDao = db.componentOptionDao(),
+            logger = logger,
         )
         lexemeApi = CoreDbApiImpl.LexemeApiImpl(
             database = db,
@@ -103,6 +104,17 @@ class Is486DataLayerTest {
                 options.map { it.systemKey },
             )
             assertTrue("builtin options have no label", options.all { it.label == null })
+
+            // IS491: Пример — captioned_text, не ядро, multiple, зависит от лексемы.
+            val example = db.componentTypeDao().getBySystemKeyForDictionary("example", dictId)
+            assertNotNull("example must be seeded for dict $dictId", example)
+            assertEquals(ComponentTemplate.CAPTIONED_TEXT.key, example!!.templateKey)
+            assertEquals(false, example.core)
+            assertTrue("example is multiple", example.isMultiple)
+            assertTrue("example enabled", example.enabled)
+            assertNull(example.dependsOnTypeId)
+            assertNull(example.dependsOnOptionId)
+            assertEquals(2, example.position)
         }
     }
 
@@ -223,8 +235,8 @@ class Is486DataLayerTest {
         assertEquals(6, db.componentOptionDao().getForType(pos.id).size)
         val allForD1 = db.componentTypeDao().getTypesForDictionary(d1)
         assertEquals(
-            "ровно две builtin-строки у словаря",
-            2,
+            "ровно три builtin-строки у словаря (IS491: + example)",
+            3,
             allForD1.count { it.systemKey != null },
         )
     }

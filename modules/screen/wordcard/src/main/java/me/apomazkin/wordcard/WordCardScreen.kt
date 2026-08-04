@@ -169,6 +169,7 @@ internal fun WordCardScreen(
                                         availableTypes = state.availableComponentTypes,
                                         optionsByType = state.optionsByType,
                                         addableTypeIds = state.addableTypeIdsFor(lexemeState),
+                                        captionSuggestions = state.captionSuggestions,
                                         enabled = !state.isPendingDbOp && !state.isExiting,
                                         sendMessage = sendMessage,
                                     )

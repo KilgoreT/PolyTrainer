@@ -57,5 +57,13 @@ fun ComponentByTemplate(
                 // Empty content slot — CHOICE рендер в фазе 2.
             }
         }
+
+        ComponentTemplate.CAPTIONED_TEXT -> {
+            // IS491: resolver — мёртвый путь (карточка рендерит через
+            // ComponentValueField); ветка недостижима, exhaustive-when требует.
+            ComponentBlock(type = type) {
+                // Empty content slot.
+            }
+        }
     }
 }

@@ -59,6 +59,7 @@ class CascadeExecutorTest {
             wordDao = db.wordDao(),
             componentTypeDao = db.componentTypeDao(),
             componentOptionDao = db.componentOptionDao(),
+            logger = logger,
         )
     }
 
