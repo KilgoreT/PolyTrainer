@@ -14,7 +14,7 @@
 **Иерархия.** Каждый компонент зависит ровно от одного узла. Узел — одно из трёх:
 
 - **лексема** — супер-корень; все деревья компонентов растут из неё;
-- **компонент** — «доступен, когда у парента есть значение» (Пример → Перевод);
+- **компонент** — «доступен, когда у парента есть значение» (например, кастомный «Разбор» → Перевод; NB: builtin «Пример» (IS491) зависит от лексемы, не от Перевода — «Пример → Перевод» в этой спеке лишь иллюстрация кастомной привязки);
 - **опция** CHOICE-компонента — «доступен при конкретном значении» (Род → «существительное»).
 
 **Закон доступности:** компонент доступен для заполнения ⇔ его цель активна:
@@ -50,7 +50,10 @@
 |---|---|---|---|
 | TEXT | текст (JSON `TemplateValues`) | разрешён | released |
 | IMAGE | изображение (JSON) | разрешён | в UI задизейблен (IS485, фича картинок не готова) |
-| CHOICE | ссылка на опцию (`option_id`) | **запрещён** | IS486, новый |
+| CHOICE | ссылка на опцию (`option_id`) | **запрещён** | IS486 |
+| CAPTIONED_TEXT | пара «text + caption?» (JSON, первый multi-field envelope) | разрешён | IS491, новый |
+
+**CAPTIONED_TEXT (IS491):** многострочный обязательный `text` (цитата/пример/правило) + однострочный опциональный `caption` (подпись: источник/категория). Подписи компонента агрегируются в подсказки (combobox: ввод = новое значение И фильтр списка; регистр значим, дедупа нет; частота DESC, tie-break — алфавит; скоуп — строго component_type_id). Владелец валидации «пустой text не сохраняется» — UI-гейт карточки (`commitDecision`); data-слой пустоту не запрещает (как у TEXT).
 
 **Правило мульти:** запрет привязан к шаблону, не к зависимости — структура CHOICE подразумевает выбор одной вершины из набора. Запрет мягкий: валидация UseCase/UI, схема хранения single не зашивает (значения CHOICE — та же таблица values, constraint «одна строка» в валидации). Разрешить multiple позже = снять валидацию, без миграции. Зависимость мульти не запрещает: «Пример» (TEXT, мульти) может зависеть от перевода.
 
@@ -62,10 +65,11 @@
 
 **Builtin — пословарные** (решение 2026-07-17): при создании словаря к нему seed'ятся дефолтные builtin-строки. У каждого словаря — **свои** строки перевода и части речи: свой рубильник `enabled`, свои опции. Глобальных компонентов в продукте нет — builtin-слой и есть «глобальный» в смысле «есть в каждом словаре» (потенциальный настоящий global-охват — см. §20).
 
-Официальных builtin два:
+Официальных builtin три:
 
 - **Перевод** (`system_key = 'translation'`) — TEXT, ядро, зависит от лексемы. Особый для тренировок: тренится симметрично (слово-перевод и перевод-слово). Ядерность других компонентов симметричных тренировок не даёт.
 - **Часть речи** (`system_key = 'part_of_speech'`) — CHOICE, зависит от лексемы, НЕ ядро. Стартовый набор опций (решение 2026-07-17): **существительное, глагол, прилагательное, наречие, предлог, фраза**. Опции пословарные (набор seed'ится каждому словарю), но **нередактируемы** (РЕШЕНО 2026-07-20, §21.2): ни add, ни rename, ни delete — builtin как есть.
+- **Пример** (`system_key = 'example'`, IS491) — CAPTIONED_TEXT, зависит от лексемы, НЕ ядро, **multiple** (первый мульти-builtin; структурного запрета не было). Position = 2. Seed схлопнут в миграцию 11→12 (шаг 6b; v12 не релизилась — прецедент IS486); новым словарям — обычный seed в `addDictionary`. В квизы не входит (белый список TEXT в пикере, §12).
 
 Builtin-правила:
 
@@ -125,12 +129,17 @@ enum class ComponentTemplate(val key: String) {
     TEXT("text"),
     IMAGE("image"),
     CHOICE("choice"),   // IS486
+    CAPTIONED_TEXT("captioned_text"),   // IS491
     ;
 
     val fields: List<Field> get() = when (this) {
         TEXT -> listOf(Field("value", PrimitiveType.TEXT))
         IMAGE -> listOf(Field("value", PrimitiveType.IMAGE))
         CHOICE -> emptyList()   // значение — ссылка на опцию, вне fields-модели
+        CAPTIONED_TEXT -> listOf(
+            Field("text", PrimitiveType.TEXT),
+            Field("caption", PrimitiveType.TEXT),
+        )
     }
 
     companion object {
@@ -158,6 +167,16 @@ data class ImageValues(val value: Primitive.Image) : TemplateValues
  * Сама опция и есть значение — текст лейбла не копируется.
  */
 data class ChoiceValues(val optionId: Long) : TemplateValues
+
+/**
+ * IS491: значение CAPTIONED_TEXT — пара «текст + подпись».
+ * [text] обязателен; [caption] опционален — null = подписи нет
+ * (в JSON-envelope ключ `caption` опускается).
+ */
+data class CaptionedTextValues(
+    val text: Primitive.Text,
+    val caption: Primitive.Text?,
+) : TemplateValues
 ```
 
 ### Компонент, опция, зависимость
@@ -203,7 +222,8 @@ data class ComponentType(
  *
  * - [Lexeme] — сама лексема: доступен у оформленной; пример: «Часть речи».
  * - [Component] — другой компонент: доступен, когда у того есть значение;
- *   [Component.typeId] — его id; пример: «Пример» → Перевод.
+ *   [Component.typeId] — его id; пример: кастомный «Разбор» → Перевод
+ *   (builtin «Пример» IS491 зависит от лексемы — не путать).
  * - [Option] — опция CHOICE-компонента: доступен при конкретном выборе;
  *   [Option.optionId] — id опции; пример: «Род» → «существительное».
  */
@@ -546,7 +566,7 @@ CRUD опций (К1–К5) — новое семейство outcome, конт�
 - `system_key` — стабильный ключ builtin (`'translation'`, `'part_of_speech'`); null → user-defined. IMMUTABLE после INSERT. IS486: UNIQUE-индекс по одному ключу **дропается** (builtin пословарные — по строке на словарь); уникальность «(ключ, словарь)» — UseCase-валидация (дом-стиль M13).
 - `dictionary_id` — FK → `dictionaries.id`, CASCADE. IS486: у builtin-строк заполнен (пословарные). null = global — в продукте не используется, остаётся для потенциального global-охвата (§20).
 - `name` — имя компонента; null допустим для builtin (display из enum), user-defined требует name. Уникальность — в UseCase (§7.2).
-- `template_key` — ключ шаблона: `"text"` / `"image"` / `"choice"`.
+- `template_key` — ключ шаблона: `"text"` / `"image"` / `"choice"` / `"captioned_text"` (IS491).
 - `position` — порядок в списках.
 - `is_multiple` — кардинальность; true → несколько значений на лексему. Для CHOICE всегда false (валидация).
 - `core` — **IS486**: флаг ядра; валиден только при цели-лексеме.
@@ -575,7 +595,7 @@ CRUD опций (К1–К5) — новое семейство outcome, конт�
 - `id` — PK autoincrement.
 - `lexeme_id` — FK → `lexemes.id`, CASCADE; чья лексема.
 - `component_type_id` — FK → `component_types.id`, CASCADE; какой компонент заполнен.
-- `value` — JSON-сериализованный `TemplateValues` (envelope `{"fields": {...}}`); для CHOICE — пустой envelope (колонка NOT NULL сохраняется).
+- `value` — JSON-сериализованный `TemplateValues` (envelope `{"fields": {...}}`); для CHOICE — пустой envelope (колонка NOT NULL сохраняется). IS491, первый multi-field envelope: captioned_text хранит `{"fields":{"text":{...},"caption":{...}}}`; **null caption = ключ `caption` опущен** (не пустая строка). Fail-soft парсинга для опционального поля мягче общего контракта: битый `caption` не роняет значение (парсится как caption=null + лог), битый `text` → skip значения как обычно.
 - `option_id` — **IS486**: FK → `component_options.id`, nullable; выбранная опция CHOICE-значения. Строка values — факт «компонент у лексемы заполнен»; сама опция и есть значение, копий лейбла нет. Счётчик значений опции — COUNT по `option_id` (в составе комбинированного impact §9.3).
 - `created_at` / `updated_at` — audit timestamps.
 - `removed_at` — soft-delete; null → живое. Каскадные сбросы значений пишут сюда (§9.2).
@@ -590,10 +610,13 @@ CRUD опций (К1–К5) — новое семейство outcome, конт�
 
 ## 11. Миграция 11→12 (collapsed)
 
-> **РЕАЛИЗОВАНО ИНАЧЕ (решение 2026-07-19):** отдельной миграции «12→13» не существует.
+> **РЕАЛИЗОВАНО ИНАЧЕ (решение 2026-07-19):** миграции «12→13» не существует.
 > Деплой-тег `0.1.5` = схема v11, поэтому вся IS486-схема схлопнута в единую
 > `Migration_011_to_012` — v12 создаётся сразу в финальной форме (таблицы v12-вида,
-> никаких ALTER/DROP-UNIQUE поверх промежуточной v12). Описанные ниже шаги остаются
+> никаких ALTER/DROP-UNIQUE поверх промежуточной v12).
+> **UPD IS491 (2026-08-02):** seed builtin «Пример» схлопнут туда же — шаг 6b
+> (вне failAfterStep-нумерации), по тому же прецеденту: промежуточная v12
+> не релизилась. Версия БД остаётся 12. Описанные ниже шаги остаются
 > верными по СОДЕРЖАНИЮ (что должно получиться), но исполняются одной миграцией
 > 11→12 из 14 шагов (`MigrationTestFailureException` + `failAfterStep` — контракт
 > идемпотентность-тестов). Defensive-проверка глобальных кастомов не нужна:
@@ -985,7 +1008,7 @@ Shared-модуль `:modules:widget:component_widgets`:
 - **Диалоги:** `CreateComponentDialog` (hostVariant Manager — со scope-picker'ом; PerDict — без; + пикер цели `ComponentTargetPicker` и редактор вариантов `OptionListEditor` при CHOICE), `EditComponentDialog` (+`CardinalityDowngradePreviewWidget`, + те же секции иерархии/опций), `DeleteComponentConfirmDialog`, `OptionDeleteConfirmDialog`, `RebindConfirmDialog` — собраны из `ComponentDialogParts`/`HierarchyDialogParts` (лейблы, поле имени, радио-группа шаблонов с дизейблом IMAGE, чекбокс мульти, кнопки; destructive-вариант для удаления).
 - **Edit dirty-check (контракт кнопки, перенесено из IS481-спеки):** `canSubmit = name.trim().isNotBlank() && nameError == null && !isSubmitting && dirty`, где `dirty` = изменение name/template/isMultiple относительно `original*` ИЛИ `extraDirty` (IS486: смена цели/ядра, rename существующих опций, непустые новые черновики). Без изменений «Сохранить» задизейблена.
 - **`DeleteComponentConfirmDialog` — 3-way рендер impact** (перенесено из IS481-спеки): `isLoadingImpact` (прогресс) | `impact != null` (счётчики) | «unavailable» (preview упал); каждая строка счётчика (values/dicts/quiz/prefs) видна только при count > 0.
-- **Per-template виджеты значений (Tier-2, паттерн typed_views):** exhaustive-резолвер `ComponentByTemplate(when(template))` → структурная обёртка `ComponentBlock` (слот имени + content-лямбда) → per-template composable (`TextWidget`; CHOICE — пустой блок: значение живёт чипом опции в карточке, IMAGE — не реализован).
+- **Per-template виджеты значений (Tier-2, паттерн typed_views):** exhaustive-резолвер `ComponentByTemplate(when(template))` → структурная обёртка `ComponentBlock` (слот имени + content-лямбда) → per-template composable (`TextWidget`; CHOICE — пустой блок, IMAGE — не реализован). **UPD IS491 (ревью 2026-08-02): этот путь карточкой НЕ используется — мёртвый код** (вызовы только из `ui/unused/CheckedTextWidget.kt`). Фактический рендер значений карточки: `LexemeComponentsBlock → ComponentValueField → LexemeEditableText`; ветвление по шаблону — внутри `ComponentValueField` (CHOICE → `ChoiceValueChip`; captioned_text → `CaptionedValueField`: многострочный text + caption-combobox `CaptionField` с подсказками; прочее → текстовое поле).
 - **Прочее:** `ComponentsEmptyStateWidget`, `CreateComponentFab`, `ErrorStateWidget` (core:ui), `BuiltInDisplay` (display-имена builtin и опций по ключу из ресурсов).
 - Display-only DTO у диалогов: `DictionaryRef(id, name)`, `DeletionImpactRef(counts)`, `HostVariant` — shared-виджеты не связаны с mate-state экранов (плоские примитивы). `EditNameError.toLabelRes()` — host-local в каждом экране.
 - Известные placeholder'ы (Backlog): `lexemeLabel` = "Лексема №N" (нет реального лейбла), `onShowAllImpacted` = no-op (drill-in не реализован); `PrimaryTextButtonWidget` не поддерживает StringRes с аргументами → fallback M3 `TextButton` + `stringResource(id, count)` (backlog: overload); `LexemeStyle` без Label-семейства → fallback label→`BodyS`, label-large→`BodyLBold`; `failureLabel` — `:modules:core:tools/ThrowableExt.kt`.

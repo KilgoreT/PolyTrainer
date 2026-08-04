@@ -43,6 +43,7 @@ class DatasourceEffectHandlerTest {
         var restoreImpl: suspend (Long, Long, Lexeme) -> Lexeme? = { _, _, _ -> null },
         var flowTypesImpl: (Long) -> Flow<me.apomazkin.wordcard.deps.AvailableComponents> =
             { flowOf(me.apomazkin.wordcard.deps.AvailableComponents(emptyList())) },
+        var captionSuggestionsImpl: suspend (ComponentTypeId) -> List<String> = { emptyList() },
     ) : WordCardUseCase {
         override suspend fun getTermById(wordId: Long): Term? = getTermByIdImpl(wordId)
         override suspend fun deleteWord(wordId: Long): Int = deleteWordImpl(wordId)
@@ -66,6 +67,8 @@ class DatasourceEffectHandlerTest {
         ): Lexeme? = restoreImpl(wordId, dictionaryId, snapshot)
         override fun flowAvailableComponentTypes(dictionaryId: Long): Flow<me.apomazkin.wordcard.deps.AvailableComponents> =
             flowTypesImpl(dictionaryId)
+        override suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String> =
+            captionSuggestionsImpl(componentTypeId)
     }
 
     private object NoopLogger : LexemeLogger {

@@ -67,6 +67,12 @@ interface WordCardUseCase {
      * IS486: вместе с опциями CHOICE-типов ([AvailableComponents.optionsByType]).
      */
     fun flowAvailableComponentTypes(dictionaryId: Long): Flow<AvailableComponents>
+
+    /**
+     * IS491: подсказки caption captioned_text-компонента — distinct живые значения
+     * строго этого типа; регистр значим; частота DESC, tie-break — алфавит. One-shot.
+     */
+    suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String>
 }
 
 /**

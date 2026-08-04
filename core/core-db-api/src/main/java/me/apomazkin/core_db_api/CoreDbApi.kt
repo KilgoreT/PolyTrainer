@@ -157,6 +157,13 @@ interface CoreDbApi {
         suspend fun getComponentOptions(componentTypeId: Long): List<ComponentOptionApiEntity>
 
         /**
+         * IS491: подсказки caption для captioned_text-компонента — distinct живые
+         * caption-значения строго этого типа; регистр значим (дедупа нет, Д4);
+         * сортировка по частоте, tie-break — алфавит. One-shot.
+         */
+        suspend fun getCaptionSuggestions(componentTypeId: Long): List<String>
+
+        /**
          * IS481: реактивный поток ВСЕХ active типов словаря (built-in global +
          * per-dict user-defined) — driver для WordCard ChipsRow. Делегат к
          * `ComponentTypeDao.flowTypesForDictionary` (built-in включён, `dictionary_id IS NULL`).

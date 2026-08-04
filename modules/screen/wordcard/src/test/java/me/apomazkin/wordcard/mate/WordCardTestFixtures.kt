@@ -34,6 +34,7 @@ internal object NotImplementedUseCase : me.apomazkin.wordcard.deps.WordCardUseCa
     override suspend fun deleteComponentValue(componentValueId: ComponentValueId, lexemeId: Long): me.apomazkin.wordcard.deps.RemoveComponentResult? = TODO()
     override suspend fun restoreLexemeWithComponents(wordId: Long, dictionaryId: Long, snapshot: Lexeme): Lexeme? = TODO()
     override fun flowAvailableComponentTypes(dictionaryId: Long): kotlinx.coroutines.flow.Flow<me.apomazkin.wordcard.deps.AvailableComponents> = TODO()
+    override suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String> = TODO()
 }
 
 /**
@@ -77,15 +78,21 @@ internal fun savedCv(
     isEdit: Boolean = false,
     isCommitting: Boolean = false,
     edited: String = "",
+    template: ComponentTemplate = ComponentTemplate.TEXT,
+    originCaption: String? = null,
+    editedCaption: String? = null,
 ): ComponentValueState = ComponentValueState(
     key = ComponentValueKey.Saved(ComponentValueId(id)),
     componentTypeId = ComponentTypeId(typeId),
     componentTypeRef = ref,
     isMultiple = isMultiple,
+    template = template,
     isEdit = isEdit,
     isCommitting = isCommitting,
     origin = origin,
     edited = edited,
+    originCaption = originCaption,
+    editedCaption = editedCaption,
 )
 
 internal fun pristineCv(
@@ -95,15 +102,19 @@ internal fun pristineCv(
     isMultiple: Boolean = false,
     isCommitting: Boolean = false,
     edited: String = "",
+    template: ComponentTemplate = ComponentTemplate.TEXT,
+    editedCaption: String? = null,
 ): ComponentValueState = ComponentValueState(
     key = ComponentValueKey.Pristine(key),
     componentTypeId = ComponentTypeId(typeId),
     componentTypeRef = ref,
     isMultiple = isMultiple,
+    template = template,
     isEdit = true,
     isCommitting = isCommitting,
     origin = "",
     edited = edited,
+    editedCaption = editedCaption,
 )
 
 internal fun lexeme(id: Long, components: List<ComponentValueState>): LexemeState =
@@ -140,11 +151,13 @@ internal fun domainCv(
     typeId: Long = 50L,
     ref: ComponentTypeRef = TR,
     isMultiple: Boolean = false,
+    data: me.apomazkin.lexeme.TemplateValues = TextValues(Primitive.Text(text)),
+    template: ComponentTemplate = ComponentTemplate.TEXT,
 ): ComponentValue = ComponentValue(
     id = ComponentValueId(id),
     lexemeId = LexemeId(lexemeId),
-    type = ctype(typeId, ref, isMultiple),
-    data = TextValues(Primitive.Text(text)),
+    type = ctype(typeId, ref, isMultiple, template),
+    data = data,
 )
 
 /** Доменная `Lexeme` для payload `LexemeDraftPromoted.newLexeme` / `WordLoaded`. */

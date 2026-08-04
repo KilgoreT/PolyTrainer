@@ -31,6 +31,8 @@ data class WordCardState(
     val availableComponentTypes: List<ComponentType> = emptyList(),
     /** IS486: живые опции CHOICE-типов словаря (display: label ?: ресурс по systemKey). */
     val optionsByType: Map<ComponentTypeId, List<ComponentOption>> = emptyMap(),
+    /** IS491: подсказки caption per captioned-тип (one-shot загрузка при фокусе поля). */
+    val captionSuggestions: Map<ComponentTypeId, List<String>> = emptyMap(),
     /** Reducer-counter для уникальных pristine identity. */
     val nextPristineKey: Long = 1L,
 ) {
@@ -95,6 +97,10 @@ data class ComponentValueState(
     val edited: String = "",
     /** IS486 CHOICE: сохранённый выбор (аналог origin) — id опции. */
     val selectedOptionId: Long? = null,
+    /** IS491 captioned: сохранённая подпись (аналог origin) — null = подписи нет. */
+    val originCaption: String? = null,
+    /** IS491 captioned: редактируемая подпись (аналог edited). */
+    val editedCaption: String? = null,
 ) {
     val isPristine: Boolean get() = key is ComponentValueKey.Pristine
     val componentValueId: ComponentValueId? get() = (key as? ComponentValueKey.Saved)?.componentValueId
@@ -173,6 +179,7 @@ fun ComponentValue.toComponentValueState(): ComponentValueState = ComponentValue
     template = type.template,
     origin = data.asText().orEmpty(),
     selectedOptionId = (data as? ChoiceValues)?.optionId,
+    originCaption = data.asCaption(),
 )
 
 fun Lexeme.toLexemeState(): LexemeState = LexemeState(
@@ -261,11 +268,11 @@ private fun commitRealLexeme(
     val newComps = lexeme.components.mapNotNull { cv ->
         if (cv.isCommitting) return@mapNotNull cv // уже in-flight — не реэмитим
         when (val outcome = cv.commitDecision()) {
-            CommitOutcome.NoOp -> cv.copy(isEdit = false, edited = "")
+            CommitOutcome.NoOp -> cv.copy(isEdit = false, edited = "", editedCaption = null)
             CommitOutcome.LocalRemove -> null
             CommitOutcome.PessimisticRemove -> {
                 val cvId = cv.componentValueId ?: return@mapNotNull null
-                effects += DatasourceEffect.RemoveComponentValue(cvId, lexeme.id)
+                effects += DatasourceEffect.RemoveComponentValue(cvId, lexeme.id, cv.template)
                 cv.copy(isCommitting = true)
             }
             is CommitOutcome.Update -> {
@@ -278,7 +285,7 @@ private fun commitRealLexeme(
                         componentValueId = cvId,
                         componentTypeId = cv.componentTypeId,
                         componentTypeRef = cv.componentTypeRef,
-                        data = textValuesOf(outcome.text),
+                        data = templateValuesOf(cv.template, outcome.text, outcome.caption),
                     )
                 } else {
                     effects += DatasourceEffect.UpsertComponentValue.AddValue(
@@ -288,7 +295,7 @@ private fun commitRealLexeme(
                         pristineKey = cv.pristineKey!!,
                         componentTypeId = cv.componentTypeId,
                         componentTypeRef = cv.componentTypeRef,
-                        data = textValuesOf(outcome.text),
+                        data = templateValuesOf(cv.template, outcome.text, outcome.caption),
                     )
                 }
                 cv.copy(isCommitting = true)
@@ -309,14 +316,14 @@ private fun commitDraftLexeme(
     if (survived.isEmpty()) return null
     val anchor = survived.firstOrNull { it.commitDecision() is CommitOutcome.Update }
         ?: return lexeme.copy(components = survived)
-    val anchorText = (anchor.commitDecision() as CommitOutcome.Update).text
+    val anchorOutcome = anchor.commitDecision() as CommitOutcome.Update
     effects += DatasourceEffect.UpsertComponentValue.CreateLexeme(
         wordId = wordId,
         dictionaryId = dictionaryId,
         pristineKey = anchor.pristineKey!!,
         componentTypeId = anchor.componentTypeId,
         componentTypeRef = anchor.componentTypeRef,
-        data = textValuesOf(anchorText),
+        data = templateValuesOf(anchor.template, anchorOutcome.text, anchorOutcome.caption),
     )
     val newComps = survived.map { cv ->
         if (cv.key == anchor.key) cv.copy(isCommitting = true) else cv

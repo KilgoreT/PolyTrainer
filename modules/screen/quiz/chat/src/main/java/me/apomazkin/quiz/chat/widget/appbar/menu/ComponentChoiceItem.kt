@@ -36,6 +36,10 @@ internal fun ComponentChoiceItem(
             BuiltInComponent.PART_OF_SPEECH -> stringResource(
                 id = me.apomazkin.core_resources.R.string.builtin_component_part_of_speech,
             )
+            // IS491: CAPTIONED_TEXT отфильтрован белым списком — ветка недостижима.
+            BuiltInComponent.EXAMPLE -> stringResource(
+                id = me.apomazkin.core_resources.R.string.builtin_component_example,
+            )
         }
         is ComponentTypeRef.UserDefined -> ref.name
     }

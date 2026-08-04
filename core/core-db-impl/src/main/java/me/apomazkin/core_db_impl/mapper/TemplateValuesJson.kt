@@ -1,5 +1,6 @@
 package me.apomazkin.core_db_impl.mapper
 
+import me.apomazkin.lexeme.CaptionedTextValues
 import me.apomazkin.lexeme.ChoiceValues
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ImageValues
@@ -17,13 +18,16 @@ import org.json.JSONObject
  * - `"image"` → `{"type":"image","uri":"..."}`
  * - `"color"` → `{"type":"color","hex":"..."}` (зарезервирован под `Primitive.Color`).
  *
- * MVP M13 поддерживает только [TextValues] и [ImageValues]. Composite (multi-field)
- * values добавляются в будущих фичах без breaking changes в envelope.
+ * Single-field шаблоны (TEXT/IMAGE) хранят единственное поле `"value"`.
+ * IS491: CAPTIONED_TEXT — первый multi-field шаблон: поля `"text"` + `"caption"`;
+ * caption опционален — при null ключ `"caption"` в envelope опускается.
  *
  * Fail-soft контракт (aspect `forward_compat_unknown`):
  *  - malformed JSON → null + Crashlytics-лог.
  *  - unknown primitive type → null + лог.
  *  - schema-mismatch (template ждёт text, json содержит image) → null + лог.
+ *  - IS491, исключение для опционального поля: битый `caption` НЕ роняет значение —
+ *    парсится как caption=null + лог (text обязателен, его сбой → null как обычно).
  *
  * Caller-mapper ([me.apomazkin.core_db_impl.entity.toApiEntity]) обрабатывает `null`
  * как skip компонента.
@@ -57,6 +61,31 @@ fun TemplateValues.toJson(): String = when (this) {
 
     // IS486: payload CHOICE живёт в колонке option_id, JSON — пустой envelope (value NOT NULL).
     is ChoiceValues -> JSONObject().put("fields", JSONObject()).toString()
+
+    // IS491: два именованных поля; null caption → ключ опускается.
+    is CaptionedTextValues -> JSONObject().apply {
+        put(
+            "fields",
+            JSONObject().apply {
+                put(
+                    "text",
+                    JSONObject().apply {
+                        put("type", "text")
+                        put("value", text.value)
+                    }
+                )
+                caption?.let {
+                    put(
+                        "caption",
+                        JSONObject().apply {
+                            put("type", "text")
+                            put("value", it.value)
+                        }
+                    )
+                }
+            }
+        )
+    }.toString()
 }
 
 fun parseTemplateValues(
@@ -66,28 +95,21 @@ fun parseTemplateValues(
 ): TemplateValues? = try {
     val root = JSONObject(json)
     val fields = root.getJSONObject("fields")
-    val valueObj = fields.getJSONObject("value")
-    val type = valueObj.getString("type")
     when (template) {
-        ComponentTemplate.TEXT -> when (type) {
-            "text" -> TextValues(Primitive.Text(valueObj.getString("value")))
-            else -> {
-                logger.e(
-                    tag = TEMPLATE_VALUES_JSON_TAG,
-                    message = "schema mismatch: template=TEXT, json type='$type'"
-                )
-                null
-            }
-        }
+        ComponentTemplate.TEXT -> parseTextPrimitive(fields.getJSONObject("value"), logger)
+            ?.let { TextValues(it) }
 
-        ComponentTemplate.IMAGE -> when (type) {
-            "image" -> ImageValues(Primitive.Image(valueObj.getString("uri")))
-            else -> {
-                logger.e(
-                    tag = TEMPLATE_VALUES_JSON_TAG,
-                    message = "schema mismatch: template=IMAGE, json type='$type'"
-                )
-                null
+        ComponentTemplate.IMAGE -> {
+            val valueObj = fields.getJSONObject("value")
+            when (val type = valueObj.getString("type")) {
+                "image" -> ImageValues(Primitive.Image(valueObj.getString("uri")))
+                else -> {
+                    logger.e(
+                        tag = TEMPLATE_VALUES_JSON_TAG,
+                        message = "schema mismatch: template=IMAGE, json type='$type'"
+                    )
+                    null
+                }
             }
         }
 
@@ -100,10 +122,41 @@ fun parseTemplateValues(
             )
             null
         }
+
+        // IS491: text обязателен (сбой → null); caption опционален —
+        // отсутствующий ключ = null, битый caption = null + лог, text выживает.
+        ComponentTemplate.CAPTIONED_TEXT -> {
+            val text = parseTextPrimitive(fields.getJSONObject("text"), logger)
+            if (text == null) {
+                null
+            } else {
+                val caption = if (fields.has("caption")) {
+                    parseTextPrimitive(fields.getJSONObject("caption"), logger)
+                } else {
+                    null
+                }
+                CaptionedTextValues(text = text, caption = caption)
+            }
+        }
     }
 } catch (e: JSONException) {
     logger.e(tag = TEMPLATE_VALUES_JSON_TAG, message = "malformed JSON: ${e.message}")
     null
+}
+
+/** Текстовое поле envelope → [Primitive.Text]; не-text тип → null + лог. */
+private fun parseTextPrimitive(
+    fieldObj: JSONObject,
+    logger: LexemeLogger,
+): Primitive.Text? = when (val type = fieldObj.getString("type")) {
+    "text" -> Primitive.Text(fieldObj.getString("value"))
+    else -> {
+        logger.e(
+            tag = TEMPLATE_VALUES_JSON_TAG,
+            message = "schema mismatch: expected text field, json type='$type'"
+        )
+        null
+    }
 }
 
 private const val TEMPLATE_VALUES_JSON_TAG = "TemplateValuesJson"

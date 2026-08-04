@@ -144,8 +144,18 @@ class WordCardUseCaseImpl @Inject constructor(
             )
         }
 
-    private fun TemplateValues.trimmed(): TemplateValues =
-        (this as? TextValues)?.let { TextValues(Primitive.Text(it.value.value.trim())) } ?: this
+    override suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String> =
+        lexemeApi.getCaptionSuggestions(componentTypeId.id)
+
+    private fun TemplateValues.trimmed(): TemplateValues = when (this) {
+        is TextValues -> TextValues(Primitive.Text(value.value.trim()))
+        // IS491: text trim; caption trim, пробельная → null (UC26).
+        is me.apomazkin.lexeme.CaptionedTextValues -> me.apomazkin.lexeme.CaptionedTextValues(
+            text = Primitive.Text(text.value.trim()),
+            caption = caption?.value?.trim()?.takeIf { it.isNotEmpty() }?.let { Primitive.Text(it) },
+        )
+        else -> this
+    }
 }
 
 fun TermApiEntity.toDomainEntity(): Term = Term(

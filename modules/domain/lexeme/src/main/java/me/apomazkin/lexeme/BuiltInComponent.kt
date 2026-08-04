@@ -11,6 +11,7 @@ package me.apomazkin.lexeme
 enum class BuiltInComponent(val key: String) {
     TRANSLATION("translation"),
     PART_OF_SPEECH("part_of_speech"),   // IS486: Часть речи — CHOICE, зависит от лексемы, не ядро
+    EXAMPLE("example"),   // IS491: Пример — CAPTIONED_TEXT, зависит от лексемы, не ядро, multiple
     ;
 
     companion object {

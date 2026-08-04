@@ -4,12 +4,18 @@
 
 ## Продолжение фич
 
+- **[IS491 follow-up: миграция legacy `samples`/`hints` → значения builtin «Пример»].**
+  Решение Д5 брифа IS491 (2026-08-02): builtin «Пример» (`captioned_text`) дублирует по смыслу legacy-таблицу `samples`; в скоуп IS491 миграция данных не входит.
+  Нужно: отдельной задачей — маппинг строк `samples` в значения компонента «Пример» (text = sample, caption = пусто), решить судьбу `hints`, снести legacy-таблицы и их UI-остатки. Учитывать пересечение со скоупом бэкапа (#488, группа Legacy).
+
 - **IS481 phase 2: feature-scoped tag `###ComponentConstructor###` + логи в Migration_012_to_013 и DAO cascade.**
   `checklist.md § Примечание о логах` декларирует tag `###ComponentConstructor###` для adb logcat фильтрации фича-событий. Реальность: используются module-scoped tags `ComponentsManager` / `PerDictComponents`. Migration_012_to_013 молчит полностью (счётчики rewrite text/image rows, drop индексов, backfill timestamps — не пишутся). DAO cascade (`QuizConfigDao.updateComponentRefs`, prefs reset) тоже молчит.
   
   Impact: manual smoke verify через logcat усложнён; при багах миграции (например `long_text` rows не консолидировались) узнать получится только по результату (пустые компоненты у юзера / crash в parser), не по logs.
   
   Что сделать: добавить `LogTags.COMPONENT_CONSTRUCTOR = "###ComponentConstructor###"` в shared logger, использовать в UseCase impls + Migration_012_to_013 (счётчики per step) + DAO cascade методах. Решить — оставить ли параллельно module-scoped tags или снести.
+
+  Уточнение (2026-08-02, из IS491): конвенция тегов — ТОЛЬКО КАПС (`###APP###`, `###WORDCARD###`, `###DICT_COMPONENTS###`…). Существующий `LogTags.COMPONENT_CONSTRUCTOR = "###ComponentConstructor###"` (`modules/core/logger/LogTags.kt`) — единственное исключение, нарушает конвенцию. При выполнении этого пункта тег переименовать в `###COMPONENT_CONSTRUCTOR###` (декларации в исторических доках IS481 не трогать — история).
 
 - **IS481 phase 2: `RenameOutcome.BuiltInProtected` conflation для soft-deleted типов.**
   `renameComponent(typeId)` для **soft-deleted** типа возвращает `RenameOutcome.BuiltInProtected` — misleading: тип не built-in, он удалён. UI показывает «нельзя переименовывать встроенный» вместо «компонент удалён».
@@ -496,20 +502,24 @@
 
 ## ВекторныйПиздеж
 
+- **[IS491: seed-реконсиляция builtin при открытии БД вместо миграции на каждый новый builtin].**
+  Ревью-агент (builtin/seed, IS491 analysis 2026-08-02) указал: доставка нового builtin в существующие словари сейчас требует data-миграции на каждый случай (прецедент — `seedPartOfSpeechPerDictionary` в 11→12; для «Пример» понадобится то же в 12→13). Идемпотентная реконсиляция в `onOpen` (`INSERT … WHERE NOT EXISTS (system_key, dictionary_id)` по всем словарям) доставляла бы любые будущие builtin без миграций, заодно закрывая устаревший пункт «seed на destructive-fallback» (ниже: seed давно перенесён из `onCreate` в `addDictionary`, запись неактуальна) и лживый комментарий в `RoomModule.onDestructiveMigration`.
+  Почему не сделано сейчас: out-of-scope IS491 — меняет точку seed, отдельный бриф.
+  Нужно: бриф «seed-реконсиляция builtin в onOpen»; при взятии — актуализировать/снести пункт про destructive-fallback.
+
 - **[IS486: `ComponentTypeRef.UserDefined(name)` — миграция name-based refs на id-based].**
   Ревью-агент (совместимость IS486) указал: quiz_configs хранят refs по имени компонента, а зависимости/опции IS486 — по числовым id. Два параллельных адресных пространства: rename дешёвый в id-мире требует cascade в name-мире; фильтрация квизов по enabled/degraded вынуждена резолвить имя → тип на каждую сборку квиза.
   Почему не сделано сейчас: out-of-scope IS486 — трогает формат хранения quiz_configs и cascade rename, отдельная миграция.
   Нужно: единая функция резолва name→ComponentType при сборке квиза (в рамках IS486), затем отдельным брифом — миграция refs на id.
 
-- **[IS481: seed built-in типов не выполняется на destructive-fallback пути].**
+- **[УСТАРЕЛО — проверено в IS491, 2026-08-02] [IS481: seed built-in типов не выполняется на destructive-fallback пути].**
+  Актуализация: seed давно перенесён из `Callback.onCreate` в транзакцию `addDictionary` (`seedBuiltInsForDictionary`) — после destructive-пересоздания словарей ноль, сеять нечего; при создании словаря seed отработает со всеми builtin. Остаточный долг — лживый комментарий в `RoomModule.onDestructiveMigration` («seed отработает в onCreate»); закрывается пунктом «seed-реконсиляция builtin в onOpen» (выше). Исходный текст сохранён ниже для истории.
   Расследование BUG-1 (docs/features/IS481_bugs/bugs.md) показало: seed `translation` висит только на `Callback.onCreate`, а Room после destructive-пересоздания зовёт `onDestructiveMigration`+`onOpen`, но НЕ `onCreate` (Room 2.8.4, `RoomConnectionManager.onMigrate`) → после fallback приложение остаётся без built-in типа навсегда.
   Почему не сделано сейчас: путь недостижим в проде (v13 существовала только на dev-девайсе; fallback рассчитан на pre-0.1.0 internal сборки) — решение юзера: не баг, чинится переустановкой.
   Нужно: перенести seed в `Callback.onOpen` (идемпотентный `INSERT OR IGNORE`, UNIQUE на `system_key` есть) — самовосстановление на любом пути открытия БД; починить лживый комментарий в `RoomModule.onDestructiveMigration`.
 
-- **[IS481 wordcard_components: `origin` lossy для не-текстовых компонентов].**
-  Ревью-агент (итоговое ревью IS481) указал: `ComponentValue.toComponentValueState()` берёт `origin = data.asText().orEmpty()` → для любого не-`TextValues` (image и т.п.) origin = `""`. Если такой saved-компонент откроют в edit и закоммитят пустым, `commitDecision` вернёт `LocalRemove` (origin пуст) вместо `PessimisticRemove` → компонент исчезнет из UI без эффекта `RemoveComponentValue`, оставшись в БД.
-  Почему не сделано сейчас: out-of-scope — IS481 работает только с TEXT-шаблонами (ChipsRow фильтрует `template == TEXT`), не-текст недостижим.
-  Нужно: при вводе не-текстовых компонентов сделать `origin`/`commitDecision` template-aware (не сводить значение к тексту), либо хранить origin как `TemplateValues`, а не `String`.
+- **[ЗАКРЫТО IS491, 2026-08-02] [IS481 wordcard_components: `origin` lossy для не-текстовых компонентов].**
+  Закрыто фазой 2.1 IS491: `asText()` расширен на captioned (origin captioned = text, не ""); `commitDecision` и remove-ветка reducer'а стали template-aware — сохранённые значения шаблонов без текстового представления (IMAGE и будущие) уходят только в `PessimisticRemove`/БД-удаление, `LocalRemove` невозможен (тесты: `CaptionedValueTest.origin lossy fix…`).
 
 - **[IS481 wordcard_components: resubscribe-гонка emit в AvailableComponentTypesFlowHandler].**
   Ревью-агент указал: `runEffect` делает `job?.cancel()` без `join` перед relaunch → старый flow (Room) может эмитнуть устаревший `ComponentTypesLoaded` уже после нового. Для одного `dictionaryId` безвредно (идемпотентный set в reducer); при смене dictId старые типы могут на миг перетереть новые.

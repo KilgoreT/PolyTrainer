@@ -1,5 +1,6 @@
 package me.apomazkin.core_db_impl.mapper
 
+import me.apomazkin.lexeme.CaptionedTextValues
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ImageValues
 import me.apomazkin.lexeme.Primitive
@@ -98,6 +99,85 @@ class TemplateValuesJsonTest {
         val parsed = parseTemplateValues(unknown, ComponentTemplate.TEXT, logger)
         assertNull(parsed)
         assertTrue(logger.errors.any { it.contains("schema mismatch") })
+    }
+
+    // IS491: CAPTIONED_TEXT — пара text + опциональный caption (UC2, UC5; С4).
+
+    @Test
+    fun captioned_roundTrip_withCaption() {
+        val original = CaptionedTextValues(
+            text = Primitive.Text("multi\nline quote"),
+            caption = Primitive.Text("IELTS"),
+        )
+        val json = original.toJson()
+        val parsed = parseTemplateValues(json, ComponentTemplate.CAPTIONED_TEXT, logger)
+        assertEquals(original, parsed)
+        assertTrue("no errors expected", logger.errors.isEmpty())
+    }
+
+    @Test
+    fun captioned_roundTrip_withoutCaption_keyOmitted() {
+        val original = CaptionedTextValues(
+            text = Primitive.Text("quote only"),
+            caption = null,
+        )
+        val json = original.toJson()
+        assertTrue("null caption must omit the key", !json.contains("caption"))
+        val parsed = parseTemplateValues(json, ComponentTemplate.CAPTIONED_TEXT, logger)
+        assertEquals(original, parsed)
+        assertTrue(logger.errors.isEmpty())
+    }
+
+    @Test
+    fun captioned_brokenCaption_textSurvives_captionNull() {
+        // Битый caption (unknown primitive type) — значение живёт с caption=null + лог.
+        val json =
+            """{"fields":{"text":{"type":"text","value":"quote"},"caption":{"type":"video","src":"x"}}}"""
+        val parsed = parseTemplateValues(json, ComponentTemplate.CAPTIONED_TEXT, logger)
+        assertEquals(
+            CaptionedTextValues(text = Primitive.Text("quote"), caption = null),
+            parsed,
+        )
+        assertTrue("broken caption must be logged", logger.errors.isNotEmpty())
+    }
+
+    @Test
+    fun captioned_missingText_returnsNull() {
+        val json = """{"fields":{"caption":{"type":"text","value":"IELTS"}}}"""
+        val parsed = parseTemplateValues(json, ComponentTemplate.CAPTIONED_TEXT, logger)
+        assertNull(parsed)
+        assertTrue(logger.errors.isNotEmpty())
+    }
+
+    @Test
+    fun captioned_schemaMismatch_textEnvelope_returnsNull() {
+        // TEXT-envelope (единственный ключ "value") не парсится как captioned.
+        val textJson = TextValues(Primitive.Text("v")).toJson()
+        val parsed = parseTemplateValues(textJson, ComponentTemplate.CAPTIONED_TEXT, logger)
+        assertNull(parsed)
+        assertTrue(logger.errors.isNotEmpty())
+    }
+
+    @Test
+    fun captioned_unicodeRoundTrip() {
+        val original = CaptionedTextValues(
+            text = Primitive.Text("правило: ¿cómo? 🦊"),
+            caption = Primitive.Text("Разговорный it's"),
+        )
+        val json = original.toJson()
+        val parsed = parseTemplateValues(json, ComponentTemplate.CAPTIONED_TEXT, logger)
+        assertEquals(original, parsed)
+    }
+
+    @Test
+    fun choiceTemplate_parse_returnsNull_wrongCallSite() {
+        val parsed = parseTemplateValues(
+            """{"fields":{}}""",
+            ComponentTemplate.CHOICE,
+            logger,
+        )
+        assertNull(parsed)
+        assertTrue(logger.errors.isNotEmpty())
     }
 
     @Test

@@ -2,6 +2,8 @@ package me.apomazkin.wordcard.mate
 
 import kotlinx.coroutines.CancellationException
 import me.apomazkin.core_resources.R
+import me.apomazkin.lexeme.CaptionedTextValues
+import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentValueId
@@ -9,6 +11,7 @@ import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.lexeme.TemplateValues
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
+import me.apomazkin.logger.LogTags as FeatureLogTags
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateTypedEffectHandler
 import me.apomazkin.wordcard.deps.RemoveComponentResult
@@ -76,7 +79,12 @@ sealed interface DatasourceEffect : Effect {
     data class RemoveComponentValue(
         val componentValueId: ComponentValueId,
         val lexemeId: Long,
+        /** IS491: шаблон удаляемого значения — для фичевого лог-контракта. */
+        val template: ComponentTemplate = ComponentTemplate.TEXT,
     ) : DatasourceEffect
+
+    /** IS491: one-shot загрузка подсказок caption для captioned-компонента. */
+    data class LoadCaptionSuggestions(val typeId: ComponentTypeId) : DatasourceEffect
 
     /** Trigger для AvailableComponentTypesFlowHandler (re-)subscribe. */
     data class LoadAvailableComponentTypes(val dictionaryId: Long) : DatasourceEffect
@@ -158,6 +166,7 @@ class DatasourceEffectHandler @Inject constructor(
                 guarded(consumer, R.string.word_card_error_generic) {
                     val result = wordCardUseCase.addComponentValue(effect.lexemeId, effect.componentTypeId, effect.data)
                     if (result != null) {
+                        logCaptionedUpsert("value add", effect.data, effect.componentTypeId, result.newComponentValueId)
                         consumer(Msg.RefreshLexemeComponents(effect.lexemeId, result.lexeme.components))
                         consumer(Msg.ComponentValueInserted(effect.lexemeId, effect.pristineKey, result.newComponentValueId))
                     } else {
@@ -168,8 +177,12 @@ class DatasourceEffectHandler @Inject constructor(
             is DatasourceEffect.UpsertComponentValue.UpdateValue ->
                 guarded(consumer, R.string.word_card_error_generic) {
                     val lex = wordCardUseCase.updateComponentValue(effect.componentValueId, effect.lexemeId, effect.data)
-                    if (lex != null) consumer(Msg.RefreshLexemeComponents(effect.lexemeId, lex.components))
-                    else consumer(Msg.OperationFailed(R.string.word_card_error_generic))
+                    if (lex != null) {
+                        logCaptionedUpsert("value update", effect.data, typeId = null, effect.componentValueId)
+                        consumer(Msg.RefreshLexemeComponents(effect.lexemeId, lex.components))
+                    } else {
+                        consumer(Msg.OperationFailed(R.string.word_card_error_generic))
+                    }
                 }
 
             is DatasourceEffect.RemoveComponentValue ->
@@ -177,11 +190,33 @@ class DatasourceEffectHandler @Inject constructor(
                     when (val r = wordCardUseCase.deleteComponentValue(effect.componentValueId, effect.lexemeId)) {
                         // IS486 фаза 3: лексема не удаляется — деградация в черновик
                         // (пустой список компонентов = draft-представление в UI).
-                        is RemoveComponentResult.ComponentRemoved ->
+                        is RemoveComponentResult.ComponentRemoved -> {
+                            if (effect.template == ComponentTemplate.CAPTIONED_TEXT) {
+                                logger.d(
+                                    tag = FeatureLogTags.CAPTIONED_TEXT,
+                                    message = "value remove: valueId=${effect.componentValueId.id}",
+                                )
+                            }
                             consumer(Msg.RefreshLexemeComponents(effect.lexemeId, r.lexeme.components))
+                        }
                         null -> consumer(Msg.OperationFailed(R.string.word_card_error_remove_lexeme))
                     }
                 }
+
+            // IS491: подсказки — best-effort: ошибка → пустой список + лог.
+            is DatasourceEffect.LoadCaptionSuggestions -> try {
+                consumer(
+                    Msg.CaptionSuggestionsLoaded(
+                        effect.typeId,
+                        wordCardUseCase.getCaptionSuggestions(effect.typeId),
+                    ),
+                )
+            } catch (c: CancellationException) {
+                throw c
+            } catch (t: Throwable) {
+                logger.log(LogLevel.ERROR, TAG, "LoadCaptionSuggestions failed", t)
+                consumer(Msg.CaptionSuggestionsLoaded(effect.typeId, emptyList()))
+            }
 
             is DatasourceEffect.RestoreLexemeWithComponents ->
                 guarded(consumer, R.string.word_card_error_restore_lexeme) {
@@ -200,6 +235,22 @@ class DatasourceEffectHandler @Inject constructor(
             // Обрабатывает AvailableComponentTypesFlowHandler (flow-handler), здесь — no-op.
             is DatasourceEffect.LoadAvailableComponentTypes -> Unit
         }
+    }
+
+    /** IS491 лог-контракт: value add/update — только для captioned-значений. */
+    private fun logCaptionedUpsert(
+        event: String,
+        data: TemplateValues,
+        typeId: ComponentTypeId?,
+        valueId: ComponentValueId,
+    ) {
+        val captioned = data as? CaptionedTextValues ?: return
+        val typePart = typeId?.let { "typeId=${it.id} " } ?: ""
+        logger.d(
+            tag = FeatureLogTags.CAPTIONED_TEXT,
+            message = "$event: ${typePart}valueId=${valueId.id} " +
+                "text.len=${captioned.text.value.length} caption='${captioned.caption?.value ?: "null"}'",
+        )
     }
 
     /** try/catch обёртка: CancellationException пробрасывается, прочее → OperationFailed(errorRes). */

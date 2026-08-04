@@ -277,7 +277,10 @@
     <string name="components_template_text">Text</string>
     <string name="components_template_image">Image</string>
     <string name="components_template_choice">Choice</string>
+    <string name="components_template_captioned">Captioned text</string>
+    <string name="word_card_caption_hint">caption</string>
     <string name="builtin_component_part_of_speech">Part of speech</string>
+    <string name="builtin_component_example">Example</string>
     <string name="part_of_speech_option_noun">Noun</string>
     <string name="part_of_speech_option_verb">Verb</string>
     <string name="part_of_speech_option_adjective">Adjective</string>
@@ -307,7 +310,7 @@
     <string name="components_row_disabled">Disabled</string>
     <string name="components_row_degraded">Not working</string>
     <string name="components_field_dependency">Depends on</string>
-    <string name="components_target_lexeme">Standalone</string>
+    <string name="components_target_lexeme">Lexeme</string>
     <string name="components_field_core">Core component</string>
     <string name="components_field_options">Options</string>
     <string name="components_option_add">Add option</string>

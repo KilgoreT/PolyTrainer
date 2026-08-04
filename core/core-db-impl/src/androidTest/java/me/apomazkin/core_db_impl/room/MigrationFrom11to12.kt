@@ -84,6 +84,32 @@ class MigrationFrom11to12 {
         v12.close()
     }
 
+    // === IS491 — builtin «Пример» сеется каждому словарю (шаг 6b) ===
+    @Test
+    fun is491_exampleSeededToAllDictionaries_finalShape() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "EN")
+            v11.insertDictionary(id = 2, name = "ES")
+        }
+        val v12 = migrate()
+
+        assertEquals(2, v12.countWhere("component_types", "system_key='example'"))
+        listOf(1L, 2L).forEach { dictId ->
+            assertEquals(
+                "example row shape for dict $dictId",
+                1,
+                v12.countWhere(
+                    "component_types",
+                    "system_key='example' AND dictionary_id=$dictId AND name IS NULL " +
+                        "AND template_key='captioned_text' AND position=2 AND is_multiple=1 " +
+                        "AND core=0 AND enabled=1 AND depends_on_type_id IS NULL " +
+                        "AND depends_on_option_id IS NULL AND removed_at IS NULL",
+                ),
+            )
+        }
+        v12.close()
+    }
+
     // === Case B — translation + definition в одном словаре ===
     @Test
     fun caseB_translationAndDefinitionSameDict() {

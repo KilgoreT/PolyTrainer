@@ -32,6 +32,8 @@ import androidx.sqlite.execSQL
  *   4. CREATE quiz_configs + индексы.
  *   5. Seed пословарных «Перевод» (ядра).
  *   6. Seed пословарных «Часть речи» + 6 опций-ключей на словарь.
+ *      6b (IS491, вне failAfterStep-нумерации): seed пословарных «Пример»
+ *      (captioned_text, не ядро, multiple, position=2).
  *   7. CREATE per-dictionary user-defined "Definition" types (core=0).
  *   8. Backfill: Definition → core=1 где есть лексема с definition без translation.
  *   9. Backfill: остальные Definition → depends_on_type_id = перевод своего словаря.
@@ -75,6 +77,10 @@ object Migration_011_to_012 : Migration(11, 12) {
 
         seedPartOfSpeechPerDictionary(connection, now)
         maybeFail(6, failAfterStep)
+
+        // IS491 (схлопнуто в 11→12: v12 не релизилась, прецедент IS486): builtin «Пример».
+        // Вне failAfterStep-протокола — идёт в той же транзакции сразу за шагом 6.
+        seedExamplePerDictionary(connection, now)
 
         createUserDefinedDefinitionTypes(connection, now)
         maybeFail(7, failAfterStep)
@@ -272,6 +278,23 @@ object Migration_011_to_012 : Migration(11, 12) {
                 """.trimIndent()
             )
         }
+    }
+
+    /**
+     * IS491: builtin «Пример» — CAPTIONED_TEXT, не ядро, multiple, зависит от лексемы,
+     * position=2. Данных для него на v11 не существует — только строка типа.
+     */
+    private fun seedExamplePerDictionary(connection: SQLiteConnection, now: Long) {
+        connection.execSQL(
+            """
+            INSERT INTO component_types
+                (system_key, dictionary_id, name, template_key, position, is_multiple,
+                 core, enabled, depends_on_type_id, depends_on_option_id, created_at, updated_at, removed_at)
+            SELECT 'example', d.id, NULL, 'captioned_text', 2, 1,
+                   0, 1, NULL, NULL, $now, $now, NULL
+            FROM dictionaries d
+            """.trimIndent()
+        )
     }
 
     // === Definition-типы + backfill иерархии ===

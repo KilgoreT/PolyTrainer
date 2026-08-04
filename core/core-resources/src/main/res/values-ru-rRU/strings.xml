@@ -266,7 +266,10 @@
     <string name="components_template_text">Текст</string>
     <string name="components_template_image">Изображение</string>
     <string name="components_template_choice">Выбор</string>
+    <string name="components_template_captioned">Текст с подписью</string>
+    <string name="word_card_caption_hint">подпись</string>
     <string name="builtin_component_part_of_speech">Часть речи</string>
+    <string name="builtin_component_example">Пример</string>
     <string name="part_of_speech_option_noun">Существительное</string>
     <string name="part_of_speech_option_verb">Глагол</string>
     <string name="part_of_speech_option_adjective">Прилагательное</string>
@@ -296,7 +299,7 @@
     <string name="components_row_disabled">Выключен</string>
     <string name="components_row_degraded">Не работает</string>
     <string name="components_field_dependency">Зависимость</string>
-    <string name="components_target_lexeme">Самостоятельный</string>
+    <string name="components_target_lexeme">Лексема</string>
     <string name="components_field_core">Ядро словаря</string>
     <string name="components_field_options">Варианты</string>
     <string name="components_option_add">Добавить вариант</string>

@@ -133,10 +133,17 @@ class QuizChatUseCaseImpl @Inject constructor(
     // ===== IS481 quiz picker (AGG-12) =====
 
     override suspend fun getAvailableTypes(dictionaryId: Long): List<ComponentType> {
-        return lexemeApi.getComponentTypes(dictionaryId)
+        // IS491 (Д6): белый список — тренируются только TEXT-компоненты; CHOICE (IS486),
+        // captioned_text и будущие шаблоны в пикер не попадают по умолчанию.
+        val available = lexemeApi.getComponentTypes(dictionaryId)
             .map { it.toDomain() }
-            // IS486: CHOICE в квизах v1 не участвует (spec §9.6) — пикер не предлагает.
-            .filter { it.template != ComponentTemplate.CHOICE }
+            .filter { it.template == ComponentTemplate.TEXT }
+        logger.d(
+            tag = me.apomazkin.logger.LogTags.CAPTIONED_TEXT,
+            message = "quizPicker: available=[" +
+                available.joinToString { it.name ?: it.systemKey?.key.orEmpty() } + "]",
+        )
+        return available
     }
 
     override suspend fun getQuizPickerSelection(dictionaryId: Long): ComponentTypeRef? {

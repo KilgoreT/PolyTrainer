@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.runtime.remember
 import me.apomazkin.dictionary.form.DictionaryFormScreen
@@ -40,6 +41,13 @@ fun RootRouter(
 ) {
     val context = LocalContext.current
     var navigator: RootRouterNavigation? = null
+
+    // Навконтроллер табов создаётся ЗДЕСЬ (в живущем всё приложение RootRouter), а не
+    // внутри MainScreen: заход в DICTIONARY_CREATE уничтожает композицию MAIN, и
+    // rememberNavController внутри MainScreen давал бы новый инстанс при возврате —
+    // тогда удержанный навигатор аппбара ходил бы на старый navController (баг:
+    // компоненты не открываются после создания 2-го словаря).
+    val tabsNavController = rememberNavController()
 
     NavHost(
         navController = navController,
@@ -98,6 +106,7 @@ fun RootRouter(
         }
         mainRouter(
             route = RootPoint.MAIN_ROUTER.route,
+            tabsNavController = tabsNavController,
             openDictionaryCreate = {
                 navController.navigate("DICTIONARY_CREATE") {
                     launchSingleTop = true

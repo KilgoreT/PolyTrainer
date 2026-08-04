@@ -124,6 +124,7 @@ class CoreDbApiImpl @Inject constructor(
         private val wordDao: WordDao,
         private val componentTypeDao: ComponentTypeDao,
         private val componentOptionDao: ComponentOptionDao,
+        private val logger: LexemeLogger,
     ) : CoreDbApi.DictionaryApi {
 
         /**
@@ -194,6 +195,27 @@ class CoreDbApiImpl @Inject constructor(
                         )
                     )
                 }
+            }
+            // IS491: Пример — CAPTIONED_TEXT, не ядро, multiple, зависит от лексемы.
+            if (componentTypeDao.getBySystemKeyForDictionary(BuiltInComponent.EXAMPLE.key, dictId) == null) {
+                componentTypeDao.insert(
+                    ComponentTypeDb(
+                        systemKey = BuiltInComponent.EXAMPLE.key,
+                        dictionaryId = dictId,
+                        name = null,
+                        templateKey = ComponentTemplate.CAPTIONED_TEXT.key,
+                        position = 2,
+                        isMultiple = true,
+                        core = false,
+                        enabled = true,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+                )
+                logger.d(
+                    tag = FeatureLogTags.CAPTIONED_TEXT,
+                    message = "seed: example dictId=$dictId",
+                )
             }
         }
 
@@ -555,6 +577,15 @@ class CoreDbApiImpl @Inject constructor(
                     removedAt = row.removedAt,
                 )
             }
+        }
+
+        override suspend fun getCaptionSuggestions(componentTypeId: Long): List<String> {
+            val suggestions = componentValueDao.captionSuggestions(componentTypeId)
+            logger.d(
+                tag = FeatureLogTags.CAPTIONED_TEXT,
+                message = "suggestions: typeId=$componentTypeId count=${suggestions.size}",
+            )
+            return suggestions
         }
 
         override suspend fun getQuizConfig(

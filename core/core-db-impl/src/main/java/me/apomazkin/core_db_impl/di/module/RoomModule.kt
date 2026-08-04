@@ -20,14 +20,14 @@ import me.apomazkin.logger.LexemeLogger
 import javax.inject.Singleton
 
 /**
- * Текущая схема — v12 (IS481+IS486 collapsed). Одна миграция:
+ * Текущая схема — v12 (IS481+IS486+IS491 collapsed). Одна миграция:
  * - M11→M12 (`Migration_011_to_012.kt`) — component_types / component_values /
  *   component_options / quiz_configs сразу в финальной форме (иерархия
  *   компонентов IS486: core / enabled / depends-ссылки; пословарные builtin
- *   перевод + часть речи с опциями-ключами) + migrate translation/definition
- *   из v11-колонок. Последний деплой-тег (0.1.5) — на v11; промежуточная
- *   IS481-схема v12 не релизилась → IS486 схлопнут в тот же переход
- *   (`docs/features/IS481_migration_collapse/brief.md` — прецедент).
+ *   перевод + часть речи с опциями-ключами + «Пример» IS491) + migrate
+ *   translation/definition из v11-колонок. Последний деплой-тег (0.1.5) — на v11;
+ *   промежуточные схемы не релизились → IS486 и IS491-seed схлопнуты в тот же
+ *   переход (`docs/features/IS481_migration_collapse/brief.md` — прецедент).
  *
  * **Fallback на destructive migration**: если когда-то встретится install с БД
  * `user_version < 11` (pre-0.1.0 internal сборка) и без зарегистрированной миграции —
@@ -61,7 +61,7 @@ class RoomModule {
                     logger.e(
                         tag = LogTags.DB,
                         message = "Destructive migration: detected DB with user_version < 11 without registered migration path. " +
-                                "All tables dropped and recreated from current schema (v13). User data lost. " +
+                                "All tables dropped and recreated from current schema (v12). User data lost. " +
                                 "Likely cause — install from pre-0.1.0 internal build."
                     )
                     // После destructive recreate Room вызывает onCreate — seed

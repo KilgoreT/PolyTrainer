@@ -2,6 +2,7 @@ package me.apomazkin.polytrainer.route
 
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import me.apomazkin.main.MainScreen
@@ -14,6 +15,7 @@ enum class MainPoint(val route: String) {
 
 fun NavGraphBuilder.mainRouter(
     route: String,
+    tabsNavController: NavHostController,
     openDictionaryCreate: () -> Unit,
     openDictionaryList: () -> Unit,
 ) {
@@ -24,6 +26,7 @@ fun NavGraphBuilder.mainRouter(
         composable(MainPoint.MAIN.route) {
             val context = LocalContext.current
             MainScreen(
+                navController = tabsNavController,
                 compositionRoot = CompositionRootImpl(
                         wordCardViewModelFactory = context.appComponent.getWordCardViewModelFactory(),
                         chatViewModelFactory = context.appComponent.getChatViewModelFactory(),

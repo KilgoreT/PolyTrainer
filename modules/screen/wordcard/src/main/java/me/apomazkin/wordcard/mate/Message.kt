@@ -36,6 +36,14 @@ sealed interface Msg {
     data class CommitComponentValueEdit(val lexemeId: Long, val key: ComponentValueKey) : Msg
     data class RemoveComponentValueRequested(val lexemeId: Long, val key: ComponentValueKey) : Msg
 
+    // --- IS491: captioned_text ---
+    /** Ввод в caption-поле открытого edit-режима captioned-значения. */
+    data class UpdateComponentCaptionInput(val lexemeId: Long, val key: ComponentValueKey, val caption: String) : Msg
+
+    /** Фокус caption-поля → one-shot загрузка подсказок компонента. */
+    data class LoadCaptionSuggestions(val typeId: ComponentTypeId) : Msg
+    data class CaptionSuggestionsLoaded(val typeId: ComponentTypeId, val suggestions: List<String>) : Msg
+
     /**
      * IS486: выбор опции CHOICE-компонента (пикер-диалог) — коммитит сразу, без edit-режима.
      * Reducer сам решает: существующее значение типа → UpdateValue, нет → AddValue.
