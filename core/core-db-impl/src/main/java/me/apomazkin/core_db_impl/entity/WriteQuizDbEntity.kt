@@ -19,5 +19,4 @@ fun WriteQuizDbEntity.toApiEntity(logger: LexemeLogger) = WriteQuizComplexEntity
     quizData = writeQuizDb.toApiEntity(),
     lexemeData = lexemeDbWithWordDbRelation.lexemeDb.toApiEntity(logger),
     wordData = lexemeDbWithWordDbRelation.wordDb.toApiEntity(),
-    sampleData = lexemeDbWithWordDbRelation.lexemeDb.sampleDbList.toApiEntity(),
 )

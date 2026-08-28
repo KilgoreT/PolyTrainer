@@ -38,6 +38,8 @@ class WordCardUseCaseImpl @Inject constructor(
     private val dictionaryApi: CoreDbApi.DictionaryApi,
     private val termApi: CoreDbApi.TermApi,
     private val lexemeApi: CoreDbApi.LexemeApi,
+    // IS493 Э5: группы слова (пикер + чипы).
+    private val groupApi: CoreDbApi.GroupApi,
     private val prefsProvider: PrefsProvider,
     private val logger: LexemeLogger,
     private val countryProvider: CountryProvider,
@@ -146,6 +148,43 @@ class WordCardUseCaseImpl @Inject constructor(
 
     override suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String> =
         lexemeApi.getCaptionSuggestions(componentTypeId.id)
+
+    // ===== IS493 Э5: группы слова — тонкая делегация, маппинг Api→domain
+    // (GroupApiEntity в screen-модуль не протекает, D7.3/ревью Arch-2) =====
+
+    override fun wordGroups(wordId: Long): kotlinx.coroutines.flow.Flow<List<me.apomazkin.group.GroupNode>> =
+        groupApi.wordGroups(wordId).map { groups ->
+            groups.map {
+                me.apomazkin.group.GroupNode(
+                    id = it.id,
+                    parentGroupId = it.parentGroupId,
+                    name = it.name,
+                )
+            }
+        }
+
+    override fun dictGroups(dictionaryId: Long): kotlinx.coroutines.flow.Flow<List<me.apomazkin.group.GroupNode>> =
+        groupApi.groupTree(dictionaryId).map { groups ->
+            groups.map {
+                me.apomazkin.group.GroupNode(
+                    id = it.id,
+                    parentGroupId = it.parentGroupId,
+                    name = it.name,
+                )
+            }
+        }
+
+    override suspend fun addWordToGroup(
+        wordId: Long,
+        groupId: Long,
+    ): me.apomazkin.group.AddMembershipOutcome =
+        groupApi.addWordToGroup(wordId = wordId, groupId = groupId)
+
+    override suspend fun removeWordFromGroup(
+        wordId: Long,
+        groupId: Long,
+    ): me.apomazkin.group.RemoveMembershipOutcome =
+        groupApi.removeWordFromGroup(wordId = wordId, groupId = groupId)
 
     private fun TemplateValues.trimmed(): TemplateValues = when (this) {
         is TextValues -> TextValues(Primitive.Text(value.value.trim()))

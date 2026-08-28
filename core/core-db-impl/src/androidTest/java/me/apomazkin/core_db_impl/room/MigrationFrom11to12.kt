@@ -593,6 +593,126 @@ class MigrationFrom11to12 {
         v12.close()
     }
 
+    // === Case SMP-1 — живые samples → значения builtin «Пример» + DROP легаси-таблиц ===
+    @Test
+    fun caseSmp1_livingSamplesMigratedToExample() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "EN")
+            v11.insertWord(id = 1, dictionaryId = 1, value = "cat")
+            v11.insertLexeme(id = 1, wordId = 1, translation = "кошка", definition = null)
+            v11.insertSample(
+                id = 1, lexemeId = 1, value = "The cat sat on the mat.",
+                source = "funk", addDate = 111, changeDate = 222,
+            )
+            // Легаси-баг v11: в source лежит timestamp → caption пустой.
+            v11.insertSample(
+                id = 2, lexemeId = 1, value = "A cat has nine lives.",
+                source = "1627324780725", addDate = 333, changeDate = null,
+            )
+        }
+        val v12 = migrate()
+
+        val exampleTypeId = v12.scalarLong(
+            "SELECT id FROM component_types WHERE system_key='example' AND dictionary_id=1",
+        )
+        assertEquals(2, v12.countWhere("component_values", "component_type_id=$exampleTypeId"))
+        assertEquals(
+            """{"fields":{"text":{"type":"text","value":"The cat sat on the mat."},"caption":{"type":"text","value":"funk"}}}""",
+            v12.scalarText(
+                "SELECT value FROM component_values WHERE component_type_id=$exampleTypeId AND created_at=111",
+            ),
+        )
+        assertEquals(
+            """{"fields":{"text":{"type":"text","value":"A cat has nine lives."},"caption":{"type":"text","value":""}}}""",
+            v12.scalarText(
+                "SELECT value FROM component_values WHERE component_type_id=$exampleTypeId AND created_at=333",
+            ),
+        )
+        // Timestamps самого сампла: created_at=addDate, updated_at=changeDate ?: addDate.
+        assertEquals(
+            222L,
+            v12.scalarLong(
+                "SELECT updated_at FROM component_values WHERE component_type_id=$exampleTypeId AND created_at=111",
+            ),
+        )
+        assertEquals(
+            333L,
+            v12.scalarLong(
+                "SELECT updated_at FROM component_values WHERE component_type_id=$exampleTypeId AND created_at=333",
+            ),
+        )
+        // Легаси-таблицы дропнуты при успешном переносе.
+        assertEquals(0, v12.countWhere("sqlite_master", "type='table' AND name IN ('samples','hints')"))
+        v12.close()
+    }
+
+    // === Case SMP-2 — унификация source → caption (разнобой одного источника) ===
+    @Test
+    fun caseSmp2_captionUnification() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "EN")
+            v11.insertWord(id = 1, dictionaryId = 1, value = "cat")
+            v11.insertLexeme(id = 1, wordId = 1, translation = null, definition = "d")
+            // Все написания одной книги → канон.
+            v11.insertSample(id = 1, lexemeId = 1, value = "s1", source = "The Ink Black Heart. R. Galbraith ", addDate = 1, changeDate = null)
+            v11.insertSample(id = 2, lexemeId = 1, value = "s2", source = "Rouling ", addDate = 2, changeDate = null)
+            v11.insertSample(id = 3, lexemeId = 1, value = "s3", source = "Ink. Rouling", addDate = 3, changeDate = null)
+            // NULL и пустая строка → пустой caption.
+            v11.insertSample(id = 4, lexemeId = 1, value = "s4", source = null, addDate = 4, changeDate = null)
+            v11.insertSample(id = 5, lexemeId = 1, value = "s5", source = "", addDate = 5, changeDate = null)
+        }
+        val v12 = migrate()
+
+        val caption = "json_extract(value, '${'$'}.fields.caption.value')"
+        assertEquals(
+            3,
+            v12.countWhere("component_values", "$caption='The Ink Black Heart. R. Galbraith'"),
+        )
+        assertEquals(2, v12.countWhere("component_values", "$caption='' AND created_at IN (4,5)"))
+        v12.close()
+    }
+
+    // === Case SMP-3 — удалённые и осиротевшие samples не переносятся, guard не падает ===
+    @Test
+    fun caseSmp3_removedAndOrphanSkipped() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "EN")
+            v11.insertWord(id = 1, dictionaryId = 1, value = "cat")
+            v11.insertLexeme(id = 1, wordId = 1, translation = "кошка", definition = null)
+            v11.insertSample(id = 1, lexemeId = 1, value = "living", source = null, addDate = 1, changeDate = null)
+            v11.execSQL(
+                "INSERT INTO samples (id, lexemeId, value, addDate, removeDate) VALUES (2, 1, 'removed', 2, 99)",
+            )
+            // Битая ссылка (лексемы 777 нет; FK у samples на v11 отсутствует).
+            v11.insertSample(id = 3, lexemeId = 777, value = "orphan", source = null, addDate = 3, changeDate = null)
+        }
+        val v12 = migrate()
+
+        val exampleTypeId = v12.scalarLong(
+            "SELECT id FROM component_types WHERE system_key='example' AND dictionary_id=1",
+        )
+        assertEquals(1, v12.countWhere("component_values", "component_type_id=$exampleTypeId"))
+        assertEquals(
+            "living",
+            v12.scalarText(
+                "SELECT json_extract(value, '${'$'}.fields.text.value') FROM component_values " +
+                    "WHERE component_type_id=$exampleTypeId",
+            ),
+        )
+        v12.close()
+    }
+
+    // === Case SMP-4 — пустые samples: таблицы всё равно дропаются ===
+    @Test
+    fun caseSmp4_tablesDroppedWhenNoSamples() {
+        helper.createDatabase(11).use { v11 ->
+            v11.insertDictionary(id = 1, name = "EN")
+        }
+        val v12 = migrate()
+        assertEquals(0, v12.countWhere("sqlite_master", "type='table' AND name IN ('samples','hints')"))
+        v12.close()
+    }
+
     companion object {
         private const val DB_NAME = "migration-test"
     }
@@ -614,6 +734,22 @@ private fun SQLiteConnection.insertLexeme(id: Long, wordId: Long, translation: S
     execSQL(
         "INSERT INTO lexemes (id, word_id, translation, definition, options, add_date) " +
             "VALUES ($id, $wordId, $t, $d, 0, 0)",
+    )
+}
+
+private fun SQLiteConnection.insertSample(
+    id: Long,
+    lexemeId: Long,
+    value: String,
+    source: String?,
+    addDate: Long,
+    changeDate: Long?,
+) {
+    val s = source?.let { "'${it.replace("'", "''")}'" } ?: "NULL"
+    val c = changeDate?.toString() ?: "NULL"
+    execSQL(
+        "INSERT INTO samples (id, lexemeId, value, source, addDate, changeDate, removeDate) " +
+            "VALUES ($id, $lexemeId, '${value.replace("'", "''")}', $s, $addDate, $c, NULL)",
     )
 }
 

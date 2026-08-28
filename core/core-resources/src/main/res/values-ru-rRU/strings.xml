@@ -70,6 +70,29 @@
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Словарь</string>
+    <string name="vocabulary_tab_words">Слова</string>
+    <string name="vocabulary_tab_groups">Группы</string>
+    <string name="groups_tab_stub_text">Здесь появятся группы</string>
+    <string name="group_all_title">Все</string>
+    <string name="group_load_more">Ещё</string>
+    <string name="group_shown_of">показано %1$d из %2$d</string>
+    <string name="group_menu_rename">Переименовать</string>
+    <string name="group_menu_delete">Удалить</string>
+    <string name="group_delete_confirm">Удалить группу?</string>
+    <string name="group_delete_button">Удалить</string>
+    <string name="group_empty_stub">пусто</string>
+    <string name="group_error_empty_name">Введите имя</string>
+    <string name="group_error_duplicate_name">Имя уже занято</string>
+    <!-- IS493 Э5: пикер групп в карточке слова -->
+    <string name="group_picker_title">Группы слова</string>
+    <string name="group_picker_empty">Групп пока нет</string>
+    <string name="group_picker_icon_description">Группы слова</string>
+    <!-- IS493 Э6: импакт удаления + «удалить вместе со словами» -->
+    <string name="group_delete_words_stay">В группе слов: %1$d. При удалении группы они останутся в словаре</string>
+    <string name="group_delete_with_words_label">Удалить вместе со словами</string>
+    <string name="group_delete_with_words_warn">С группой будут удалены слова: %1$d</string>
+    <string name="group_delete_all_button">Удалить всё</string>
+    <string name="group_error_reserved_name">Имя зарезервировано</string>
     <string name="item_title_training">Квизы</string>
     <string name="item_title_stats">Статистика</string>
     <string name="item_title_settings">Настройки</string>

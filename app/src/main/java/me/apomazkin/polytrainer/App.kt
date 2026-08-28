@@ -2,13 +2,16 @@ package me.apomazkin.polytrainer
 
 import android.app.Application
 import android.content.Context
+import android.content.res.Configuration
 import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import me.apomazkin.core_db.di.CoreDbComponent
+import me.apomazkin.core_db_api.entity.ReservedGroupNames
 import me.apomazkin.polytrainer.di.AppComponent
 import me.apomazkin.polytrainer.di.DaggerAppComponent
 import me.apomazkin.polytrainer.di.DaggerAppComponent_CoreDbDependenciesComponent
 import me.apomazkin.polytrainer.di.LoggerComponent
+import java.util.Locale
 
 class App : Application() {
 
@@ -25,10 +28,25 @@ class App : Application() {
                 coreDbProvider = DaggerAppComponent_CoreDbDependenciesComponent
                     //TODO kilg 13.05.2020 06:39 заменить билдер на фабрику
                     .builder()
-                    .coreDbProvider(CoreDbComponent.init(this, logger))
+                    .coreDbProvider(CoreDbComponent.init(this, logger, reservedGroupNames()))
                     .build(),
             )
         initCrashlytics()
+    }
+
+    /**
+     * IS493 Э3 (D12.3/Р7): резерв имён групп — строка «Все» ВСЕХ локалей
+     * проекта (default values → "All", values-ru-rRU → «Все»): юзер не
+     * создаст группу с именем виртуального узла ни в одной локали.
+     */
+    private fun reservedGroupNames(): ReservedGroupNames {
+        val locales = listOf(Locale.ROOT, Locale.forLanguageTag("ru-RU"))
+        val names = locales.mapTo(mutableSetOf()) { locale ->
+            val configuration = Configuration(resources.configuration).apply { setLocale(locale) }
+            createConfigurationContext(configuration)
+                .getString(me.apomazkin.core_resources.R.string.group_all_title)
+        }
+        return ReservedGroupNames(values = names)
     }
 
     private fun initCrashlytics() {

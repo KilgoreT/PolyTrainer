@@ -105,7 +105,7 @@ object LogTags {
 |--------|-----------|----------|
 | core/mate | `LogTags.MATE` | `###MATE###` |
 | core/ui | `LogTags.UI` | `###UI###` |
-| screen/dictionaryTab | `LogTags.VOCAB` | `###VOCAB###` |
+| screen/wordstab | `LogTags.VOCAB` | `###VOCAB###` |
 | screen/dictionary | `LogTags.DICT` | `###DICT###` |
 | screen/quiztab | `LogTags.QUIZ` | `###QUIZ###` |
 | screen/quiz/chat | `LogTags.CHAT` | `###CHAT###` |

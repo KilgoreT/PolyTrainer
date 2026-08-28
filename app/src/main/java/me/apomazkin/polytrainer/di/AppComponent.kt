@@ -9,7 +9,7 @@ import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.dictionary.form.DictionaryFormViewModel
 import me.apomazkin.dictionary.list.DictionaryListViewModel
 import me.apomazkin.dictionaryappbar.DictionaryAppBarViewModel
-import me.apomazkin.dictionarytab.ui.DictionaryTabViewModel
+import me.apomazkin.wordstab.ui.WordsTabViewModel
 import me.apomazkin.per_dictionary_components.PerDictionaryComponentsViewModel
 import me.apomazkin.quiztab.QuizTabViewModel
 import me.apomazkin.settingstab.SettingsTabViewModel
@@ -20,7 +20,7 @@ import me.apomazkin.polytrainer.di.module.EnvModule
 import me.apomazkin.polytrainer.di.module.ResourceModule
 import me.apomazkin.polytrainer.di.module.componentsmanager.ComponentsManagerModule
 import me.apomazkin.polytrainer.di.module.dictionary.DictionaryModule
-import me.apomazkin.polytrainer.di.module.dictionarytab.DictionaryTabModule
+import me.apomazkin.polytrainer.di.module.dictionarytab.WordsTabModule
 import me.apomazkin.polytrainer.di.module.flags.CountryProviderModule
 import me.apomazkin.polytrainer.di.module.perdictionarycomponents.PerDictionaryComponentsModule
 import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
@@ -29,8 +29,12 @@ import me.apomazkin.polytrainer.di.module.quiztab.QuizTabModule
 import me.apomazkin.polytrainer.di.module.settingstab.SettingsModule
 import me.apomazkin.polytrainer.di.module.splash.SplashModule
 import me.apomazkin.polytrainer.di.module.statistictab.StatisticModule
+import me.apomazkin.groupstab.ui.GroupsTabViewModel
+import me.apomazkin.polytrainer.di.module.groupstab.GroupsTabModule
+import me.apomazkin.polytrainer.di.module.vocabulary.VocabularyHostModule
 import me.apomazkin.polytrainer.di.module.widget.DictionaryAppBarModule
 import me.apomazkin.polytrainer.di.module.wordCard.WordCardModule
+import me.apomazkin.vocabulary.ui.VocabularyHostViewModel
 import me.apomazkin.polytrainer.env.EnvParams
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.splash.SplashUseCase
@@ -64,7 +68,9 @@ interface AppComponent {
     fun getWordCardViewModelFactory(): WordCardViewModel.Factory
     fun getChatViewModelFactory(): ChatViewModel.Factory
     fun getDictionaryAppBarViewModelFactory(): DictionaryAppBarViewModel.Factory
-    fun getDictionaryTabViewModelFactory(): DictionaryTabViewModel.Factory
+    fun getWordsTabViewModelFactory(): WordsTabViewModel.Factory
+    fun getVocabularyHostViewModelFactory(): VocabularyHostViewModel.Factory
+    fun getGroupsTabViewModelFactory(): GroupsTabViewModel.Factory
     fun getQuizTabViewModelFactory(): QuizTabViewModel.Factory
     fun getStatisticViewModelFactory(): StatisticViewModel.Factory
     fun getSettingsTabViewModelFactory(): SettingsTabViewModel.Factory
@@ -80,7 +86,9 @@ interface AppComponent {
     includes = [
         SplashModule::class,
         DictionaryModule::class,
-        DictionaryTabModule::class,
+        WordsTabModule::class,
+        VocabularyHostModule::class,
+        GroupsTabModule::class,
         WordCardModule::class,
         QuizTabModule::class,
         QuizChatModule::class,

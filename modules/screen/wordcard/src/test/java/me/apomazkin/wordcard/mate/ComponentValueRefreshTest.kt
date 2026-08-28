@@ -14,7 +14,7 @@ import org.junit.Test
  */
 class ComponentValueRefreshTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
     private fun savedK(id: Long) = ComponentValueKey.Saved(ComponentValueId(id))
 
     // ---------- RefreshLexemeComponents ----------

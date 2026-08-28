@@ -17,7 +17,7 @@ import org.junit.Test
  */
 class WordEditTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
 
     /** loaded() (с dictionaryId) + word-edit поля. */
     private fun wordLoaded(

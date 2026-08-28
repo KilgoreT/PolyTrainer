@@ -28,6 +28,14 @@ fun AlarmDialogWidget(
     @StringRes alarmButtonText: Int,
     onAlarmClick: () -> Unit,
     onDismissRequest: () -> Unit,
+    /** IS493 Э6: пауза осмысления деструктива — кнопка дизейблится
+     * (например, на время счётчика в названии). */
+    alarmEnabled: Boolean = true,
+    /** IS493 Э6: динамический текст кнопки («Удалить всё (5)») — перекрывает res. */
+    alarmButtonOverride: String? = null,
+    /** IS493 Э6: перекраска кнопки в деструктивный режим. */
+    alarmContainerColor: Color? = null,
+    alarmContentColor: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     LexemeDialog(
@@ -47,7 +55,11 @@ fun AlarmDialogWidget(
             AlarmButtonWidget(
                 modifier = Modifier
                     .weight(1f),
-                titleRes = alarmButtonText
+                titleRes = alarmButtonText,
+                titleOverride = alarmButtonOverride,
+                enabled = alarmEnabled,
+                containerColor = alarmContainerColor,
+                contentColor = alarmContentColor,
             ) { onAlarmClick.invoke() }
         }
     }

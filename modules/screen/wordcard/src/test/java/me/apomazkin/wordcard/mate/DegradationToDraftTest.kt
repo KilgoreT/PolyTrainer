@@ -19,7 +19,7 @@ import org.junit.Test
  */
 class DegradationToDraftTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
 
     @Test
     fun `refresh with empty components keeps lexeme as draft`() {

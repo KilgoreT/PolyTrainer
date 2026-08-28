@@ -17,7 +17,7 @@ fun NavGraphBuilder.vocabulary(
     openDictionaryCreate: () -> Unit,
 ) {
     composable(TabPoint.VOCABULARY.route) {
-        compositionRoot.VocabularyTabDep(
+        compositionRoot.VocabularyHostDep(
             openDictionaryCreate = openDictionaryCreate,
             openWordCard = { navController.goToWordCard(it) },
             openPerDictionaryComponents = { dictId -> navController.goToPerDictionaryComponents(dictId) },

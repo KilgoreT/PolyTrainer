@@ -3,6 +3,7 @@ package me.apomazkin.core_db.di
 import android.content.Context
 import dagger.Component
 import me.apomazkin.core_db_api.CoreDbProvider
+import me.apomazkin.core_db_api.entity.ReservedGroupNames
 import me.apomazkin.core_db_impl.di.RoomComponent
 import me.apomazkin.logger.LexemeLogger
 
@@ -22,13 +23,17 @@ interface CoreDbComponent : CoreDbProvider {
 
         private lateinit var coreDbComponent: CoreDbComponent
 
-        fun init(context: Context, logger: LexemeLogger): CoreDbComponent {
+        fun init(
+            context: Context,
+            logger: LexemeLogger,
+            reservedGroupNames: ReservedGroupNames,
+        ): CoreDbComponent {
             if (!::coreDbComponent.isInitialized) {
                 synchronized(CoreDbComponent::class) {
                     if (!::coreDbComponent.isInitialized) {
                         coreDbComponent = DaggerCoreDbComponent
                             .factory()
-                            .create(RoomComponent.get(context, logger))
+                            .create(RoomComponent.get(context, logger, reservedGroupNames))
                     }
                 }
             }

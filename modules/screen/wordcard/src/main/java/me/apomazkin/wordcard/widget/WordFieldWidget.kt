@@ -40,6 +40,8 @@ import java.util.Locale
  *
  * @param loaded данные загруженного слова.
  * @param enabled false → ввод и переход в edit-mode заблокированы.
+ * @param groupChips IS493 Э5 (правка юзера 2026-08-28): чипы групп слова
+ *   ВНУТРИ карточки, под строкой «добавлено + дата»; null — без блока.
  */
 @Composable
 internal fun WordFieldWidget(
@@ -48,6 +50,7 @@ internal fun WordFieldWidget(
     onValueChange: (String) -> Unit,
     onOpenEditMode: () -> Unit,
     onCommit: () -> Unit,
+    groupChips: (@Composable () -> Unit)? = null,
 ) {
     Surface(
         modifier = Modifier
@@ -61,59 +64,60 @@ internal fun WordFieldWidget(
         shape = CARD_SHAPE,
         color = whiteColor,
     ) {
-        Box(
+        // Правка юзера 2026-08-28: НЕ Box-overlay (флаг центрировался и
+        // накладывался на чипы) — Row(слово+дата | флаг), ниже чипы.
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                LexemeEditableText(
-                    originValue = loaded.value,
-                    changedValue = loaded.edited,
-                    isEditMode = loaded.isEditMode,
-                    textColor = blackColor,
-                    textStyle = LexemeStyle.H5,
-                    onTextChange = { if (enabled) onValueChange(it) },
-                    onOpenEditMode = { if (enabled) onOpenEditMode() },
-                    onFocusLost = { onCommit() },
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.word_card_added_field),
-                        style = LexemeStyle.BodyM,
-                        color = formTextHint,
+                Column(modifier = Modifier.weight(1f)) {
+                    LexemeEditableText(
+                        originValue = loaded.value,
+                        changedValue = loaded.edited,
+                        isEditMode = loaded.isEditMode,
+                        textColor = blackColor,
+                        textStyle = LexemeStyle.H5,
+                        onTextChange = { if (enabled) onValueChange(it) },
+                        onOpenEditMode = { if (enabled) onOpenEditMode() },
+                        onFocusLost = { onCommit() },
                     )
-                    Text(
-                        text = getDate(date = loaded.added),
-                        style = LexemeStyle.BodyMBold,
-                        color = LexemeColor.secondary,
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.word_card_added_field),
+                            style = LexemeStyle.BodyM,
+                            color = formTextHint,
+                        )
+                        Text(
+                            text = getDate(date = loaded.added),
+                            style = LexemeStyle.BodyMBold,
+                            color = LexemeColor.secondary,
+                        )
+                    }
+                }
+                if (loaded.dictionaryFlagRes != null) {
+                    ImageFlagWidget(
+                        flagRes = loaded.dictionaryFlagRes,
+                        modifier = Modifier.size(38.dp),
+                    )
+                } else {
+                    FlagPlaceholderWidget(
+                        letter = "",
+                        modifier = Modifier.size(38.dp),
                     )
                 }
             }
-            if (loaded.dictionaryFlagRes != null) {
-                ImageFlagWidget(
-                    flagRes = loaded.dictionaryFlagRes,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .size(38.dp),
-                )
-            } else {
-                FlagPlaceholderWidget(
-                    letter = "",
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .size(38.dp),
-                )
-            }
+            groupChips?.invoke()
         }
     }
 }

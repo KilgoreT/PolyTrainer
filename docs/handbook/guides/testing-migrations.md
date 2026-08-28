@@ -1,347 +1,96 @@
 # Тестирование Room-миграций
 
-## Каркас
+Актуализировано в IS493 (Э2, 2026-08-10). Прежний кастомный фреймворк
+(`BaseMigration` / `Schemable` / `AllMigrationTest` / schemable-версии таблиц)
+снесён в IS481 вместе со схлопыванием исторических миграций — этот гайд
+описывает **фактический** паттерн: плоские тест-классы на
+`MigrationTestHelper` + `BundledSQLiteDriver`.
 
-Кастомный фреймворк для тестирования миграций. Расположение:
+## Расположение
 
 ```
 core/core-db-impl/src/androidTest/java/.../room/
-├── base/
-│   ├── BaseMigration.kt      — Базовый класс теста миграции
-│   └── Schemable.kt          — Интерфейс версионированной схемы
-├── schemable/
-│   ├── WordV1.kt, WordV3.kt, WordV5.kt, WordV8.kt
-│   ├── LexemeV9.kt, LexemeV10.kt
-│   └── WriteQuizV1.kt, WriteQuizV5.kt, WriteQuizV10.kt
-├── migrations/
-│   ├── MigrationFrom01to02.kt
-│   ├── ...
-│   └── MigrationFrom09to10.kt
-├── dataSource/
-│   └── DataProvider.kt        — Тестовые данные
-├── utils/
-│   ├── CommonExtensions.kt    — hasTable, hasColumns, checkData, toDatabase
-│   └── CommonMethods.kt       — selectAllFromTable
-├── Schema.kt                  — Версионированные схемы для всех таблиц
-└── AllMigrationTest.kt        — Тест полной цепочки миграций
+├── MigrationFrom11to12.kt                — collapsed 11→12 (Case A..W)
+├── MigrationFrom11to12IdempotencyTest.kt — идемпотентность 11→12 (failAfterStep)
+├── MigrationFrom12to13.kt                — IS493 группы (Case A..F)
+└── GroupDaoTest.kt, Is486DataLayerTest.kt, ... — DAO-тесты (in-memory)
 ```
 
----
+Схемы: `core/core-db-impl/schemas/me.apomazkin.core_db_impl.room.Database/N.json`
+(экспорт `room { schemaDirectory }`); подключены в androidTest как assets.
 
-## Архитектура
-
-### BaseMigration
-
-Абстрактный класс, от которого наследуется каждый тест миграции.
+## Паттерн теста миграции
 
 ```kotlin
 @RunWith(AndroidJUnit4::class)
-abstract class BaseMigration {
+class MigrationFrom12to13 {
+
+    private val instrumentation = InstrumentationRegistry.getInstrumentation()
+    private val dbFile: File = instrumentation.targetContext.getDatabasePath(DB_NAME)
 
     @get:Rule
-    val helper: MigrationTestHelper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        Database::class.java
+    val helper = MigrationTestHelper(
+        instrumentation = instrumentation,
+        file = dbFile,
+        driver = BundledSQLiteDriver(),      // bundled SQLite — как в проде
+        databaseClass = Database::class,
     )
 
-    abstract fun getMigrationClass(): Migration
-    abstract fun getCurrentVersion(): Int
-
-    fun runMigrateDbTest(
-        onCreate: (SupportSQLiteDatabase) -> Unit,
-        afterCreateCheck: (SupportSQLiteDatabase) -> Unit,
-        afterMigrationCheck: (SupportSQLiteDatabase) -> Unit,
-    )
-}
-```
-
-`runMigrateDbTest` — ключевой метод. Три фазы:
-
-1. **`onCreate`** — вставить тестовые данные в БД текущей версии
-2. **`afterCreateCheck`** — проверить данные ДО миграции (верификация тестовой среды)
-3. **`afterMigrationCheck`** — проверить данные ПОСЛЕ миграции (основная проверка)
-
-Внутри:
-```kotlin
-var db = helper.createDatabase(databaseName, currentVersion).apply {
-    onCreate.invoke(this)           // вставляем данные
-    afterCreateCheck.invoke(this)   // проверяем что вставились
-}
-db.close()
-db = helper.runMigrationsAndValidate(     // запускаем миграцию
-    databaseName, currentVersion + 1, true, migration
-)
-afterMigrationCheck.invoke(db)    // проверяем результат
-```
-
-### Schemable<T>
-
-Интерфейс для версионированных схем таблиц. Каждая версия таблицы — отдельный object.
-
-```kotlin
-interface Schemable<T> :
-    TableName,            // val tableName: String
-    ColumnId,             // val columnId: String (default "id")
-    ColumnListable,       // val columnList: Array<String>
-    ContentValue<T>,      // fun asContentValue(list: List<T>): List<ContentValues>
-    FromDatabase<T>,      // fun getFromDatabase(db: SupportSQLiteDatabase): List<T>
-    DataProvider<T>       // fun data(): List<T>
-```
-
-Что реализует каждый Schemable:
-- `tableName` — имя таблицы в этой версии схемы
-- `columnList` — список колонок для проверки `hasColumns()`
-- `asContentValue()` — конвертация entity → ContentValues для INSERT
-- `getFromDatabase()` — чтение из БД через cursor → entity
-- `data()` — тестовые данные для вставки
-
----
-
-## Как устроен тест миграции
-
-### Пример: MigrationFrom09to10
-
-```kotlin
-class MigrationFrom09to10 : BaseMigration() {
-
-    override fun getMigrationClass() = migration_9_10
-    override fun getCurrentVersion() = 9
+    @After
+    fun cleanUp() {   // чистим -shm/-wal/-journal
+        listOf("", "-shm", "-wal", "-journal").forEach { suffix ->
+            File(dbFile.path + suffix).takeIf { it.exists() }?.delete()
+        }
+    }
 
     @Test
-    fun from09to10() {
-        runMigrateDbTest(
-            // 1. ВСТАВИТЬ ДАННЫЕ (версия 9)
-            onCreate = { database ->
-                WordV8
-                    .asContentValue(WordV8.data())
-                    .toDatabase(database = database, table = WordV8.tableName)
-                LexemeV9
-                    .asContentValue(LexemeV9.data())
-                    .toDatabase(database = database, table = LexemeV9.tableName)
-                WriteQuizV5
-                    .asContentValue(WriteQuizV5.data())
-                    .toDatabase(database = database, table = WriteQuizV5.tableName)
-            },
-
-            // 2. ПРОВЕРИТЬ ДО МИГРАЦИИ
-            afterCreateCheck = { database ->
-                // Таблица существует?
-                database.hasTable(tableName = WordV8.tableName)
-                // Колонки на месте?
-                database.hasColumns(
-                    tableName = WordV8.tableName,
-                    columns = WordV8.columnList
-                )
-                // Данные корректны?
-                WordV8.getFromDatabase(database)
-                    .checkData(
-                        afterMigrationState = false,
-                        origin = WordV8.data(),
-                        originMatcher = { wordDb ->
-                            WordV8.data().firstOrNull { wordDb.id == it.id }
-                        },
-                        checkMatcher = { inDb, origin ->
-                            inDb.id == origin.id
-                                && inDb.langId == origin.langId
-                                && inDb.value == origin.value
-                        }
-                    )
-            },
-
-            // 3. ПРОВЕРИТЬ ПОСЛЕ МИГРАЦИИ
-            afterMigrationCheck = { database ->
-                // Новая таблица/колонки?
-                database.hasTable(tableName = LexemeV10.tableName)
-                database.hasColumns(
-                    tableName = LexemeV10.tableName,
-                    columns = LexemeV10.columnList
-                )
-                // Данные мигрировались корректно?
-                LexemeV10.getFromDatabase(database)
-                    .checkData(
-                        origin = LexemeV9.data(),
-                        originMatcher = { lexemeDb ->
-                            LexemeV9.data().firstOrNull { lexemeDb.id == it.id }
-                        },
-                        checkMatcher = { migrated, origin ->
-                            migrated.id == origin.id
-                                && migrated.wordId == origin.wordId
-                                && migrated.translation == origin.translation
-                        }
-                    )
-            }
-        )
-    }
-
-    companion object {
-        private const val CURRENT_VERSION = 9
-    }
-}
-```
-
----
-
-## Утилиты
-
-### Проверка структуры БД
-
-```kotlin
-// Проверить что таблица существует
-database.hasTable(tableName = "words")
-
-// Проверить что колонки существуют
-database.hasColumns(
-    tableName = "words",
-    columns = arrayOf("id", "lang_id", "value", "add_date")
-)
-```
-
-### Вставка тестовых данных
-
-```kotlin
-// Schemable → ContentValues → INSERT
-WriteQuizV10
-    .asContentValue(WriteQuizV10.data())
-    .toDatabase(database = database, table = WriteQuizV10.tableName)
-```
-
-### Проверка данных
-
-```kotlin
-// Прочитать из БД → сравнить с origin
-LexemeV10.getFromDatabase(database)
-    .checkData(
-        origin = LexemeV9.data(),                   // данные до миграции
-        originMatcher = { migrated: LexemeDb ->      // как найти origin по migrated
-            LexemeV9.data().firstOrNull { migrated.id == it.id }
-        },
-        checkMatcher = { migrated, origin ->          // сравнение полей
-            migrated.id == origin.id
-                && migrated.wordId == origin.wordId
+    fun case() {
+        helper.createDatabase(12).use { v12 ->   // схема из 12.json
+            v12.execSQL("INSERT INTO ...")        // данные старой версии — сырым SQL
         }
-    )
-```
-
-`checkData` проверяет:
-1. Количество записей совпадает
-2. Для каждой записи находит origin через `originMatcher`
-3. Сравнивает поля через `checkMatcher`
-4. Логирует каждое сравнение
-
-`afterMigrationState = false` — используется в `afterCreateCheck` для правильного заголовка лога ("Creating Test" vs "Migration Test").
-
----
-
-## Как добавить новую миграцию
-
-### Шаг 1: Создать Schemable для новой версии
-
-Если таблица меняет структуру — создать файл в `schemable/`:
-
-```kotlin
-// schemable/WriteQuizV11.kt
-object WriteQuizV11 : Schemable<WriteQuizDb> {
-
-    private const val COLUMN_DICTIONARY_ID = "dictionary_id"  // переименовано
-    private const val COLUMN_LEXEME_ID = "lexeme_id"
-    // ...
-
-    override val tableName = "write_quiz"
-
-    override val columnList: Array<String> = arrayOf(
-        columnId,
-        COLUMN_DICTIONARY_ID,    // было COLUMN_LANG_ID
-        COLUMN_LEXEME_ID,
-        // ...
-    )
-
-    override fun asContentValue(list: List<WriteQuizDb>): List<ContentValues> =
-        list.map { writeQuizDb ->
-            ContentValues().apply {
-                put(columnId, writeQuizDb.id)
-                put(COLUMN_DICTIONARY_ID, writeQuizDb.dictionaryId)
-                // ...
-            }
-        }
-
-    override fun getFromDatabase(db: SupportSQLiteDatabase): List<WriteQuizDb> {
-        // cursor → entity маппинг с новыми именами колонок
-    }
-
-    override fun data(): List<WriteQuizDb> {
-        // тестовые данные
+        val v13 = helper.runMigrationsAndValidate(13, listOf(Migration_012_to_013))
+        // runMigrationsAndValidate сверяет фактическую схему с 13.json (TableInfo)
+        // assert'ы — через prepare/step (см. хелперы countWhere/scalarText в тестах)
+        v13.close()
     }
 }
 ```
 
-### Шаг 2: Создать тест миграции
+## Обязательные кейсы
 
-```kotlin
-// migrations/MigrationFrom10to11.kt
-class MigrationFrom10to11 : BaseMigration() {
+1. **Изолированный шаг** `N-1 → N` с данными: схема валидна, данные живы.
+2. **Chained-путь от последней РЕЛИЗНОЙ версии** (боевой путь пользователя):
+   `createDatabase(последняя_релизная)` →
+   `runMigrationsAndValidate(N, listOf(все миграции цепочки))`.
+   Текущая релизная — v11 (деплой-тег 0.1.5); прецедент — Case B
+   `MigrationFrom12to13`.
+3. **FK cascade** для новых таблиц: в тестовом соединении **обязателен явный
+   `PRAGMA foreign_keys=ON`** (helper по умолчанию выключен; в проде
+   enforcement включает `Database_Impl.onOpen`). Прецеденты — Case F 11→12,
+   Cases C–E 12→13.
+4. **Idempotency** (`failAfterStep`-hook, тест-класс отдельно) — ТОЛЬКО для
+   миграций с данными/сидами (11→12: 14 шагов, backfill, DROP COLUMN).
+   Для чистых `CREATE TABLE/INDEX IF NOT EXISTS` не нужен: идемпотентно по
+   построению + Room-транзакция (решение IS493 В4).
 
-    override fun getMigrationClass() = migration_10_11
-    override fun getCurrentVersion() = 10
+## Ловушки сверки с N.json
 
-    @Test
-    fun from10to11() {
-        runMigrateDbTest(
-            onCreate = { database ->
-                // вставить данные через V10 Schemable
-            },
-            afterCreateCheck = { database ->
-                // проверить через V10 Schemable
-            },
-            afterMigrationCheck = { database ->
-                // проверить через V11 Schemable
-            }
-        )
-    }
+- `runMigrationsAndValidate` сравнивает TableInfo, не текст DDL: порядок
+  колонок не важен, но важны NOT NULL, DEFAULT, **порядок колонок составного
+  PK** и **точное множество индексов** (лишний рукописный индекс, который
+  Room не экспортирует = провал валидации).
+- Имена индексов — конвенция Room `index_<table>_<col>`.
+- DDL в миграции пишется буквально по `createSql` из экспортированного
+  N.json (сверять руками при новых DDL-формах — прецедент: составной PK
+  `word_groups`).
 
-    companion object {
-        private const val CURRENT_VERSION = 10
-    }
-}
+## Запуск
+
+CI androidTest НЕ гоняет (только lint + unit + assemble) — прогон руками
+на девайсе/эмуляторе обязателен перед merge:
+
+```bash
+./scripts/cc-build.sh :core:core-db-impl:connectedDebugAndroidTest
 ```
 
-### Шаг 3: Обновить AllMigrationTest
-
-**ОБЯЗАТЕЛЬНО.** Добавить новый тест-класс в `AllMigrationTest.kt` — это Suite, который позволяет запустить все миграции одной кнопкой.
-
-```kotlin
-// AllMigrationTest.kt
-@RunWith(Suite::class)
-@Suite.SuiteClasses(
-    MigrationFrom01to02::class,
-    // ...
-    MigrationFrom09to10::class,
-    MigrationFrom10to11::class,  // ← ДОБАВИТЬ
-)
-class AllMigrationTest
-```
-
-Без этого новый тест запускается только отдельно, а полный прогон его пропустит.
-
----
-
-## Schema JSON
-
-Room автоматически генерирует JSON-файл схемы при первой сборке модуля (`kspDebugKotlin`). Файл появляется в `core/core-db-impl/schemas/me.apomazkin.core_db_impl.room.Database/<version>.json`.
-
-Чтобы сгенерировать схему для новой версии:
-1. Обновить `version` в `Database.kt`
-2. Обновить entity (переименовать поля/таблицы)
-3. Запустить `./gradlew :core:core-db-impl:kspDebugKotlin`
-4. JSON появится автоматически
-
-Не создавать JSON вручную — Room генерирует его из аннотаций entity и сверяет при запуске миграционных тестов.
-
-## Конвенции
-
-1. **Один тест-класс на миграцию.** `MigrationFrom09to10`, `MigrationFrom10to11`.
-2. **Schemable на каждую версию таблицы.** `WriteQuizV5`, `WriteQuizV10`, `WriteQuizV11`.
-3. **`data()`** возвращает минимум 2-3 записи с разными значениями (edge cases: nulls, zeros, dates).
-4. **`afterCreateCheck` обязателен** — не пропускать. Верифицирует что тестовая среда корректна.
-5. **`checkMatcher` проверяет каждое поле** — не только id, но и все мигрирующие данные.
-6. **Тестовые данные** — для general-purpose данных использовать `DataProvider`, для версионированных — `Schemable.data()`.
-7. **Запуск:** `./gradlew :core:core-db-impl:connectedDebugAndroidTest` (нужен эмулятор/устройство).
+Системное решение (emulator-job на CI) — в Backlog («ВекторныйПиздеж»).

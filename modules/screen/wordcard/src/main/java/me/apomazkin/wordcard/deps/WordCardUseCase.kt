@@ -73,6 +73,22 @@ interface WordCardUseCase {
      * строго этого типа; регистр значим; частота DESC, tie-break — алфавит. One-shot.
      */
     suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String>
+
+    // ===== IS493 Э5: группы слова (пикер + чипы) =====
+    // Domain-типы (GroupNode/outcomes) — GroupApiEntity в screen-модуль
+    // не протекает (D7.3, ревью Arch-2); маппинг в app-Impl.
+
+    /** Живые группы слова (чипы/галочки пикера); live: rename/delete переэмичивают. */
+    fun wordGroups(wordId: Long): Flow<List<me.apomazkin.group.GroupNode>>
+
+    /** Живые группы словаря (список пикера); live: создание на вкладке видно сразу. */
+    fun dictGroups(dictionaryId: Long): Flow<List<me.apomazkin.group.GroupNode>>
+
+    /** Добавить слово в группу (транзакция data-слоя, D20.2). */
+    suspend fun addWordToGroup(wordId: Long, groupId: Long): me.apomazkin.group.AddMembershipOutcome
+
+    /** Снять слово с группы (идемпотентно). */
+    suspend fun removeWordFromGroup(wordId: Long, groupId: Long): me.apomazkin.group.RemoveMembershipOutcome
 }
 
 /**

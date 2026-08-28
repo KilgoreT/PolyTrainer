@@ -8,13 +8,22 @@ import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateReducer
 import me.apomazkin.mate.NavigationEffect
 import me.apomazkin.mate.ReducerResult
+import me.apomazkin.mate.begin
+import me.apomazkin.mate.then
+import me.apomazkin.mate.withEffect
 
 /**
  * IS481 generic reducer. ЭТАП 0: скелет — простые (unchanged) ветки реальны,
  * generic-компонентные и flush-on-back — заглушки (этап 4). Структура guard +
  * post-step (§6.1) реальна.
+ *
+ * IS493 Э5: блок групп — ветки-цепочки атомов [GroupBlockAtoms]
+ * (конвенция StateAtoms/ReducerLogging; старые ветки конвенцией не
+ * покрыты — мигрируют по мере правок).
  */
-class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
+class WordCardReducer(
+    logger: me.apomazkin.logger.LexemeLogger,
+) : GroupBlockAtoms(logger), MateReducer<WordCardState, Msg, Effect> {
 
     override fun reduce(state: WordCardState, message: Msg): ReducerResult<WordCardState, Effect> {
         if ((state.isPendingDbOp || state.isExiting) && message.isGuardedByPending()) {
@@ -103,6 +112,9 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
                     lexemeList = alive.map { it.toLexemeState() },
                 ) to buildSet {
                     add(DatasourceEffect.LoadAvailableComponentTypes(w.dictionaryId))
+                    // Э5 (ревью Mate-2): триггер подписок блока групп —
+                    // wordId/dictionaryId известны только здесь.
+                    add(DatasourceEffect.SubscribeGroupBlock(w.wordId.id, w.dictionaryId))
                     empty.forEach { add(DatasourceEffect.PurgeEmptyLexeme(w.wordId.id, it.lexemeId.id)) }
                 }
             }
@@ -251,6 +263,51 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
             is Msg.LexemeDraftPromoted -> reduceLexemeDraftPromoted(state, message)
 
             // ===== Errors / flush-on-back =====
+            // ===== IS493 Э5: группы слова (D22) — цепочки атомов =====
+
+            is Msg.OpenGroupPicker -> state.openGroupPicker()
+
+            is Msg.DismissGroupPicker -> state.closeGroupPicker()
+
+            is Msg.ToggleGroupMembership -> {
+                val loaded = state.wordState as? WordState.Loaded
+                when {
+                    loaded == null -> state.noOp("toggleMembership: word not loaded")
+
+                    // Спам по галочке — keyed in-flight (В3/А11).
+                    message.groupId in state.groupsBlock.inFlight ->
+                        state.noOp("toggleMembership: in flight")
+
+                    // Направление — от факта БД (wordGroupIds, D22.3).
+                    message.groupId in state.groupsBlock.wordGroupIds ->
+                        state.begin<WordCardState, Effect>()
+                            .then { it.markMembershipInFlight(message.groupId) }
+                            .withEffect(
+                                DatasourceEffect.RemoveMembership(
+                                    wordId = loaded.id,
+                                    groupId = message.groupId,
+                                )
+                            )
+
+                    else -> state.begin<WordCardState, Effect>()
+                        .then { it.markMembershipInFlight(message.groupId) }
+                        .withEffect(
+                            DatasourceEffect.AddMembership(
+                                wordId = loaded.id,
+                                groupId = message.groupId,
+                            )
+                        )
+                }
+            }
+
+            is Msg.DictGroupsLoaded -> state.applyDictGroups(message.groups)
+
+            is Msg.WordGroupsLoaded -> state.applyWordGroups(message.ids)
+
+            is Msg.MembershipDone -> state.clearMembershipInFlight(message.groupId)
+
+            is Msg.MembershipFailed -> state.clearMembershipInFlight(message.groupId)
+
             is Msg.OperationFailed -> reduceOperationFailed(state, message)
             is Msg.NavigateBack -> {
                 if (state.isExiting) state to emptySet()
@@ -621,7 +678,10 @@ class WordCardReducer : MateReducer<WordCardState, Msg, Effect> {
     }
 }
 
-/** true ⇒ Msg блокируется guard'ом isPendingDbOp / isExiting. */
+/** true ⇒ Msg блокируется guard'ом isPendingDbOp / isExiting.
+ * Э5 (ревью Mate-5): интенты групп гейтятся (пикер не открывается над
+ * умирающей карточкой); Done/Failed/Loaded — НЕ гейтятся (иначе
+ * потеряется снятие in-flight). */
 private fun Msg.isGuardedByPending(): Boolean = when (this) {
     is Msg.RemoveWord,
     Msg.CommitWordChanges,
@@ -635,6 +695,8 @@ private fun Msg.isGuardedByPending(): Boolean = when (this) {
     is Msg.OpenDeleteLexemeDialog,
     Msg.EnterWordEditMode,
     Msg.CreateLexeme,
+    Msg.OpenGroupPicker,
+    is Msg.ToggleGroupMembership,
         -> true
 
     else -> false

@@ -4,6 +4,14 @@
 
 ## Продолжение фич
 
+- **[IS493 Э7: создание группы из пикера карточки слова].**
+  Решение пользователя 2026-08-28: из фичи IS493 исключён, идея остаётся.
+  Кнопка «Новая группа» в пикере групп карточки: ввод имени (группы
+  корневые), переиспользование `createGroup` с его валидациями (ошибки
+  дубля/резерва — в пикере), созданная группа сразу отмечается для слова;
+  живой список под открытым пикером уже работает (подписка dictGroups).
+  План был в rollout_stages.md Э7.
+
 - **[IS491 follow-up: миграция legacy `samples`/`hints` → значения builtin «Пример»].**
   Решение Д5 брифа IS491 (2026-08-02): builtin «Пример» (`captioned_text`) дублирует по смыслу legacy-таблицу `samples`; в скоуп IS491 миграция данных не входит.
   Нужно: отдельной задачей — маппинг строк `samples` в значения компонента «Пример» (text = sample, caption = пусто), решить судьбу `hints`, снести legacy-таблицы и их UI-остатки. Учитывать пересечение со скоупом бэкапа (#488, группа Legacy).
@@ -502,6 +510,24 @@
 
 ## ВекторныйПиздеж
 
+- **[Навигационные эффекты без lifecycle-гейта — краш при navigate после ухода в фон].**
+  Ручной прогон миграции 0.1.5→HEAD (2026-08-29) поймал на билде 0.1.5 FATAL
+  `IllegalStateException: State must be at least CREATED to be moved to DESTROYED`
+  (`FormNavigatorImpl.back` → `RootRouter.openMainScreen` → `navigate`), когда
+  приложение ушло в фон за ~300мс до выполнения навигационного эффекта. Проверка
+  HEAD: root cause ЖИВ — `MateNavigationEffectHandler` выполняет navigate/popBackStack
+  из корутины без гейта на lifecycle; правка `openMainScreen` (isMainInBackStack +
+  tabsNavController) закрывала другой баг и от фоновой гонки не защищает.
+  Почему не сделано сейчас: out-of-scope миграционного теста — фикс на уровне
+  mate/RootRouter (все экраны).
+  Нужно: бриф «lifecycle-гейт навигационных эффектов» — выполнять навигацию только
+  в STARTED (dropUnlessStarted-паттерн или очередь отложенной навигации в Navigator).
+
+- **[IS493: живая подписка карточки на слово — закрытие при внешнем удалении].**
+  UX-агент (ревью Э5, 2026-08-23) указал: слово в карточке грузится one-shot (`LoadWord` → `getTermById`), живой подписки нет — при удалении слова с другого экрана карточка остаётся stale-открытой, а мутации по ней тихо no-op'ятся (в Э5 — `WordNotFound` membership-мутаций). Живой Flow на слово с закрытием карточки по эмиссии null убрал бы весь класс stale-состояний.
+  Почему не сделано сейчас: out-of-scope Э5 — меняет базовый цикл загрузки карточки; поведение не хуже существующего.
+  Нужно: бриф «живая подписка wordcard на слово» (Flow в WordCardUseCase + NavigateBack по null-эмиссии).
+
 - **[IS491: seed-реконсиляция builtin при открытии БД вместо миграции на каждый новый builtin].**
   Ревью-агент (builtin/seed, IS491 analysis 2026-08-02) указал: доставка нового builtin в существующие словари сейчас требует data-миграции на каждый случай (прецедент — `seedPartOfSpeechPerDictionary` в 11→12; для «Пример» понадобится то же в 12→13). Идемпотентная реконсиляция в `onOpen` (`INSERT … WHERE NOT EXISTS (system_key, dictionary_id)` по всем словарям) доставляла бы любые будущие builtin без миграций, заодно закрывая устаревший пункт «seed на destructive-fallback» (ниже: seed давно перенесён из `onCreate` в `addDictionary`, запись неактуальна) и лживый комментарий в `RoomModule.onDestructiveMigration`.
   Почему не сделано сейчас: out-of-scope IS491 — меняет точку seed, отдельный бриф.
@@ -905,6 +931,11 @@
   **Триггер:** при следующем заходе в state-логику либо «пора убрать TODO».
 
   **Источник:** IS481 quiz_component_picker senior review § F5.
+
+- **[CI: androidTest (миграции, DAO) не гоняется — добавить emulator-job].**
+  Ревью-агент тестов (IS493/Э2, T-1) указал: `.github/workflows/on_feature_push.yml` гоняет только lint + unit + assemble; `connectedAndroidTest` отсутствует во всех workflow. Все миграционные и DAO-тесты (`MigrationFrom11to12`, будущий `MigrationFrom12to13`, Is486DataLayerTest и др.) исполняются только вручную на девайсе и молча гниют между фичами.
+  Почему не сделано сейчас: out-of-scope IS493 — CI-инфраструктура (эмулятор на runner'е: reactivecircus/android-emulator-runner или Gradle Managed Devices, кеширование AVD, время джобы) — отдельный бриф.
+  Нужно: CI-job `connectedDebugAndroidTest` для `core-db-impl` (минимум — на push в master и релизные ветки); до тех пор — дисциплина «androidTest руками перед merge» в чек-листах фич.
 
 ---
 

@@ -18,7 +18,7 @@ import org.junit.Test
  */
 class UndoDeleteTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
 
     // IS486 фаза 3 (В4): тест `LexemeCascadeRemoved removes and emits undo` удалён —
     // каскадное удаление лексемы упразднено, потеря последнего значения деградирует

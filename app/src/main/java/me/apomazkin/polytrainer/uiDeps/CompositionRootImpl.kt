@@ -7,9 +7,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.dictionaryappbar.DictionaryAppBar
 import me.apomazkin.dictionaryappbar.DictionaryAppBarViewModel
-import me.apomazkin.dictionarytab.deps.DictionaryTabUiDeps
-import me.apomazkin.dictionarytab.ui.DictionaryTabScreen
-import me.apomazkin.dictionarytab.ui.DictionaryTabViewModel
+import me.apomazkin.wordstab.ui.WordsTabViewModel
+import me.apomazkin.wordstab.ui.rememberWordsTabHandle
+import me.apomazkin.groupstab.ui.GroupsTabViewModel
+import me.apomazkin.groupstab.ui.rememberGroupsTabHandle
+import me.apomazkin.polytrainer.navigator.GroupsNavigatorImpl
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.main.CompositionRoot
 import me.apomazkin.per_dictionary_components.PerDictionaryComponentsScreen
@@ -22,7 +24,7 @@ import me.apomazkin.polytrainer.navigator.PerDictionaryComponentsNavigatorImpl
 import me.apomazkin.polytrainer.navigator.QuizTabNavigatorImpl
 import me.apomazkin.polytrainer.navigator.SettingsNavigatorImpl
 import me.apomazkin.polytrainer.navigator.StatisticNavigatorImpl
-import me.apomazkin.polytrainer.navigator.VocabularyNavigatorImpl
+import me.apomazkin.polytrainer.navigator.WordsNavigatorImpl
 import me.apomazkin.polytrainer.navigator.WordCardNavigatorImpl
 import me.apomazkin.quiz.chat.ChatScreen
 import me.apomazkin.quiz.chat.ChatViewModel
@@ -36,6 +38,12 @@ import me.apomazkin.settingstab.WebViewScreen
 import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.stattab.StatisticViewModel
 import me.apomazkin.stattab.deps.StatisticUiDeps
+import me.apomazkin.vocabulary.FabSpec
+import me.apomazkin.vocabulary.TabSpec
+import me.apomazkin.vocabulary.VocabularyTab
+import me.apomazkin.vocabulary.deps.VocabularyHostUiDeps
+import me.apomazkin.vocabulary.ui.VocabularyHostScreen
+import me.apomazkin.vocabulary.ui.VocabularyHostViewModel
 import me.apomazkin.wordcard.WordCardScreen
 import me.apomazkin.wordcard.WordCardViewModel
 
@@ -44,7 +52,9 @@ class CompositionRootImpl(
     private val wordCardViewModelFactory: WordCardViewModel.Factory,
     private val chatViewModelFactory: ChatViewModel.Factory,
     private val appBarViewModelFactory: DictionaryAppBarViewModel.Factory,
-    private val dictionaryTabViewModelFactory: DictionaryTabViewModel.Factory,
+    private val wordstabViewModelFactory: WordsTabViewModel.Factory,
+    private val vocabularyHostViewModelFactory: VocabularyHostViewModel.Factory,
+    private val groupsTabViewModelFactory: GroupsTabViewModel.Factory,
     private val quizTabViewModelFactory: QuizTabViewModel.Factory,
     private val statisticViewModelFactory: StatisticViewModel.Factory,
     private val settingsTabViewModelFactory: SettingsTabViewModel.Factory,
@@ -52,8 +62,13 @@ class CompositionRootImpl(
     private val envParams: EnvParams,
     private val logger: LexemeLogger,
 ) : CompositionRoot {
+    /**
+     * IS493 Э1: host вкладок «Слова | Группы». Мост — чистая склейка
+     * (stage1_design_tree D4): words-VM живёт внутри модуля за
+     * [rememberWordsTabHandle], здесь только сборка TabSpec'ов в remember.
+     */
     @Composable
-    override fun VocabularyTabDep(
+    override fun VocabularyHostDep(
         openDictionaryCreate: () -> Unit,
         openWordCard: (wordId: Long) -> Unit,
         openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
@@ -65,12 +80,65 @@ class CompositionRootImpl(
             )
         }
         val vocabularyNavigator = remember(openWordCard) {
-            VocabularyNavigatorImpl(onOpenWordCard = openWordCard)
+            WordsNavigatorImpl(onOpenWordCard = openWordCard)
         }
-        DictionaryTabScreen(
-            factory = dictionaryTabViewModelFactory,
+        val groupsNavigator = remember(openWordCard) {
+            GroupsNavigatorImpl(onOpenWordCard = openWordCard)
+        }
+        val words = rememberWordsTabHandle(
+            factory = wordstabViewModelFactory,
             navigator = vocabularyNavigator,
-            dictionaryTabUiDeps = object : DictionaryTabUiDeps {
+        )
+        // IS493 Э3 (D16): handle групп — по образцу words; VM живёт внутри
+        // модуля, мост получает FAB-читалки и Content.
+        val groups = rememberGroupsTabHandle(
+            factory = groupsTabViewModelFactory,
+            navigator = groupsNavigator,
+        )
+        // Спеки СТАБИЛЬНЫ (remember только по handle): пересоздание TabSpec в
+        // кадр открытия шторки рвало её show-анимацию (баг Э1 — невидимый
+        // ModalBottomSheet). Изменчивость — только через лямбды-читалки,
+        // которые host вызывает в своих скоупах. Словарь приходит в content
+        // параметром вызова (DictionarySlot, D9.4) — спеки не пересобираются.
+        val tabs = remember(words, groups) {
+            mapOf(
+                VocabularyTab.WORDS to TabSpec(
+                    titleRes = me.apomazkin.core_resources.R.string.vocabulary_tab_words,
+                    isTopBarOverridden = { words.isActionMode.value },
+                    topBarOverride = { words.ActionTopBar() },
+                    fab = FabSpec(
+                        iconRes = words.fabIconRes,
+                        visible = { words.isFabVisible.value },
+                        onClick = words::onFabClick,
+                    ),
+                    // words словарь-слот игнорирует — резолвит сам (В3/D9.2).
+                    content = { snackbarHostState, _ -> words.Content(snackbarHostState) },
+                ),
+                VocabularyTab.GROUPS to TabSpec(
+                    titleRes = me.apomazkin.core_resources.R.string.vocabulary_tab_groups,
+                    // Э3: FAB создания группы; скрыт под шторкой/конфирмом
+                    // (читалка — урок D1.3). Drawable живёт в core-resources
+                    // (F-6). Мост распаковывает DictionarySlot в примитивы —
+                    // groupstab контракта host'а не видит.
+                    fab = FabSpec(
+                        iconRes = me.apomazkin.core_resources.R.drawable.ic_add,
+                        visible = { groups.isFabVisible.value },
+                        onClick = groups::onFabClick,
+                    ),
+                    content = { snackbarHostState, slot ->
+                        groups.Content(
+                            snackbarHostState = snackbarHostState,
+                            dictionaryId = slot.id,
+                            isDictResolved = slot.isResolved,
+                        )
+                    },
+                ),
+            )
+        }
+        VocabularyHostScreen(
+            tabs = tabs,
+            factory = vocabularyHostViewModelFactory,
+            uiDeps = object : VocabularyHostUiDeps {
                 @Composable
                 override fun AppBar(@StringRes titleResId: Int) = DictionaryAppBar(
                     titleResId = titleResId,
@@ -78,6 +146,7 @@ class CompositionRootImpl(
                     navigator = appBarNavigator,
                 )
             },
+            onTabSwitched = { words.onExitSelectionMode() },
         )
     }
 

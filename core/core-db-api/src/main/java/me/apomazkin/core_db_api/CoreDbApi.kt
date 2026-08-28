@@ -7,8 +7,10 @@ import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
 import me.apomazkin.core_db_api.entity.CreateComponentOutcome
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.DictionaryTypesSnapshot
+import me.apomazkin.core_db_api.entity.GroupApiEntity
 import me.apomazkin.core_db_api.entity.EditComponentOutcome
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
+import me.apomazkin.core_db_api.entity.MembershipSliceApiEntity
 import me.apomazkin.core_db_api.entity.OptionCrudOutcome
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
 import me.apomazkin.core_db_api.entity.RenameComponentOutcome
@@ -19,6 +21,12 @@ import me.apomazkin.core_db_api.entity.TranslationApiEntity
 import me.apomazkin.core_db_api.entity.UserDefinedTypesUsageSnapshot
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
+import me.apomazkin.group.AddMembershipOutcome
+import me.apomazkin.group.CreateGroupOutcome
+import me.apomazkin.group.DeleteGroupOutcome
+import me.apomazkin.group.DeleteGroupWithWordsOutcome
+import me.apomazkin.group.RemoveMembershipOutcome
+import me.apomazkin.group.RenameGroupOutcome
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeRef
@@ -82,6 +90,100 @@ interface CoreDbApi {
         ): Flow<PagingData<TermApiEntity>>
 
         suspend fun getTermById(id: Long): TermApiEntity?
+
+        /**
+         * IS493 (Р4, Э3-задел): контент слов по готовым id, порядок id DESC.
+         * Контракт вызова: ids ≤50 (bind-лимит SQLite 999 не достигается).
+         */
+        suspend fun getTermsByIds(ids: List<Long>): List<TermApiEntity>
+
+        /**
+         * IS493 Э2 (живое окно «Все»): контент первых [limit] слов словаря,
+         * live-Flow (Room-инвалидация по words/lexemes/values) — вставки в
+         * голову, правки и удаления переэмичиваются сами.
+         */
+        fun flowTermsWindow(dictionaryId: Long, limit: Int): Flow<List<TermApiEntity>>
+    }
+
+    /**
+     * IS493: группы (подсловари). Мутации — транзакции §2.4
+     * (read → validate → write в immediateTransaction); резерв имён и
+     * locale — конструкторная инъекция impl (D12.3), в сигнатурах их нет.
+     */
+    interface GroupApi {
+        /**
+         * Id-срез membership словаря одним запросом (А13): наблюдает
+         * `words` + `word_groups` + `dictionary_groups`; слово вне живых
+         * групп — `(wordId, null)`; порядок — id DESC (порядок «Слов»).
+         */
+        fun membershipSlice(dictionaryId: Long): Flow<List<MembershipSliceApiEntity>>
+
+        /** Живые группы словаря (`removed_at IS NULL`); Э3 — все корневые. */
+        fun groupTree(dictionaryId: Long): Flow<List<GroupApiEntity>>
+
+        /**
+         * Э3: создание корневой группы ([parentId] — задел Э4).
+         * Имя нормализуется валидатором (trim+NFC) — хранится нормализованное.
+         */
+        suspend fun createGroup(
+            dictionaryId: Long,
+            name: String,
+            parentId: Long? = null,
+        ): CreateGroupOutcome
+
+        /**
+         * Переименование; self-exclusion — смена регистра собственного
+         * имени легальна (D-1/T-1). NotFound = отсутствует ∪ soft-deleted.
+         */
+        suspend fun renameGroup(groupId: Long, name: String): RenameGroupOutcome
+
+        /**
+         * Soft-delete группы + hard-delete её membership'ов одной
+         * транзакцией (§3.2); каскад поддерева — Э4.
+         */
+        suspend fun deleteGroup(groupId: Long): DeleteGroupOutcome
+
+        /**
+         * Э6 (D30.2): ДЕСТРУКТИВ — удалить группу ВМЕСТЕ со всеми её
+         * словами (hard-delete слов: каскад чистит лексемы/значения/
+         * квиз-статистику/membership всех групп; legacy-samples чистятся
+         * явно). Число удалённых — факт на момент транзакции.
+         * @param chunkSize размер чанка DELETE IN (bind-лимит SQLite);
+         *   параметр только для тестов границы чанка.
+         */
+        suspend fun deleteGroupWithWords(
+            groupId: Long,
+            chunkSize: Int = 999,
+        ): DeleteGroupWithWordsOutcome
+
+        // === Э5 (D20.1): membership слова + окно контента группы ===
+
+        /**
+         * Живые группы слова (чипы/пикер карточки). Наблюдает
+         * `word_groups` + `dictionary_groups` — rename/delete группы
+         * переэмичивает. Сортировка — Collator на вызывающей стороне (А8).
+         */
+        fun wordGroups(wordId: Long): Flow<List<GroupApiEntity>>
+
+        /**
+         * Живое окно слов группы: membership ∩ words, id DESC LIMIT
+         * (зеркало flowTermsWindow «Все»). Add/remove membership и правки
+         * слов переэмичиваются Room'ом сами.
+         */
+        fun flowGroupWordsWindow(groupId: Long, limit: Int): Flow<List<TermApiEntity>>
+
+        /**
+         * Добавить слово в группу. Порядок проверок (D20.2): слово →
+         * группа-в-словаре-слова → INSERT OR IGNORE; всё в одной
+         * транзакции. NotFound-исходы тихие (правит живая подписка).
+         */
+        suspend fun addWordToGroup(wordId: Long, groupId: Long): AddMembershipOutcome
+
+        /**
+         * Снять слово с группы; отсутствие строки — идемпотентный
+         * NotFound-успех.
+         */
+        suspend fun removeWordFromGroup(wordId: Long, groupId: Long): RemoveMembershipOutcome
     }
 
     interface WordApi {

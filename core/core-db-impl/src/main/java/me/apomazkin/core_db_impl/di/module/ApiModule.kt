@@ -24,6 +24,9 @@ interface ApiModule {
     fun provideTermApi(impl: CoreDbApiImpl.TermApiImpl): CoreDbApi.TermApi
 
     @Binds
+    fun provideGroupApi(impl: CoreDbApiImpl.GroupApiImpl): CoreDbApi.GroupApi
+
+    @Binds
     fun provideLexemeApi(impl: CoreDbApiImpl.LexemeApiImpl): CoreDbApi.LexemeApi
     
     @Binds

@@ -6,7 +6,7 @@ import androidx.compose.runtime.Stable
 @Stable
 interface CompositionRoot {
     @Composable
-    fun VocabularyTabDep(
+    fun VocabularyHostDep(
             openDictionaryCreate: () -> Unit,
             openWordCard: (wordId: Long) -> Unit,
             openPerDictionaryComponents: (dictionaryId: Long) -> Unit,

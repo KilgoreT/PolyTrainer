@@ -14,7 +14,7 @@ class OpenTopBarMenuTest {
 
     @Test
     fun `OpenTopBarMenu sets isMenuOpen true`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = WordCardState(
             isLoading = false,
             wordState = WordState.Loaded(id = 1L, dictionaryId = 3L, added = Date(0L), value = "w"),
@@ -29,7 +29,7 @@ class OpenTopBarMenuTest {
 
     @Test
     fun `OpenTopBarMenu is idempotent when already open`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = WordCardState(
             isLoading = false,
             wordState = WordState.Loaded(id = 1L, dictionaryId = 3L, added = Date(0L), value = "w"),

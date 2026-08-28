@@ -18,7 +18,7 @@ import org.junit.Test
  */
 class WordLoadedTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
 
     @Test
     fun `WordLoaded sets word lexemes dictionaryId and emits LoadAvailableComponentTypes`() {
@@ -37,7 +37,13 @@ class WordLoadedTest {
         val cv = state.lexemeList.single().components.single()
         assertEquals("hi", cv.origin)
         assertEquals(ComponentValueKey.Saved(ComponentValueId(5L)), cv.key)
-        result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
+        result.assertEffects(
+            setOf(
+                DatasourceEffect.LoadAvailableComponentTypes(3L),
+                // IS493 Э5: подписки блока групп стартуют по загрузке.
+                DatasourceEffect.SubscribeGroupBlock(wordId = 7L, dictionaryId = 3L),
+            )
+        )
     }
 
     /**
@@ -64,7 +70,13 @@ class WordLoadedTest {
             lexemeList = emptyList(),
         )
         assertEquals(expected, result.state())
-        result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
+        result.assertEffects(
+            setOf(
+                DatasourceEffect.LoadAvailableComponentTypes(3L),
+                // IS493 Э5: подписки блока групп стартуют по загрузке.
+                DatasourceEffect.SubscribeGroupBlock(wordId = 7L, dictionaryId = 3L),
+            )
+        )
     }
 
     @Test
@@ -74,7 +86,13 @@ class WordLoadedTest {
             Msg.WordLoaded(stubTerm()),
         )
         assertFalse(result.state().isPendingDbOp)
-        result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
+        result.assertEffects(
+            setOf(
+                DatasourceEffect.LoadAvailableComponentTypes(3L),
+                // IS493 Э5: подписки блока групп стартуют по загрузке.
+                DatasourceEffect.SubscribeGroupBlock(wordId = 7L, dictionaryId = 3L),
+            )
+        )
     }
 
     @Test
@@ -112,7 +130,13 @@ class WordLoadedTest {
             Msg.WordLoaded(stubTerm()),
         )
         assertEquals(5L, result.state().nextPristineKey)
-        result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
+        result.assertEffects(
+            setOf(
+                DatasourceEffect.LoadAvailableComponentTypes(3L),
+                // IS493 Э5: подписки блока групп стартуют по загрузке.
+                DatasourceEffect.SubscribeGroupBlock(wordId = 7L, dictionaryId = 3L),
+            )
+        )
     }
 
     @Test

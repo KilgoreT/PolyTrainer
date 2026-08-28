@@ -22,6 +22,8 @@ internal fun TopBarWidget(
     onOpenMenu: () -> Unit,
     onCloseMenu: () -> Unit,
     onDeleteWord: () -> Unit,
+    /** IS493 Э5: иконка групп слова ПЕРЕД kebab; null — скрыта (карточка не загружена). */
+    onOpenGroups: (() -> Unit)? = null,
 ) {
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
@@ -38,6 +40,15 @@ internal fun TopBarWidget(
         },
         title = {},
         actions = {
+            onOpenGroups?.let { openGroups ->
+                IconBoxed(
+                    iconRes = R.drawable.ic_groups,
+                    enabled = true,
+                    colorEnabled = enableIconColor,
+                    size = 44,
+                    onClick = openGroups,
+                )
+            }
             IconDropdownWidget(
                 isDropDownOpen = topBarState.isMenuOpen,
                 onClickDropDown = onOpenMenu,

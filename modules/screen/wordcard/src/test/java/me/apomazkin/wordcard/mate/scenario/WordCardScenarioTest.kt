@@ -12,6 +12,7 @@ import me.apomazkin.wordcard.mate.ComponentValueKey
 import me.apomazkin.wordcard.mate.DatasourceEffect
 import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.NOT_IN_DB
+import me.apomazkin.wordcard.mate.NoopLogger
 import me.apomazkin.wordcard.mate.UiEffect
 import me.apomazkin.wordcard.mate.WordCardReducer
 import me.apomazkin.wordcard.mate.WordCardState
@@ -33,7 +34,7 @@ import org.junit.Test
  */
 class WordCardScenarioTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
     private val TR = ComponentTypeRef.BuiltIn(me.apomazkin.lexeme.BuiltInComponent.TRANSLATION)
     private val SYN = ComponentTypeRef.UserDefined("Synonym")
     private val EX = ComponentTypeRef.UserDefined("Example")

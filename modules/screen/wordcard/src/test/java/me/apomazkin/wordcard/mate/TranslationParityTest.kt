@@ -17,7 +17,7 @@ import org.junit.Test
  */
 class TranslationParityTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
     private fun savedK(id: Long) = ComponentValueKey.Saved(ComponentValueId(id))
     private fun pK(k: Long) = ComponentValueKey.Pristine(k)
 

@@ -35,6 +35,10 @@ internal object NotImplementedUseCase : me.apomazkin.wordcard.deps.WordCardUseCa
     override suspend fun restoreLexemeWithComponents(wordId: Long, dictionaryId: Long, snapshot: Lexeme): Lexeme? = TODO()
     override fun flowAvailableComponentTypes(dictionaryId: Long): kotlinx.coroutines.flow.Flow<me.apomazkin.wordcard.deps.AvailableComponents> = TODO()
     override suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String> = TODO()
+    override fun wordGroups(wordId: Long): kotlinx.coroutines.flow.Flow<List<me.apomazkin.group.GroupNode>> = TODO()
+    override fun dictGroups(dictionaryId: Long): kotlinx.coroutines.flow.Flow<List<me.apomazkin.group.GroupNode>> = TODO()
+    override suspend fun addWordToGroup(wordId: Long, groupId: Long): me.apomazkin.group.AddMembershipOutcome = TODO()
+    override suspend fun removeWordFromGroup(wordId: Long, groupId: Long): me.apomazkin.group.RemoveMembershipOutcome = TODO()
 }
 
 /**

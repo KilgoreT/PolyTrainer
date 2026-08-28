@@ -14,7 +14,6 @@ import me.apomazkin.core_db_impl.entity.DictionaryDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.LexemeDbEntity
 import me.apomazkin.core_db_impl.entity.QuizConfigDb
-import me.apomazkin.core_db_impl.entity.SampleDb
 import me.apomazkin.core_db_impl.entity.TermDbEntity
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
@@ -129,6 +128,58 @@ interface WordDao {
     suspend fun getTermById(id: Long): TermDbEntity?
 
     /**
+     * IS493 (Р4, Э3-задел): контент слов по готовым id. Порядок id DESC.
+     * Bind-лимит SQLite (999) покрыт контрактом вызова: ids ≤50.
+     * В Э2 «Все» использует [flowTermsWindow]; этот метод — для узлов Э3.
+     */
+    @Transaction
+    @Query("SELECT * FROM words WHERE id IN (:ids) ORDER BY id DESC")
+    suspend fun getTermsByIds(ids: List<Long>): List<TermDbEntity>
+
+    /**
+     * IS493 Э2 (живое окно): контент первых [limit] слов словаря —
+     * ПРЕДИКАТНЫЙ live-запрос (как searchTermsPaging): вставки в голову,
+     * правки лексем и удаления переэмичиваются Room'ом сами. «Ещё»
+     * расширяет limit; свернул узел — подписка гаснет на вызывающей стороне.
+     */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM words
+            WHERE dictionary_id = :dictionaryId
+            ORDER BY id DESC
+            LIMIT :limit
+        """
+    )
+    fun flowTermsWindow(dictionaryId: Long, limit: Int): Flow<List<TermDbEntity>>
+
+    /**
+     * IS493 Э5 (D20.1): живое окно слов ГРУППЫ — membership ∩ words,
+     * id DESC LIMIT (зеркало [flowTermsWindow]). Обе таблицы в тексте
+     * запроса — Room-инвалидация наблюдает и правки слов, и add/remove
+     * membership.
+     */
+    @Transaction
+    @Query(
+        """
+        SELECT w.* FROM words w
+            JOIN word_groups wg ON wg.word_id = w.id
+            WHERE wg.group_id = :groupId
+            ORDER BY w.id DESC
+            LIMIT :limit
+        """
+    )
+    fun flowGroupTermsWindow(groupId: Long, limit: Int): Flow<List<TermDbEntity>>
+
+    /**
+     * IS493 Э5 (D20.2, ревью Data-2): словарь слова для JOIN-check
+     * membership-мутаций; null — слово удалено (у words hard-delete,
+     * removed_at нет).
+     */
+    @Query("SELECT dictionary_id FROM words WHERE id = :id")
+    suspend fun getWordDictionaryId(id: Long): Long?
+
+    /**
      * LEXEME
      */
     @Insert
@@ -160,13 +211,6 @@ interface WordDao {
     @Transaction
     @Query("SELECT * FROM words WHERE id = :id")
     suspend fun getWordSuspend(id: Long): TermDbEntity
-
-    /**
-     * SAMPLE
-     */
-
-    @Delete
-    suspend fun removeSampleSuspend(vararg sampleDb: SampleDb)
 
     /**
      * QUIZ

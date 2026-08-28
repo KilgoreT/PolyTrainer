@@ -17,7 +17,7 @@ import org.junit.Test
  */
 class LexemeManagementTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
     private val EX = ComponentTypeRef.UserDefined("Example")
     private val EX2 = ComponentTypeRef.UserDefined("Example2")
 
