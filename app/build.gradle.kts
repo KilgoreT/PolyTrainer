@@ -118,7 +118,10 @@ dependencies {
     implementation(project("path" to ":modules:screen:splash"))
     implementation(project("path" to ":modules:screen:dictionary"))
     implementation(project("path" to ":modules:screen:main"))
-    implementation(project("path" to ":modules:screen:dictionaryTab"))
+    implementation(project("path" to ":modules:screen:wordstab"))
+    implementation(project("path" to ":modules:widget:wordrow"))
+    implementation(project("path" to ":modules:screen:vocabulary"))
+    implementation(project("path" to ":modules:screen:groupstab"))
     implementation(project("path" to ":modules:screen:wordcard"))
     implementation(project("path" to ":modules:screen:quiztab"))
     implementation(project("path" to ":modules:screen:quiz:chat"))
@@ -135,6 +138,7 @@ dependencies {
     implementation(project("path" to ":modules:datasource:prefs"))
 
     implementation(project("path" to ":modules:domain:lexeme"))
+    implementation(project("path" to ":modules:domain:group"))
 
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":core:core-db"))

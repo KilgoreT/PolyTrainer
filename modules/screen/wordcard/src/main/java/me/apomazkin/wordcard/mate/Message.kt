@@ -73,6 +73,27 @@ sealed interface Msg {
     data class UndoRestoreLexeme(val lexeme: Lexeme) : Msg
     data class RestoreLexemeFailed(val snapshot: Lexeme) : Msg
 
+    // --- IS493 Э5: группы слова (пикер + чипы, D22) ---
+    /** Иконка шапки либо тап по чипу (В4) → пикер групп. */
+    data object OpenGroupPicker : Msg
+    data object DismissGroupPicker : Msg
+
+    /** Тап галочки пикера: направление (add/remove) reducer берёт из
+     * wordGroupIds — факта БД (D22.3). */
+    data class ToggleGroupMembership(val groupId: Long) : Msg
+
+    /** Эмиссия подписки групп словаря (Collator handler'а). */
+    data class DictGroupsLoaded(val groups: List<GroupUi>) : Msg
+
+    /** Эмиссия подписки членств слова — единственный мутатор wordGroupIds. */
+    data class WordGroupsLoaded(val ids: Set<Long>) : Msg
+
+    /** Плоский итог membership-мутации (handler маппит outcome ДО отправки). */
+    data class MembershipDone(val groupId: Long) : Msg
+
+    /** Исключение membership-эффекта: снять in-flight. */
+    data class MembershipFailed(val groupId: Long) : Msg
+
     // --- Errors / nav ---
     data class OperationFailed(@StringRes val messageRes: Int) : Msg
     data object NavigateBack : Msg

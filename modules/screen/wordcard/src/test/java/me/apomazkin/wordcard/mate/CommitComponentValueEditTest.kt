@@ -16,7 +16,7 @@ import org.junit.Test
  */
 class CommitComponentValueEditTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
     private fun savedKey(id: Long) = ComponentValueKey.Saved(ComponentValueId(id))
     private fun pKey(k: Long) = ComponentValueKey.Pristine(k)
 

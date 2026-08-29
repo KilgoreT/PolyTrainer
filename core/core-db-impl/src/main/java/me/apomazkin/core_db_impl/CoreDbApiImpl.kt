@@ -19,6 +19,9 @@ import me.apomazkin.core_db_api.entity.DictionaryTypesSnapshot
 import me.apomazkin.core_db_api.entity.EditComponentOutcome
 import me.apomazkin.core_db_api.entity.ComponentOptionApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
+import me.apomazkin.core_db_api.entity.GroupApiEntity
+import me.apomazkin.core_db_api.entity.MembershipSliceApiEntity
+import me.apomazkin.core_db_api.entity.ReservedGroupNames
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
 import me.apomazkin.core_db_api.entity.OptionCrudOutcome
 import me.apomazkin.core_db_api.entity.RenameComponentOutcome
@@ -32,6 +35,7 @@ import me.apomazkin.core_db_impl.entity.ComponentOptionDb
 import me.apomazkin.core_db_impl.entity.ComponentTypeDb
 import me.apomazkin.core_db_impl.entity.ComponentValueDb
 import me.apomazkin.core_db_impl.entity.DictionaryDb
+import me.apomazkin.core_db_impl.entity.GroupDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
@@ -40,10 +44,12 @@ import me.apomazkin.core_db_impl.entity.toDb
 import me.apomazkin.core_db_impl.mapper.toComponentTypeRefList
 import me.apomazkin.core_db_impl.mapper.toJson
 import me.apomazkin.core_db_impl.room.Database
+import me.apomazkin.core_db_impl.entity.WordGroupDb
 import me.apomazkin.core_db_impl.room.WordDao
 import me.apomazkin.core_db_impl.room.dao.ComponentOptionDao
 import me.apomazkin.core_db_impl.room.dao.ComponentTypeDao
 import me.apomazkin.core_db_impl.room.dao.ComponentValueDao
+import me.apomazkin.core_db_impl.room.dao.GroupDao
 import me.apomazkin.core_db_impl.room.dao.QuizConfigDao
 import me.apomazkin.lexeme.AcyclicityCheck
 import me.apomazkin.lexeme.AffectedQuizConfig
@@ -72,6 +78,15 @@ import me.apomazkin.lexeme.TextValues
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogTags as FeatureLogTags
 import java.util.Date
+import java.util.Locale
+import me.apomazkin.group.AddMembershipOutcome
+import me.apomazkin.group.CreateGroupOutcome
+import me.apomazkin.group.DeleteGroupOutcome
+import me.apomazkin.group.DeleteGroupWithWordsOutcome
+import me.apomazkin.group.NameCheck
+import me.apomazkin.group.RemoveMembershipOutcome
+import me.apomazkin.group.RenameGroupOutcome
+import me.apomazkin.group.validateGroupName
 import javax.inject.Inject
 
 
@@ -285,6 +300,225 @@ class CoreDbApiImpl @Inject constructor(
         override suspend fun getTermById(id: Long): TermApiEntity? {
             return wordDao.getTermById(id = id)?.toApiEntity(logger)
         }
+
+        override suspend fun getTermsByIds(ids: List<Long>): List<TermApiEntity> {
+            if (ids.isEmpty()) return emptyList()
+            return wordDao.getTermsByIds(ids).map { it.toApiEntity(logger) }
+        }
+
+        override fun flowTermsWindow(
+            dictionaryId: Long,
+            limit: Int,
+        ): Flow<List<TermApiEntity>> {
+            return wordDao.flowTermsWindow(dictionaryId, limit).map { terms ->
+                terms.map { it.toApiEntity(logger) }
+            }
+        }
+    }
+
+    /**
+     * IS493 Э3 (D13): мутации групп — транзакции §2.4
+     * (read → validate → write в immediateTransaction, по прецеденту
+     * addDictionary/лексемных мутаций). Резерв имён — конструкторная
+     * инъекция ([ReservedGroupNames] собирает app из ресурсов всех локалей);
+     * locale — Locale.getDefault() (единый источник, D12.3).
+     */
+    class GroupApiImpl @Inject constructor(
+        private val database: Database,
+        private val groupDao: GroupDao,
+        // Э5: getWordDictionaryId (JOIN-check мутаций) + окно слов группы.
+        private val wordDao: WordDao,
+        private val reservedGroupNames: ReservedGroupNames,
+        private val logger: LexemeLogger,
+    ) : CoreDbApi.GroupApi {
+
+        override fun membershipSlice(dictionaryId: Long): Flow<List<MembershipSliceApiEntity>> {
+            return groupDao.membershipSlice(dictionaryId).map { rows ->
+                rows.map { MembershipSliceApiEntity(wordId = it.wordId, groupId = it.groupId) }
+            }
+        }
+
+        override fun groupTree(dictionaryId: Long): Flow<List<GroupApiEntity>> {
+            return groupDao.flowLivingGroups(dictionaryId).map { rows ->
+                rows.map { it.toApiEntity() }
+            }
+        }
+
+        override suspend fun createGroup(
+            dictionaryId: Long,
+            name: String,
+            parentId: Long?,
+        ): CreateGroupOutcome = database.useWriterConnection { transactor ->
+            transactor.immediateTransaction {
+                // Э3: parentId всегда null (подгруппы — Э4); ветки
+                // ParentNotFound/ParentHasWords — заделы outcomes.
+                val siblings = groupDao.livingGroups(dictionaryId)
+                    .filter { it.parentGroupId == parentId }
+                when (val check = validateGroupName(
+                    raw = name,
+                    livingSiblingNames = siblings.map { it.name },
+                    reservedNames = reservedGroupNames.values,
+                    locale = Locale.getDefault(),
+                )) {
+                    is NameCheck.Empty -> CreateGroupOutcome.EmptyName
+                    is NameCheck.Duplicate -> CreateGroupOutcome.DuplicateSibling
+                    is NameCheck.Reserved -> CreateGroupOutcome.ReservedName
+                    is NameCheck.Valid -> {
+                        val now = Date(System.currentTimeMillis())
+                        val id = groupDao.insertGroup(
+                            GroupDb(
+                                dictionaryId = dictionaryId,
+                                parentGroupId = parentId,
+                                name = check.normalizedName,
+                                createdAt = now,
+                                updatedAt = now,
+                            )
+                        )
+                        CreateGroupOutcome.Success(groupId = id)
+                    }
+                }
+            }
+        }
+
+        override suspend fun renameGroup(
+            groupId: Long,
+            name: String,
+        ): RenameGroupOutcome = database.useWriterConnection { transactor ->
+            transactor.immediateTransaction {
+                val group = groupDao.getLivingGroupById(groupId)
+                    ?: return@immediateTransaction RenameGroupOutcome.NotFound
+                // Self-exclusion (D-1/T-1): сиблинги БЕЗ переименуемой —
+                // смена регистра собственного имени легальна.
+                val siblings = groupDao.livingGroups(group.dictionaryId)
+                    .filter { it.parentGroupId == group.parentGroupId && it.id != groupId }
+                when (val check = validateGroupName(
+                    raw = name,
+                    livingSiblingNames = siblings.map { it.name },
+                    reservedNames = reservedGroupNames.values,
+                    locale = Locale.getDefault(),
+                )) {
+                    is NameCheck.Empty -> RenameGroupOutcome.EmptyName
+                    is NameCheck.Duplicate -> RenameGroupOutcome.DuplicateSibling
+                    is NameCheck.Reserved -> RenameGroupOutcome.ReservedName
+                    is NameCheck.Valid -> {
+                        val updated = groupDao.updateGroupName(
+                            id = groupId,
+                            name = check.normalizedName,
+                            updatedAt = Date(System.currentTimeMillis()),
+                        )
+                        if (updated == 0) RenameGroupOutcome.NotFound else RenameGroupOutcome.Success
+                    }
+                }
+            }
+        }
+
+        override suspend fun deleteGroup(
+            groupId: Long,
+        ): DeleteGroupOutcome = database.useWriterConnection { transactor ->
+            transactor.immediateTransaction {
+                // List-формы — задел каскада Э4 (Э3: список из одного узла).
+                val ids = listOf(groupId)
+                val removed = groupDao.softDeleteGroups(ids, Date(System.currentTimeMillis()))
+                if (removed == 0) {
+                    DeleteGroupOutcome.NotFound
+                } else {
+                    groupDao.hardDeleteWordGroupsByGroups(ids)
+                    DeleteGroupOutcome.Success
+                }
+            }
+        }
+
+        /**
+         * Э6 (D30.2), ДЕСТРУКТИВ. Всё в одной immediateTransaction:
+         * liveness → ids → hard-delete слов чанками (FK CASCADE:
+         * lexemes/component_values/write_quiz/word_groups ВСЕХ групп) →
+         * soft-delete группы + добивка membership (идемпотентно). Число
+         * удалённых — факт на момент транзакции. Легаси-samples больше
+         * нет (2026-08-29: мигрированы в «Пример», таблица дропнута).
+         */
+        override suspend fun deleteGroupWithWords(
+            groupId: Long,
+            chunkSize: Int,
+        ): DeleteGroupWithWordsOutcome = database.useWriterConnection { transactor ->
+            transactor.immediateTransaction {
+                groupDao.getLivingGroupById(groupId)
+                    ?: return@immediateTransaction DeleteGroupWithWordsOutcome.NotFound
+                val wordIds = groupDao.wordIdsOfGroup(groupId)
+                wordIds.chunked(chunkSize).forEach { chunk ->
+                    groupDao.deleteWordsByIds(chunk)
+                }
+                val ids = listOf(groupId)
+                groupDao.softDeleteGroups(ids, Date(System.currentTimeMillis()))
+                groupDao.hardDeleteWordGroupsByGroups(ids)
+                DeleteGroupWithWordsOutcome.Success(deletedWords = wordIds.size)
+            }
+        }
+
+        // === Э5 (D20): membership слова + окно контента группы ===
+
+        override fun wordGroups(wordId: Long): Flow<List<GroupApiEntity>> {
+            return groupDao.flowWordGroups(wordId).map { rows ->
+                rows.map { it.toApiEntity() }
+            }
+        }
+
+        override fun flowGroupWordsWindow(
+            groupId: Long,
+            limit: Int,
+        ): Flow<List<TermApiEntity>> {
+            return wordDao.flowGroupTermsWindow(groupId, limit).map { terms ->
+                terms.map { it.toApiEntity(logger) }
+            }
+        }
+
+        /**
+         * D20.2, ИНВАРИАНТ (ревью Data-3): проверки и insert — строго
+         * внутри ОДНОЙ immediateTransaction, открытой ДО первого чтения.
+         * `OR IGNORE` гасит только конфликт составного PK; FK-violation
+         * (слово/группа умерли между check и insert) был бы crash'ем —
+         * сериализация с deleteGroup/deleteWord на writer-коннекте
+         * исключает эту гонку. Рефакторинг, выносящий проверки из
+         * транзакции, превращает outcome в исключение.
+         */
+        override suspend fun addWordToGroup(
+            wordId: Long,
+            groupId: Long,
+        ): AddMembershipOutcome = database.useWriterConnection { transactor ->
+            transactor.immediateTransaction {
+                // Порядок проверок (D20.2): слово → группа словаря слова.
+                val wordDictId = wordDao.getWordDictionaryId(wordId)
+                    ?: return@immediateTransaction AddMembershipOutcome.WordNotFound
+                groupDao.getLivingGroupByIdInDict(groupId, wordDictId)
+                    ?: return@immediateTransaction AddMembershipOutcome.GroupNotFound
+                val rowId = groupDao.insertWordGroup(
+                    WordGroupDb(
+                        wordId = wordId,
+                        groupId = groupId,
+                        createdAt = Date(System.currentTimeMillis()),
+                    )
+                )
+                if (rowId == -1L) {
+                    AddMembershipOutcome.AlreadyIn
+                } else {
+                    AddMembershipOutcome.Added
+                }
+            }
+        }
+
+        override suspend fun removeWordFromGroup(
+            wordId: Long,
+            groupId: Long,
+        ): RemoveMembershipOutcome = database.useWriterConnection { transactor ->
+            transactor.immediateTransaction {
+                val removed = groupDao.deleteWordGroup(wordId = wordId, groupId = groupId)
+                // rowcount 0 → идемпотентный NotFound-успех (D20.2).
+                if (removed == 0) {
+                    RemoveMembershipOutcome.NotFound
+                } else {
+                    RemoveMembershipOutcome.Removed
+                }
+            }
+        }
     }
 
     class WordApiImpl @Inject constructor(
@@ -305,12 +539,6 @@ class CoreDbApiImpl @Inject constructor(
         // может можно упроситить
         override suspend fun deleteWordSuspend(id: Long): Int {
             wordDao.getWordSuspend(id).also { word ->
-                wordDao.removeSampleSuspend(
-                    *word.lexemeListDb
-                        .map { it.sampleDbList }
-                        .flatten()
-                        .toTypedArray()
-                )
                 wordDao.deleteDefinitionsSuspend(
                     *word.lexemeListDb.map { it.lexemeDb }.toTypedArray()
                 )

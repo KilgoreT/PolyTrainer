@@ -6,7 +6,6 @@ data class WriteQuizComplexEntity(
     val quizData: WriteQuizApiEntity,
     val lexemeData: LexemeApiEntity,
     val wordData: WordApiEntity,
-    val sampleData: List<SampleApiEntity>
 )
 
 data class WriteQuizApiEntity(

@@ -1,0 +1,45 @@
+plugins {
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
+}
+
+android {
+    namespace = "me.apomazkin.vocabulary"
+    compileSdk = 35
+
+    defaultConfig {
+        minSdk = 23
+        targetSdk = 35
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
+    }
+}
+
+dependencies {
+    implementation(project("path" to ":modules:core:di"))
+    implementation(project("path" to ":modules:core:mate"))
+    implementation(project("path" to ":modules:core:theme"))
+    implementation(project("path" to ":modules:core:ui"))
+    implementation(project("path" to ":core:core-resources"))
+
+    // IS493 Э2 (D9.3): Dagger-миграция host-VM — появилась зависимость
+    // (подписка на текущий словарь), исключение D1.1 закрыто.
+    implementation(diLibs.dagger)
+    ksp(diLibs.daggerCompiler)
+    implementation("javax.inject:javax.inject:1")
+
+    implementation(composeLibs.lifecycleViewmodelCompose)
+    implementation(composeLibs.lifecycleRuntimeCompose)
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation(project("path" to ":modules:core:mate"))
+}

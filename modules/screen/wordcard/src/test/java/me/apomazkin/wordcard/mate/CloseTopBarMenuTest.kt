@@ -15,7 +15,7 @@ class CloseTopBarMenuTest {
 
     @Test
     fun `CloseTopBarMenu sets isMenuOpen false`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = WordCardState(
             isLoading = false,
             wordState = WordState.Loaded(id = 1L, dictionaryId = 3L, added = Date(0L), value = "w"),
@@ -30,7 +30,7 @@ class CloseTopBarMenuTest {
 
     @Test
     fun `CloseTopBarMenu on already-closed menu is no-op (guard)`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = WordCardState(
             isLoading = false,
             wordState = WordState.Loaded(id = 1L, dictionaryId = 3L, added = Date(0L), value = "w"),

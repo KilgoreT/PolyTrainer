@@ -13,7 +13,7 @@ import org.junit.Test
  */
 class PendingGuardTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
 
     private fun pendingWithSaved() = loaded(
         isPendingDbOp = true,

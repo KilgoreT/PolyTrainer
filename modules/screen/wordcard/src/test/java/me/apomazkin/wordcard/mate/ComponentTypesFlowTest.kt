@@ -16,7 +16,7 @@ import java.io.IOException
  */
 class ComponentTypesFlowTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
     private val t1 = ctype(50L, TR)
     private val t2 = ctype(51L, ComponentTypeRef.UserDefined("Example"))
 

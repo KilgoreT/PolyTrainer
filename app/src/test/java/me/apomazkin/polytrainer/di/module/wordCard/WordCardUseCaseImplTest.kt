@@ -47,6 +47,7 @@ class WordCardUseCaseImplTest {
     private val dictionaryApi = mockk<CoreDbApi.DictionaryApi>(relaxed = true)
     private val termApi = mockk<CoreDbApi.TermApi>(relaxed = true)
     private val lexemeApi = mockk<CoreDbApi.LexemeApi>(relaxed = true)
+    private val groupApi = mockk<CoreDbApi.GroupApi>(relaxed = true)
     private val prefsProvider = mockk<PrefsProvider>(relaxed = true)
     private val logger = mockk<LexemeLogger>(relaxed = true)
     private val countryProvider = mockk<CountryProvider>(relaxed = true)
@@ -56,6 +57,7 @@ class WordCardUseCaseImplTest {
         dictionaryApi = dictionaryApi,
         termApi = termApi,
         lexemeApi = lexemeApi,
+        groupApi = groupApi,
         prefsProvider = prefsProvider,
         logger = logger,
         countryProvider = countryProvider,

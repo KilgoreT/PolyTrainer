@@ -32,6 +32,10 @@ val dividerColor = Color(0xffE4E5E7)
 val enableIconColor = Color(0xff252628)
 val disableButtonTitleColor = Color(0xffB5AEE1)
 val grayTextColor = Color(0xFF7B7E85)
+
+/** IS493 Э6: деструктивная кнопка («Удалить всё») — насыщенный красный,
+ * заметно жёстче бледного colorScheme.error. */
+val destructiveColor = Color(0xFFDC2626)
 val translationBgColor = Color(0xFF938CD5)
 val chatMessageBtnBorder = Color(0xFFD4CFED)
 val chatCorrectColor = Color(0xFF23785B)
@@ -44,6 +48,9 @@ val statInProcessBg = Color(0xFFE5F2FF)
 
 val statNotSTartedFg = Color(0xFFD19100)
 val statNotStartedBg = Color(0xFFFFFCC1)
+
+// IS493: фон строки узла группы — отличает узел от карточки слова.
+val groupNodeBgColor = Color(0xFFE5F2FF)
 
 val formBackground = Color(0xFFFCFCFA)
 val formTextSecondary = Color(0xFF8A8A90)

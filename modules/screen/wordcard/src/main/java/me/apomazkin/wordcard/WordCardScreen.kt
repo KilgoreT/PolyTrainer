@@ -53,6 +53,8 @@ import me.apomazkin.wordcard.widget.ConfirmDeleteLexemeWidget
 import me.apomazkin.wordcard.widget.ConfirmDeleteWordWidget
 import me.apomazkin.wordcard.widget.TopBarWidget
 import me.apomazkin.wordcard.widget.WordFieldWidget
+import me.apomazkin.wordcard.widget.group.GroupChipsRow
+import me.apomazkin.wordcard.widget.group.GroupPickerBottomSheetWidget
 import me.apomazkin.wordcard.widget.internal.UiHostImpl
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.BuiltInComponent
@@ -111,6 +113,9 @@ internal fun WordCardScreen(
                     sendMessage(Msg.CloseTopBarMenu)
                     sendMessage(Msg.OpenDeleteWordDialog)
                 },
+                onOpenGroups = if (state.isLoaded) {
+                    { sendMessage(Msg.OpenGroupPicker) }
+                } else null,
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -152,6 +157,15 @@ internal fun WordCardScreen(
                         onValueChange = { sendMessage(Msg.UpdateWordInput(it)) },
                         onOpenEditMode = { sendMessage(Msg.EnterWordEditMode) },
                         onCommit = { sendMessage(Msg.CommitWordChanges) },
+                        // IS493 Э5: чипы групп ВНУТРИ карточки слова, под
+                        // датой/флагом (правка юзера 2026-08-28).
+                        groupChips = {
+                            GroupChipsRow(
+                                chips = state.groupsBlock.chips,
+                                enabled = !state.isPendingDbOp && !state.isExiting,
+                                onChipClick = { sendMessage(Msg.OpenGroupPicker) },
+                            )
+                        },
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Column(
@@ -213,6 +227,14 @@ internal fun WordCardScreen(
             ConfirmDeleteLexemeWidget(
                 onConfirm = { sendMessage(Msg.RemoveLexeme(pendingLexemeId)) },
                 onDismiss = { sendMessage(Msg.CloseDeleteLexemeDialog) },
+            )
+        }
+
+        // IS493 Э5: пикер групп слова (state-driven, D22).
+        if (state.groupsBlock.isPickerOpen) {
+            GroupPickerBottomSheetWidget(
+                block = state.groupsBlock,
+                sendMessage = sendMessage,
             )
         }
     }

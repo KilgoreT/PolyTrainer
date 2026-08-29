@@ -42,7 +42,7 @@ include(":modules:core:tools")
 include(":modules:screen:splash")
 include(":modules:screen:dictionary")
 include(":modules:screen:main")
-include(":modules:screen:dictionaryTab")
+include(":modules:screen:wordstab")
 include(":modules:screen:wordcard")
 include(":modules:screen:quiztab")
 include(":modules:screen:stattab")
@@ -50,6 +50,8 @@ include(":modules:screen:settingstab")
 include(":modules:screen:quiz:chat")
 include(":modules:screen:components_manager")
 include(":modules:screen:per_dictionary_components")
+include(":modules:screen:vocabulary")
+include(":modules:screen:groupstab")
 
 //Widget
 include(":modules:widget:dictionaryappbar")
@@ -57,6 +59,8 @@ include(":modules:widget:dictionarypicker")
 include(":modules:widget:iconDropDowned")
 include(":modules:widget:chipPicker")
 include(":modules:widget:component_widgets")
+include(":modules:widget:wordrow")
+include(":modules:widget:grouptree")
 
 include(":modules:datasource:prefs")
 
@@ -65,6 +69,7 @@ include(":modules:library:flags")
 
 //Domain
 include(":modules:domain:lexeme")
+include(":modules:domain:group")
 
 //Old
 include(":core:core-resources")

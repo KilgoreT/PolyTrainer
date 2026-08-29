@@ -14,6 +14,7 @@ import me.apomazkin.logger.LogLevel
 import me.apomazkin.logger.LogTags as FeatureLogTags
 import me.apomazkin.mate.Effect
 import me.apomazkin.mate.MateTypedEffectHandler
+import me.apomazkin.wordcard.LogTags as WordCardLogTags
 import me.apomazkin.wordcard.deps.RemoveComponentResult
 import me.apomazkin.wordcard.deps.RemoveLexemeResult
 import me.apomazkin.wordcard.deps.WordCardUseCase
@@ -94,6 +95,16 @@ sealed interface DatasourceEffect : Effect {
         val dictionaryId: Long,
         val snapshot: Lexeme,
     ) : DatasourceEffect
+
+    // === IS493 Э5 (D22): группы слова ===
+
+    /** Trigger для GroupBlockFlowHandler: подписки wordGroups+dictGroups
+     * (единственная строка в ветке WordLoaded — ревью Mate-2). */
+    data class SubscribeGroupBlock(val wordId: Long, val dictionaryId: Long) : DatasourceEffect
+
+    /** Membership-мутации (запись сразу по галочке, В3). */
+    data class AddMembership(val wordId: Long, val groupId: Long) : DatasourceEffect
+    data class RemoveMembership(val wordId: Long, val groupId: Long) : DatasourceEffect
 }
 
 /**
@@ -234,6 +245,49 @@ class DatasourceEffectHandler @Inject constructor(
 
             // Обрабатывает AvailableComponentTypesFlowHandler (flow-handler), здесь — no-op.
             is DatasourceEffect.LoadAvailableComponentTypes -> Unit
+
+            // Обрабатывает GroupBlockFlowHandler (flow-handler), здесь — no-op.
+            is DatasourceEffect.SubscribeGroupBlock -> Unit
+
+            // === IS493 Э5: membership-мутации (плоские Msg через маппер) ===
+
+            is DatasourceEffect.AddMembership -> {
+                try {
+                    val outcome = wordCardUseCase.addWordToGroup(effect.wordId, effect.groupId)
+                    logger.d(
+                        tag = WordCardLogTags.WORDCARD,
+                        message = "membership add: word=${effect.wordId} group=${effect.groupId} outcome=$outcome",
+                    )
+                    consumer(outcome.toMembershipMsg(effect.groupId))
+                } catch (c: CancellationException) {
+                    throw c
+                } catch (t: Throwable) {
+                    logger.log(
+                        LogLevel.ERROR, WordCardLogTags.WORDCARD,
+                        "membership add failed: word=${effect.wordId} group=${effect.groupId}", t,
+                    )
+                    consumer(Msg.MembershipFailed(effect.groupId))
+                }
+            }
+
+            is DatasourceEffect.RemoveMembership -> {
+                try {
+                    val outcome = wordCardUseCase.removeWordFromGroup(effect.wordId, effect.groupId)
+                    logger.d(
+                        tag = WordCardLogTags.WORDCARD,
+                        message = "membership remove: word=${effect.wordId} group=${effect.groupId} outcome=$outcome",
+                    )
+                    consumer(outcome.toMembershipMsg(effect.groupId))
+                } catch (c: CancellationException) {
+                    throw c
+                } catch (t: Throwable) {
+                    logger.log(
+                        LogLevel.ERROR, WordCardLogTags.WORDCARD,
+                        "membership remove failed: word=${effect.wordId} group=${effect.groupId}", t,
+                    )
+                    consumer(Msg.MembershipFailed(effect.groupId))
+                }
+            }
         }
     }
 

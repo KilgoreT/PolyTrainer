@@ -9,9 +9,11 @@ import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.mate.Mate
 import me.apomazkin.mate.MateStateHolder
 import me.apomazkin.wordcard.deps.UiHost
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.wordcard.mate.AvailableComponentTypesFlowHandler
 import me.apomazkin.wordcard.mate.DatasourceEffect
 import me.apomazkin.wordcard.mate.DatasourceEffectHandler
+import me.apomazkin.wordcard.mate.GroupBlockFlowHandler
 import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.UiEffectHandler
 import me.apomazkin.wordcard.mate.WordCardReducer
@@ -23,18 +25,21 @@ class WordCardViewModel @AssistedInject constructor(
     @Assisted uiHost: UiHost,
     datasourceHandler: DatasourceEffectHandler,
     componentTypesFlowHandler: AvailableComponentTypesFlowHandler,
+    groupBlockFlowHandler: GroupBlockFlowHandler,
     navHandlerFactory: WordCardNavigationEffectHandler.Factory,
     uiEffectHandlerFactory: UiEffectHandler.Factory,
+    logger: LexemeLogger,
 ) : ViewModel(), MateStateHolder<WordCardState, Msg> {
 
     private val stateHolder = Mate(
         initState = WordCardState(),
         initEffects = setOf(DatasourceEffect.LoadWord(wordId)),
         coroutineScope = viewModelScope,
-        reducer = WordCardReducer(),
+        reducer = WordCardReducer(logger),
         effectHandlerSet = setOf(
             datasourceHandler,
             componentTypesFlowHandler,
+            groupBlockFlowHandler,
             navHandlerFactory.create(navigator),
             uiEffectHandlerFactory.create(uiHost),
         )

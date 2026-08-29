@@ -26,7 +26,7 @@ import java.util.Date
  */
 class ParticipationAndChoiceTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
 
     private fun hierType(
         id: Long,

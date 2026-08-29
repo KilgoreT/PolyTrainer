@@ -33,6 +33,9 @@ dependencies {
     // `api` (а не `implementation`) — типы domain видны транзитивно через
     // core-db-api callsite'ам (core-db-impl, app, screen modules).
     api(project(":modules:domain:lexeme"))
+    // IS493 Э3: outcomes групп (CreateGroupOutcome и пр.) — в сигнатурах
+    // GroupApi; тот же приём, что и для lexeme (типы видны транзитивно).
+    api(project(":modules:domain:group"))
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

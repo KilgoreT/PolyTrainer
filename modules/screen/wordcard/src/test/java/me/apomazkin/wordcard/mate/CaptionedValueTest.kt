@@ -31,7 +31,7 @@ import org.junit.Test
  */
 class CaptionedValueTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
     private fun savedKey(id: Long) = ComponentValueKey.Saved(ComponentValueId(id))
 
     private fun capCv(

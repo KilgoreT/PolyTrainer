@@ -69,6 +69,10 @@ class DatasourceEffectHandlerTest {
             flowTypesImpl(dictionaryId)
         override suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String> =
             captionSuggestionsImpl(componentTypeId)
+        override fun wordGroups(wordId: Long): Flow<List<me.apomazkin.group.GroupNode>> = TODO()
+        override fun dictGroups(dictionaryId: Long): Flow<List<me.apomazkin.group.GroupNode>> = TODO()
+        override suspend fun addWordToGroup(wordId: Long, groupId: Long): me.apomazkin.group.AddMembershipOutcome = TODO()
+        override suspend fun removeWordFromGroup(wordId: Long, groupId: Long): me.apomazkin.group.RemoveMembershipOutcome = TODO()
     }
 
     private object NoopLogger : LexemeLogger {

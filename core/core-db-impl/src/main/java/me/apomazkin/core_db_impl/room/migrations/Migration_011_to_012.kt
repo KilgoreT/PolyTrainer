@@ -106,6 +106,13 @@ object Migration_011_to_012 : Migration(11, 12) {
         connection.execSQL("ALTER TABLE lexemes DROP COLUMN translation")
         connection.execSQL("ALTER TABLE lexemes DROP COLUMN definition")
         maybeFail(14, failAfterStep)
+
+        // Легаси-хвост v11 (2026-08-29, вне failAfterStep-протокола, прецедент 6b):
+        // samples → значения builtin «Пример», затем DROP samples/hints. Порядок
+        // значим: DROP — ПОСЛЕ успешного переноса в той же транзакции (упавший
+        // перенос откатывает всё, таблицы остаются).
+        migrateSamplesData(connection)
+        dropLegacySampleTables(connection)
     }
 
     private fun maybeFail(currentStep: Int, failAfterStep: Int?) {
@@ -388,6 +395,83 @@ object Migration_011_to_012 : Migration(11, 12) {
             """.trimIndent()
         )
     }
+
+    // === Легаси-хвост v11: samples → «Пример» + DROP samples/hints (2026-08-29) ===
+
+    /**
+     * Перенос примеров из легаси-таблицы `samples` в значения builtin
+     * «Пример» (captioned_text: `{"fields":{"text":…,"caption":…}}`).
+     *
+     * Правила (решения пользователя):
+     *  - переносятся ТОЛЬКО живые (`removeDate IS NULL`) с существующей
+     *    лексемой (JOIN отфильтровывает битые ссылки — FK у samples нет);
+     *  - text = samples.value; caption = унифицированный source;
+     *  - `source` из ровно 13 цифр — легаси-баг (timestamp вместо
+     *    источника) → caption пустой; NULL/пустой → пустой;
+     *  - разнобой написаний одной книги (Galbraith/Rouling/Ink…) →
+     *    канон 'The Ink Black Heart. R. Galbraith' — одноразовый маппинг
+     *    под реальные прод-данные v11;
+     *  - created_at/updated_at — от самого сампла (addDate/changeDate),
+     *    НЕ `$now`: сохраняем историю добавления примеров;
+     *  - quiz_configs не трогаются (пример не квизуется).
+     *
+     * Guard: число вставленных строк сверяется с ожидаемым; расхождение
+     * роняет миграцию (Room откатывает транзакцию целиком — samples/hints
+     * остаются на месте, БД остаётся v11).
+     */
+    private fun migrateSamplesData(connection: SQLiteConnection) {
+        val expected = connection.scalarLong(
+            """
+            SELECT COUNT(*)
+            FROM samples s
+            JOIN lexemes l ON l.id = s.lexemeId
+            WHERE s.removeDate IS NULL
+            """.trimIndent()
+        )
+        connection.execSQL(
+            """
+            INSERT INTO component_values (lexeme_id, component_type_id, value, option_id, created_at, updated_at, removed_at)
+            SELECT
+                l.id,
+                (SELECT ct.id FROM component_types ct
+                 WHERE ct.system_key = 'example' AND ct.dictionary_id = w.dictionary_id),
+                json_object('fields', json_object(
+                    'text', json_object('type', 'text', 'value', s.value),
+                    'caption', json_object('type', 'text', 'value',
+                        CASE
+                            WHEN s.source IS NULL THEN ''
+                            WHEN TRIM(s.source) = '' THEN ''
+                            WHEN LENGTH(s.source) = 13 AND s.source NOT GLOB '*[^0-9]*' THEN ''
+                            WHEN s.source LIKE '%Galbraith%' OR s.source LIKE '%Rouling%' OR s.source LIKE '%Ink%'
+                                THEN 'The Ink Black Heart. R. Galbraith'
+                            ELSE TRIM(s.source)
+                        END
+                    )
+                )),
+                NULL, s.addDate, COALESCE(s.changeDate, s.addDate), NULL
+            FROM samples s
+            JOIN lexemes l ON l.id = s.lexemeId
+            JOIN words w ON w.id = l.word_id
+            WHERE s.removeDate IS NULL
+            """.trimIndent()
+        )
+        val migrated = connection.scalarLong("SELECT changes()")
+        check(migrated == expected) {
+            "samples migration mismatch: expected=$expected migrated=$migrated — rolling back"
+        }
+    }
+
+    /** DROP легаси-таблиц — строго ПОСЛЕ успешного [migrateSamplesData]. */
+    private fun dropLegacySampleTables(connection: SQLiteConnection) {
+        connection.execSQL("DROP TABLE samples")
+        connection.execSQL("DROP TABLE hints")
+    }
+
+    private fun SQLiteConnection.scalarLong(sql: String): Long =
+        prepare(sql).use { stmt ->
+            stmt.step()
+            stmt.getLong(0)
+        }
 
     private fun insertDefaultQuizConfigsForAllDictionaries(connection: SQLiteConnection) {
         // F1 invariant — даже пустой словарь получает default config [BuiltIn(TRANSLATION)].

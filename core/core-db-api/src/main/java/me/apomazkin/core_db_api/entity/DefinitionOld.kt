@@ -14,7 +14,6 @@ data class DefinitionOld(
     val wordId: Long? = null,
     val value: String? = null,
     val wordClass: WordClass? = null,
-    val sampleList: List<SampleApiEntity>? = null
 )
 
 enum class Grade {

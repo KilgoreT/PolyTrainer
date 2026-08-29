@@ -41,7 +41,7 @@ class DeleteWordDialogTest {
 
     @Test
     fun `given NotLoaded when OpenDeleteWordDialog then state unchanged`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = WordCardState(isLoading = false, wordState = WordState.NotLoaded)
 
         val result = reducer.testReduce(initial, Msg.OpenDeleteWordDialog)
@@ -52,7 +52,7 @@ class DeleteWordDialogTest {
 
     @Test
     fun `given Loaded when OpenDeleteWordDialog then showWarningDialog true`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = loaded()
 
         val result = reducer.testReduce(initial, Msg.OpenDeleteWordDialog)
@@ -64,7 +64,7 @@ class DeleteWordDialogTest {
 
     @Test
     fun `when CloseDeleteWordDialog then showWarningDialog false`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = loaded(showWarningDialog = true)
 
         val result = reducer.testReduce(initial, Msg.CloseDeleteWordDialog)
@@ -76,7 +76,7 @@ class DeleteWordDialogTest {
 
     @Test
     fun `given NotLoaded when RemoveWord then state unchanged`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = WordCardState(isLoading = false, wordState = WordState.NotLoaded)
 
         val result = reducer.testReduce(initial, Msg.RemoveWord(wordId = 99L))
@@ -87,7 +87,7 @@ class DeleteWordDialogTest {
 
     @Test
     fun `given Loaded with mismatching id when RemoveWord then state unchanged`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = loaded(id = 1L)
 
         val result = reducer.testReduce(initial, Msg.RemoveWord(wordId = 99L))
@@ -98,7 +98,7 @@ class DeleteWordDialogTest {
 
     @Test
     fun `given Loaded with matching id when RemoveWord then emits RemoveWord effect and pending`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = loaded(id = 7L, showWarningDialog = true)
 
         val result = reducer.testReduce(initial, Msg.RemoveWord(wordId = 7L))
@@ -109,7 +109,7 @@ class DeleteWordDialogTest {
 
     @Test
     fun `given isPendingDbOp true when RemoveWord then state unchanged (global guard)`() {
-        val reducer = WordCardReducer()
+        val reducer = WordCardReducer(NoopLogger)
         val initial = loaded(id = 7L, isPendingDbOp = true)
 
         val result = reducer.testReduce(initial, Msg.RemoveWord(wordId = 7L))

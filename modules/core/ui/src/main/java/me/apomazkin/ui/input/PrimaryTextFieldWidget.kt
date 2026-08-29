@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -39,7 +40,14 @@ fun PrimaryTextFieldWidget(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {
+        // IS493 Э3: пара кадров ожидания — если поле открывается из
+        // другого окна (dropdown-меню → шторка), мгновенный requestFocus
+        // проигрывает гонку за IME-таргет умирающему окну и клавиатура
+        // не поднимается; show() — явный запрос IME.
+        withFrameNanos { }
+        withFrameNanos { }
         focusRequester.requestFocus()
+        keyboardController?.show()
     }
     DisposableEffect(Unit) {
         onDispose {

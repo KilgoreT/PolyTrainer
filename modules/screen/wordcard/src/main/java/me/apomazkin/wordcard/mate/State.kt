@@ -35,6 +35,8 @@ data class WordCardState(
     val captionSuggestions: Map<ComponentTypeId, List<String>> = emptyMap(),
     /** Reducer-counter для уникальных pristine identity. */
     val nextPristineKey: Long = 1L,
+    /** IS493 Э5 (D22): блок групп слова — пикер, чипы, keyed in-flight. */
+    val groupsBlock: GroupsBlockState = GroupsBlockState(),
 ) {
     val isLoaded: Boolean
         get() = wordState is WordState.Loaded
@@ -45,9 +47,11 @@ data class WordCardState(
     val canAddLexeme: Boolean
         get() = !isPendingDbOp && !isCreatingLexeme
 
-    /** computed: есть хоть одна незавершённая (in-flight) запись компонента — для flush-on-back. */
+    /** computed: есть незавершённая запись (компонент ИЛИ membership Э5,
+     * ревью UX-1/Arch-1: flush-on-back ждёт membership по контракту А11). */
     val hasInFlightCommits: Boolean
-        get() = lexemeList.any { l -> l.components.any { it.isCommitting } }
+        get() = lexemeList.any { l -> l.components.any { it.isCommitting } } ||
+            groupsBlock.inFlight.isNotEmpty()
 }
 
 @Stable

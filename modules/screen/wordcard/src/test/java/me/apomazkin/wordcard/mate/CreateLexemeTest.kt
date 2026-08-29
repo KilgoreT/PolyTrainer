@@ -13,7 +13,7 @@ import org.junit.Test
  */
 class CreateLexemeTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
 
     @Test
     fun `CreateLexeme prepends NOT_IN_DB draft on top`() {

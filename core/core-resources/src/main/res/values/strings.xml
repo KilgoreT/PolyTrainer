@@ -80,6 +80,31 @@
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Dictionary</string>
+    <string name="vocabulary_tab_words">Words</string>
+    <string name="vocabulary_tab_groups">Groups</string>
+    <string name="groups_tab_stub_text">Groups will appear here</string>
+    <string name="group_all_title">All</string>
+    <string name="group_load_more">More</string>
+    <!-- Шаблон намеренно без существительного: plurals не нужны;
+         появится существительное — перейти на <plurals> (IS493 Э2, U-7). -->
+    <string name="group_shown_of">shown %1$d of %2$d</string>
+    <string name="group_menu_rename">Rename</string>
+    <string name="group_menu_delete">Delete</string>
+    <string name="group_delete_confirm">Delete group?</string>
+    <string name="group_delete_button">Delete</string>
+    <string name="group_empty_stub">empty</string>
+    <string name="group_error_empty_name">Enter a name</string>
+    <string name="group_error_duplicate_name">Name already taken</string>
+    <string name="group_error_reserved_name">Name is reserved</string>
+    <!-- IS493 Э5: пикер групп в карточке слова -->
+    <string name="group_picker_title">Word groups</string>
+    <string name="group_picker_empty">No groups yet</string>
+    <string name="group_picker_icon_description">Word groups</string>
+    <!-- IS493 Э6: импакт удаления + «удалить вместе со словами» -->
+    <string name="group_delete_words_stay">Words in group: %1$d. They will remain in the dictionary after deleting the group</string>
+    <string name="group_delete_with_words_label">Delete together with words</string>
+    <string name="group_delete_with_words_warn">Words to be deleted with the group: %1$d</string>
+    <string name="group_delete_all_button">Delete all</string>
     <string name="item_title_training">Quizzes</string>
     <string name="item_title_stats">Statistics</string>
     <string name="item_title_settings">Settings</string>

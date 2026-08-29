@@ -21,7 +21,7 @@ import org.junit.Test
  */
 class NavigateBackTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
 
     @Test
     fun `clean_back_navigates_immediately`() {

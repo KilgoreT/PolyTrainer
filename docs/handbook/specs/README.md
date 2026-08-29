@@ -20,6 +20,9 @@
 - Словари
   - [Список](dictionary-list/spec.md)
   - [Создание/редактирование](dictionary-create/spec.md)
+  - Группы (подсловари)
+    - [Домен / данные / логика](dictionary-groups/spec.md)
+    - [UI-раскладка](dictionary-groups/ui.md)
 - Splash
 - Главный экран (Main)
   - Словарь (DictionaryTab / VocabularyTab)

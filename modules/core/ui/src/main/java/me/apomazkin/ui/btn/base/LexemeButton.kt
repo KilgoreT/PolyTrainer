@@ -35,6 +35,8 @@ private val DEFAULT_HEIGHT = 44.dp
 fun LexemeButton(
     modifier: Modifier = Modifier,
     @StringRes titleRes: Int,
+    /** IS493 Э6: динамический текст (счётчик в названии) — перекрывает [titleRes]. */
+    titleOverride: String? = null,
     height: Dp = DEFAULT_HEIGHT,
     enabledColor: Color,
     titleTextColor: Color,
@@ -63,7 +65,7 @@ fun LexemeButton(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = stringResource(id = titleRes),
+                text = titleOverride ?: stringResource(id = titleRes),
                 style = titleTextStyle,
                 color = if (enabled) titleTextColor else disabledTitleTextColor,
             )

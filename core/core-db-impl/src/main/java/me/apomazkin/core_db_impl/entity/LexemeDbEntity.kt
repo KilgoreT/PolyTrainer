@@ -7,19 +7,15 @@ import me.apomazkin.logger.LexemeLogger
 
 /**
  * Lexeme + child collections подгружаемые Room через Multi-level @Relation:
- * - `sampleDbList` — примеры лексемы (legacy, camelCase `lexemeId`).
  * - `componentValueListDb` — компоненты лексемы с типами (IS481, snake_case).
  *
- * Room делает 3 batched SELECT (lexemes → component_values WHERE lexeme_id IN
+ * Room делает batched SELECT (lexemes → component_values WHERE lexeme_id IN
  * (...) → component_types WHERE id IN (...)). N+1 не возникает.
+ * Легаси `sampleDbList` удалён 2026-08-29: samples мигрированы в builtin
+ * «Пример» (Migration_011_to_012), таблица дропнута.
  */
 data class LexemeDbEntity(
     @Embedded val lexemeDb: LexemeDb,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "lexemeId"
-    )
-    val sampleDbList: List<SampleDb>,
     @Relation(
         entity = ComponentValueDb::class,
         parentColumn = "id",

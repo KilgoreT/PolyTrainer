@@ -14,7 +14,7 @@ import org.junit.Test
  */
 class OperationFailedTest {
 
-    private val reducer = WordCardReducer()
+    private val reducer = WordCardReducer(NoopLogger)
 
     @Test
     fun `F7_clears_pending_and_emits_error`() {
