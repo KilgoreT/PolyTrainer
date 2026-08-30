@@ -9,12 +9,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalWindowInfo
+import kotlinx.coroutines.flow.first
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
@@ -39,12 +42,15 @@ fun PrimaryTextFieldWidget(
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val windowInfo = LocalWindowInfo.current
     LaunchedEffect(Unit) {
-        // IS493 Э3: пара кадров ожидания — если поле открывается из
-        // другого окна (dropdown-меню → шторка), мгновенный requestFocus
-        // проигрывает гонку за IME-таргет умирающему окну и клавиатура
-        // не поднимается; show() — явный запрос IME.
-        withFrameNanos { }
+        // IS493 Э3 → IS496: если поле открывается из другого окна
+        // (dropdown-меню → панель), мгновенный requestFocus проигрывает
+        // гонку за IME-таргет умирающему окну попапа. Пара кадров (Э3)
+        // перестала хватать после переезда на немодальную панель —
+        // ждём ДЕТЕРМИНИРОВАННО, пока наше окно вернёт себе фокус
+        // (попап умер), и только затем фокус + явный запрос IME.
+        snapshotFlow { windowInfo.isWindowFocused }.first { it }
         withFrameNanos { }
         focusRequester.requestFocus()
         keyboardController?.show()

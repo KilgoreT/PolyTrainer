@@ -29,6 +29,8 @@ dependencies {
     implementation(project("path" to ":core:core-resources"))
 
     implementation(composeLibs.lifecycleRuntimeCompose)
+    // IS496: BackHandler для немодальной панели ввода.
+    implementation(composeLibs.activityCompose)
     api(composeLibs.uiToolingPreview)
     debugApi(composeLibs.bundles.composePreview)
     implementation(composeLibs.accompanistSystemUicontroller)

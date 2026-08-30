@@ -22,9 +22,21 @@ class WordsTabReducer(
         logger.log(message = "Reduce ---message---: $message ")
         return when (message) {
 
-            is Msg.OpenWordCard -> state to setOf(
-                WordsNavigationEffect.OpenWordCard(message.wordId)
-            )
+            // IS496 Р3: тап по слову при открытой панели добавления —
+            // намерение «добавить» сменилось на «открыть существующее»:
+            // панель закрывается (ввод и фильтр сбрасываются), затем
+            // навигация; возврат из карточки — к обычному списку.
+            is Msg.OpenWordCard -> if (state.addWordDialogState.isOpen) {
+                state
+                    .hideAddWordDialog()
+                    .toDefaultTermsFlow() to setOf(
+                    WordsNavigationEffect.OpenWordCard(message.wordId)
+                )
+            } else {
+                state to setOf(
+                    WordsNavigationEffect.OpenWordCard(message.wordId)
+                )
+            }
 
             is Msg.SelectDictionary -> if (message.current == null) {
                 // IS476: словарь отсутствует — переходим в пустое состояние таба.
