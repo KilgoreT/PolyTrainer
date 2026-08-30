@@ -1,27 +1,31 @@
 package me.apomazkin.groupstab.ui.widget
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.groupstab.R
 import me.apomazkin.groupstab.logic.GroupSheetError
 import me.apomazkin.groupstab.logic.GroupSheetState
 import me.apomazkin.groupstab.logic.Msg
 import me.apomazkin.theme.AppTheme
+import me.apomazkin.ui.panel.InputDockedPanelWidget
 import me.apomazkin.ui.preview.PreviewWidget
-import me.apomazkin.ui.sheet.InputBottomSheetWidget
 
 /**
- * IS493 Э3 (D15.1 v5): шторка создания/переименования группы — общий
- * [InputBottomSheetWidget] (единая вёрстка со шторкой слова words).
- * Ошибка валидации — строкой под полем (снекбар под шторкой/клавиатурой
- * не виден — итог ручного прогона).
+ * IS493 Э3 (D15.1 v5) → IS496: панель создания/переименования группы —
+ * общий [InputDockedPanelWidget] (немодальная, фон живой — Р1/Р2 брифа
+ * IS496; единая вёрстка с панелью слова words). Ошибка валидации —
+ * строкой под полем (снекбар под клавиатурой не виден — итог ручного
+ * прогона Э3).
  */
 @Composable
-internal fun GroupBottomSheetWidget(
+internal fun GroupInputPanelWidget(
     state: GroupSheetState,
     sendMessage: (Msg) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    InputBottomSheetWidget(
+    InputDockedPanelWidget(
+        modifier = modifier,
         value = state.input,
         isSendEnabled = state.input.isNotBlank() && !state.isSubmitting,
         onValueChange = { sendMessage(Msg.SheetInputChanged(it)) },
@@ -43,12 +47,13 @@ internal fun GroupBottomSheetWidget(
 @Composable
 private fun Preview() {
     AppTheme {
-        GroupBottomSheetWidget(
+        GroupInputPanelWidget(
             state = GroupSheetState(
                 mode = me.apomazkin.groupstab.logic.GroupSheetMode.Create,
                 input = "Дом",
                 error = GroupSheetError.DUPLICATE,
             ),
-        ) {}
+            sendMessage = {},
+        )
     }
 }

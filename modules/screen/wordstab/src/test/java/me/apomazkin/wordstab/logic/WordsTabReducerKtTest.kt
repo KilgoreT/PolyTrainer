@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.flowOf
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordstab.entity.WordInfo
+import me.apomazkin.wordstab.ui.WordsNavigationEffect
 import me.apomazkin.mate.*
 import me.apomazkin.mate.test.*
 import me.apomazkin.logger.LexemeLogger
@@ -930,5 +931,33 @@ class WordsTabReducerKtTest {
         assertFalse("Step 3: Action mode should remain disabled", step3.state().topBarState.isActionMode)
         assertFalse("Step 3: Dialog should be closed", step3.state().addWordDialogState.isOpen)
         step3.assertSingleEffect<DatasourceEffect.UpdateWord>("Step 3: Should have UpdateWord effect")
+    }
+
+    @Test
+    fun `IS496 - open word card without panel - state untouched, navigation effect`() {
+        val initialState = createTestState()
+
+        val result = reducer.reduce(initialState, Msg.OpenWordCard(wordId = 1L))
+
+        assertEquals(initialState, result.state())
+        result.assertSingleEffect<WordsNavigationEffect.OpenWordCard>("Should navigate to word card")
+    }
+
+    @Test
+    fun `IS496 R3 - open word card with add panel open - panel closed, filter reset, navigation`() {
+        // Панель открыта, юзер что-то ввёл (live-фильтр активен) — тап по
+        // отфильтрованному слову: намерение «добавить» сменилось.
+        val withPanel = reducer.testScenario(
+            createTestState(),
+            Msg.OpenAddWordDialog(),
+            Msg.UpdateWordInput("ca"),
+        ).last().state()
+        assertTrue(withPanel.addWordDialogState.isOpen)
+
+        val result = reducer.reduce(withPanel, Msg.OpenWordCard(wordId = 1L))
+
+        assertFalse("Panel must close", result.state().addWordDialogState.isOpen)
+        assertEquals("Input must reset", "", result.state().addWordDialogState.wordValue)
+        result.assertSingleEffect<WordsNavigationEffect.OpenWordCard>("Navigation must still fire")
     }
 }

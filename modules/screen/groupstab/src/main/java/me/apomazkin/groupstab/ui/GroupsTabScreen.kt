@@ -26,6 +26,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,7 +43,7 @@ import me.apomazkin.groupstab.logic.GroupUiItem
 import me.apomazkin.groupstab.logic.GroupWindowState
 import me.apomazkin.groupstab.logic.GroupsTabState
 import me.apomazkin.groupstab.logic.Msg
-import me.apomazkin.groupstab.ui.widget.GroupBottomSheetWidget
+import me.apomazkin.groupstab.ui.widget.GroupInputPanelWidget
 import me.apomazkin.grouptree.GroupNodeWidget
 import me.apomazkin.icondropdowned.DeleteIcon
 import me.apomazkin.icondropdowned.EditIcon
@@ -136,7 +141,25 @@ internal fun GroupsTabContent(
     onWordClick: (wordId: Long) -> Unit,
     sendMessage: (Msg) -> Unit,
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    // IS496 Р4: скролл живого фона под открытой панелью прячет клавиатуру
+    // (панель остаётся — закрытие сбросило бы фильтр и позицию).
+    val keyboard = LocalSoftwareKeyboardController.current
+    val hideKeyboardOnScroll = remember(keyboard) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (available.y != 0f) keyboard?.hide()
+                return Offset.Zero
+            }
+        }
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(hideKeyboardOnScroll),
+    ) {
         when {
             state.isLoading -> {
                 CircularProgressIndicator(
@@ -149,12 +172,18 @@ internal fun GroupsTabContent(
 
             else -> GroupsList(
                 state = state,
-                onWordClick = onWordClick,
+                // IS496 Р3: тап по слову при открытой панели — панель
+                // закрывается (намерение сменилось), затем карточка.
+                onWordClick = { wordId ->
+                    if (state.sheet != null) sendMessage(Msg.DismissSheet)
+                    onWordClick(wordId)
+                },
                 sendMessage = sendMessage,
             )
         }
         if (state.sheet != null) {
-            GroupBottomSheetWidget(
+            GroupInputPanelWidget(
+                modifier = Modifier.align(Alignment.BottomCenter),
                 state = state.sheet,
                 sendMessage = sendMessage,
             )

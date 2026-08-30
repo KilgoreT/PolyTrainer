@@ -94,7 +94,7 @@ internal fun GroupPickerBottomSheetWidget(
         onDismissRequest = { sendMessage(Msg.DismissGroupPicker) },
         sheetState = rememberModalBottomSheetState(),
         shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
-        // Фон — как у InputBottomSheetWidget (words/группы): без него
+        // Фон — как у InputDockedPanelWidget (words/группы): без него
         // M3-дефолт тёмный и чёрный текст нечитаем (прогон M1).
         containerColor = MaterialTheme.colorScheme.onPrimary,
         dragHandle = {},

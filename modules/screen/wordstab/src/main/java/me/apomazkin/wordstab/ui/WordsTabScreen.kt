@@ -16,6 +16,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -29,7 +34,7 @@ import me.apomazkin.wordstab.tools.DataHelper
 import me.apomazkin.wordstab.ui.widget.ConfirmDeleteWordWidget
 import me.apomazkin.wordstab.ui.widget.EmptyWidget
 import me.apomazkin.wordstab.ui.widget.WordListWidget
-import me.apomazkin.wordstab.ui.widget.addWordBottom.AddWordBottomSheetWidget
+import me.apomazkin.wordstab.ui.widget.addWordBottom.AddWordPanelWidget
 import me.apomazkin.wordstab.ui.widget.topBar.ActionTopBarWidget
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.theme.AppTheme
@@ -128,8 +133,24 @@ internal fun WordsTabContent(
         sendMessage(Msg.ExitSelectionMode)
     }
 
+    // IS496 Р4: скролл живого фона под открытой панелью прячет клавиатуру
+    // (панель остаётся — закрытие сбросило бы фильтр и позицию).
+    val keyboard = LocalSoftwareKeyboardController.current
+    val hideKeyboardOnScroll = remember(keyboard) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (available.y != 0f) keyboard?.hide()
+                return Offset.Zero
+            }
+        }
+    }
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(hideKeyboardOnScroll),
     ) {
         when {
             state.isLoading -> {
@@ -165,7 +186,8 @@ internal fun WordsTabContent(
             }
         }
         if (state.addWordDialogState.isOpen) {
-            AddWordBottomSheetWidget(
+            AddWordPanelWidget(
+                modifier = Modifier.align(Alignment.BottomCenter),
                 state = state.addWordDialogState,
                 sendMessage = sendMessage,
             )
