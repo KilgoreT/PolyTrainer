@@ -7,8 +7,8 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 import me.apomazkin.quiztab.logic.Msg
 import me.apomazkin.quiztab.logic.QuizTabReducer
 import me.apomazkin.quiztab.logic.QuizTabState
@@ -26,10 +26,10 @@ class QuizTabViewModel @AssistedInject constructor(
         initEffects = setOf(),
         coroutineScope = viewModelScope,
         reducer = QuizTabReducer(logger = logger),
-        effectHandlerSet = setOf(
+        effectHandlers = listOf(
             uiHandler,
             navHandlerFactory.create(navigator),
-        )
+        ),
     )
 
     override val state: StateFlow<QuizTabState>

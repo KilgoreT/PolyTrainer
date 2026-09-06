@@ -6,9 +6,9 @@ import me.apomazkin.wordstab.logic.DatasourceEffect.RemoveWords
 import me.apomazkin.wordstab.logic.DatasourceEffect.UpdateWord
 import me.apomazkin.wordstab.logic.processor.processUiMessage
 import me.apomazkin.wordstab.ui.WordsNavigationEffect
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.ReducerResult
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.ReducerResult
 import me.apomazkin.logger.LexemeLogger
 
 class WordsTabReducer(

@@ -5,15 +5,19 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import me.apomazkin.dictionary.DictionaryUseCase
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.MateEffectHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import javax.inject.Inject
 
+/** Гибрид: подписка на флаги + исполнитель семейства FlagFilterEffect. */
 class FlagFilterFlowHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
-) : MateFlowHandler<DictionaryFormMsg, Effect> {
+) : MateFlowHandler<DictionaryFormMsg>,
+    MateEffectHandler<DictionaryFormMsg, FlagFilterEffect> {
 
     override var job: Job? = null
+
+    override val effectFamily = FlagFilterEffect::class
 
     override fun subscribe(scope: CoroutineScope, send: (DictionaryFormMsg) -> Unit) {
         job = scope.launch {
@@ -24,12 +28,11 @@ class FlagFilterFlowHandler @Inject constructor(
     }
 
     override suspend fun runEffect(
-        effect: Effect,
+        effect: FlagFilterEffect,
         consumer: (DictionaryFormMsg) -> Unit,
     ) {
-        val filtered = effect as? FlagFilterEffect ?: return
-        when (filtered) {
-            is FlagFilterEffect.FilterFlags -> dictionaryUseCase.updateFilter(filtered.query)
+        when (effect) {
+            is FlagFilterEffect.FilterFlags -> dictionaryUseCase.updateFilter(effect.query)
         }
     }
 }

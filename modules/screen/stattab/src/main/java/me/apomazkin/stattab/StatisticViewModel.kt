@@ -7,8 +7,8 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 import me.apomazkin.stattab.mate.DatasourceEffectHandler
 import me.apomazkin.stattab.mate.Msg
 import me.apomazkin.stattab.mate.StatisticReducer
@@ -26,10 +26,10 @@ class StatisticViewModel @AssistedInject constructor(
         initEffects = setOf(),
         coroutineScope = viewModelScope,
         reducer = StatisticReducer(logger = logger),
-        effectHandlerSet = setOf(
-            datasourceHandler,
+        effectHandlers = listOf(
             navHandlerFactory.create(navigator),
-        )
+        ),
+        flowHandlers = listOf(datasourceHandler),
     )
 
     override val state: StateFlow<StatisticState>

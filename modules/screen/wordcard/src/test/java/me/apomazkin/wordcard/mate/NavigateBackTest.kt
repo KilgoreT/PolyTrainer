@@ -2,12 +2,12 @@ package me.apomazkin.wordcard.mate
 
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentValueId
-import me.apomazkin.mate.NavigationEffect
-import me.apomazkin.mate.state
-import me.apomazkin.mate.test.assertEffects
-import me.apomazkin.mate.test.assertNoEffects
-import me.apomazkin.mate.test.assertSingleEffect
-import me.apomazkin.mate.test.testReduce
+import io.github.kilgoret.mate.NavigationEffect
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertEffects
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.assertSingleEffect
+import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

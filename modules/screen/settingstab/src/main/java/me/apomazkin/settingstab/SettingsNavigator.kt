@@ -1,6 +1,6 @@
 package me.apomazkin.settingstab
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface SettingsNavigator : Navigator {
     fun openLangManagement()

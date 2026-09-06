@@ -1,6 +1,6 @@
 package me.apomazkin.dictionary.list
 
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.NavigationEffect
 
 sealed interface ListNavigationEffect : NavigationEffect {
     data object ExitApp : ListNavigationEffect

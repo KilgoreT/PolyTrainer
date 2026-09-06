@@ -42,7 +42,7 @@ class AvailableComponentTypesFlowHandlerTest {
     fun `runEffect without subscribe is no-op`() = runTest {
         val handler = AvailableComponentTypesFlowHandler(fake { flowOf(AvailableComponents(listOf(tr))) }, NoopLogger)
         val msgs = mutableListOf<Msg>()
-        handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(1L)) { msgs += it }
+        handler.resubscribe(DatasourceEffect.LoadAvailableComponentTypes(1L))
         advanceUntilIdle()
         assertTrue("scope ?: return — без краша и Msg", msgs.isEmpty())
     }
@@ -52,7 +52,7 @@ class AvailableComponentTypesFlowHandlerTest {
         val handler = AvailableComponentTypesFlowHandler(fake { flowOf(AvailableComponents(listOf(tr, ex))) }, NoopLogger)
         val msgs = mutableListOf<Msg>()
         handler.subscribe(this) { msgs += it }
-        handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(1L)) { msgs += it }
+        handler.resubscribe(DatasourceEffect.LoadAvailableComponentTypes(1L))
         advanceUntilIdle()
         assertEquals(listOf<Msg>(Msg.ComponentTypesLoaded(AvailableComponents(listOf(tr, ex)))), msgs)
         handler.unsubscribe()
@@ -66,7 +66,7 @@ class AvailableComponentTypesFlowHandlerTest {
         )
         val msgs = mutableListOf<Msg>()
         handler.subscribe(this) { msgs += it }
-        handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(1L)) { msgs += it }
+        handler.resubscribe(DatasourceEffect.LoadAvailableComponentTypes(1L))
         advanceUntilIdle()
         assertTrue(msgs.single() is Msg.ComponentTypesLoadFailed)
         handler.unsubscribe()
@@ -80,7 +80,7 @@ class AvailableComponentTypesFlowHandlerTest {
         )
         val msgs = mutableListOf<Msg>()
         handler.subscribe(this) { msgs += it }
-        handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(1L)) { msgs += it }
+        handler.resubscribe(DatasourceEffect.LoadAvailableComponentTypes(1L))
         advanceUntilIdle()
         assertTrue("Cancellation НЕ превращается в Failed", msgs.none { it is Msg.ComponentTypesLoadFailed })
         handler.unsubscribe()
@@ -97,10 +97,10 @@ class AvailableComponentTypesFlowHandlerTest {
         val msgs = mutableListOf<Msg>()
         handler.subscribe(this) { msgs += it }
 
-        handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(1L)) { msgs += it }
+        handler.resubscribe(DatasourceEffect.LoadAvailableComponentTypes(1L))
         d1.emit(AvailableComponents(listOf(tr))); advanceUntilIdle()
 
-        handler.runEffect(DatasourceEffect.LoadAvailableComponentTypes(2L)) { msgs += it }
+        handler.resubscribe(DatasourceEffect.LoadAvailableComponentTypes(2L))
         d1.emit(AvailableComponents(listOf(ex))); advanceUntilIdle()   // старый job отменён → НЕ получен
         d2.emit(AvailableComponents(listOf(tr, ex))); advanceUntilIdle()
 

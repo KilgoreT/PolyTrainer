@@ -1,9 +1,9 @@
 package me.apomazkin.dictionary.form
 
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.NavigationEffect
-import me.apomazkin.mate.ReducerResult
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.NavigationEffect
+import io.github.kilgoret.mate.ReducerResult
 
 class DictionaryFormReducer : MateReducer<DictionaryFormScreenState, DictionaryFormMsg, Effect> {
     override fun reduce(

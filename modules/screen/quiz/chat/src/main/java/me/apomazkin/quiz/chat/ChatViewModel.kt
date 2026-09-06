@@ -7,8 +7,8 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 import me.apomazkin.quiz.chat.logic.AppBarFlowHandler
 import me.apomazkin.quiz.chat.logic.ChatReducer
 import me.apomazkin.quiz.chat.logic.ChatScreenState
@@ -36,12 +36,14 @@ class ChatViewModel @AssistedInject constructor(
             logger = logger,
             resourceManager = resourceManager,
         ),
-        effectHandlerSet = setOf(
+        effectHandlers = listOf(
             datasourceHandler,
+            navHandlerFactory.create(navigator),
+        ),
+        flowHandlers = listOf(
             appBarFlowHandler,
             quizPickerFlowHandler,
-            navHandlerFactory.create(navigator),
-        )
+        ),
     )
 
     override val state: StateFlow<ChatScreenState>

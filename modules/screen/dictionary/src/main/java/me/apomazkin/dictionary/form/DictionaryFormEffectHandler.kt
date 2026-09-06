@@ -3,8 +3,8 @@ package me.apomazkin.dictionary.form
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionary.DictionaryUseCase
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateTypedEffectHandler
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateEffectHandler
 import javax.inject.Inject
 
 sealed interface DictionaryFormEffect : Effect {
@@ -19,11 +19,11 @@ sealed interface DictionaryFormEffect : Effect {
 
 class DictionaryFormEffectHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
-) : MateTypedEffectHandler<DictionaryFormMsg, DictionaryFormEffect>() {
+) : MateEffectHandler<DictionaryFormMsg, DictionaryFormEffect> {
 
-    override fun filter(effect: Effect): DictionaryFormEffect? = effect as? DictionaryFormEffect
+    override val effectFamily = DictionaryFormEffect::class
 
-    override suspend fun onEffect(effect: DictionaryFormEffect, consumer: (DictionaryFormMsg) -> Unit) {
+    override suspend fun runEffect(effect: DictionaryFormEffect, consumer: (DictionaryFormMsg) -> Unit) {
         val msg = when (effect) {
             is DictionaryFormEffect.LoadDictionary -> {
                 val item = withContext(Dispatchers.IO) {

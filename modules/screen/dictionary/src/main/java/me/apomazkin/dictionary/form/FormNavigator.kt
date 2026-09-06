@@ -1,5 +1,5 @@
 package me.apomazkin.dictionary.form
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface FormNavigator : Navigator

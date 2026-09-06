@@ -6,8 +6,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import me.apomazkin.lexeme.ComponentTypeRef
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateTypedEffectHandler
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateEffectHandler
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
@@ -52,11 +52,11 @@ class DatasourceEffectHandler @Inject constructor(
     private val prefsProvider: PrefsProvider,
     private val useCase: QuizChatUseCase,
     private val logger: LexemeLogger,
-) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
+) : MateEffectHandler<Msg, DatasourceEffect> {
 
-    override fun filter(effect: Effect): DatasourceEffect? = effect as? DatasourceEffect
+    override val effectFamily = DatasourceEffect::class
 
-    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
+    override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         val msg: Msg = when (effect) {
             is DatasourceEffect.PrepareToStart -> withContext(Dispatchers.IO) {

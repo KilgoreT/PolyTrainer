@@ -1,6 +1,6 @@
 package me.apomazkin.components_manager.mate
 
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.NavigationEffect
 
 /**
  * Navigation effects для `ComponentsManagerScreen`.

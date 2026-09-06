@@ -1,7 +1,7 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.annotation.StringRes
-import me.apomazkin.mate.Effect
+import io.github.kilgoret.mate.Effect
 
 /**
  * One-shot UI side-effects.

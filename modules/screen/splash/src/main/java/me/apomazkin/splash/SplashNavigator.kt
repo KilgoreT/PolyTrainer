@@ -1,6 +1,6 @@
 package me.apomazkin.splash
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface SplashNavigator : Navigator {
     fun openDictionarySetup()

@@ -8,8 +8,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateEffectHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
 import javax.inject.Inject
@@ -21,7 +22,10 @@ sealed interface DatasourceEffect : Effect {
 class DatasourceEffectHandler @Inject constructor(
         private val useCase: DictionaryAppBarUseCase,
         private val logger: LexemeLogger,
-) : MateFlowHandler<Msg, Effect> {
+) : MateFlowHandler<Msg>,
+        MateEffectHandler<Msg, DatasourceEffect> {
+
+    override val effectFamily = DatasourceEffect::class
 
     override var job: Job? = null
 
@@ -39,18 +43,17 @@ class DatasourceEffectHandler @Inject constructor(
     }
 
     override suspend fun runEffect(
-            effect: Effect,
+            effect: DatasourceEffect,
             consumer: (Msg) -> Unit,
     ) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
-        val msg = when (val eff = effect as? DatasourceEffect) {
+        val msg = when (effect) {
             is DatasourceEffect.ChangeDict -> {
                 withContext(Dispatchers.IO) {
-                    useCase.changeDict(id = eff.dict.id)
+                    useCase.changeDict(id = effect.dict.id)
                 }
                 Msg.Empty
             }
-            null -> return
         }
         consumer(msg)
     }

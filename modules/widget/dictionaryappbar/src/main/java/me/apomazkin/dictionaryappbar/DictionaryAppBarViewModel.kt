@@ -11,8 +11,8 @@ import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarReducer
 import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarState
 import me.apomazkin.dictionaryappbar.mate.Msg
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 
 class DictionaryAppBarViewModel @AssistedInject constructor(
     @Assisted navigator: DictionaryAppBarNavigator,
@@ -26,10 +26,11 @@ class DictionaryAppBarViewModel @AssistedInject constructor(
         initEffects = setOf(),
         coroutineScope = viewModelScope,
         reducer = DictionaryAppBarReducer(logger = logger),
-        effectHandlerSet = setOf(
+        effectHandlers = listOf(
             datasourceHandler,
             navHandlerFactory.create(navigator),
-        )
+        ),
+        flowHandlers = listOf(datasourceHandler),
     )
 
     override val state: StateFlow<DictionaryAppBarState>

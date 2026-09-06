@@ -5,13 +5,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import me.apomazkin.dictionary.DictionaryUseCase
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import javax.inject.Inject
 
 class DictionaryListFlowHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
-) : MateFlowHandler<DictionaryListMsg, Effect> {
+) : MateFlowHandler<DictionaryListMsg> {
 
     override var job: Job? = null
 
@@ -22,12 +21,5 @@ class DictionaryListFlowHandler @Inject constructor(
                     send(DictionaryListMsg.DictionariesLoaded(list))
                 }
         }
-    }
-
-    override suspend fun runEffect(
-        effect: Effect,
-        consumer: (DictionaryListMsg) -> Unit,
-    ) {
-        // Flow handler — effects handled by DictionaryListEffectHandler
     }
 }

@@ -11,8 +11,9 @@ import kotlinx.coroutines.withContext
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.entity.WordInfo
 import me.apomazkin.mate.EMPTY_STRING
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateEffectHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
 import javax.inject.Inject
@@ -32,7 +33,10 @@ sealed interface DatasourceEffect : Effect {
 class DatasourceEffectHandler @Inject constructor(
         private val wordstabUseCase: WordsTabUseCase,
         private val logger: LexemeLogger,
-) : MateFlowHandler<Msg, Effect> {
+) : MateFlowHandler<Msg>,
+        MateEffectHandler<Msg, DatasourceEffect> {
+
+    override val effectFamily = DatasourceEffect::class
 
     override var job: Job? = null
     private var pagingScope: CoroutineScope? = null
@@ -49,11 +53,11 @@ class DatasourceEffectHandler @Inject constructor(
     }
 
     override suspend fun runEffect(
-            effect: Effect,
+            effect: DatasourceEffect,
             consumer: (Msg) -> Unit,
     ) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
-        val msg = when (val eff = effect as? DatasourceEffect) {
+        val msg = when (val eff = effect) {
             is DatasourceEffect.LoadTermFlow -> withContext(Dispatchers.IO) {
                 // IS476: getCurrentDict() теперь nullable — страхуемся на случай race,
                 // когда reducer уже отфильтровал null, но эффект мог быть "в пути".
@@ -93,7 +97,6 @@ class DatasourceEffectHandler @Inject constructor(
                 }
                 Msg.NoOperation
             }
-            null -> return
         }
         consumer(msg)
     }

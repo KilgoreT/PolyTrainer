@@ -5,18 +5,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
 
 class AppBarFlowHandler @Inject constructor(
         private val prefsProvider: PrefsProvider,
-) : MateFlowHandler<Msg, Effect> {
-
-
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {}
+) : MateFlowHandler<Msg> {
 
     override var job: Job? = null
     override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {

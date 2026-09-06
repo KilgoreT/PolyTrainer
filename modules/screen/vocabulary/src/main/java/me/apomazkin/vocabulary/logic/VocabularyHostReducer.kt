@@ -1,8 +1,8 @@
 package me.apomazkin.vocabulary.logic
 
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.ReducerResult
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.ReducerResult
 
 /**
  * IS493: reducer host'а. Эффектов нет — сброс ActionMode words при

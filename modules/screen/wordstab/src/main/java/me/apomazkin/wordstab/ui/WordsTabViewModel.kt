@@ -13,8 +13,8 @@ import me.apomazkin.wordstab.logic.Msg
 import me.apomazkin.wordstab.logic.UiEffectHandler
 import me.apomazkin.wordstab.logic.WordsTabReducer
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 
 class WordsTabViewModel @AssistedInject constructor(
     @Assisted navigator: WordsNavigator,
@@ -29,11 +29,12 @@ class WordsTabViewModel @AssistedInject constructor(
         initEffects = setOf(DatasourceEffect.LoadTermFlow()),
         coroutineScope = viewModelScope,
         reducer = WordsTabReducer(logger = logger),
-        effectHandlerSet = setOf(
+        effectHandlers = listOf(
             datasourceHandler,
             uiHandler,
             navHandlerFactory.create(navigator),
-        )
+        ),
+        flowHandlers = listOf(datasourceHandler),
     )
 
     override val state: StateFlow<WordsTabState>

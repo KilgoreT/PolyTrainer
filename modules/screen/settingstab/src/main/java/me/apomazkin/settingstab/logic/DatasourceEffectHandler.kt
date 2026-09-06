@@ -3,8 +3,8 @@ package me.apomazkin.settingstab.logic
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateTypedEffectHandler
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateEffectHandler
 import me.apomazkin.settingstab.deps.SettingsTabUseCase
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
@@ -18,11 +18,11 @@ sealed interface DatasourceEffect : Effect {
 class DatasourceEffectHandler @Inject constructor(
     private val settingsTabUseCase: SettingsTabUseCase,
     private val logger: LexemeLogger,
-) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
+) : MateEffectHandler<Msg, DatasourceEffect> {
 
-    override fun filter(effect: Effect): DatasourceEffect? = effect as? DatasourceEffect
+    override val effectFamily = DatasourceEffect::class
 
-    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
+    override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         val msg: Msg = when (effect) {
             is DatasourceEffect.ExportData -> withContext(Dispatchers.IO) {

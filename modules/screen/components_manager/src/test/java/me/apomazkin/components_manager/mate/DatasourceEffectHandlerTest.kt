@@ -34,8 +34,14 @@ class DatasourceEffectHandlerTest {
 
     private val useCase = mockk<ComponentsManagerUseCase>()
     private val logger = mockk<LexemeLogger>(relaxed = true)
+    private val allUserDefinedTypesFlowHandler = mockk<AllUserDefinedTypesFlowHandler>(relaxed = true)
     private val dictionariesFlowHandler = mockk<DictionariesFlowHandler>(relaxed = true)
-    private val handler = DatasourceEffectHandler(useCase, dictionariesFlowHandler, logger)
+    private val handler = DatasourceEffectHandler(
+        useCase,
+        allUserDefinedTypesFlowHandler,
+        dictionariesFlowHandler,
+        logger,
+    )
 
     private val now = Date(0L)
 

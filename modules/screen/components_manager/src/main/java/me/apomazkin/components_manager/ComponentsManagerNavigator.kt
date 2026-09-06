@@ -1,5 +1,5 @@
 package me.apomazkin.components_manager
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface ComponentsManagerNavigator : Navigator

@@ -8,22 +8,21 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import javax.inject.Inject
 
 private const val TAG = "ComponentTypesFlow"
 
 /**
- * ЭТАП 0: skeleton. РЕАЛИЗАЦИЯ — этап 5 (§7): init-subscribe() no-op; runEffect на
+ * ЭТАП 0: skeleton. РЕАЛИЗАЦИЯ — этап 5 (§7): init-subscribe() no-op; resubscribe на
  * LoadAvailableComponentTypes → (re-)subscribe на flowAvailableComponentTypes(dictId);
  * emit → ComponentTypesLoaded / catch → ComponentTypesLoadFailed; resubscribe отменяет job.
  */
 class AvailableComponentTypesFlowHandler @Inject constructor(
     private val useCase: WordCardUseCase,
     private val logger: LexemeLogger,
-) : MateFlowHandler<Msg, Effect> {
+) : MateFlowHandler<Msg> {
 
     override var job: Job? = null
     private var scope: CoroutineScope? = null
@@ -34,8 +33,7 @@ class AvailableComponentTypesFlowHandler @Inject constructor(
         this.send = send
     }
 
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
-        val load = effect as? DatasourceEffect.LoadAvailableComponentTypes ?: return
+    fun resubscribe(load: DatasourceEffect.LoadAvailableComponentTypes) {
         val scope = scope ?: return
         val send = send ?: return
         job?.cancel()

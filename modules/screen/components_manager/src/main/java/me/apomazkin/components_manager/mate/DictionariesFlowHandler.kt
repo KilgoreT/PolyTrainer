@@ -8,8 +8,7 @@ import kotlinx.coroutines.launch
 import me.apomazkin.components_manager.LogTags
 import me.apomazkin.components_manager.deps.ComponentsManagerUseCase
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import javax.inject.Inject
 
 /**
@@ -26,19 +25,18 @@ import javax.inject.Inject
 class DictionariesFlowHandler @Inject constructor(
     private val useCase: ComponentsManagerUseCase,
     private val logger: LexemeLogger,
-) : MateFlowHandler<Msg, Effect> {
+) : MateFlowHandler<Msg> {
 
     override var job: Job? = null
 
     private var scope: CoroutineScope? = null
     private var send: ((Msg) -> Unit)? = null
 
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
-        if (effect is DatasourceEffect.SubscribeDictionaries) {
-            val s = scope ?: return
-            unsubscribe()
-            subscribe(s, send ?: consumer)
-        }
+    /** Re-subscribe — отменяем существующую job и стартуем новую. */
+    fun resubscribe(consumer: (Msg) -> Unit) {
+        val s = scope ?: return
+        unsubscribe()
+        subscribe(s, send ?: consumer)
     }
 
     override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {

@@ -1,9 +1,9 @@
 package me.apomazkin.dictionary.list
 
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.NavigationEffect
-import me.apomazkin.mate.ReducerResult
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.NavigationEffect
+import io.github.kilgoret.mate.ReducerResult
 
 class DictionaryListReducer : MateReducer<DictionaryListScreenState, DictionaryListMsg, Effect> {
     override fun reduce(

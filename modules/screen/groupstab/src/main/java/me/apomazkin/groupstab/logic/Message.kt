@@ -3,7 +3,7 @@ package me.apomazkin.groupstab.logic
 import me.apomazkin.group.DeleteGroupOutcome
 import me.apomazkin.group.DeleteGroupWithWordsOutcome
 import me.apomazkin.group.DisplayTree
-import me.apomazkin.mate.Effect
+import io.github.kilgoret.mate.Effect
 import me.apomazkin.wordrow.entity.TermUiItem
 
 sealed interface Msg {

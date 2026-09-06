@@ -1,6 +1,6 @@
 package me.apomazkin.quiztab
 
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.NavigationEffect
 
 sealed interface QuizTabNavigationEffect : NavigationEffect {
     data class OpenChat(val quizType: String) : QuizTabNavigationEffect

@@ -1,6 +1,6 @@
 package me.apomazkin.dictionaryappbar
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface DictionaryAppBarNavigator : Navigator {
     fun openDictionaryCreate()

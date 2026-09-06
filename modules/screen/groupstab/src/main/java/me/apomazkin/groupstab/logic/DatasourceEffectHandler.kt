@@ -19,8 +19,8 @@ import me.apomazkin.group.buildDisplayTree
 import me.apomazkin.groupstab.LogTags
 import me.apomazkin.groupstab.deps.GroupsTabUseCase
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.MateEffectHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import java.text.Collator
 import javax.inject.Inject
 
@@ -46,7 +46,10 @@ import javax.inject.Inject
 class DatasourceEffectHandler @Inject constructor(
     private val useCase: GroupsTabUseCase,
     private val logger: LexemeLogger,
-) : MateFlowHandler<Msg, Effect> {
+) : MateFlowHandler<Msg>,
+    MateEffectHandler<Msg, GroupsEffect> {
+
+    override val effectFamily = GroupsEffect::class
 
     override var job: Job? = null
     private val dictionaryId = MutableStateFlow<Long?>(null)
@@ -151,13 +154,11 @@ class DatasourceEffectHandler @Inject constructor(
     }
 
     override suspend fun runEffect(
-        effect: Effect,
+        effect: GroupsEffect,
         consumer: (Msg) -> Unit,
     ) {
-        (effect as? GroupsEffect)?.let {
-            logger.d(tag = LogTags.GROUPS, message = "effect: $it")
-        }
-        val msg: Msg = when (val eff = effect as? GroupsEffect) {
+        logger.d(tag = LogTags.GROUPS, message = "effect: $effect")
+        val msg: Msg = when (val eff = effect) {
             is GroupsEffect.SubscribeSlice -> {
                 dictionaryId.value = eff.dictionaryId
                 return
@@ -265,8 +266,6 @@ class DatasourceEffectHandler @Inject constructor(
                         },
                     )
             }
-
-            null -> return
         }
         consumer(msg)
     }

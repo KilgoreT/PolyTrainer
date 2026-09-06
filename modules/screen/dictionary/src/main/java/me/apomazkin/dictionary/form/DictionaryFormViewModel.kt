@@ -6,8 +6,8 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 
 class DictionaryFormViewModel @AssistedInject constructor(
     @Assisted editingDictionaryId: Long?,
@@ -28,11 +28,12 @@ class DictionaryFormViewModel @AssistedInject constructor(
         },
         coroutineScope = viewModelScope,
         reducer = DictionaryFormReducer(),
-        effectHandlerSet = setOf(
+        effectHandlers = listOf(
             datasourceHandler,
             flagFilterHandler,
             navHandlerFactory.create(navigator),
         ),
+        flowHandlers = listOf(flagFilterHandler),
     )
 
     override val state: StateFlow<DictionaryFormScreenState>

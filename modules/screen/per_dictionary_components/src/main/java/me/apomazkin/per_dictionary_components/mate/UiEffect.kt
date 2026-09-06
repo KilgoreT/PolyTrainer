@@ -1,6 +1,6 @@
 package me.apomazkin.per_dictionary_components.mate
 
-import me.apomazkin.mate.Effect
+import io.github.kilgoret.mate.Effect
 
 /**
  * One-shot UI side-effects (snackbar messages). IS481 MVP — plain text strings;

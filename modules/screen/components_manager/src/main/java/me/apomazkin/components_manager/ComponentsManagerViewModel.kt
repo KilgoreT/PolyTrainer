@@ -15,8 +15,8 @@ import me.apomazkin.components_manager.mate.Msg
 import me.apomazkin.components_manager.mate.NavigationEffectHandler
 import me.apomazkin.components_manager.mate.UiEffectHandler
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 
 /**
  * ViewModel экрана `ComponentsManagerScreen`. Собирает Mate из:
@@ -32,8 +32,6 @@ class ComponentsManagerViewModel @AssistedInject constructor(
     @Assisted navigator: ComponentsManagerNavigator,
     logger: LexemeLogger,
     datasourceHandler: DatasourceEffectHandler,
-    flowHandler: AllUserDefinedTypesFlowHandler,
-    dictionariesFlowHandler: DictionariesFlowHandler,
     uiHandler: UiEffectHandler,
     navHandlerFactory: NavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<ComponentsManagerScreenState, Msg> {
@@ -43,12 +41,14 @@ class ComponentsManagerViewModel @AssistedInject constructor(
         initEffects = emptySet(),
         coroutineScope = viewModelScope,
         reducer = ComponentsManagerReducer(logger = logger),
-        effectHandlerSet = setOf(
+        effectHandlers = listOf(
             datasourceHandler,
-            flowHandler,
-            dictionariesFlowHandler,
             uiHandler,
             navHandlerFactory.create(navigator),
+        ),
+        flowHandlers = listOf(
+            datasourceHandler.allUserDefinedTypesFlowHandler,
+            datasourceHandler.dictionariesFlowHandler,
         ),
     )
 

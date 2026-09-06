@@ -9,8 +9,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.per_dictionary_components.LogTags
 import me.apomazkin.per_dictionary_components.deps.PerDictionaryComponentsUseCase
 
@@ -20,7 +19,7 @@ import me.apomazkin.per_dictionary_components.deps.PerDictionaryComponentsUseCas
  * collect → `Msg.ItemsLoadFailed`.
  *
  * `dictionaryId` приходит через `@Assisted` — ViewModel создаёт handler через factory
- * и передаёт его в `effectHandlerSet`. См. business_design_tree.md #44 финальная форма.
+ * и передаёт его в `flowHandlers`. См. business_design_tree.md #44 финальная форма.
  *
  * Parity pattern: `AllUserDefinedTypesFlowHandler` (CM Mate) + `QuizPickerFlowHandler`.
  */
@@ -28,7 +27,7 @@ class ComponentsForDictionaryFlowHandler @AssistedInject constructor(
     @Assisted private val dictionaryId: Long,
     private val useCase: PerDictionaryComponentsUseCase,
     private val logger: LexemeLogger,
-) : MateFlowHandler<Msg, Effect> {
+) : MateFlowHandler<Msg> {
 
     override var job: Job? = null
 
@@ -36,13 +35,11 @@ class ComponentsForDictionaryFlowHandler @AssistedInject constructor(
     private var scope: CoroutineScope? = null
     private var send: ((Msg) -> Unit)? = null
 
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
-        if (effect is DatasourceEffect.LoadComponentsForDictionary) {
-            // F163: re-subscribe — отменяем существующую job и стартуем новую.
-            val s = scope ?: return
-            unsubscribe()
-            subscribe(s, send ?: consumer)
-        }
+    /** F163: re-subscribe — отменяем существующую job и стартуем новую. */
+    fun resubscribe(consumer: (Msg) -> Unit) {
+        val s = scope ?: return
+        unsubscribe()
+        subscribe(s, send ?: consumer)
     }
 
     override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {

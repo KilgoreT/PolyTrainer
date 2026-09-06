@@ -12,10 +12,10 @@ import me.apomazkin.lexeme.Scope
 import me.apomazkin.lexeme.SetEnabledOutcome
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import me.apomazkin.mate.effects
-import me.apomazkin.mate.state
-import me.apomazkin.mate.test.assertNoEffects
-import me.apomazkin.mate.test.testReduce
+import io.github.kilgoret.mate.effects
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

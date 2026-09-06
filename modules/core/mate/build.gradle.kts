@@ -23,12 +23,11 @@ android {
 }
 
 dependencies {
+    // Э3 (mate → библиотека): модуль стал МОСТОМ — ядро раннера
+    // приходит с JitPack, здесь остаётся проектная обвязка
+    // (ReducerLogging/LogTags/Constants). api — потребители получают
+    // библиотеку транзитивно, их зависимости не меняются.
+    api("com.github.KilgoreT.mate:mate-core:v0.1.0")
     api(project("path" to ":modules:core:logger"))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("junit:junit:4.13.2")
-    
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }

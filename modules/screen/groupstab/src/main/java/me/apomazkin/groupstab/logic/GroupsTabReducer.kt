@@ -1,12 +1,12 @@
 package me.apomazkin.groupstab.logic
 
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.ReducerResult
-import me.apomazkin.mate.begin
-import me.apomazkin.mate.then
-import me.apomazkin.mate.withEffect
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.ReducerResult
+import io.github.kilgoret.mate.begin
+import io.github.kilgoret.mate.then
+import io.github.kilgoret.mate.withEffect
 
 /** Стартовый размер окна и шаг «Ещё». Решение юзера (2026-08-11): 10. */
 internal const val CHUNK_SIZE = 10

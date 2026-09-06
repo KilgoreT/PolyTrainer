@@ -1,8 +1,8 @@
 package me.apomazkin.quiztab.logic
 
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.ReducerResult
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.ReducerResult
 import me.apomazkin.quiztab.QuizTabNavigationEffect
 import me.apomazkin.quiztab.logic.processor.processUiMessage
 import me.apomazkin.logger.LexemeLogger

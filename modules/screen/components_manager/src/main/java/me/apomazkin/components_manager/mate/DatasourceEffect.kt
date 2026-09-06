@@ -3,7 +3,7 @@ package me.apomazkin.components_manager.mate
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.Scope
-import me.apomazkin.mate.Effect
+import io.github.kilgoret.mate.Effect
 
 /**
  * Datasource Effects для `ComponentsManagerScreen`. См. business_contract_spec.md § IO.

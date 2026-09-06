@@ -7,8 +7,8 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 import me.apomazkin.settingstab.logic.DatasourceEffectHandler
 import me.apomazkin.settingstab.logic.Msg
 import me.apomazkin.settingstab.logic.SettingsTabReducer
@@ -28,11 +28,11 @@ class SettingsTabViewModel @AssistedInject constructor(
         initEffects = setOf(),
         coroutineScope = viewModelScope,
         reducer = SettingsTabReducer(logger = logger),
-        effectHandlerSet = setOf(
+        effectHandlers = listOf(
             datasourceHandler,
             uiHandler,
             navHandlerFactory.create(navigator),
-        )
+        ),
     )
 
     override val state: StateFlow<SettingsTabState>

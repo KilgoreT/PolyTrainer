@@ -7,8 +7,8 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 import me.apomazkin.per_dictionary_components.mate.ComponentsForDictionaryFlowHandler
 import me.apomazkin.per_dictionary_components.mate.DatasourceEffectHandler
 import me.apomazkin.per_dictionary_components.mate.Msg
@@ -37,6 +37,10 @@ class PerDictionaryComponentsViewModel @AssistedInject constructor(
     navHandlerFactory: NavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<PerDictionaryComponentsScreenState, Msg> {
 
+    private val flowHandler = flowHandlerFactory.create(dictionaryId).also {
+        datasourceHandler.componentsForDictionaryFlowHandler = it
+    }
+
     private val stateHolder = Mate(
         initState = PerDictionaryComponentsScreenState(
             dictionaryId = dictionaryId,
@@ -45,12 +49,12 @@ class PerDictionaryComponentsViewModel @AssistedInject constructor(
         initEffects = emptySet(),
         coroutineScope = viewModelScope,
         reducer = PerDictionaryComponentsReducer(logger = logger),
-        effectHandlerSet = setOf(
+        effectHandlers = listOf(
             datasourceHandler,
-            flowHandlerFactory.create(dictionaryId),
             uiHandler,
             navHandlerFactory.create(navigator),
         ),
+        flowHandlers = listOf(flowHandler),
     )
 
     override val state: StateFlow<PerDictionaryComponentsScreenState>

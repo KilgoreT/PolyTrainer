@@ -1,5 +1,5 @@
 package me.apomazkin.stattab
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface StatisticNavigator : Navigator

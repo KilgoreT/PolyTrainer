@@ -3,10 +3,10 @@ package me.apomazkin.wordcard.mate
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.wordcard.deps.AvailableComponents
-import me.apomazkin.mate.state
-import me.apomazkin.mate.test.assertEffects
-import me.apomazkin.mate.test.assertNoEffects
-import me.apomazkin.mate.test.testReduce
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertEffects
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.IOException

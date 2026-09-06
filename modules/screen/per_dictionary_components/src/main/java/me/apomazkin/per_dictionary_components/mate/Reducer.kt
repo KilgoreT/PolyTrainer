@@ -10,9 +10,9 @@ import me.apomazkin.lexeme.OptionOutcome
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.lexeme.SetEnabledOutcome
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.NavigationEffect
 import me.apomazkin.per_dictionary_components.LogTags
 import me.apomazkin.tools.failureLabel
 

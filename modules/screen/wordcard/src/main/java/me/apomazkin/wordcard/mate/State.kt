@@ -12,7 +12,7 @@ import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.lexeme.toRef
-import me.apomazkin.mate.Effect
+import io.github.kilgoret.mate.Effect
 import java.util.Date
 
 const val NOT_IN_DB = -1L

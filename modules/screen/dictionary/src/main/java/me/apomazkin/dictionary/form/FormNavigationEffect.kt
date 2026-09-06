@@ -1,6 +1,6 @@
 package me.apomazkin.dictionary.form
 
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.NavigationEffect
 
 /**
  * DictionaryForm — только базовый Back, специфичных эффектов нет.

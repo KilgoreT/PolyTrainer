@@ -4,8 +4,8 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import me.apomazkin.dictionaryappbar.mate.Msg
-import me.apomazkin.mate.MateNavigationEffectHandler
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.MateNavigationEffectHandler
+import io.github.kilgoret.mate.NavigationEffect
 
 class DictionaryAppBarNavigationEffectHandler @AssistedInject constructor(
     @Assisted private val barNavigator: DictionaryAppBarNavigator,

@@ -1,7 +1,7 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.mate.effects
-import me.apomazkin.mate.state
+import io.github.kilgoret.mate.effects
+import io.github.kilgoret.mate.state
 import me.apomazkin.wordrow.entity.TermUiItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

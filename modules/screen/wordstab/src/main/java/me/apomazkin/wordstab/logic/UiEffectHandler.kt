@@ -1,18 +1,18 @@
 package me.apomazkin.wordstab.logic
 
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateTypedEffectHandler
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateEffectHandler
 import javax.inject.Inject
 
 sealed interface UiEffect : Effect {
     data class ShowNotification(val message: String) : UiEffect
 }
 
-class UiEffectHandler @Inject constructor() : MateTypedEffectHandler<Msg, UiEffect>() {
+class UiEffectHandler @Inject constructor() : MateEffectHandler<Msg, UiEffect> {
 
-    override fun filter(effect: Effect): UiEffect? = effect as? UiEffect
+    override val effectFamily = UiEffect::class
 
-    override suspend fun onEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
+    override suspend fun runEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
         val msg = when (effect) {
             is UiEffect.ShowNotification -> UiMsg.ShowNotification(
                 message = effect.message,

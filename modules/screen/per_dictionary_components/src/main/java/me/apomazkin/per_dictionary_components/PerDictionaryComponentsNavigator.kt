@@ -1,5 +1,5 @@
 package me.apomazkin.per_dictionary_components
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface PerDictionaryComponentsNavigator : Navigator

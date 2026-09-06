@@ -8,10 +8,10 @@ import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.effects
-import me.apomazkin.mate.state
-import me.apomazkin.mate.test.assertNoEffects
-import me.apomazkin.mate.test.testReduce
+import io.github.kilgoret.mate.effects
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.ui.resource.ResourceManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

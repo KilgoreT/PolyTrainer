@@ -1,5 +1,5 @@
 package me.apomazkin.wordcard
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface WordCardNavigator : Navigator
