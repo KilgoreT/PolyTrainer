@@ -1,6 +1,6 @@
 package me.apomazkin.dictionaryappbar
 
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.NavigationEffect
 
 sealed interface DictionaryAppBarNavigationEffect : NavigationEffect {
     data object OpenDictionaryCreate : DictionaryAppBarNavigationEffect

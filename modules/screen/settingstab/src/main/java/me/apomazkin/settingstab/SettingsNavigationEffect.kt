@@ -1,6 +1,6 @@
 package me.apomazkin.settingstab
 
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.NavigationEffect
 
 sealed interface SettingsNavigationEffect : NavigationEffect {
     data object OpenLangManagement : SettingsNavigationEffect

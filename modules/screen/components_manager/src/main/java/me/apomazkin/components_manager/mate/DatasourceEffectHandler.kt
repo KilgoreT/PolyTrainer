@@ -9,8 +9,7 @@ import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateTypedEffectHandler
+import io.github.kilgoret.mate.MateEffectHandler
 import javax.inject.Inject
 
 /**
@@ -29,19 +28,14 @@ import javax.inject.Inject
  */
 class DatasourceEffectHandler @Inject constructor(
     private val useCase: ComponentsManagerUseCase,
-    private val dictionariesFlowHandler: DictionariesFlowHandler,
+    val allUserDefinedTypesFlowHandler: AllUserDefinedTypesFlowHandler,
+    val dictionariesFlowHandler: DictionariesFlowHandler,
     private val logger: LexemeLogger,
-) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
+) : MateEffectHandler<Msg, DatasourceEffect> {
 
-    override fun filter(effect: Effect): DatasourceEffect? {
-        // F163: LoadAllUserDefinedTypes — обрабатывается `AllUserDefinedTypesFlowHandler`
-        // (re-subscribe), не этим handler'ом. Phase 2: SubscribeDictionaries — обрабатывается
-        // `DictionariesFlowHandler` (см. onEffect ниже).
-        if (effect is DatasourceEffect.LoadAllUserDefinedTypes) return null
-        return effect as? DatasourceEffect
-    }
+    override val effectFamily = DatasourceEffect::class
 
-    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
+    override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
         val msg: Msg = withContext(Dispatchers.IO) {
             try {
                 when (effect) {
@@ -85,13 +79,15 @@ class DatasourceEffectHandler @Inject constructor(
                         )
 
                     DatasourceEffect.SubscribeDictionaries -> {
-                        dictionariesFlowHandler.runEffect(effect, consumer)
+                        dictionariesFlowHandler.resubscribe(consumer)
                         Msg.Empty
                     }
 
-                    // F163: filtered out в filter() выше — недостижимо, но
-                    // нужно для exhaustive `when` (sealed interface).
-                    DatasourceEffect.LoadAllUserDefinedTypes -> Msg.Empty
+                    // F163: re-subscribe — делегируем `AllUserDefinedTypesFlowHandler`.
+                    DatasourceEffect.LoadAllUserDefinedTypes -> {
+                        allUserDefinedTypesFlowHandler.resubscribe(consumer)
+                        Msg.Empty
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e

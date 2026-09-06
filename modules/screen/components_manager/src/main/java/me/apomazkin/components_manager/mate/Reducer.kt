@@ -7,9 +7,9 @@ import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.NameError
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.NavigationEffect
 import me.apomazkin.tools.failureLabel
 
 /**

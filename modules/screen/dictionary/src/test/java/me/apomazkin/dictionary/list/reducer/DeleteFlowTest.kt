@@ -6,11 +6,11 @@ import me.apomazkin.dictionary.list.DictionaryListMsg
 import me.apomazkin.dictionary.list.DictionaryListReducer
 import me.apomazkin.dictionary.list.DictionaryListScreenState
 import me.apomazkin.dictionary.model.DictionaryListItem
-import me.apomazkin.mate.effects
-import me.apomazkin.mate.state
-import me.apomazkin.mate.test.assertNoEffects
-import me.apomazkin.mate.test.assertSingleEffect
-import me.apomazkin.mate.test.testReduce
+import io.github.kilgoret.mate.effects
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.assertSingleEffect
+import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

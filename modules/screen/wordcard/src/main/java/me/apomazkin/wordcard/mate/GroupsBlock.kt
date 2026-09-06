@@ -4,9 +4,9 @@ import androidx.compose.runtime.Stable
 import me.apomazkin.group.AddMembershipOutcome
 import me.apomazkin.group.RemoveMembershipOutcome
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
+import io.github.kilgoret.mate.Effect
 import me.apomazkin.mate.ReducerLogging
-import me.apomazkin.mate.ReducerResult
+import io.github.kilgoret.mate.ReducerResult
 import me.apomazkin.wordcard.LogTags
 
 /**

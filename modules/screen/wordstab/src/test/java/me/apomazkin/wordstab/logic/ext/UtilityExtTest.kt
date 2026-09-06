@@ -2,7 +2,7 @@ package me.apomazkin.wordstab.logic.ext
 
 import me.apomazkin.wordstab.logic.*
 import me.apomazkin.wordstab.entity.WordInfo
-import me.apomazkin.mate.Effect
+import io.github.kilgoret.mate.Effect
 import org.junit.Assert.*
 import org.junit.Test
 

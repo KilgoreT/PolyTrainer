@@ -78,7 +78,7 @@ class GroupsBlockTest {
 
         assertEquals(setOf(5L), result.first.groupsBlock.inFlight)
         assertEquals(
-            setOf<me.apomazkin.mate.Effect>(
+            setOf<io.github.kilgoret.mate.Effect>(
                 DatasourceEffect.AddMembership(wordId = 3, groupId = 5),
             ),
             result.second,
@@ -98,7 +98,7 @@ class GroupsBlockTest {
         val result = reducer.reduce(state, Msg.ToggleGroupMembership(groupId = 5))
 
         assertEquals(
-            setOf<me.apomazkin.mate.Effect>(
+            setOf<io.github.kilgoret.mate.Effect>(
                 DatasourceEffect.RemoveMembership(wordId = 3, groupId = 5),
             ),
             result.second,
@@ -186,13 +186,13 @@ class GroupsBlockTest {
         val exiting = reducer.reduce(inFlight, Msg.NavigateBack)
         assertTrue(exiting.first.isExiting)
         assertTrue(
-            exiting.second.none { it is me.apomazkin.mate.NavigationEffect },
+            exiting.second.none { it is io.github.kilgoret.mate.NavigationEffect },
         )
 
         // Запись долетела → выход.
         val done = reducer.reduce(exiting.first, Msg.MembershipDone(groupId = 5))
         assertTrue(
-            done.second.any { it == me.apomazkin.mate.NavigationEffect.Back },
+            done.second.any { it == io.github.kilgoret.mate.NavigationEffect.Back },
         )
     }
 
@@ -213,7 +213,7 @@ class GroupsBlockTest {
     @Test
     fun `scenario - add membership via picker, chip appears from subscription`() {
         var state = loadedState()
-        fun send(msg: Msg): Set<me.apomazkin.mate.Effect> {
+        fun send(msg: Msg): Set<io.github.kilgoret.mate.Effect> {
             val r = reducer.reduce(state, msg)
             state = r.first
             return r.second
@@ -226,7 +226,7 @@ class GroupsBlockTest {
 
         val effects = send(Msg.ToggleGroupMembership(groupId = 5))
         assertEquals(
-            setOf<me.apomazkin.mate.Effect>(
+            setOf<io.github.kilgoret.mate.Effect>(
                 DatasourceEffect.AddMembership(wordId = 3, groupId = 5),
             ),
             effects,
@@ -245,7 +245,7 @@ class GroupsBlockTest {
         // Снятие: направление remove, чип уходит по подписке.
         val removeEffects = send(Msg.ToggleGroupMembership(groupId = 5))
         assertEquals(
-            setOf<me.apomazkin.mate.Effect>(
+            setOf<io.github.kilgoret.mate.Effect>(
                 DatasourceEffect.RemoveMembership(wordId = 3, groupId = 5),
             ),
             removeEffects,

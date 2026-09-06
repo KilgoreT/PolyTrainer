@@ -1,9 +1,9 @@
 package me.apomazkin.dictionaryappbar.mate
 
 import me.apomazkin.dictionaryappbar.DictionaryAppBarNavigationEffect
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.ReducerResult
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.ReducerResult
 import me.apomazkin.logger.LexemeLogger
 
 class DictionaryAppBarReducer(

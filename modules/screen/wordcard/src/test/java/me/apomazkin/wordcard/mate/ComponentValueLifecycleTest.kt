@@ -2,11 +2,11 @@ package me.apomazkin.wordcard.mate
 
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentValueId
-import me.apomazkin.mate.effects
-import me.apomazkin.mate.state
-import me.apomazkin.mate.test.assertEffects
-import me.apomazkin.mate.test.assertNoEffects
-import me.apomazkin.mate.test.testReduce
+import io.github.kilgoret.mate.effects
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertEffects
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull

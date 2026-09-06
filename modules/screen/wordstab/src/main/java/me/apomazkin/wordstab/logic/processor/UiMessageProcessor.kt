@@ -3,8 +3,8 @@ package me.apomazkin.wordstab.logic.processor
 import androidx.lifecycle.Lifecycle
 import me.apomazkin.wordstab.logic.WordsTabState
 import me.apomazkin.wordstab.logic.UiMsg
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.ReducerResult
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.ReducerResult
 
 internal fun processUiMessage(
     state: WordsTabState,

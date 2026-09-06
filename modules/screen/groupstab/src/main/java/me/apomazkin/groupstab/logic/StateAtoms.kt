@@ -2,10 +2,10 @@ package me.apomazkin.groupstab.logic
 
 import me.apomazkin.groupstab.LogTags
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
+import io.github.kilgoret.mate.Effect
 import me.apomazkin.mate.ReducerLogging
-import me.apomazkin.mate.ReducerResult
-import me.apomazkin.mate.begin
+import io.github.kilgoret.mate.ReducerResult
+import io.github.kilgoret.mate.begin
 import me.apomazkin.wordrow.entity.TermUiItem
 import java.util.Locale
 

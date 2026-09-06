@@ -3,8 +3,7 @@ package me.apomazkin.wordcard.mate
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateTypedEffectHandler
+import io.github.kilgoret.mate.MateEffectHandler
 import me.apomazkin.wordcard.deps.UiHost
 
 /**
@@ -12,11 +11,11 @@ import me.apomazkin.wordcard.deps.UiHost
  */
 class UiEffectHandler @AssistedInject constructor(
     @Assisted private val uiHost: UiHost,
-) : MateTypedEffectHandler<Msg, UiEffect>() {
+) : MateEffectHandler<Msg, UiEffect> {
 
-    override fun filter(effect: Effect): UiEffect? = effect as? UiEffect
+    override val effectFamily = UiEffect::class
 
-    override suspend fun onEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
+    override suspend fun runEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
         when (effect) {
             is UiEffect.ShowSnackbarWithUndo -> {
                 val undoPressed = uiHost.showSnackbarWithAction(

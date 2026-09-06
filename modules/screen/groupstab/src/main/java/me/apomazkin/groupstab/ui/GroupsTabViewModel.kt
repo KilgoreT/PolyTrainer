@@ -10,8 +10,8 @@ import me.apomazkin.groupstab.logic.GroupsTabReducer
 import me.apomazkin.groupstab.logic.GroupsTabState
 import me.apomazkin.groupstab.logic.Msg
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 
 /**
  * IS493 Э2/Э3: VM вкладки «Группы». Навигация (тап → карточка) идёт напрямую
@@ -27,7 +27,8 @@ class GroupsTabViewModel @AssistedInject constructor(
         initEffects = emptySet(),
         coroutineScope = viewModelScope,
         reducer = GroupsTabReducer(logger = logger),
-        effectHandlerSet = setOf(datasourceHandler),
+        effectHandlers = listOf(datasourceHandler),
+        flowHandlers = listOf(datasourceHandler),
     )
 
     override val state: StateFlow<GroupsTabState>

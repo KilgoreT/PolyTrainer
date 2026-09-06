@@ -7,8 +7,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.wordcard.LogTags
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import java.text.Collator
@@ -29,7 +28,7 @@ import javax.inject.Inject
 class GroupBlockFlowHandler @Inject constructor(
     private val useCase: WordCardUseCase,
     private val logger: LexemeLogger,
-) : MateFlowHandler<Msg, Effect> {
+) : MateFlowHandler<Msg> {
 
     override var job: Job? = null
     private var scope: CoroutineScope? = null
@@ -45,8 +44,7 @@ class GroupBlockFlowHandler @Inject constructor(
         this.send = send
     }
 
-    override suspend fun runEffect(effect: Effect, consumer: (Msg) -> Unit) {
-        val subscribe = effect as? DatasourceEffect.SubscribeGroupBlock ?: return
+    fun resubscribe(subscribe: DatasourceEffect.SubscribeGroupBlock) {
         val scope = scope ?: return
         val send = send ?: return
         job?.cancel()

@@ -1,5 +1,5 @@
 package me.apomazkin.quiz.chat
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface ChatNavigator : Navigator

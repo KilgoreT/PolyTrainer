@@ -5,17 +5,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateFlowHandler
+import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.stattab.deps.StatisticUseCase
-import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
 import javax.inject.Inject
 
 class DatasourceEffectHandler @Inject constructor(
     private val useCase: StatisticUseCase,
     private val logger: LexemeLogger,
-) : MateFlowHandler<Msg, Effect> {
+) : MateFlowHandler<Msg> {
 
     override var job: Job? = null
 
@@ -35,13 +33,5 @@ class DatasourceEffectHandler @Inject constructor(
                 send(msg)
             }
         }
-    }
-
-    override suspend fun runEffect(
-        effect: Effect,
-        consumer: (Msg) -> Unit
-    ) {
-        logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
-        // экранных эффектов нет — только подписка через subscribe()
     }
 }

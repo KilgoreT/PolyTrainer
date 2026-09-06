@@ -10,8 +10,7 @@ import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.OptionOutcome
 import me.apomazkin.lexeme.SetEnabledOutcome
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateTypedEffectHandler
+import io.github.kilgoret.mate.MateEffectHandler
 import me.apomazkin.per_dictionary_components.LogTags
 import me.apomazkin.per_dictionary_components.deps.PerDictionaryComponentsUseCase
 import javax.inject.Inject
@@ -30,16 +29,17 @@ import javax.inject.Inject
 class DatasourceEffectHandler @Inject constructor(
     private val useCase: PerDictionaryComponentsUseCase,
     private val logger: LexemeLogger,
-) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
+) : MateEffectHandler<Msg, DatasourceEffect> {
 
-    override fun filter(effect: Effect): DatasourceEffect? {
-        // F163: LoadComponentsForDictionary — обрабатывается
-        // `ComponentsForDictionaryFlowHandler` (re-subscribe), не этим handler'ом.
-        if (effect is DatasourceEffect.LoadComponentsForDictionary) return null
-        return effect as? DatasourceEffect
-    }
+    override val effectFamily = DatasourceEffect::class
 
-    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
+    /**
+     * F163: LoadComponentsForDictionary — re-subscribe делегируется
+     * [ComponentsForDictionaryFlowHandler]; инстанс задаёт ViewModel (assisted factory).
+     */
+    var componentsForDictionaryFlowHandler: ComponentsForDictionaryFlowHandler? = null
+
+    override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
         val msg: Msg = withContext(Dispatchers.IO) {
             try {
                 when (effect) {
@@ -146,9 +146,11 @@ class DatasourceEffectHandler @Inject constructor(
                             outcome = useCase.deleteOption(effect.optionId),
                         )
 
-                    // F163: filtered out в filter() выше — недостижимо, но
-                    // нужно для exhaustive `when` (sealed interface).
-                    DatasourceEffect.LoadComponentsForDictionary -> Msg.Empty
+                    // F163: re-subscribe — делегируем `ComponentsForDictionaryFlowHandler`.
+                    DatasourceEffect.LoadComponentsForDictionary -> {
+                        componentsForDictionaryFlowHandler?.resubscribe(consumer)
+                        Msg.Empty
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e

@@ -2,9 +2,9 @@ package me.apomazkin.settingstab.logic
 
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import me.apomazkin.mate.state
-import me.apomazkin.mate.test.assertEffects
-import me.apomazkin.mate.test.testReduce
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertEffects
+import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.settingstab.SettingsNavigationEffect
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -4,13 +4,13 @@ import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.ChoiceValues
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.toRef
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateReducer
-import me.apomazkin.mate.NavigationEffect
-import me.apomazkin.mate.ReducerResult
-import me.apomazkin.mate.begin
-import me.apomazkin.mate.then
-import me.apomazkin.mate.withEffect
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.NavigationEffect
+import io.github.kilgoret.mate.ReducerResult
+import io.github.kilgoret.mate.begin
+import io.github.kilgoret.mate.then
+import io.github.kilgoret.mate.withEffect
 
 /**
  * IS481 generic reducer. ЭТАП 0: скелет — простые (unchanged) ветки реальны,

@@ -1,15 +1,15 @@
 package me.apomazkin.dictionary.form.reducer
 
 import me.apomazkin.dictionary.form.DictionaryFormEffect
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.NavigationEffect
 import me.apomazkin.dictionary.form.DictionaryFormMsg
 import me.apomazkin.dictionary.form.DictionaryFormReducer
 import me.apomazkin.dictionary.form.DictionaryFormScreenState
 import me.apomazkin.dictionary.model.CountryFlagItem
-import me.apomazkin.mate.state
-import me.apomazkin.mate.test.assertNoEffects
-import me.apomazkin.mate.test.assertSingleEffect
-import me.apomazkin.mate.test.testReduce
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.assertSingleEffect
+import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

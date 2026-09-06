@@ -3,8 +3,8 @@ package me.apomazkin.wordcard
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
-import me.apomazkin.mate.MateNavigationEffectHandler
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.MateNavigationEffectHandler
+import io.github.kilgoret.mate.NavigationEffect
 import me.apomazkin.wordcard.mate.Msg
 
 class WordCardNavigationEffectHandler @AssistedInject constructor(

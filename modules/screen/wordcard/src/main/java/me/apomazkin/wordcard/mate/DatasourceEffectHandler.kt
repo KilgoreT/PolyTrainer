@@ -12,8 +12,8 @@ import me.apomazkin.lexeme.TemplateValues
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
 import me.apomazkin.logger.LogTags as FeatureLogTags
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateTypedEffectHandler
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateEffectHandler
 import me.apomazkin.wordcard.LogTags as WordCardLogTags
 import me.apomazkin.wordcard.deps.RemoveComponentResult
 import me.apomazkin.wordcard.deps.RemoveLexemeResult
@@ -113,12 +113,14 @@ sealed interface DatasourceEffect : Effect {
  */
 class DatasourceEffectHandler @Inject constructor(
     private val wordCardUseCase: WordCardUseCase,
+    val availableComponentTypesFlowHandler: AvailableComponentTypesFlowHandler,
+    val groupBlockFlowHandler: GroupBlockFlowHandler,
     private val logger: LexemeLogger,
-) : MateTypedEffectHandler<Msg, DatasourceEffect>() {
+) : MateEffectHandler<Msg, DatasourceEffect> {
 
-    override fun filter(effect: Effect): DatasourceEffect? = effect as? DatasourceEffect
+    override val effectFamily = DatasourceEffect::class
 
-    override suspend fun onEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
+    override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
         when (effect) {
             is DatasourceEffect.LoadWord -> {
                 try {
@@ -243,11 +245,13 @@ class DatasourceEffectHandler @Inject constructor(
                     }
                 }
 
-            // Обрабатывает AvailableComponentTypesFlowHandler (flow-handler), здесь — no-op.
-            is DatasourceEffect.LoadAvailableComponentTypes -> Unit
+            // (Re-)subscribe делегируется AvailableComponentTypesFlowHandler.
+            is DatasourceEffect.LoadAvailableComponentTypes ->
+                availableComponentTypesFlowHandler.resubscribe(effect)
 
-            // Обрабатывает GroupBlockFlowHandler (flow-handler), здесь — no-op.
-            is DatasourceEffect.SubscribeGroupBlock -> Unit
+            // (Re-)subscribe делегируется GroupBlockFlowHandler.
+            is DatasourceEffect.SubscribeGroupBlock ->
+                groupBlockFlowHandler.resubscribe(effect)
 
             // === IS493 Э5: membership-мутации (плоские Msg через маппер) ===
 

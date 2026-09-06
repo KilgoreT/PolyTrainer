@@ -1,6 +1,6 @@
 package me.apomazkin.quiztab
 
-import me.apomazkin.mate.Navigator
+import io.github.kilgoret.mate.Navigator
 
 interface QuizTabNavigator : Navigator {
     fun openChat(quizType: String)

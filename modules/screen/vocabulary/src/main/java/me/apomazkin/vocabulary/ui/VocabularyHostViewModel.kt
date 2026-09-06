@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 import me.apomazkin.vocabulary.logic.CurrentDictFlowHandler
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.logic.VocabularyHostReducer
@@ -27,7 +27,8 @@ class VocabularyHostViewModel @AssistedInject constructor(
         initEffects = emptySet(),
         coroutineScope = viewModelScope,
         reducer = VocabularyHostReducer(),
-        effectHandlerSet = setOf(currentDictFlowHandler),
+        effectHandlers = emptyList(),
+        flowHandlers = listOf(currentDictFlowHandler),
     )
 
     override val state: StateFlow<VocabularyHostState>

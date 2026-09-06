@@ -3,9 +3,9 @@ package me.apomazkin.groupstab.logic
 import me.apomazkin.group.DeleteGroupOutcome
 import me.apomazkin.group.DisplayNode
 import me.apomazkin.group.DisplayTree
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.effects
-import me.apomazkin.mate.state
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.effects
+import io.github.kilgoret.mate.state
 import me.apomazkin.wordrow.entity.TermUiItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

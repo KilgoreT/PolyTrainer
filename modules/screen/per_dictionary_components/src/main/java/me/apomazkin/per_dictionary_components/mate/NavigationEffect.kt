@@ -1,6 +1,6 @@
 package me.apomazkin.per_dictionary_components.mate
 
-import me.apomazkin.mate.NavigationEffect
+import io.github.kilgoret.mate.NavigationEffect
 
 /**
  * Navigation effects для `PerDictionaryComponentsScreen`.

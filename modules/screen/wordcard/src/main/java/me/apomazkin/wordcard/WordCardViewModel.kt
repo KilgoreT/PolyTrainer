@@ -6,8 +6,8 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import me.apomazkin.mate.Mate
-import me.apomazkin.mate.MateStateHolder
+import io.github.kilgoret.mate.Mate
+import io.github.kilgoret.mate.MateStateHolder
 import me.apomazkin.wordcard.deps.UiHost
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.wordcard.mate.AvailableComponentTypesFlowHandler
@@ -24,8 +24,6 @@ class WordCardViewModel @AssistedInject constructor(
     @Assisted navigator: WordCardNavigator,
     @Assisted uiHost: UiHost,
     datasourceHandler: DatasourceEffectHandler,
-    componentTypesFlowHandler: AvailableComponentTypesFlowHandler,
-    groupBlockFlowHandler: GroupBlockFlowHandler,
     navHandlerFactory: WordCardNavigationEffectHandler.Factory,
     uiEffectHandlerFactory: UiEffectHandler.Factory,
     logger: LexemeLogger,
@@ -36,13 +34,15 @@ class WordCardViewModel @AssistedInject constructor(
         initEffects = setOf(DatasourceEffect.LoadWord(wordId)),
         coroutineScope = viewModelScope,
         reducer = WordCardReducer(logger),
-        effectHandlerSet = setOf(
+        effectHandlers = listOf(
             datasourceHandler,
-            componentTypesFlowHandler,
-            groupBlockFlowHandler,
             navHandlerFactory.create(navigator),
             uiEffectHandlerFactory.create(uiHost),
-        )
+        ),
+        flowHandlers = listOf(
+            datasourceHandler.availableComponentTypesFlowHandler,
+            datasourceHandler.groupBlockFlowHandler,
+        ),
     )
 
     override val state: StateFlow<WordCardState>

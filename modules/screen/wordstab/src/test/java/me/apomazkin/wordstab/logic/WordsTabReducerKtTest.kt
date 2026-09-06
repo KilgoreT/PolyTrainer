@@ -7,8 +7,9 @@ import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordstab.entity.WordInfo
 import me.apomazkin.wordstab.ui.WordsNavigationEffect
+import io.github.kilgoret.mate.*
 import me.apomazkin.mate.*
-import me.apomazkin.mate.test.*
+import io.github.kilgoret.mate.test.*
 import me.apomazkin.logger.LexemeLogger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

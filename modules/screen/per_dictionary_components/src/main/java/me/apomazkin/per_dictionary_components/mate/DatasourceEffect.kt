@@ -4,7 +4,7 @@ import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.Scope
-import me.apomazkin.mate.Effect
+import io.github.kilgoret.mate.Effect
 
 /**
  * Datasource Effects для `PerDictionaryComponentsScreen`. См. business_design_tree.md #42.

@@ -1,5 +1,7 @@
 package me.apomazkin.mate
 
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.ReducerResult
 import me.apomazkin.logger.LexemeLogger
 
 /**

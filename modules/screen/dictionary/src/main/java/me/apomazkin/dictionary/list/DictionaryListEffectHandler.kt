@@ -3,8 +3,8 @@ package me.apomazkin.dictionary.list
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionary.DictionaryUseCase
-import me.apomazkin.mate.Effect
-import me.apomazkin.mate.MateTypedEffectHandler
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateEffectHandler
 import javax.inject.Inject
 
 sealed interface DictionaryListEffect : Effect {
@@ -13,11 +13,11 @@ sealed interface DictionaryListEffect : Effect {
 
 class DictionaryListEffectHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
-) : MateTypedEffectHandler<DictionaryListMsg, DictionaryListEffect>() {
+) : MateEffectHandler<DictionaryListMsg, DictionaryListEffect> {
 
-    override fun filter(effect: Effect): DictionaryListEffect? = effect as? DictionaryListEffect
+    override val effectFamily = DictionaryListEffect::class
 
-    override suspend fun onEffect(
+    override suspend fun runEffect(
         effect: DictionaryListEffect,
         consumer: (DictionaryListMsg) -> Unit,
     ) {
