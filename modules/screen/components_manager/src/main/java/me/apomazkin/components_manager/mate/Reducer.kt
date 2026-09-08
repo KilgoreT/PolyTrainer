@@ -521,8 +521,13 @@ class ComponentsManagerReducer(
         Msg.DismissSnackbar -> state.copy(snackbarState = null) to emptySet()
 
         // ===== Retry on error state (F163) =====
+        // Инкремент loadGeneration ломает equality подписки AllTypes —
+        // дифф раннера гасит упавшую и стартует новую.
         Msg.OnRetryClick ->
-            state.copy(isLoading = true) to setOf(DatasourceEffect.LoadAllUserDefinedTypes)
+            state.copy(
+                isLoading = true,
+                loadGeneration = state.loadGeneration + 1,
+            ) to emptySet()
 
         // ===== No-op =====
         Msg.Empty -> state to emptySet()

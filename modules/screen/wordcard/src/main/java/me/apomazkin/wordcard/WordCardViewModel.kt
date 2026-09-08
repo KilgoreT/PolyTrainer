@@ -10,20 +10,21 @@ import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
 import me.apomazkin.wordcard.deps.UiHost
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.wordcard.mate.AvailableComponentTypesFlowHandler
 import me.apomazkin.wordcard.mate.DatasourceEffect
 import me.apomazkin.wordcard.mate.DatasourceEffectHandler
-import me.apomazkin.wordcard.mate.GroupBlockFlowHandler
 import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.UiEffectHandler
 import me.apomazkin.wordcard.mate.WordCardReducer
 import me.apomazkin.wordcard.mate.WordCardState
+import me.apomazkin.wordcard.mate.WordCardSubHandler
+import me.apomazkin.wordcard.mate.subscriptions
 
 class WordCardViewModel @AssistedInject constructor(
     @Assisted wordId: Long,
     @Assisted navigator: WordCardNavigator,
     @Assisted uiHost: UiHost,
     datasourceHandler: DatasourceEffectHandler,
+    wordCardSubHandler: WordCardSubHandler,
     navHandlerFactory: WordCardNavigationEffectHandler.Factory,
     uiEffectHandlerFactory: UiEffectHandler.Factory,
     logger: LexemeLogger,
@@ -39,10 +40,8 @@ class WordCardViewModel @AssistedInject constructor(
             navHandlerFactory.create(navigator),
             uiEffectHandlerFactory.create(uiHost),
         ),
-        flowHandlers = listOf(
-            datasourceHandler.availableComponentTypesFlowHandler,
-            datasourceHandler.groupBlockFlowHandler,
-        ),
+        subscriptions = { it.subscriptions() },
+        subscriptionHandlers = listOf(wordCardSubHandler),
     )
 
     override val state: StateFlow<WordCardState>

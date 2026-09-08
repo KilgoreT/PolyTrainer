@@ -16,6 +16,8 @@ import me.apomazkin.wordcard.mate.NoopLogger
 import me.apomazkin.wordcard.mate.UiEffect
 import me.apomazkin.wordcard.mate.WordCardReducer
 import me.apomazkin.wordcard.mate.WordCardState
+import me.apomazkin.wordcard.mate.WordCardSub
+import me.apomazkin.wordcard.mate.subscriptions
 import me.apomazkin.wordcard.mate.ctype
 import me.apomazkin.wordcard.mate.domainCv
 import me.apomazkin.wordcard.mate.domainLexeme
@@ -173,7 +175,13 @@ class WordCardScenarioTest {
         )
         s = failed.state()
         val retry = reducer.testReduce(s, Msg.RetryLoadComponentTypes)
-        retry.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
+        // Retry декларативный: инкремент typesGeneration перезапускает подписку
+        // ComponentTypes через дифф subscriptions(), эффектов нет.
+        assertTrue(retry.second.isEmpty())
+        assertTrue(
+            retry.state().subscriptions()
+                .contains(WordCardSub.ComponentTypes(dictionaryId = 3L, generation = 1)),
+        )
         s = reducer.testReduce(retry.state(), Msg.ComponentTypesLoaded(AvailableComponents(listOf(ctype(50L, TR))))).state()
         assertEquals(1, s.availableComponentTypes.size)
     }

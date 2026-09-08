@@ -37,6 +37,13 @@ data class PerDictionaryComponentsScreenState(
     // ===== Loaded data =====
     val items: List<PerDictRow>? = null,
 
+    /**
+     * Различающее поле подписки на компоненты словаря: retry после
+     * ошибки инкрементит счётчик — equality подписки ломается, дифф
+     * раннера гасит упавшую и стартует новую с теми же параметрами.
+     */
+    val loadGeneration: Int = 0,
+
     // ===== UI flags (explicit) =====
     val isLoading: Boolean = false,
     val isCreating: Boolean = false,

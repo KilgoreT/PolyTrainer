@@ -28,8 +28,6 @@ import javax.inject.Inject
  */
 class DatasourceEffectHandler @Inject constructor(
     private val useCase: ComponentsManagerUseCase,
-    val allUserDefinedTypesFlowHandler: AllUserDefinedTypesFlowHandler,
-    val dictionariesFlowHandler: DictionariesFlowHandler,
     private val logger: LexemeLogger,
 ) : MateEffectHandler<Msg, DatasourceEffect> {
 
@@ -78,16 +76,6 @@ class DatasourceEffectHandler @Inject constructor(
                             ),
                         )
 
-                    DatasourceEffect.SubscribeDictionaries -> {
-                        dictionariesFlowHandler.resubscribe(consumer)
-                        Msg.Empty
-                    }
-
-                    // F163: re-subscribe — делегируем `AllUserDefinedTypesFlowHandler`.
-                    DatasourceEffect.LoadAllUserDefinedTypes -> {
-                        allUserDefinedTypesFlowHandler.resubscribe(consumer)
-                        Msg.Empty
-                    }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -109,9 +97,6 @@ class DatasourceEffectHandler @Inject constructor(
 
                     is DatasourceEffect.EditComponent ->
                         Msg.EditResult(effect.epochId, EditOutcome.Failure(e))
-
-                    DatasourceEffect.LoadAllUserDefinedTypes,
-                    DatasourceEffect.SubscribeDictionaries -> Msg.Empty
                 }
             }
         }

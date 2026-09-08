@@ -9,15 +9,16 @@ import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
-import me.apomazkin.stattab.mate.DatasourceEffectHandler
 import me.apomazkin.stattab.mate.Msg
+import me.apomazkin.stattab.mate.StatSubHandler
 import me.apomazkin.stattab.mate.StatisticReducer
 import me.apomazkin.stattab.mate.StatisticState
+import me.apomazkin.stattab.mate.subscriptions
 
 class StatisticViewModel @AssistedInject constructor(
     @Assisted navigator: StatisticNavigator,
     logger: LexemeLogger,
-    datasourceHandler: DatasourceEffectHandler,
+    statSubHandler: StatSubHandler,
     navHandlerFactory: StatisticNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<StatisticState, Msg> {
 
@@ -29,7 +30,8 @@ class StatisticViewModel @AssistedInject constructor(
         effectHandlers = listOf(
             navHandlerFactory.create(navigator),
         ),
-        flowHandlers = listOf(datasourceHandler),
+        subscriptions = { it.subscriptions() },
+        subscriptionHandlers = listOf(statSubHandler),
     )
 
     override val state: StateFlow<StatisticState>

@@ -81,12 +81,7 @@ class DatasourceEffectHandlerTest {
 
     private fun run(useCase: WordCardUseCase, effect: DatasourceEffect): List<Msg> {
         val msgs = mutableListOf<Msg>()
-        val handler = DatasourceEffectHandler(
-            useCase,
-            AvailableComponentTypesFlowHandler(useCase, NoopLogger),
-            GroupBlockFlowHandler(useCase, NoopLogger),
-            NoopLogger,
-        )
+        val handler = DatasourceEffectHandler(useCase, NoopLogger)
         runBlocking { handler.runEffect(effect) { msgs += it } }
         return msgs
     }

@@ -27,7 +27,7 @@ dependencies {
     // приходит с JitPack, здесь остаётся проектная обвязка
     // (ReducerLogging/LogTags/Constants). api — потребители получают
     // библиотеку транзитивно, их зависимости не меняются.
-    api("com.github.KilgoreT.mate:mate-core:v0.1.0")
+    api("com.github.KilgoreT.mate:mate-core:v0.1.1")
     api(project("path" to ":modules:core:logger"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 }

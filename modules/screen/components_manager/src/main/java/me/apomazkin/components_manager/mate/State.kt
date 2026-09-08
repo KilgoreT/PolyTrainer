@@ -30,6 +30,13 @@ data class ComponentsManagerScreenState(
     // ===== Loaded data =====
     val userDefinedTypes: List<UserDefinedRow>? = null,
 
+    /**
+     * Различающее поле подписки на список типов: retry после ошибки
+     * инкрементит счётчик — equality подписки ломается, дифф раннера
+     * гасит упавшую и стартует новую.
+     */
+    val loadGeneration: Int = 0,
+
     // ===== UI flags (explicit) =====
     val isLoading: Boolean = false,
     val isCreating: Boolean = false,
@@ -44,7 +51,7 @@ data class ComponentsManagerScreenState(
     val editDialog: EditDialogState? = null,
 
     // ===== Phase 2: multi-dict scope picker support =====
-    /** Список словарей для chip-picker. Push'ится `DictionariesFlowHandler`. */
+    /** Список словарей для chip-picker. Push'ится подпиской [ComponentsManagerSub.Dictionaries]. */
     val availableDictionaries: List<DictionaryApiEntity> = emptyList(),
 
     // ===== Snackbar (F123) =====

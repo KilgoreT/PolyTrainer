@@ -12,7 +12,7 @@ import io.github.kilgoret.mate.MateStateHolder
 class DictionaryListViewModel @AssistedInject constructor(
     @Assisted navigator: ListNavigator,
     datasourceHandler: DictionaryListEffectHandler,
-    flowHandler: DictionaryListFlowHandler,
+    listSubHandler: DictionaryListSubHandler,
     navHandlerFactory: ListNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<DictionaryListScreenState, DictionaryListMsg> {
 
@@ -25,7 +25,8 @@ class DictionaryListViewModel @AssistedInject constructor(
             datasourceHandler,
             navHandlerFactory.create(navigator),
         ),
-        flowHandlers = listOf(flowHandler),
+        subscriptions = { it.subscriptions() },
+        subscriptionHandlers = listOf(listSubHandler),
     )
 
     override val state: StateFlow<DictionaryListScreenState>

@@ -63,16 +63,14 @@ class GroupWindowsReducerTest {
     // === ToggleGroup ===
 
     @Test
-    fun `toggle non-empty group - window opened with chunk, SetGroupWindow`() {
+    fun `toggle non-empty group - window opened with chunk, no effects`() {
         val result = reducer.reduce(baseState(), Msg.ToggleGroup(groupId = 5))
 
         val win = requireNotNull(result.state().expandedGroupWindows[5L])
         assertEquals(CHUNK_SIZE, win.window)
         assertTrue(win.isLoading)
-        assertEquals(
-            setOf(GroupsEffect.SetGroupWindow(groupId = 5, limit = CHUNK_SIZE)),
-            result.effects(),
-        )
+        // Э4: подписку окна включит дифф subscriptions() по новому state.
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -94,10 +92,8 @@ class GroupWindowsReducerTest {
         val result = reducer.reduce(expanded, Msg.ToggleGroup(groupId = 5))
 
         assertTrue(result.state().expandedGroupWindows.isEmpty())
-        assertEquals(
-            setOf(GroupsEffect.SetGroupWindow(groupId = 5, limit = null)),
-            result.effects(),
-        )
+        // Э4: окно ушло из state → подписку погасит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -137,10 +133,8 @@ class GroupWindowsReducerTest {
         val win = requireNotNull(result.state().expandedGroupWindows[5L])
         assertEquals(20, win.window)
         assertTrue(win.isLoading)
-        assertEquals(
-            setOf(GroupsEffect.SetGroupWindow(groupId = 5, limit = 20)),
-            result.effects(),
-        )
+        // Э4: подписку с новым лимитом перезапустит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -241,7 +235,7 @@ class GroupWindowsReducerTest {
 
         // Slice приносит count=4 (слово добавили из карточки). Если бы
         // applyGroupCounts шёл ПОСЛЕ applyGroups — дельта была бы 0 и
-        // окно осталось бы 10 без эффекта (тест на порядок, ревью Mate-3).
+        // окно осталось бы 10 (тест на порядок, ревью Mate-3).
         val result = reducer.reduce(
             expanded,
             Msg.SliceLoaded(tree(groups = listOf(Triple(5L, "Быт", 4)), allCount = 4)),
@@ -249,8 +243,9 @@ class GroupWindowsReducerTest {
 
         val win = requireNotNull(result.state().expandedGroupWindows[5L])
         assertEquals(11, win.window)
+        // Э4: расширенное окно перезапустит подписку диффом subscriptions().
         assertTrue(
-            GroupsEffect.SetGroupWindow(groupId = 5, limit = 11) in result.effects(),
+            GroupsSub.GroupWindow(groupId = 5, limit = 11) in result.state().subscriptions(),
         )
         // Новый счётчик доехал и в groups.
         assertEquals(4, result.state().groups.single { it.id == 5L }.count)
@@ -278,8 +273,9 @@ class GroupWindowsReducerTest {
         assertEquals(0, win.window)
         assertTrue(win.loadedWords.isEmpty())
         assertFalse(win.isLoading)
+        // Э4: window=0 убирает окно из subscriptions() — подписка гаснет.
         assertTrue(
-            GroupsEffect.SetGroupWindow(groupId = 5, limit = null) in result.effects(),
+            result.state().subscriptions().none { it is GroupsSub.GroupWindow },
         )
     }
 
@@ -299,8 +295,10 @@ class GroupWindowsReducerTest {
         val win = requireNotNull(result.state().expandedGroupWindows[6L])
         assertEquals(CHUNK_SIZE, win.window)
         assertTrue(win.isLoading)
+        // Э4: автооткрытое окно попало в subscriptions() — дифф включит.
         assertTrue(
-            GroupsEffect.SetGroupWindow(groupId = 6, limit = CHUNK_SIZE) in result.effects(),
+            GroupsSub.GroupWindow(groupId = 6, limit = CHUNK_SIZE)
+                in result.state().subscriptions(),
         )
     }
 
@@ -328,7 +326,10 @@ class GroupWindowsReducerTest {
         val win = requireNotNull(result.state().expandedGroupWindows[5L])
         assertEquals(10, win.window)
         assertFalse(win.hasMore)
-        assertTrue(result.effects().none { it is GroupsEffect.SetGroupWindow })
+        // Окно то же — подписка не перезапустится (equality в наборе).
+        assertTrue(
+            GroupsSub.GroupWindow(groupId = 5, limit = 10) in result.state().subscriptions(),
+        )
     }
 
     // === Независимость окон (ревью Test-4) ===
@@ -350,10 +351,11 @@ class GroupWindowsReducerTest {
 
         assertEquals(20, requireNotNull(result.state().expandedGroupWindows[5L]).window)
         assertEquals(10, requireNotNull(result.state().expandedGroupWindows[6L]).window)
-        assertEquals(
-            setOf(GroupsEffect.SetGroupWindow(groupId = 5, limit = 20)),
-            result.effects(),
-        )
+        // Э4: дифф перезапустит только окно 5 (лимит 6 не изменился).
+        assertTrue(result.effects().isEmpty())
+        val subs = result.state().subscriptions()
+        assertTrue(GroupsSub.GroupWindow(groupId = 5, limit = 20) in subs)
+        assertTrue(GroupsSub.GroupWindow(groupId = 6, limit = 10) in subs)
     }
 
     @Test

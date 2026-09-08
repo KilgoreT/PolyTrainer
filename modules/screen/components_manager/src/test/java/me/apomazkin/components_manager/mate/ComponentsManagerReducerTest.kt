@@ -245,6 +245,23 @@ class ComponentsManagerReducerTest {
         assertTrue(result.effects().any { it is UiEffect.Snackbar })
     }
 
+    @Test
+    fun `OnRetryClick increments loadGeneration and sets isLoading, no effects`() {
+        // Retry декларативный: инкремент generation ломает equality подписки
+        // AllTypes — дифф раннера гасит упавшую и стартует новую; эффектов нет.
+        val initial = ComponentsManagerScreenState(isLoading = false, loadGeneration = 1)
+
+        val result = reducer.testReduce(initial, Msg.OnRetryClick)
+
+        assertEquals(true, result.state().isLoading)
+        assertEquals(2, result.state().loadGeneration)
+        result.assertNoEffects()
+        assertTrue(
+            "new generation must change AllTypes subscription identity",
+            result.state().subscriptions().contains(ComponentsManagerSub.AllTypes(generation = 2)),
+        )
+    }
+
     // ===== 3.2 Create dialog =====
 
     @Test

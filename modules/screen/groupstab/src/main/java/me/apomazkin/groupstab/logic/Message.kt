@@ -110,14 +110,10 @@ sealed interface Msg {
 
 sealed interface GroupsEffect : Effect {
 
-    /** Переключить живую подписку slice на словарь (flatMapLatest в handler). */
-    data class SubscribeSlice(val dictionaryId: Long) : GroupsEffect
-
-    /**
-     * Установить окно живой подписки контента: limit слов от головы;
-     * null — погасить подписку (узел свёрнут / смена словаря).
-     */
-    data class SetWindow(val limit: Int?) : GroupsEffect
+    // Здесь только РАЗОВЫЕ намерения. Длящиеся (живой slice, окна
+    // контента, тикер отсчёта) эффектами не выражаются — они
+    // декларируются набором подписок subscriptions() ([GroupsSub])
+    // и управляются диффом раннера.
 
     // === Э3: мутации (handler → use case → outcome-Msg) ===
 
@@ -129,21 +125,4 @@ sealed interface GroupsEffect : Effect {
 
     /** Э6: ДЕСТРУКТИВ — удалить группу вместе со словами (D30.2). */
     data class DeleteGroupWithWords(val groupId: Long) : GroupsEffect
-
-    /** Э6: запустить секундные тики паузы осмысления ([seconds] штук). */
-    data class StartDeleteCountdown(val seconds: Int) : GroupsEffect
-
-    /** Э6: погасить тики (галка снята / конфирм закрыт / смена словаря). */
-    data object CancelDeleteCountdown : GroupsEffect
-
-    // === Э5 (D21.4): динамические окна групп (merge в handler) ===
-
-    /**
-     * Установить окно живой подписки контента ГРУППЫ: limit слов от
-     * головы; null — погасить (группа свёрнута / умерла / опустела).
-     */
-    data class SetGroupWindow(val groupId: Long, val limit: Int?) : GroupsEffect
-
-    /** Погасить ВСЕ окна групп разом (смена словаря). */
-    data object ClearGroupWindows : GroupsEffect
 }

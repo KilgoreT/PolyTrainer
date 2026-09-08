@@ -9,13 +9,13 @@ import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
-import me.apomazkin.quiz.chat.logic.AppBarFlowHandler
 import me.apomazkin.quiz.chat.logic.ChatReducer
 import me.apomazkin.quiz.chat.logic.ChatScreenState
+import me.apomazkin.quiz.chat.logic.ChatSubHandler
 import me.apomazkin.quiz.chat.logic.DatasourceEffect
 import me.apomazkin.quiz.chat.logic.DatasourceEffectHandler
 import me.apomazkin.quiz.chat.logic.Msg
-import me.apomazkin.quiz.chat.logic.QuizPickerFlowHandler
+import me.apomazkin.quiz.chat.logic.subscriptions
 import me.apomazkin.ui.resource.ResourceManager
 
 class ChatViewModel @AssistedInject constructor(
@@ -23,8 +23,7 @@ class ChatViewModel @AssistedInject constructor(
     resourceManager: ResourceManager,
     logger: LexemeLogger,
     datasourceHandler: DatasourceEffectHandler,
-    appBarFlowHandler: AppBarFlowHandler,
-    quizPickerFlowHandler: QuizPickerFlowHandler,
+    chatSubHandler: ChatSubHandler,
     navHandlerFactory: ChatNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<ChatScreenState, Msg> {
 
@@ -40,10 +39,8 @@ class ChatViewModel @AssistedInject constructor(
             datasourceHandler,
             navHandlerFactory.create(navigator),
         ),
-        flowHandlers = listOf(
-            appBarFlowHandler,
-            quizPickerFlowHandler,
-        ),
+        subscriptions = { it.subscriptions() },
+        subscriptionHandlers = listOf(chatSubHandler),
     )
 
     override val state: StateFlow<ChatScreenState>

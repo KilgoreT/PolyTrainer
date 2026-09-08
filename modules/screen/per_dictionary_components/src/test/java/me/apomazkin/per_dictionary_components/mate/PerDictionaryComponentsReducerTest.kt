@@ -241,6 +241,25 @@ class PerDictionaryComponentsReducerTest {
         assertTrue(result.effects().any { it is UiEffect.Snackbar })
     }
 
+    @Test
+    fun `OnRetryClick increments loadGeneration and sets isLoading, no effects`() {
+        // Retry декларативный: инкремент generation ломает equality подписки
+        // Components — дифф раннера гасит упавшую и стартует новую; эффектов нет.
+        val initial = baseState().copy(isLoading = false, loadGeneration = 1)
+
+        val result = reducer.testReduce(initial, Msg.OnRetryClick)
+
+        assertEquals(true, result.state().isLoading)
+        assertEquals(2, result.state().loadGeneration)
+        result.assertNoEffects()
+        assertTrue(
+            "new generation must change Components subscription identity",
+            result.state().subscriptions().contains(
+                PerDictionaryComponentsSub.Components(dictionaryId = DICT_ID, generation = 2),
+            ),
+        )
+    }
+
     // ===== 4.2 Create dialog =====
 
     @Test

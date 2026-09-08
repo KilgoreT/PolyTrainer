@@ -8,8 +8,8 @@ import io.github.kilgoret.mate.Effect
 /**
  * Datasource Effects для `ComponentsManagerScreen`. См. business_contract_spec.md § IO.
  *
- * Initial subscribe реализован как `init`-trigger в `AllUserDefinedTypesFlowHandler.subscribe()`
- * (F088 — assisted FlowHandler стартует на init Mate). Отдельный `SubscribeAll` не нужен.
+ * Живой список типов эффектом не выражается: это подписка
+ * [ComponentsManagerSub.AllTypes], декларируемая из state.
  *
  * F124/F136 retrofit: write-операции несут `epochId`, чтобы соответствующий `*Result`
  * Msg мог быть скоррелирован reducer'ом с активным диалогом.
@@ -32,13 +32,9 @@ sealed interface DatasourceEffect : Effect {
         val typeId: ComponentTypeId,
     ) : DatasourceEffect
 
-    /**
-     * F163: эмитится reducer'ом на `Msg.OnRetryClick` для re-подписки на
-     * `useCase.flowAllUserDefinedTypes()` после initial load failure.
-     * Handler — [AllUserDefinedTypesFlowHandler] (отменяет существующую job и
-     * стартует новую через `subscribe()`).
-     */
-    data object LoadAllUserDefinedTypes : DatasourceEffect
+    // Живые списки (типы, словари) эффектами не выражаются: это
+    // подписки [ComponentsManagerSub], декларируемые из state; retry
+    // рестартует упавшую подписку generation-полем через дифф раннера.
 
     /**
      * Phase 2 (IS481): edit existing user-defined component_type. UseCaseImpl
@@ -51,10 +47,4 @@ sealed interface DatasourceEffect : Effect {
         val template: ComponentTemplate,
         val isMultiple: Boolean,
     ) : DatasourceEffect
-
-    /**
-     * Phase 2 (IS481): re-subscribe trigger для `DictionariesFlowHandler`
-     * (parity с F163 / LoadAllUserDefinedTypes).
-     */
-    data object SubscribeDictionaries : DatasourceEffect
 }

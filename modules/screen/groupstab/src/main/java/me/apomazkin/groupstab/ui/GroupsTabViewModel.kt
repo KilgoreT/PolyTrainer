@@ -6,19 +6,25 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.groupstab.logic.DatasourceEffectHandler
+import me.apomazkin.groupstab.logic.GroupsSubHandler
 import me.apomazkin.groupstab.logic.GroupsTabReducer
 import me.apomazkin.groupstab.logic.GroupsTabState
 import me.apomazkin.groupstab.logic.Msg
+import me.apomazkin.groupstab.logic.subscriptions
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
 
 /**
- * IS493 Э2/Э3: VM вкладки «Группы». Навигация (тап → карточка) идёт напрямую
- * из UI через [GroupsNavigator] — эффектов навигации нет (read-only вкладка).
+ * VM вкладки «Группы» — точка сборки цикла mate: reducer, исполнитель
+ * мутаций ([DatasourceEffectHandler]) и декларативные подписки
+ * (`subscriptions()` из state + [GroupsSubHandler]) на viewModelScope.
+ * Навигация (тап → карточка) идёт напрямую из UI через [GroupsNavigator] —
+ * эффектов навигации нет (read-only вкладка).
  */
 class GroupsTabViewModel @AssistedInject constructor(
     datasourceHandler: DatasourceEffectHandler,
+    groupsSubHandler: GroupsSubHandler,
     logger: LexemeLogger,
 ) : ViewModel(), MateStateHolder<GroupsTabState, Msg> {
 
@@ -28,7 +34,8 @@ class GroupsTabViewModel @AssistedInject constructor(
         coroutineScope = viewModelScope,
         reducer = GroupsTabReducer(logger = logger),
         effectHandlers = listOf(datasourceHandler),
-        flowHandlers = listOf(datasourceHandler),
+        subscriptions = { it.subscriptions() },
+        subscriptionHandlers = listOf(groupsSubHandler),
     )
 
     override val state: StateFlow<GroupsTabState>

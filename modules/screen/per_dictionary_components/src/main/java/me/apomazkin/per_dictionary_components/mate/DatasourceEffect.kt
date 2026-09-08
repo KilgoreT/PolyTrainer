@@ -9,8 +9,8 @@ import io.github.kilgoret.mate.Effect
 /**
  * Datasource Effects для `PerDictionaryComponentsScreen`. См. business_design_tree.md #42.
  *
- * Initial subscribe реализован как `init`-trigger в `ComponentsForDictionaryFlowHandler.subscribe()`
- * (assisted FlowHandler с dictionaryId). Отдельный `SubscribeForDictionary` Effect не нужен.
+ * Живой список компонентов эффектом не выражается: это подписка
+ * [PerDictionaryComponentsSub.Components], декларируемая из state.
  *
  * F124/F136: write effects несут `epochId` для correlation reducer'ом с активным
  * диалогом. `LoadImpact` несёт `typeId` как correlation token.
@@ -36,13 +36,9 @@ sealed interface DatasourceEffect : Effect {
         val typeId: ComponentTypeId,
     ) : DatasourceEffect
 
-    /**
-     * F163: эмитится reducer'ом на `Msg.OnRetryClick` для re-подписки на
-     * `useCase.flowComponentsForDictionary(dictionaryId)` после initial load failure.
-     * Handler — [ComponentsForDictionaryFlowHandler] (отменяет существующую job и
-     * стартует новую через `subscribe()`).
-     */
-    data object LoadComponentsForDictionary : DatasourceEffect
+    // Загрузка/перезагрузка списка компонентов эффектом не выражается:
+    // это длящаяся подписка [PerDictionaryComponentsSub.Components],
+    // retry рестартует её generation-полем через дифф раннера.
 
     /**
      * Phase 2 (IS481): edit existing user-defined component_type. Зеркало Manager

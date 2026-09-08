@@ -7,19 +7,20 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
-import me.apomazkin.vocabulary.logic.CurrentDictFlowHandler
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.logic.VocabularyHostReducer
 import me.apomazkin.vocabulary.logic.VocabularyHostState
+import me.apomazkin.vocabulary.logic.VocabularyHostSubHandler
+import me.apomazkin.vocabulary.logic.subscriptions
 
 /**
- * IS493: VM host'а вкладок. Э2 (D9.3): переезд на Dagger — появилась первая
- * зависимость (подписка на текущий словарь), исключение Э1 «VM вне
- * AppComponent» закрыто. Factory без assisted-параметров — навигатора у
- * host'а нет.
+ * VM host'а вкладок — точка сборки цикла mate: reducer и декларативная
+ * подписка на текущий словарь (`subscriptions()` из state +
+ * [VocabularyHostSubHandler]) на viewModelScope. Эффектов у host'а
+ * нет. Factory без assisted-параметров — навигатора у host'а нет.
  */
 class VocabularyHostViewModel @AssistedInject constructor(
-    currentDictFlowHandler: CurrentDictFlowHandler,
+    vocabularyHostSubHandler: VocabularyHostSubHandler,
 ) : ViewModel(), MateStateHolder<VocabularyHostState, Msg> {
 
     private val stateHolder = Mate(
@@ -28,7 +29,8 @@ class VocabularyHostViewModel @AssistedInject constructor(
         coroutineScope = viewModelScope,
         reducer = VocabularyHostReducer(),
         effectHandlers = emptyList(),
-        flowHandlers = listOf(currentDictFlowHandler),
+        subscriptions = { it.subscriptions() },
+        subscriptionHandlers = listOf(vocabularyHostSubHandler),
     )
 
     override val state: StateFlow<VocabularyHostState>

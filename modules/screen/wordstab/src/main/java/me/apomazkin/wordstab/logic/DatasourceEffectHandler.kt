@@ -1,22 +1,20 @@
 package me.apomazkin.wordstab.logic
 
 import androidx.paging.cachedIn
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.entity.WordInfo
 import me.apomazkin.mate.EMPTY_STRING
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateEffectHandler
-import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
-import javax.inject.Inject
 
 sealed interface DatasourceEffect : Effect {
 
@@ -30,26 +28,27 @@ sealed interface DatasourceEffect : Effect {
     data class RemoveWords(val wordSet: Set<WordInfo>) : DatasourceEffect
 }
 
-class DatasourceEffectHandler @Inject constructor(
+/**
+ * Исполнитель эффектов вкладки «Слова»: разовые намерения (загрузка
+ * paging-потока по паттерну, создание/правка/удаление слов). Живая
+ * подписка на текущий словарь — не здесь: она декларируется
+ * [WordsTabSub] + [WordsTabSubHandler].
+ *
+ * @param pagingScope scope для `cachedIn` paging-потока без фильтра
+ *   (переживает пересоздание подписчиков UI); передаёт ViewModel —
+ *   это её viewModelScope.
+ */
+class DatasourceEffectHandler @AssistedInject constructor(
+        @Assisted private val pagingScope: CoroutineScope,
         private val wordstabUseCase: WordsTabUseCase,
         private val logger: LexemeLogger,
-) : MateFlowHandler<Msg>,
-        MateEffectHandler<Msg, DatasourceEffect> {
+) : MateEffectHandler<Msg, DatasourceEffect> {
 
     override val effectFamily = DatasourceEffect::class
 
-    override var job: Job? = null
-    private var pagingScope: CoroutineScope? = null
-
-    override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
-        pagingScope = scope
-        scope.launch {
-            // IS476: flowCurrentDict() теперь Flow<DictUiEntity?> — null проходит
-            // как валидное доменное состояние, reducer обработает в Msg.SelectDictionary.
-            wordstabUseCase.flowCurrentDict().collectLatest { dict ->
-                send(Msg.SelectDictionary(current = dict))
-            }
-        }
+    @AssistedFactory
+    interface Factory {
+        fun create(pagingScope: CoroutineScope): DatasourceEffectHandler
     }
 
     override suspend fun runEffect(
@@ -69,8 +68,7 @@ class DatasourceEffectHandler @Inject constructor(
                             pattern = eff.pattern,
                             dictionaryId = dictionaryId,
                     ).let { flow ->
-                        val scope = pagingScope
-                        if (eff.pattern.isEmpty() && scope != null) flow.cachedIn(scope) else flow
+                        if (eff.pattern.isEmpty()) flow.cachedIn(pagingScope) else flow
                     }
                     Msg.TermsLoaded(
                             pattern = eff.pattern,

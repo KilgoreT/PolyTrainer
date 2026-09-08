@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.dictionaryappbar.mate.DatasourceEffectHandler
 import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarReducer
 import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarState
+import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarSubHandler
 import me.apomazkin.dictionaryappbar.mate.Msg
+import me.apomazkin.dictionaryappbar.mate.subscriptions
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
@@ -18,6 +20,7 @@ class DictionaryAppBarViewModel @AssistedInject constructor(
     @Assisted navigator: DictionaryAppBarNavigator,
     logger: LexemeLogger,
     datasourceHandler: DatasourceEffectHandler,
+    appBarSubHandler: DictionaryAppBarSubHandler,
     navHandlerFactory: DictionaryAppBarNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<DictionaryAppBarState, Msg> {
 
@@ -30,7 +33,8 @@ class DictionaryAppBarViewModel @AssistedInject constructor(
             datasourceHandler,
             navHandlerFactory.create(navigator),
         ),
-        flowHandlers = listOf(datasourceHandler),
+        subscriptions = { it.subscriptions() },
+        subscriptionHandlers = listOf(appBarSubHandler),
     )
 
     override val state: StateFlow<DictionaryAppBarState>

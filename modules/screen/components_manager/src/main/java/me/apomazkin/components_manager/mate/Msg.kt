@@ -19,7 +19,7 @@ import me.apomazkin.lexeme.UserDefinedTypesSnapshot
 sealed interface Msg {
 
     // ===== Lifecycle / data =====
-    /** Emitted by `AllUserDefinedTypesFlowHandler` на каждый snapshot. */
+    /** Эмиссия подписки [ComponentsManagerSub.AllTypes] на каждый snapshot. */
     data class TypesLoaded(val snapshot: UserDefinedTypesSnapshot) : Msg
     data class TypesLoadFailed(val cause: Throwable) : Msg
 
@@ -51,7 +51,7 @@ sealed interface Msg {
     data class CreateDictionaryToggle(val dictionaryId: Long) : Msg
 
     /**
-     * Emit'ится `DictionariesFlowHandler` на каждый snapshot подписки.
+     * Эмиссия подписки [ComponentsManagerSub.Dictionaries] на каждый snapshot.
      * Reducer: обновляет `availableDictionaries` + chip-staleness фильтрует
      * `createDialog.selectedDictionaryIds ∩ list.ids`. F030 invariant —
      * `editDialog` НЕ мутируется.
@@ -84,8 +84,8 @@ sealed interface Msg {
     // ===== Error state retry (F163) =====
     /**
      * User кликнул Retry в error state (когда initial load упал и rows == null).
-     * Reducer выставляет `isLoading=true` и эмитит [DatasourceEffect.LoadAllUserDefinedTypes]
-     * для повторной подписки.
+     * Reducer выставляет `isLoading=true` и инкрементит `loadGeneration` —
+     * дифф подписок рестартует упавшую [ComponentsManagerSub.AllTypes].
      */
     data object OnRetryClick : Msg
 

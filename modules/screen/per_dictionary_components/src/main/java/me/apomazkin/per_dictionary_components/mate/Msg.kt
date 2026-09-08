@@ -20,7 +20,7 @@ import me.apomazkin.lexeme.SetEnabledOutcome
 sealed interface Msg {
 
     // ===== Lifecycle / data =====
-    /** Emitted by `ComponentsForDictionaryFlowHandler` на каждый snapshot. */
+    /** Эмиссия подписки [PerDictionaryComponentsSub.Components] на каждый snapshot. */
     data class ItemsLoaded(val snapshot: PerDictionarySnapshot) : Msg
     data class ItemsLoadFailed(val cause: Throwable) : Msg
 
@@ -102,8 +102,8 @@ sealed interface Msg {
     // ===== Error state retry (F163) =====
     /**
      * User кликнул Retry в error state (когда initial load упал и items == null).
-     * Reducer выставляет `isLoading=true` и эмитит [DatasourceEffect.LoadComponentsForDictionary]
-     * для повторной подписки.
+     * Reducer выставляет `isLoading=true` и инкрементит `loadGeneration` —
+     * дифф подписок рестартует упавшую [PerDictionaryComponentsSub.Components].
      */
     data object OnRetryClick : Msg
 

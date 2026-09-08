@@ -72,9 +72,10 @@ class AllNodeReducerTest {
 
         val node = requireNotNull(result.state().allNode)
         assertEquals(4, node.count)
-        // Компенсация вытеснения: окно расширено на дельту роста.
+        // Компенсация вытеснения: окно расширено на дельту роста; Э4 —
+        // подписку с новым лимитом перезапустит дифф subscriptions().
         assertEquals(51, node.window)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = 51)), result.effects())
+        assertTrue(result.effects().isEmpty())
         // Контент придёт живой эмиссией окна — здесь loadedWords не трогаются.
         assertEquals(listOf(30L, 20L, 10L), node.loadedWords.map { it.id })
         assertTrue(node.hasMore)
@@ -116,7 +117,7 @@ class AllNodeReducerTest {
     // === ToggleAll / LoadMore / окно ===
 
     @Test
-    fun `expand - window subscription started`() {
+    fun `expand - window opened, no effects (subscription via diff)`() {
         val current = stateWithNode(AllNodeState(count = 100, hasMore = true))
 
         val result = reducer.reduce(current, Msg.ToggleAll)
@@ -125,7 +126,8 @@ class AllNodeReducerTest {
         assertTrue(node.isExpanded)
         assertTrue(node.isWindowLoading)
         assertEquals(CHUNK_SIZE, node.window)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = CHUNK_SIZE)), result.effects())
+        // Э4: окно в state → подписку AllWindow включит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -160,7 +162,8 @@ class AllNodeReducerTest {
         assertEquals(0, node.window)
         assertTrue(node.loadedWords.isEmpty())
         assertTrue(node.hasMore)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = null)), result.effects())
+        // Э4: окно ушло из state → подписку погасит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -180,10 +183,8 @@ class AllNodeReducerTest {
         val node = requireNotNull(result.state().allNode)
         assertEquals(CHUNK_SIZE * 2, node.window)
         assertTrue(node.isWindowLoading)
-        assertEquals(
-            setOf(GroupsEffect.SetWindow(limit = CHUNK_SIZE * 2)),
-            result.effects(),
-        )
+        // Э4: расширенное окно перезапустит подписку диффом subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test

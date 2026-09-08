@@ -195,7 +195,7 @@ class ChatReducerTest {
 
     @Test
     fun `QuizComponentTypesLoaded double-emit idempotent`() {
-        // F7 — initial load и FlowHandler initial emit могут прийти подряд;
+        // F7 — initial load и initial emit подписки QuizPicker могут прийти подряд;
         // apply дважды → state stable.
         val msg = Msg.QuizComponentTypesLoaded(
             types = listOf(translationType(), definitionType()),

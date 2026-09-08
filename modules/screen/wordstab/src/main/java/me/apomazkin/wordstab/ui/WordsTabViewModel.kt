@@ -12,6 +12,8 @@ import me.apomazkin.wordstab.logic.WordsTabState
 import me.apomazkin.wordstab.logic.Msg
 import me.apomazkin.wordstab.logic.UiEffectHandler
 import me.apomazkin.wordstab.logic.WordsTabReducer
+import me.apomazkin.wordstab.logic.WordsTabSubHandler
+import me.apomazkin.wordstab.logic.subscriptions
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
@@ -19,7 +21,8 @@ import io.github.kilgoret.mate.MateStateHolder
 class WordsTabViewModel @AssistedInject constructor(
     @Assisted navigator: WordsNavigator,
     logger: LexemeLogger,
-    datasourceHandler: DatasourceEffectHandler,
+    datasourceHandlerFactory: DatasourceEffectHandler.Factory,
+    wordsTabSubHandler: WordsTabSubHandler,
     uiHandler: UiEffectHandler,
     navHandlerFactory: WordsNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<WordsTabState, Msg> {
@@ -30,11 +33,12 @@ class WordsTabViewModel @AssistedInject constructor(
         coroutineScope = viewModelScope,
         reducer = WordsTabReducer(logger = logger),
         effectHandlers = listOf(
-            datasourceHandler,
+            datasourceHandlerFactory.create(pagingScope = viewModelScope),
             uiHandler,
             navHandlerFactory.create(navigator),
         ),
-        flowHandlers = listOf(datasourceHandler),
+        subscriptions = { it.subscriptions() },
+        subscriptionHandlers = listOf(wordsTabSubHandler),
     )
 
     override val state: StateFlow<WordsTabState>

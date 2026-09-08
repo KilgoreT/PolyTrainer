@@ -87,8 +87,9 @@ sealed interface DatasourceEffect : Effect {
     /** IS491: one-shot загрузка подсказок caption для captioned-компонента. */
     data class LoadCaptionSuggestions(val typeId: ComponentTypeId) : DatasourceEffect
 
-    /** Trigger для AvailableComponentTypesFlowHandler (re-)subscribe. */
-    data class LoadAvailableComponentTypes(val dictionaryId: Long) : DatasourceEffect
+    // Живые списки (типы компонентов, группы слова/словаря) эффектами
+    // не выражаются: это подписки [WordCardSub], декларируемые из
+    // state после загрузки слова.
 
     data class RestoreLexemeWithComponents(
         val wordId: Long,
@@ -97,10 +98,6 @@ sealed interface DatasourceEffect : Effect {
     ) : DatasourceEffect
 
     // === IS493 Э5 (D22): группы слова ===
-
-    /** Trigger для GroupBlockFlowHandler: подписки wordGroups+dictGroups
-     * (единственная строка в ветке WordLoaded — ревью Mate-2). */
-    data class SubscribeGroupBlock(val wordId: Long, val dictionaryId: Long) : DatasourceEffect
 
     /** Membership-мутации (запись сразу по галочке, В3). */
     data class AddMembership(val wordId: Long, val groupId: Long) : DatasourceEffect
@@ -113,8 +110,6 @@ sealed interface DatasourceEffect : Effect {
  */
 class DatasourceEffectHandler @Inject constructor(
     private val wordCardUseCase: WordCardUseCase,
-    val availableComponentTypesFlowHandler: AvailableComponentTypesFlowHandler,
-    val groupBlockFlowHandler: GroupBlockFlowHandler,
     private val logger: LexemeLogger,
 ) : MateEffectHandler<Msg, DatasourceEffect> {
 
@@ -244,14 +239,6 @@ class DatasourceEffectHandler @Inject constructor(
                         consumer(Msg.RestoreLexemeFailed(effect.snapshot))
                     }
                 }
-
-            // (Re-)subscribe делегируется AvailableComponentTypesFlowHandler.
-            is DatasourceEffect.LoadAvailableComponentTypes ->
-                availableComponentTypesFlowHandler.resubscribe(effect)
-
-            // (Re-)subscribe делегируется GroupBlockFlowHandler.
-            is DatasourceEffect.SubscribeGroupBlock ->
-                groupBlockFlowHandler.resubscribe(effect)
 
             // === IS493 Э5: membership-мутации (плоские Msg через маппер) ===
 

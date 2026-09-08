@@ -5,6 +5,10 @@
 (роадмап v0/v1/v2), [app_scenario_impl.md](app_scenario_impl.md),
 организация — [brief.md](brief.md).
 
+Статус: Э0–Э3 ✅ (v0.1.0, PolyTrainer на JitPack-зависимости, PR #498);
+Э4 ✅ библиотека (v0.1.1) + миграция всех 12 экранов PolyTrainer
+(прогон юнитов/смоук — в ветке MT_mate_e4_subscriptions).
+
 ## Э0. Репо-каркас
 
 - `KilgoreT/mate`: KMP-сборка (androidTarget + jvm + iosArm64/

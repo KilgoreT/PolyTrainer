@@ -61,9 +61,8 @@ class GroupsTabReducer(
                 .then { it.refreshVisibleGroups() }
                 .then { it.closeDeleteConfirm() }
                 .then { it.closeKebab() }
-                .withEffect(GroupsEffect.SetWindow(limit = null))
-                .withEffect(GroupsEffect.ClearGroupWindows)
-                .withEffect(GroupsEffect.CancelDeleteCountdown)
+            // Подписки (slice/окна/тикер) погасит дифф
+            // subscriptions() — dictionaryId=null убирает всё из набора.
 
             // Повторный LaunchedEffect при рекомпозиции.
             message.dictionaryId == state.dictionaryId -> state.noOp("same dictionary")
@@ -79,10 +78,9 @@ class GroupsTabReducer(
                 .then { it.refreshVisibleGroups() }
                 .then { it.closeDeleteConfirm() }
                 .then { it.closeKebab() }
-                .withEffect(GroupsEffect.SubscribeSlice(dictionaryId = message.dictionaryId))
-                .withEffect(GroupsEffect.SetWindow(limit = null))
-                .withEffect(GroupsEffect.ClearGroupWindows)
-                .withEffect(GroupsEffect.CancelDeleteCountdown)
+            // Slice нового словаря включит дифф subscriptions()
+            // (Slice(dictionaryId) появился в наборе), старые окна/тикер
+            // погаснут (их условия в state обнулены цепочкой выше).
         }
 
         // Синхронизация окон групп и компенсация окна «Все» — ДО
@@ -237,9 +235,8 @@ class GroupsTabReducer(
 
         is Msg.DeleteCountdownTick -> state.tickDeleteCountdown()
 
-        is Msg.DismissDelete -> state.begin<GroupsTabState, Effect>()
-            .then { it.closeDeleteConfirm() }
-            .withEffect(GroupsEffect.CancelDeleteCountdown)
+        // Тикер паузы осмысления погасит дифф (конфирм = null).
+        is Msg.DismissDelete -> state.closeDeleteConfirm()
 
         // Список обновит живая подписка (combine slice+groupTree).
         is Msg.DeleteOutcomeMsg -> state.noOp("delete outcome: list updated by subscription")

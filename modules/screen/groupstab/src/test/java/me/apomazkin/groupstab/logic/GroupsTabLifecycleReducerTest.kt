@@ -82,36 +82,24 @@ class GroupsTabLifecycleReducerTest {
     }
 
     @Test
-    fun `dictionary changed - subscribe slice and reset window, loading`() {
+    fun `dictionary changed - loading on, no effects (slice via subscriptions diff)`() {
         val result = reducer.reduce(GroupsTabState(), Msg.DictionaryChanged(1L))
 
         assertTrue(result.state().isLoading)
         assertEquals(1L, result.state().dictionaryId)
-        assertEquals(
-            setOf(
-                GroupsEffect.SubscribeSlice(1L),
-                GroupsEffect.SetWindow(limit = null),
-                GroupsEffect.ClearGroupWindows,
-                GroupsEffect.CancelDeleteCountdown,
-            ),
-            result.effects(),
-        )
+        // Э4: подписку Slice нового словаря включит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
-    fun `dictionary changed to null - honest empty state, window off`() {
+    fun `dictionary changed to null - honest empty state, no effects`() {
         val result = reducer.reduce(GroupsTabState(), Msg.DictionaryChanged(null))
 
         assertFalse(result.state().isLoading)
         assertTrue(result.state().hasNoDictionary)
-        assertEquals(
-            setOf(
-                GroupsEffect.SetWindow(limit = null),
-                GroupsEffect.ClearGroupWindows,
-                GroupsEffect.CancelDeleteCountdown,
-            ),
-            result.effects(),
-        )
+        // Э4: dictionaryId=null убирает всё из subscriptions() — подписки
+        // (slice/окна/тикер) погасит дифф, эффектов не нужно.
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -125,7 +113,7 @@ class GroupsTabLifecycleReducerTest {
     }
 
     @Test
-    fun `dictionary switched under expanded node - full reset plus resubscribe`() {
+    fun `dictionary switched under expanded node - full reset, no effects`() {
         val current = stateWithNode(
             AllNodeState(
                 count = 3,
@@ -140,15 +128,9 @@ class GroupsTabLifecycleReducerTest {
         assertTrue(result.state().isLoading)
         assertEquals(2L, result.state().dictionaryId)
         assertEquals(null, result.state().allNode)
-        assertEquals(
-            setOf(
-                GroupsEffect.SubscribeSlice(2L),
-                GroupsEffect.SetWindow(limit = null),
-                GroupsEffect.ClearGroupWindows,
-                GroupsEffect.CancelDeleteCountdown,
-            ),
-            result.effects(),
-        )
+        // Э4: переподписку (старый slice гаснет, новый включается) и
+        // гашение окна делает дифф subscriptions() по итоговому state.
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -172,7 +154,7 @@ class GroupsTabLifecycleReducerTest {
     }
 
     @Test
-    fun `dictionary switch - all group windows closed, ClearGroupWindows`() {
+    fun `dictionary switch - all group windows closed, subscriptions collapse to slice`() {
         val expanded = baseState().copy(
             expandedGroupWindows = mapOf(
                 5L to GroupWindowState(window = 10, isLoading = false),
@@ -183,7 +165,12 @@ class GroupsTabLifecycleReducerTest {
         val result = reducer.reduce(expanded, Msg.DictionaryChanged(2L))
 
         assertTrue(result.state().expandedGroupWindows.isEmpty())
-        assertTrue(GroupsEffect.ClearGroupWindows in result.effects())
+        // Э4: подписки окон гаснут диффом — в наборе остаётся только
+        // slice нового словаря.
+        assertEquals(
+            setOf(GroupsSub.Slice(dictionaryId = 2L)),
+            result.state().subscriptions(),
+        )
     }
 
     // === Структура из slice ===
@@ -230,7 +217,7 @@ class GroupsTabLifecycleReducerTest {
     }
 
     @Test
-    fun `dead expanded group - window closed with SetGroupWindow null`() {
+    fun `dead expanded group - window purged, subscription gone from diff`() {
         val expanded = baseState().copy(
             expandedGroupWindows = mapOf(
                 5L to GroupWindowState(window = 10, isLoading = false),
@@ -245,8 +232,9 @@ class GroupsTabLifecycleReducerTest {
         )
 
         assertEquals(setOf(6L), result.state().expandedGroupWindows.keys)
+        // Э4: окно мёртвой группы ушло из state → его подписку погасит дифф.
         assertTrue(
-            GroupsEffect.SetGroupWindow(groupId = 5, limit = null) in result.effects(),
+            result.state().subscriptions().none { it is GroupsSub.GroupWindow },
         )
     }
 

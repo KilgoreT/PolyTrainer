@@ -13,7 +13,8 @@ class DictionaryFormViewModel @AssistedInject constructor(
     @Assisted editingDictionaryId: Long?,
     @Assisted navigator: FormNavigator,
     datasourceHandler: DictionaryFormEffectHandler,
-    flagFilterHandler: FlagFilterFlowHandler,
+    flagFilterHandler: FlagFilterEffectHandler,
+    formSubHandler: DictionaryFormSubHandler,
     navHandlerFactory: FormNavigationEffectHandler.Factory,
 ) : ViewModel(), MateStateHolder<DictionaryFormScreenState, DictionaryFormMsg> {
 
@@ -33,7 +34,8 @@ class DictionaryFormViewModel @AssistedInject constructor(
             flagFilterHandler,
             navHandlerFactory.create(navigator),
         ),
-        flowHandlers = listOf(flagFilterHandler),
+        subscriptions = { it.subscriptions() },
+        subscriptionHandlers = listOf(formSubHandler),
     )
 
     override val state: StateFlow<DictionaryFormScreenState>

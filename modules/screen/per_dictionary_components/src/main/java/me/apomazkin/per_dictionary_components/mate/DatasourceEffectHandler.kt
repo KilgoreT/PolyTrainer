@@ -33,12 +33,6 @@ class DatasourceEffectHandler @Inject constructor(
 
     override val effectFamily = DatasourceEffect::class
 
-    /**
-     * F163: LoadComponentsForDictionary — re-subscribe делегируется
-     * [ComponentsForDictionaryFlowHandler]; инстанс задаёт ViewModel (assisted factory).
-     */
-    var componentsForDictionaryFlowHandler: ComponentsForDictionaryFlowHandler? = null
-
     override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
         val msg: Msg = withContext(Dispatchers.IO) {
             try {
@@ -145,12 +139,6 @@ class DatasourceEffectHandler @Inject constructor(
                             epochId = effect.epochId,
                             outcome = useCase.deleteOption(effect.optionId),
                         )
-
-                    // F163: re-subscribe — делегируем `ComponentsForDictionaryFlowHandler`.
-                    DatasourceEffect.LoadComponentsForDictionary -> {
-                        componentsForDictionaryFlowHandler?.resubscribe(consumer)
-                        Msg.Empty
-                    }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -183,8 +171,6 @@ class DatasourceEffectHandler @Inject constructor(
 
                     is DatasourceEffect.DeleteOption ->
                         Msg.OptionDeleteResult(effect.epochId, OptionOutcome.Failure(e))
-
-                    DatasourceEffect.LoadComponentsForDictionary -> Msg.Empty
                 }
             }
         }

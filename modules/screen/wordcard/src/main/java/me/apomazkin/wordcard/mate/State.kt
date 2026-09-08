@@ -29,6 +29,12 @@ data class WordCardState(
     val lexemeIdPendingDelete: Long? = null,
     /** Available component types словаря (driver для ChipsRow). */
     val availableComponentTypes: List<ComponentType> = emptyList(),
+    /**
+     * Различающее поле подписки на доступные типы компонентов: retry
+     * после ошибки инкрементит счётчик — equality подписки ломается,
+     * дифф раннера гасит упавшую и стартует новую.
+     */
+    val typesGeneration: Int = 0,
     /** IS486: живые опции CHOICE-типов словаря (display: label ?: ресурс по systemKey). */
     val optionsByType: Map<ComponentTypeId, List<ComponentOption>> = emptyMap(),
     /** IS491: подсказки caption per captioned-тип (one-shot загрузка при фокусе поля). */

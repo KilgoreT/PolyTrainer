@@ -111,10 +111,8 @@ class WordCardReducer(
                     ),
                     lexemeList = alive.map { it.toLexemeState() },
                 ) to buildSet {
-                    add(DatasourceEffect.LoadAvailableComponentTypes(w.dictionaryId))
-                    // Э5 (ревью Mate-2): триггер подписок блока групп —
-                    // wordId/dictionaryId известны только здесь.
-                    add(DatasourceEffect.SubscribeGroupBlock(w.wordId.id, w.dictionaryId))
+                    // Подписки (типы компонентов, группы) включит дифф
+                    // subscriptions(): wordState стал Loaded.
                     empty.forEach { add(DatasourceEffect.PurgeEmptyLexeme(w.wordId.id, it.lexemeId.id)) }
                 }
             }
@@ -253,8 +251,10 @@ class WordCardReducer(
 
             is Msg.RetryLoadComponentTypes -> {
                 val loaded = state.wordState as? WordState.Loaded
+                // Инкремент typesGeneration ломает equality подписки
+                // ComponentTypes — дифф гасит упавшую и стартует новую.
                 if (loaded == null) state to emptySet()
-                else state to setOf(DatasourceEffect.LoadAvailableComponentTypes(loaded.dictionaryId))
+                else state.copy(typesGeneration = state.typesGeneration + 1) to emptySet()
             }
 
             // ===== Datasource re-read =====
