@@ -8,14 +8,18 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
+/**
+ * VM формы словаря — точка сборки цикла mate. Навигация идёт через
+ * shared nav-handler приложения, per-экранного navigator'а нет.
+ */
 class DictionaryFormViewModel @AssistedInject constructor(
     @Assisted editingDictionaryId: Long?,
-    @Assisted navigator: FormNavigator,
     datasourceHandler: DictionaryFormEffectHandler,
     flagFilterHandler: FlagFilterEffectHandler,
     formSubHandler: DictionaryFormSubHandler,
-    navHandlerFactory: FormNavigationEffectHandler.Factory,
+    navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<DictionaryFormScreenState, DictionaryFormMsg> {
 
     private val stateHolder = Mate(
@@ -32,7 +36,7 @@ class DictionaryFormViewModel @AssistedInject constructor(
         effectHandlers = listOf(
             datasourceHandler,
             flagFilterHandler,
-            navHandlerFactory.create(navigator),
+            navigationHandler,
         ),
         subscriptions = { it.subscriptions() },
         subscriptionHandlers = listOf(formSubHandler),
@@ -47,7 +51,6 @@ class DictionaryFormViewModel @AssistedInject constructor(
     interface Factory {
         fun create(
             editingDictionaryId: Long?,
-            navigator: FormNavigator,
         ): DictionaryFormViewModel
     }
 }

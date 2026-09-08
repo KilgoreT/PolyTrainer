@@ -29,9 +29,8 @@ import me.apomazkin.ui.preview.PreviewWidget
 fun DictionaryAppBar(
         @StringRes titleResId: Int,
         factory: DictionaryAppBarViewModel.Factory,
-        navigator: DictionaryAppBarNavigator,
         viewModel: DictionaryAppBarViewModel = viewModel(
-                factory = viewModelFactory { factory.create(navigator) },
+                factory = viewModelFactory { factory.create() },
         ),
 ) {
     val state: DictionaryAppBarState by viewModel.state.collectAsStateWithLifecycle()

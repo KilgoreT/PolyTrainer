@@ -67,14 +67,13 @@ import me.apomazkin.wordrow.ui.WordRowWidget
 @Composable
 fun rememberGroupsTabHandle(
     factory: GroupsTabViewModel.Factory,
-    navigator: GroupsNavigator,
 ): GroupsTabHandle {
     val viewModel: GroupsTabViewModel = viewModel(
         factory = viewModelFactory { factory.create() },
     )
     val state = viewModel.state.collectAsStateWithLifecycle()
     return remember(viewModel) {
-        GroupsTabHandle(viewModel = viewModel, stateProvider = state, navigator = navigator)
+        GroupsTabHandle(viewModel = viewModel, stateProvider = state)
     }
 }
 
@@ -82,7 +81,6 @@ fun rememberGroupsTabHandle(
 class GroupsTabHandle internal constructor(
     private val viewModel: GroupsTabViewModel,
     private val stateProvider: State<GroupsTabState>,
-    private val navigator: GroupsNavigator,
 ) {
     /** FAB скрыт под шторкой/конфирмом (как words: под открытым диалогом). */
     val isFabVisible: State<Boolean> = derivedStateOf {
@@ -129,7 +127,7 @@ class GroupsTabHandle internal constructor(
         }
         GroupsTabContent(
             state = stateProvider.value,
-            onWordClick = { wordId -> navigator.openWordCard(wordId) },
+            onWordClick = { wordId -> viewModel.accept(Msg.OpenWordCard(wordId)) },
             sendMessage = viewModel::accept,
         )
     }

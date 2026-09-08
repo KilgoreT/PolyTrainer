@@ -26,12 +26,11 @@ import me.apomazkin.ui.preview.PreviewWidget
 @Composable
 fun DictionaryFormScreen(
     factory: DictionaryFormViewModel.Factory,
-    navigator: FormNavigator,
     editingDictionaryId: Long? = null,
     showAppBar: Boolean = true,
     viewModel: DictionaryFormViewModel = viewModel(
         key = "dictionaryForm_${editingDictionaryId ?: "new"}",
-        factory = viewModelFactory { factory.create(editingDictionaryId, navigator) },
+        factory = viewModelFactory { factory.create(editingDictionaryId) },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()

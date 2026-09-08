@@ -252,6 +252,11 @@ class GroupsTabReducer(
 
         is Msg.DismissKebab -> state.closeKebab()
 
+        // Тап по слову: разовое намерение открыть карточку — довозит
+        // shared nav-handler по таблице appNavGraph.
+        is Msg.OpenWordCard ->
+            state to setOf(GroupsNavigationEffect.OpenWordCard(wordId = message.wordId))
+
         // Э5: раскрытие = окно контента (count=0 — заглушка без подписки).
         is Msg.ToggleGroup -> when {
             message.groupId in state.expandedGroupWindows ->

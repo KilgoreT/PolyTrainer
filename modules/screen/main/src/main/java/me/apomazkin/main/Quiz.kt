@@ -1,50 +1,29 @@
 package me.apomazkin.main
 
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 
-private const val QUIZ_ROUTE = "quiz"
 private const val QUIZ_ROUTE_ARG = "quizType"
 
-fun NavGraphBuilder.quiz(
-    navController: NavHostController,
-    compositionRoot: CompositionRoot,
-    openDictionaryCreate: () -> Unit,
-) {
+fun NavGraphBuilder.quiz(compositionRoot: CompositionRoot) {
     composable(TabPoint.QUIZ.route) {
-        compositionRoot.QuizTabScreenDep(
-            openDictionaryCreate = openDictionaryCreate,
-            openChatQuiz = { navController.goToQuiz(it) },
-            openPerDictionaryComponents = { dictId -> navController.goToPerDictionaryComponents(dictId) },
-        )
+        compositionRoot.QuizTabScreenDep()
     }
-    
+
     composable(
-        route = "$QUIZ_ROUTE/{$QUIZ_ROUTE_ARG}",
-        arguments = listOf(navArgument(QUIZ_ROUTE_ARG) {
-            type = NavType.StringType
-        })
+        route = MainRoutes.QUIZ_CHAT_PATTERN,
+        arguments = listOf(
+            navArgument(QUIZ_ROUTE_ARG) {
+                type = NavType.StringType
+            },
+        ),
     ) { navBackStackEntry ->
-        //TODO kilg 23.01.2025 05:59 - в зависимости от quizType создавать экран, пока только один
-        val quizType: String =
-            navBackStackEntry.arguments?.getString(QUIZ_ROUTE_ARG)
-                ?: throw IllegalArgumentException("Unknown quizType")
-        compositionRoot.ChatQuizScreenDep(
-            onBackPress = { navController.backPress() }
-        )
+        // Пока квиз один: quizType из route зарезервирован под выбор
+        // экрана по типу.
+        navBackStackEntry.arguments?.getString(QUIZ_ROUTE_ARG)
+            ?: throw IllegalArgumentException("Unknown quizType")
+        compositionRoot.ChatQuizScreenDep()
     }
-    
-}
-
-private fun NavHostController.goToQuiz(quizType: String) {
-    navigate(route = "$QUIZ_ROUTE/$quizType") {
-        launchSingleTop = true
-    }
-}
-
-private fun NavHostController.backPress() {
-    popBackStack()
 }

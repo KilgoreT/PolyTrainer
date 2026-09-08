@@ -41,7 +41,7 @@ dependencies {
     implementation(composeLibs.lifecycleRuntimeCompose)
     
     testImplementation("junit:junit:4.13.2")
-    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.1")
+    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }

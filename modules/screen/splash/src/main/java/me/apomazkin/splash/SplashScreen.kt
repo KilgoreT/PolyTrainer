@@ -18,10 +18,9 @@ private val colorBackground = LexemeColor.primary
 @Composable
 fun SplashScreen(
     factory: SplashViewModel.Factory,
-    navigator: SplashNavigator,
     @Suppress("UNUSED_PARAMETER")
     viewModel: SplashViewModel = viewModel(
-        factory = viewModelFactory { factory.create(navigator) },
+        factory = viewModelFactory { factory.create() },
     ),
 ) {
     SystemBarsWidget(

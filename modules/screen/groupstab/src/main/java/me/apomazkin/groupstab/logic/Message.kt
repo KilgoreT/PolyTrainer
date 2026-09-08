@@ -98,6 +98,9 @@ sealed interface Msg {
 
     // === Э5 (D21): живые окна раскрытых групп ===
 
+    /** Тап по слову в окне контента → эффект открытия карточки. */
+    data class OpenWordCard(val wordId: Long) : Msg
+
     /** «Ещё» в контенте раскрытой группы. */
     data class LoadMoreGroup(val groupId: Long) : Msg
 

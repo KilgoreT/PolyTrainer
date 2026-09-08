@@ -2,18 +2,21 @@ package me.apomazkin.dictionary.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
+/**
+ * VM списка словарей — точка сборки цикла mate. Навигация идёт через
+ * shared nav-handler приложения, per-экранного navigator'а нет.
+ */
 class DictionaryListViewModel @AssistedInject constructor(
-    @Assisted navigator: ListNavigator,
     datasourceHandler: DictionaryListEffectHandler,
     listSubHandler: DictionaryListSubHandler,
-    navHandlerFactory: ListNavigationEffectHandler.Factory,
+    navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<DictionaryListScreenState, DictionaryListMsg> {
 
     private val stateHolder = Mate(
@@ -23,7 +26,7 @@ class DictionaryListViewModel @AssistedInject constructor(
         reducer = DictionaryListReducer(),
         effectHandlers = listOf(
             datasourceHandler,
-            navHandlerFactory.create(navigator),
+            navigationHandler,
         ),
         subscriptions = { it.subscriptions() },
         subscriptionHandlers = listOf(listSubHandler),
@@ -36,6 +39,6 @@ class DictionaryListViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: ListNavigator): DictionaryListViewModel
+        fun create(): DictionaryListViewModel
     }
 }

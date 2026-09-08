@@ -14,17 +14,19 @@ import me.apomazkin.groupstab.logic.subscriptions
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
 /**
  * VM вкладки «Группы» — точка сборки цикла mate: reducer, исполнитель
- * мутаций ([DatasourceEffectHandler]) и декларативные подписки
- * (`subscriptions()` из state + [GroupsSubHandler]) на viewModelScope.
- * Навигация (тап → карточка) идёт напрямую из UI через [GroupsNavigator] —
- * эффектов навигации нет (read-only вкладка).
+ * мутаций ([DatasourceEffectHandler]), shared nav-handler приложения
+ * (тап по слову → [GroupsNavigationEffect.OpenWordCard]) и
+ * декларативные подписки (`subscriptions()` из state +
+ * [GroupsSubHandler]) на viewModelScope.
  */
 class GroupsTabViewModel @AssistedInject constructor(
     datasourceHandler: DatasourceEffectHandler,
     groupsSubHandler: GroupsSubHandler,
+    navigationHandler: MateNavigationHandler,
     logger: LexemeLogger,
 ) : ViewModel(), MateStateHolder<GroupsTabState, Msg> {
 
@@ -33,7 +35,7 @@ class GroupsTabViewModel @AssistedInject constructor(
         initEffects = emptySet(),
         coroutineScope = viewModelScope,
         reducer = GroupsTabReducer(logger = logger),
-        effectHandlers = listOf(datasourceHandler),
+        effectHandlers = listOf(datasourceHandler, navigationHandler),
         subscriptions = { it.subscriptions() },
         subscriptionHandlers = listOf(groupsSubHandler),
     )

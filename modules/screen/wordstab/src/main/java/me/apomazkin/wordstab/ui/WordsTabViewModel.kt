@@ -2,7 +2,6 @@ package me.apomazkin.wordstab.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
@@ -17,14 +16,19 @@ import me.apomazkin.wordstab.logic.subscriptions
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
+/**
+ * VM вкладки «Слова» — точка сборки цикла mate: reducer, обработчики
+ * данных/UI и shared nav-handler приложения (навигационные эффекты экрана
+ * резолвятся общей таблицей навигации, а не per-экранным navigator'ом).
+ */
 class WordsTabViewModel @AssistedInject constructor(
-    @Assisted navigator: WordsNavigator,
     logger: LexemeLogger,
     datasourceHandlerFactory: DatasourceEffectHandler.Factory,
     wordsTabSubHandler: WordsTabSubHandler,
     uiHandler: UiEffectHandler,
-    navHandlerFactory: WordsNavigationEffectHandler.Factory,
+    navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<WordsTabState, Msg> {
 
     private val stateHolder = Mate(
@@ -35,7 +39,7 @@ class WordsTabViewModel @AssistedInject constructor(
         effectHandlers = listOf(
             datasourceHandlerFactory.create(pagingScope = viewModelScope),
             uiHandler,
-            navHandlerFactory.create(navigator),
+            navigationHandler,
         ),
         subscriptions = { it.subscriptions() },
         subscriptionHandlers = listOf(wordsTabSubHandler),
@@ -48,6 +52,6 @@ class WordsTabViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: WordsNavigator): WordsTabViewModel
+        fun create(): WordsTabViewModel
     }
 }

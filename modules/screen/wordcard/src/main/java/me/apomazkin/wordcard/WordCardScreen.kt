@@ -70,7 +70,6 @@ import java.util.Date
 fun WordCardScreen(
     wordId: Long,
     factory: WordCardViewModel.Factory,
-    navigator: WordCardNavigator,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -79,7 +78,7 @@ fun WordCardScreen(
     }
     val viewModel: WordCardViewModel = viewModel(
         key = "wordCard_$wordId",
-        factory = viewModelFactory { factory.create(wordId, navigator, uiHost) },
+        factory = viewModelFactory { factory.create(wordId, uiHost) },
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     WordCardScreen(

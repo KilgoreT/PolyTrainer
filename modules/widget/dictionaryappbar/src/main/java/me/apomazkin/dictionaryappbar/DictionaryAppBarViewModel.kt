@@ -2,7 +2,6 @@ package me.apomazkin.dictionaryappbar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
@@ -15,13 +14,17 @@ import me.apomazkin.dictionaryappbar.mate.subscriptions
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
+/**
+ * VM виджета app bar со словарём — точка сборки цикла mate. Навигация
+ * идёт через shared nav-handler приложения, per-экранного navigator'а нет.
+ */
 class DictionaryAppBarViewModel @AssistedInject constructor(
-    @Assisted navigator: DictionaryAppBarNavigator,
     logger: LexemeLogger,
     datasourceHandler: DatasourceEffectHandler,
     appBarSubHandler: DictionaryAppBarSubHandler,
-    navHandlerFactory: DictionaryAppBarNavigationEffectHandler.Factory,
+    navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<DictionaryAppBarState, Msg> {
 
     private val stateHolder = Mate(
@@ -31,7 +34,7 @@ class DictionaryAppBarViewModel @AssistedInject constructor(
         reducer = DictionaryAppBarReducer(logger = logger),
         effectHandlers = listOf(
             datasourceHandler,
-            navHandlerFactory.create(navigator),
+            navigationHandler,
         ),
         subscriptions = { it.subscriptions() },
         subscriptionHandlers = listOf(appBarSubHandler),
@@ -44,6 +47,6 @@ class DictionaryAppBarViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: DictionaryAppBarNavigator): DictionaryAppBarViewModel
+        fun create(): DictionaryAppBarViewModel
     }
 }

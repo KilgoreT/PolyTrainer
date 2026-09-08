@@ -45,5 +45,5 @@ dependencies {
     testImplementation(testLibs.junit)
     testImplementation(testLibs.mockk)
     testImplementation(testLibs.coroutinesTest)
-    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.1")
+    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.2")
 }

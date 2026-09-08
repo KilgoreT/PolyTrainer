@@ -70,9 +70,8 @@ import me.apomazkin.ui.ErrorStateWidget
 fun PerDictionaryComponentsScreen(
     dictionaryId: Long,
     factory: PerDictionaryComponentsViewModel.Factory,
-    navigator: PerDictionaryComponentsNavigator,
     viewModel: PerDictionaryComponentsViewModel = viewModel(
-        factory = viewModelFactory { factory.create(dictionaryId, navigator) },
+        factory = viewModelFactory { factory.create(dictionaryId) },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()

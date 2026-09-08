@@ -62,9 +62,8 @@ import me.apomazkin.ui.ErrorStateWidget
 @Composable
 fun ComponentsManagerScreen(
     factory: ComponentsManagerViewModel.Factory,
-    navigator: ComponentsManagerNavigator,
     viewModel: ComponentsManagerViewModel = viewModel(
-        factory = viewModelFactory { factory.create(navigator) },
+        factory = viewModelFactory { factory.create() },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()

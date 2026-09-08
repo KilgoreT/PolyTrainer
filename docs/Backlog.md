@@ -510,18 +510,14 @@
 
 ## ВекторныйПиздеж
 
-- **[Навигационные эффекты без lifecycle-гейта — краш при navigate после ухода в фон].**
-  Ручной прогон миграции 0.1.5→HEAD (2026-08-29) поймал на билде 0.1.5 FATAL
-  `IllegalStateException: State must be at least CREATED to be moved to DESTROYED`
-  (`FormNavigatorImpl.back` → `RootRouter.openMainScreen` → `navigate`), когда
-  приложение ушло в фон за ~300мс до выполнения навигационного эффекта. Проверка
-  HEAD: root cause ЖИВ — `MateNavigationEffectHandler` выполняет navigate/popBackStack
-  из корутины без гейта на lifecycle; правка `openMainScreen` (isMainInBackStack +
-  tabsNavController) закрывала другой баг и от фоновой гонки не защищает.
-  Почему не сделано сейчас: out-of-scope миграционного теста — фикс на уровне
-  mate/RootRouter (все экраны).
-  Нужно: бриф «lifecycle-гейт навигационных эффектов» — выполнять навигацию только
-  в STARTED (dropUnlessStarted-паттерн или очередь отложенной навигации в Navigator).
+- ✅ **[Навигационные эффекты без lifecycle-гейта — краш при navigate после ухода в фон].**
+  ЗАКРЫТО 2026-09-08 (mate v0.1.2, «навигация как данные»): все nav-эффекты
+  идут через единый `MateNavigationHandler` с гейтом готовности
+  (STARTED + привязанные контроллеры) и FIFO-очередью — навигация в
+  закрытый гейт не исполняется и не теряется, ждёт открытия.
+  Историческая запись: ручной прогон миграции 0.1.5→HEAD (2026-08-29)
+  поймал FATAL `IllegalStateException: State must be at least CREATED…`
+  при navigate через ~300мс после ухода в фон.
 
 - **[IS493: живая подписка карточки на слово — закрытие при внешнем удалении].**
   UX-агент (ревью Э5, 2026-08-23) указал: слово в карточке грузится one-shot (`LoadWord` → `getTermById`), живой подписки нет — при удалении слова с другого экрана карточка остаётся stale-открытой, а мутации по ней тихо no-op'ятся (в Э5 — `WordNotFound` membership-мутаций). Живой Flow на слово с закрытием карточки по эмиссии null убрал бы весь класс stale-состояний.

@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.per_dictionary_components.mate.DatasourceEffectHandler
 import me.apomazkin.per_dictionary_components.mate.Msg
-import me.apomazkin.per_dictionary_components.mate.NavigationEffectHandler
 import me.apomazkin.per_dictionary_components.mate.PerDictionaryComponentsReducer
 import me.apomazkin.per_dictionary_components.mate.PerDictionaryComponentsScreenState
 import me.apomazkin.per_dictionary_components.mate.PerDictionaryComponentsSubHandler
@@ -25,16 +25,16 @@ import me.apomazkin.per_dictionary_components.mate.subscriptions
  * - подписки `subscriptions()` из state + [PerDictionaryComponentsSubHandler] —
  *   живой список компонентов (dictionaryId берётся из state).
  * - [UiEffectHandler] — UiEffect → UiMsg.
- * - [NavigationEffectHandler] — Back уже в base Mate Nav handler.
+ * - shared nav-handler приложения — навигационные эффекты экрана
+ *   (включая Back) резолвятся общей таблицей навигации.
  */
 class PerDictionaryComponentsViewModel @AssistedInject constructor(
     @Assisted dictionaryId: Long,
-    @Assisted navigator: PerDictionaryComponentsNavigator,
     logger: LexemeLogger,
     datasourceHandler: DatasourceEffectHandler,
     subHandler: PerDictionaryComponentsSubHandler,
     uiHandler: UiEffectHandler,
-    navHandlerFactory: NavigationEffectHandler.Factory,
+    navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<PerDictionaryComponentsScreenState, Msg> {
 
     private val stateHolder = Mate(
@@ -48,7 +48,7 @@ class PerDictionaryComponentsViewModel @AssistedInject constructor(
         effectHandlers = listOf(
             datasourceHandler,
             uiHandler,
-            navHandlerFactory.create(navigator),
+            navigationHandler,
         ),
         subscriptions = { it.subscriptions() },
         subscriptionHandlers = listOf(subHandler),
@@ -68,7 +68,6 @@ class PerDictionaryComponentsViewModel @AssistedInject constructor(
     interface Factory {
         fun create(
             dictionaryId: Long,
-            navigator: PerDictionaryComponentsNavigator,
         ): PerDictionaryComponentsViewModel
     }
 }

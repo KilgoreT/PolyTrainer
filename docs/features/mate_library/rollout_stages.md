@@ -6,8 +6,11 @@
 организация — [brief.md](brief.md).
 
 Статус: Э0–Э3 ✅ (v0.1.0, PolyTrainer на JitPack-зависимости, PR #498);
-Э4 ✅ библиотека (v0.1.1) + миграция всех 12 экранов PolyTrainer
-(прогон юнитов/смоук — в ветке MT_mate_e4_subscriptions).
+Э4 ✅ библиотека (v0.1.1) + миграция всех 12 экранов PolyTrainer;
+Э5 ✅ библиотека (v0.1.2: mate-navigation, смерть MateFlowHandler) +
+PolyTrainer на appNavGraph/едином handler'е с lifecycle-гейтом
+(Backlog-краш «navigate после фона» закрыт; смоук навигации 6/6) —
+всё в ветке MT_mate_e4_subscriptions.
 
 ## Э0. Репо-каркас
 

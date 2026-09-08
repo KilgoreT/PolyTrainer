@@ -8,6 +8,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.wordcard.deps.UiHost
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.wordcard.mate.DatasourceEffect
@@ -19,13 +20,16 @@ import me.apomazkin.wordcard.mate.WordCardState
 import me.apomazkin.wordcard.mate.WordCardSubHandler
 import me.apomazkin.wordcard.mate.subscriptions
 
+/**
+ * VM карточки слова — точка сборки цикла mate. Навигация (базовый Back)
+ * идёт через shared nav-handler приложения, per-экранного navigator'а нет.
+ */
 class WordCardViewModel @AssistedInject constructor(
     @Assisted wordId: Long,
-    @Assisted navigator: WordCardNavigator,
     @Assisted uiHost: UiHost,
     datasourceHandler: DatasourceEffectHandler,
     wordCardSubHandler: WordCardSubHandler,
-    navHandlerFactory: WordCardNavigationEffectHandler.Factory,
+    navigationHandler: MateNavigationHandler,
     uiEffectHandlerFactory: UiEffectHandler.Factory,
     logger: LexemeLogger,
 ) : ViewModel(), MateStateHolder<WordCardState, Msg> {
@@ -37,7 +41,7 @@ class WordCardViewModel @AssistedInject constructor(
         reducer = WordCardReducer(logger),
         effectHandlers = listOf(
             datasourceHandler,
-            navHandlerFactory.create(navigator),
+            navigationHandler,
             uiEffectHandlerFactory.create(uiHost),
         ),
         subscriptions = { it.subscriptions() },
@@ -58,7 +62,6 @@ class WordCardViewModel @AssistedInject constructor(
     interface Factory {
         fun create(
             wordId: Long,
-            navigator: WordCardNavigator,
             uiHost: UiHost,
         ): WordCardViewModel
     }

@@ -3,60 +3,42 @@ package me.apomazkin.main
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 
+/**
+ * Сборка экранов вкладок app-слоем. Навигационных лямбд здесь больше
+ * нет: Mate-экраны выражают переходы навигационными эффектами, которые
+ * довозит shared nav-handler по таблице appNavGraph. Лямбды back
+ * остались только у не-Mate экранов (AboutApp, WebView) — это их
+ * единственное взаимодействие с навигацией.
+ */
 @Stable
 interface CompositionRoot {
     @Composable
-    fun VocabularyHostDep(
-            openDictionaryCreate: () -> Unit,
-            openWordCard: (wordId: Long) -> Unit,
-            openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
-    )
+    fun VocabularyHostDep()
 
     @Composable
-    fun WordCardScreenDep(
-            wordId: Long,
-            onBackPress: () -> Unit,
-    )
+    fun WordCardScreenDep(wordId: Long)
 
     @Composable
-    fun QuizTabScreenDep(
-            openDictionaryCreate: () -> Unit,
-            openChatQuiz: (quizType: String) -> Unit,
-            openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
-    )
+    fun QuizTabScreenDep()
 
     @Composable
-    fun ChatQuizScreenDep(
-            onBackPress: () -> Unit,
-    )
+    fun ChatQuizScreenDep()
 
     @Composable
-    fun StatisticTabScreenDep(
-            openDictionaryCreate: () -> Unit,
-            openPerDictionaryComponents: (dictionaryId: Long) -> Unit,
-    )
+    fun StatisticTabScreenDep()
 
     @Composable
-    fun SettingsTabScreenDep(
-            onLangManagementClick: () -> Unit,
-            onAboutAppClick: () -> Unit,
-            onPrivacyPolicyClick: () -> Unit,
-    )
+    fun SettingsTabScreenDep()
 
     @Composable
-    fun AboutAppScreenDep(
-            onBackPress: () -> Unit,
-    )
+    fun AboutAppScreenDep(onBackPress: () -> Unit)
 
     @Composable
     fun WebViewScreenDep(
-            pageKey: String,
-            onBackPress: () -> Unit,
+        pageKey: String,
+        onBackPress: () -> Unit,
     )
 
     @Composable
-    fun PerDictionaryComponentsScreenDep(
-            dictionaryId: Long,
-            onBackPress: () -> Unit,
-    )
+    fun PerDictionaryComponentsScreenDep(dictionaryId: Long)
 }

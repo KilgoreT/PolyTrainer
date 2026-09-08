@@ -2,7 +2,6 @@ package me.apomazkin.components_manager
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
@@ -11,12 +10,12 @@ import me.apomazkin.components_manager.mate.ComponentsManagerScreenState
 import me.apomazkin.components_manager.mate.ComponentsManagerSubHandler
 import me.apomazkin.components_manager.mate.DatasourceEffectHandler
 import me.apomazkin.components_manager.mate.Msg
-import me.apomazkin.components_manager.mate.NavigationEffectHandler
 import me.apomazkin.components_manager.mate.UiEffectHandler
 import me.apomazkin.components_manager.mate.subscriptions
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
 /**
  * ViewModel экрана `ComponentsManagerScreen`. Собирает Mate из:
@@ -25,15 +24,15 @@ import io.github.kilgoret.mate.MateStateHolder
  * - подписки `subscriptions()` из state + [ComponentsManagerSubHandler] —
  *   живые списки типов и словарей.
  * - [UiEffectHandler] — UiEffect → UiMsg.
- * - [NavigationEffectHandler] — Back уже в base Mate Nav handler.
+ * - shared nav-handler приложения — навигационные эффекты экрана
+ *   (включая Back) резолвятся общей таблицей навигации.
  */
 class ComponentsManagerViewModel @AssistedInject constructor(
-    @Assisted navigator: ComponentsManagerNavigator,
     logger: LexemeLogger,
     datasourceHandler: DatasourceEffectHandler,
     subHandler: ComponentsManagerSubHandler,
     uiHandler: UiEffectHandler,
-    navHandlerFactory: NavigationEffectHandler.Factory,
+    navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<ComponentsManagerScreenState, Msg> {
 
     private val stateHolder = Mate(
@@ -44,7 +43,7 @@ class ComponentsManagerViewModel @AssistedInject constructor(
         effectHandlers = listOf(
             datasourceHandler,
             uiHandler,
-            navHandlerFactory.create(navigator),
+            navigationHandler,
         ),
         subscriptions = { it.subscriptions() },
         subscriptionHandlers = listOf(subHandler),
@@ -62,6 +61,6 @@ class ComponentsManagerViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: ComponentsManagerNavigator): ComponentsManagerViewModel
+        fun create(): ComponentsManagerViewModel
     }
 }
