@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -7,11 +9,18 @@ plugins {
 
 android {
     namespace = "me.apomazkin.quiz.chat"
-    compileSdk = 35
+    compileSdk = 36
+
+    testOptions {
+        targetSdk = 36
+    }
+
+    lint {
+        targetSdk = 36
+    }
     
     defaultConfig {
         minSdk = 23
-        targetSdk = 35
     }
     
     compileOptions {
@@ -23,8 +32,11 @@ android {
         buildConfig = true
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -50,7 +62,7 @@ dependencies {
     testImplementation(testLibs.junit)
     testImplementation(testLibs.mockk)
     testImplementation(testLibs.coroutinesTest)
-    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.2")
+    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.5")
     androidTestImplementation(testLibs.androidxTestExt)
     androidTestImplementation(testLibs.espressoCore)
     

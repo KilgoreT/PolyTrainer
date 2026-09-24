@@ -1,6 +1,7 @@
 package me.apomazkin.components_manager.mate
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.components_manager.LogTags
@@ -10,7 +11,6 @@ import me.apomazkin.lexeme.DeleteOutcome
 import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.MateEffectHandler
-import javax.inject.Inject
 
 /**
  * Маппер `DatasourceEffect` → `UseCase` call → `Msg.*Result`. Все IO через [Dispatchers.IO].
@@ -25,16 +25,20 @@ import javax.inject.Inject
  *   reducer применяет Result только если `epochId` совпадает с активным dialog.epochId.
  * - `LoadImpact` несёт `typeId` как correlation token — Loaded/Failed Msg
  *   проверяются reducer'ом против активного `deleteConfirm.typeId`.
+ *
+ * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
+ *   в тестах можно подставить тестовый.
  */
-class DatasourceEffectHandler @Inject constructor(
+class DatasourceEffectHandler(
     private val useCase: ComponentsManagerUseCase,
     private val logger: LexemeLogger,
+    private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : MateEffectHandler<Msg, DatasourceEffect> {
 
     override val effectFamily = DatasourceEffect::class
 
     override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
-        val msg: Msg = withContext(Dispatchers.IO) {
+        val msg: Msg = withContext(io) {
             try {
                 when (effect) {
                     is DatasourceEffect.CreateComponent ->

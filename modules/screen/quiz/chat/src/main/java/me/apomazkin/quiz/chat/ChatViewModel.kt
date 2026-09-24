@@ -6,44 +6,37 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
-import me.apomazkin.quiz.chat.logic.ChatReducer
+import me.apomazkin.prefs.PrefsProvider
+import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.logic.ChatScreenState
-import me.apomazkin.quiz.chat.logic.ChatSubHandler
-import me.apomazkin.quiz.chat.logic.DatasourceEffect
-import me.apomazkin.quiz.chat.logic.DatasourceEffectHandler
 import me.apomazkin.quiz.chat.logic.Msg
-import me.apomazkin.quiz.chat.logic.subscriptions
+import me.apomazkin.quiz.chat.quiz.QuizGame
 import me.apomazkin.ui.resource.ResourceManager
 
 /**
- * VM экрана квиз-чата — точка сборки цикла mate. Навигация идёт через
- * shared nav-handler приложения, per-экранного navigator'а нет.
+ * VM экрана квиз-чата: тонкая обёртка над [ChatAssembly] — сборка
+ * раннера живёт там (общая с харнесом), VM даёт только viewModelScope
+ * и продовые зависимости.
  */
 class ChatViewModel @AssistedInject constructor(
+    useCase: QuizChatUseCase,
+    quizGame: QuizGame,
+    prefsProvider: PrefsProvider,
     resourceManager: ResourceManager,
     logger: LexemeLogger,
-    datasourceHandler: DatasourceEffectHandler,
-    chatSubHandler: ChatSubHandler,
     navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<ChatScreenState, Msg> {
 
-    private val stateHolder = Mate(
-        initState = ChatScreenState(),
-        initEffects = setOf(DatasourceEffect.PrepareToStart),
+    private val stateHolder = ChatAssembly.create(
+        useCase = useCase,
+        quizGame = quizGame,
+        prefsProvider = prefsProvider,
+        resourceManager = resourceManager,
+        logger = logger,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = ChatReducer(
-            logger = logger,
-            resourceManager = resourceManager,
-        ),
-        effectHandlers = listOf(
-            datasourceHandler,
-            navigationHandler,
-        ),
-        subscriptions = { it.subscriptions() },
-        subscriptionHandlers = listOf(chatSubHandler),
     )
 
     override val state: StateFlow<ChatScreenState>

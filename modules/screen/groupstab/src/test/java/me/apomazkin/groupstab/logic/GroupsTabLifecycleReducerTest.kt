@@ -168,7 +168,7 @@ class GroupsTabLifecycleReducerTest {
         // Э4: подписки окон гаснут диффом — в наборе остаётся только
         // slice нового словаря.
         assertEquals(
-            setOf(GroupsSub.Slice(dictionaryId = 2L)),
+            setOf(GroupsSub.CurrentDict, GroupsSub.Slice(dictionaryId = 2L)),
             result.state().subscriptions(),
         )
     }

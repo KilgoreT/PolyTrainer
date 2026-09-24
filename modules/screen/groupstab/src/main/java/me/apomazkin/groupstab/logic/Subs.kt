@@ -19,6 +19,15 @@ import io.github.kilgoret.mate.Sub
 sealed interface GroupsSub : Sub {
 
     /**
+     * Текущий выбранный словарь приложения. Без параметров: вкладка
+     * слушает глобальный выбор всё время жизни экрана; каждая эмиссия
+     * (включая null — «словарей нет») → [Msg.DictionaryChanged].
+     * Проводки словаря от host'а через UI больше нет — вкладка
+     * подписана на базу сама, как «Слова».
+     */
+    data object CurrentDict : GroupsSub
+
+    /**
      * Живой срез структуры словаря: membership слов + дерево групп,
      * собирается в DisplayTree. Жив всегда, пока выбран словарь.
      *
@@ -64,7 +73,8 @@ sealed interface GroupsSub : Sub {
  * после каждого reduce и диффом набора включает/гасит подписки.
  *
  * Правила вывода:
- * - нет словаря → нет подписок вовсе;
+ * - [GroupsSub.CurrentDict] — безусловно, всё время жизни экрана;
+ * - нет словаря → остальных подписок нет;
  * - [GroupsSub.Slice] — всегда при выбранном словаре;
  * - [GroupsSub.AllWindow] — узел «Все» раскрыт и window > 0;
  * - [GroupsSub.GroupWindow] — на каждую раскрытую группу с window > 0;
@@ -72,6 +82,7 @@ sealed interface GroupsSub : Sub {
  *   не истёкшим счётчиком.
  */
 fun GroupsTabState.subscriptions(): Set<Sub> = buildSet {
+    add(GroupsSub.CurrentDict)
     val dictId = dictionaryId ?: return@buildSet
     add(GroupsSub.Slice(dictionaryId = dictId))
     allNode

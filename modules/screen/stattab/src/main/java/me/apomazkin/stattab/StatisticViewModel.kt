@@ -6,35 +6,28 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
+import me.apomazkin.stattab.deps.StatisticUseCase
 import me.apomazkin.stattab.mate.Msg
-import me.apomazkin.stattab.mate.StatSubHandler
-import me.apomazkin.stattab.mate.StatisticReducer
 import me.apomazkin.stattab.mate.StatisticState
-import me.apomazkin.stattab.mate.subscriptions
 
 /**
- * VM вкладки статистики — точка сборки цикла mate. Навигация идёт через
- * shared nav-handler приложения, per-экранного navigator'а нет.
+ * VM вкладки статистики: тонкая обёртка над [StatisticAssembly] —
+ * сборка раннера живёт там (общая с харнесом), VM даёт только
+ * viewModelScope и продовые зависимости.
  */
 class StatisticViewModel @AssistedInject constructor(
+    useCase: StatisticUseCase,
     logger: LexemeLogger,
-    statSubHandler: StatSubHandler,
     navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<StatisticState, Msg> {
 
-    private val stateHolder = Mate(
-        initState = StatisticState(),
-        initEffects = setOf(),
+    private val stateHolder = StatisticAssembly.create(
+        useCase = useCase,
+        logger = logger,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = StatisticReducer(logger = logger),
-        effectHandlers = listOf(
-            navigationHandler,
-        ),
-        subscriptions = { it.subscriptions() },
-        subscriptionHandlers = listOf(statSubHandler),
     )
 
     override val state: StateFlow<StatisticState>

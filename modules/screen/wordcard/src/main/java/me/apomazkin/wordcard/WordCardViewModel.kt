@@ -6,46 +6,34 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.wordcard.deps.UiHost
+import me.apomazkin.wordcard.deps.WordCardUseCase
 import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.wordcard.mate.DatasourceEffect
-import me.apomazkin.wordcard.mate.DatasourceEffectHandler
 import me.apomazkin.wordcard.mate.Msg
-import me.apomazkin.wordcard.mate.UiEffectHandler
-import me.apomazkin.wordcard.mate.WordCardReducer
 import me.apomazkin.wordcard.mate.WordCardState
-import me.apomazkin.wordcard.mate.WordCardSubHandler
-import me.apomazkin.wordcard.mate.subscriptions
 
 /**
- * VM карточки слова — точка сборки цикла mate. Навигация (базовый Back)
- * идёт через shared nav-handler приложения, per-экранного navigator'а нет.
+ * VM карточки слова: тонкая обёртка над [WordCardAssembly] — сборка
+ * раннера живёт там (общая с харнесом), VM даёт только viewModelScope
+ * и продовые зависимости.
  */
 class WordCardViewModel @AssistedInject constructor(
     @Assisted wordId: Long,
     @Assisted uiHost: UiHost,
-    datasourceHandler: DatasourceEffectHandler,
-    wordCardSubHandler: WordCardSubHandler,
-    navigationHandler: MateNavigationHandler,
-    uiEffectHandlerFactory: UiEffectHandler.Factory,
+    useCase: WordCardUseCase,
     logger: LexemeLogger,
+    navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<WordCardState, Msg> {
 
-    private val stateHolder = Mate(
-        initState = WordCardState(),
-        initEffects = setOf(DatasourceEffect.LoadWord(wordId)),
+    private val stateHolder = WordCardAssembly.create(
+        useCase = useCase,
+        logger = logger,
+        navigationHandler = navigationHandler,
+        wordId = wordId,
+        uiHost = uiHost,
         coroutineScope = viewModelScope,
-        reducer = WordCardReducer(logger),
-        effectHandlers = listOf(
-            datasourceHandler,
-            navigationHandler,
-            uiEffectHandlerFactory.create(uiHost),
-        ),
-        subscriptions = { it.subscriptions() },
-        subscriptionHandlers = listOf(wordCardSubHandler),
     )
 
     override val state: StateFlow<WordCardState>

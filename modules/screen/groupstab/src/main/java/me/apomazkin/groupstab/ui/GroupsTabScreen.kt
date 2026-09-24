@@ -93,22 +93,15 @@ class GroupsTabHandle internal constructor(
     }
 
     /**
-     * Контент вкладки. Проводка словаря (D9.4) — внутри: мост распаковывает
-     * DictionarySlot host'а в примитивы, Msg шлётся ТОЛЬКО при isResolved.
+     * Контент вкладки. Текущий словарь вкладка слушает сама
+     * ([GroupsSub.CurrentDict]) — проводки словаря от host'а нет.
      * Ошибки мутаций — снекбаром через host'овый [SnackbarHostState]
      * (решение юзера; шторка к этому моменту закрыта reducer'ом).
      */
     @Composable
     fun Content(
         snackbarHostState: SnackbarHostState,
-        dictionaryId: Long?,
-        isDictResolved: Boolean,
     ) {
-        LaunchedEffect(dictionaryId, isDictResolved) {
-            if (isDictResolved) {
-                viewModel.accept(Msg.DictionaryChanged(dictionaryId = dictionaryId))
-            }
-        }
         val error = stateProvider.value.errorSnackbar
         val errorText = error?.let {
             stringResource(

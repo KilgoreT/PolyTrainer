@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -7,11 +9,18 @@ plugins {
 
 android {
     namespace = "me.apomazkin.wordstab"
-    compileSdk = 35
+    compileSdk = 36
+
+    testOptions {
+        targetSdk = 36
+    }
+
+    lint {
+        targetSdk = 36
+    }
     
     defaultConfig {
         minSdk = 23
-        targetSdk = 35
     }
     
     compileOptions {
@@ -23,8 +32,11 @@ android {
         buildConfig = true
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -53,7 +65,7 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation(project("path" to ":modules:core:mate"))
-    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.2")
+    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.5")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }

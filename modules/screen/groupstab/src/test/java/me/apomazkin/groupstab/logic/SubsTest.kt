@@ -16,8 +16,9 @@ class SubsTest {
     // === Slice / словарь ===
 
     @Test
-    fun `no dictionary - empty set even with windows and confirm`() {
-        // dictionaryId=null режет ВСЁ: без словаря слушать нечего.
+    fun `no dictionary - only current dict subscription survives`() {
+        // dictionaryId=null режет всё словарное; слушать остаётся
+        // только сам выбор словаря (CurrentDict — безусловна).
         val state = GroupsTabState(
             dictionaryId = null,
             allNode = AllNodeState(count = 3, isExpanded = true, window = 10),
@@ -25,14 +26,14 @@ class SubsTest {
             confirmDelete = ConfirmDeleteState(groupId = 5, deleteWords = true, countdownLeft = 3),
         )
 
-        assertTrue(state.subscriptions().isEmpty())
+        assertEquals(setOf<Sub>(GroupsSub.CurrentDict), state.subscriptions())
     }
 
     @Test
     fun `dictionary only - single slice subscription`() {
         val state = GroupsTabState(dictionaryId = 1L)
 
-        assertEquals(setOf<Sub>(GroupsSub.Slice(dictionaryId = 1L)), state.subscriptions())
+        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(dictionaryId = 1L)), state.subscriptions())
     }
 
     // === Окно «Все» ===
@@ -46,6 +47,7 @@ class SubsTest {
 
         assertEquals(
             setOf(
+                GroupsSub.CurrentDict,
                 GroupsSub.Slice(dictionaryId = 1L),
                 GroupsSub.AllWindow(dictionaryId = 1L, limit = 20),
             ),
@@ -60,14 +62,14 @@ class SubsTest {
             dictionaryId = 1L,
             allNode = AllNodeState(count = 30, isExpanded = false, window = 10),
         )
-        assertEquals(setOf<Sub>(GroupsSub.Slice(1L)), collapsed.subscriptions())
+        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), collapsed.subscriptions())
 
         // Раскрыт пустым (T-5а): window=0 — заглушка без подписки.
         val zeroWindow = GroupsTabState(
             dictionaryId = 1L,
             allNode = AllNodeState(count = 0, isExpanded = true, window = 0),
         )
-        assertEquals(setOf<Sub>(GroupsSub.Slice(1L)), zeroWindow.subscriptions())
+        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), zeroWindow.subscriptions())
     }
 
     // === Окна групп ===
@@ -86,6 +88,7 @@ class SubsTest {
 
         assertEquals(
             setOf(
+                GroupsSub.CurrentDict,
                 GroupsSub.Slice(dictionaryId = 1L),
                 GroupsSub.GroupWindow(groupId = 5L, limit = 10),
                 GroupsSub.GroupWindow(groupId = 6L, limit = 20),
@@ -109,6 +112,7 @@ class SubsTest {
 
         assertEquals(
             setOf(
+                GroupsSub.CurrentDict,
                 GroupsSub.Slice(dictionaryId = 1L),
                 GroupsSub.DeleteCountdown(groupId = 5L),
             ),
@@ -123,13 +127,13 @@ class SubsTest {
             dictionaryId = 1L,
             confirmDelete = ConfirmDeleteState(groupId = 5, deleteWords = false, countdownLeft = 3),
         )
-        assertEquals(setOf<Sub>(GroupsSub.Slice(1L)), unchecked.subscriptions())
+        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), unchecked.subscriptions())
 
         // Счётчик оттикал до нуля — тикер гаснет, кнопка активна.
         val ticked = GroupsTabState(
             dictionaryId = 1L,
             confirmDelete = ConfirmDeleteState(groupId = 5, deleteWords = true, countdownLeft = 0),
         )
-        assertEquals(setOf<Sub>(GroupsSub.Slice(1L)), ticked.subscriptions())
+        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), ticked.subscriptions())
     }
 }

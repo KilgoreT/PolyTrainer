@@ -1,12 +1,13 @@
 package me.apomazkin.groupstab.logic
 
 import io.github.kilgoret.mate.MateEffectHandler
+import io.github.kilgoret.mate.runMateCatching
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.groupstab.LogTags
 import me.apomazkin.groupstab.deps.GroupsTabUseCase
 import me.apomazkin.logger.LexemeLogger
-import javax.inject.Inject
 
 /**
  * Исполнитель эффектов-МУТАЦИЙ вкладки «Группы»: разовые намерения
@@ -14,14 +15,19 @@ import javax.inject.Inject
  * эффектом, а раннер mate роутит сюда по семейству [GroupsEffect].
  * Каждый эффект — один вызов use case → доменный outcome →
  * [toMutationMsg] (маппинг в плоский Msg ДО отправки — конвенция);
- * `runCatching`-guard (T-6) → [Msg.GroupMutationFailed].
+ * guard через [runMateCatching] (сбой → [Msg.GroupMutationFailed],
+ * отмена корутины пробрасывается).
  *
  * Живые потоки данных (slice, окна, тикер) — НЕ здесь: они длящиеся
  * и декларируются подписками [GroupsSub] + [GroupsSubHandler].
+ *
+ * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
+ *   в тестах можно подставить тестовый.
  */
-class DatasourceEffectHandler @Inject constructor(
+class DatasourceEffectHandler(
     private val useCase: GroupsTabUseCase,
     private val logger: LexemeLogger,
+    private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : MateEffectHandler<Msg, GroupsEffect> {
 
     override val effectFamily = GroupsEffect::class
@@ -32,8 +38,8 @@ class DatasourceEffectHandler @Inject constructor(
     ) {
         logger.d(tag = LogTags.GROUPS, message = "effect: $effect")
         val msg: Msg = when (val eff = effect) {
-            is GroupsEffect.CreateGroup -> withContext(Dispatchers.IO) {
-                runCatching { useCase.createGroup(eff.dictionaryId, eff.name) }
+            is GroupsEffect.CreateGroup -> withContext(io) {
+                runMateCatching { useCase.createGroup(eff.dictionaryId, eff.name) }
                     .fold(
                         onSuccess = {
                             logger.d(tag = LogTags.GROUPS, message = "create outcome: $it")
@@ -46,8 +52,8 @@ class DatasourceEffectHandler @Inject constructor(
                     )
             }
 
-            is GroupsEffect.RenameGroup -> withContext(Dispatchers.IO) {
-                runCatching { useCase.renameGroup(eff.groupId, eff.name) }
+            is GroupsEffect.RenameGroup -> withContext(io) {
+                runMateCatching { useCase.renameGroup(eff.groupId, eff.name) }
                     .fold(
                         onSuccess = {
                             logger.d(tag = LogTags.GROUPS, message = "rename outcome: $it")
@@ -60,8 +66,8 @@ class DatasourceEffectHandler @Inject constructor(
                     )
             }
 
-            is GroupsEffect.DeleteGroup -> withContext(Dispatchers.IO) {
-                runCatching { useCase.deleteGroup(eff.groupId) }
+            is GroupsEffect.DeleteGroup -> withContext(io) {
+                runMateCatching { useCase.deleteGroup(eff.groupId) }
                     .fold(
                         onSuccess = {
                             logger.d(tag = LogTags.GROUPS, message = "delete outcome: $it")
@@ -74,8 +80,8 @@ class DatasourceEffectHandler @Inject constructor(
                     )
             }
 
-            is GroupsEffect.DeleteGroupWithWords -> withContext(Dispatchers.IO) {
-                runCatching { useCase.deleteGroupWithWords(eff.groupId) }
+            is GroupsEffect.DeleteGroupWithWords -> withContext(io) {
+                runMateCatching { useCase.deleteGroupWithWords(eff.groupId) }
                     .fold(
                         onSuccess = {
                             // Лог обоих исходов (D32: NotFound обязан

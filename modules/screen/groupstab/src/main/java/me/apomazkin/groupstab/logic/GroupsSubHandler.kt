@@ -45,6 +45,10 @@ class GroupsSubHandler @Inject constructor(
     }
 
     override fun flow(sub: GroupsSub): Flow<Msg> = when (sub) {
+        GroupsSub.CurrentDict ->
+            useCase.flowCurrentDictId()
+                .map { dictId -> Msg.DictionaryChanged(dictionaryId = dictId) }
+
         is GroupsSub.Slice ->
             combine(
                 useCase.membershipSlice(sub.dictionaryId).distinctUntilChanged(),

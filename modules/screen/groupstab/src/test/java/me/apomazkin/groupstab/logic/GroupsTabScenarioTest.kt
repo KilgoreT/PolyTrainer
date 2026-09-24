@@ -220,7 +220,10 @@ class GroupsTabScenarioTest {
         // Э4: эффектов нет — старые подписки гаснут, slice нового
         // словаря включается диффом subscriptions().
         assertTrue(send(Msg.DictionaryChanged(2L)).isEmpty())
-        assertEquals(setOf(GroupsSub.Slice(2L)), state.subscriptions())
+        assertEquals(
+            setOf(GroupsSub.CurrentDict, GroupsSub.Slice(2L)),
+            state.subscriptions(),
+        )
         assertTrue(state.isLoading)
         assertEquals(null, state.sheet)
         assertEquals(null, state.allNode)

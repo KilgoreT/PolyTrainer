@@ -1,6 +1,7 @@
 package me.apomazkin.per_dictionary_components.mate
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.lexeme.CreateOutcome
@@ -13,7 +14,6 @@ import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.MateEffectHandler
 import me.apomazkin.per_dictionary_components.LogTags
 import me.apomazkin.per_dictionary_components.deps.PerDictionaryComponentsUseCase
-import javax.inject.Inject
 
 /**
  * Маппер `DatasourceEffect` → `UseCase` call → `Msg.*Result`. Все IO через [Dispatchers.IO].
@@ -25,16 +25,20 @@ import javax.inject.Inject
  * F124/F136: write effects несут `epochId` (createDialog/renameDialog/deleteConfirm
  * session id); reducer применяет Result только если `epochId` совпадает с активным
  * dialog.epochId. `LoadImpact` несёт `typeId` как correlation token.
+ *
+ * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
+ *   в тестах можно подставить тестовый.
  */
-class DatasourceEffectHandler @Inject constructor(
+class DatasourceEffectHandler(
     private val useCase: PerDictionaryComponentsUseCase,
     private val logger: LexemeLogger,
+    private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : MateEffectHandler<Msg, DatasourceEffect> {
 
     override val effectFamily = DatasourceEffect::class
 
     override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
-        val msg: Msg = withContext(Dispatchers.IO) {
+        val msg: Msg = withContext(io) {
             try {
                 when (effect) {
                     is DatasourceEffect.CreateComponent ->

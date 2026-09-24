@@ -5,14 +5,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import io.github.kilgoret.mate.Effect
-import io.github.kilgoret.mate.Mate
-import io.github.kilgoret.mate.MateEffectHandler
-import io.github.kilgoret.mate.MateReducer
-import io.github.kilgoret.mate.ReducerResult
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlin.reflect.KClass
 
 interface SplashUseCase {
     fun checkIfNeedAddDictionary(): Flow<Boolean>
@@ -29,55 +23,20 @@ sealed interface SplashEffect : Effect {
 }
 
 /**
- * Мини-цикл mate сплэша: init-эффект [SplashEffect.CheckInit] →
- * ответ базы → навигационный эффект ([SplashNavigationEffect]),
- * который довозит shared nav-handler приложения.
+ * VM сплэша: тонкая обёртка над [SplashAssembly] — сборка мини-цикла
+ * mate живёт там (общая с харнесом), VM даёт только viewModelScope и
+ * продовые зависимости.
  */
 class SplashViewModel @AssistedInject constructor(
     splashUseCase: SplashUseCase,
     navigationHandler: MateNavigationHandler,
 ) : ViewModel() {
 
-    private class CheckInitHandler(
-        private val useCase: SplashUseCase,
-    ) : MateEffectHandler<SplashMsg, SplashEffect> {
-        override val effectFamily: KClass<SplashEffect> = SplashEffect::class
-
-        override suspend fun runEffect(
-            effect: SplashEffect,
-            consumer: (SplashMsg) -> Unit,
-        ) {
-            val needSetup = useCase.checkIfNeedAddDictionary().first()
-            consumer(SplashMsg.InitChecked(needSetup))
-        }
-    }
-
-    private object Reducer : MateReducer<Unit, SplashMsg, Effect> {
-        override fun reduce(
-            state: Unit,
-            message: SplashMsg,
-        ): ReducerResult<Unit, Effect> = when (message) {
-            is SplashMsg.InitChecked ->
-                Unit to setOf(
-                    if (message.needSetup) {
-                        SplashNavigationEffect.OpenDictionarySetup
-                    } else {
-                        SplashNavigationEffect.OpenMainScreen
-                    },
-                )
-        }
-    }
-
     @Suppress("unused")
-    private val stateHolder = Mate<Unit, SplashMsg, Effect>(
-        initState = Unit,
-        initEffects = setOf(SplashEffect.CheckInit),
+    private val stateHolder = SplashAssembly.create(
+        useCase = splashUseCase,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = Reducer,
-        effectHandlers = listOf(
-            CheckInitHandler(splashUseCase),
-            navigationHandler,
-        ),
     )
 
     @AssistedFactory

@@ -5,31 +5,24 @@ import androidx.lifecycle.viewModelScope
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
+import me.apomazkin.dictionary.DictionaryUseCase
 
 /**
- * VM списка словарей — точка сборки цикла mate. Навигация идёт через
- * shared nav-handler приложения, per-экранного navigator'а нет.
+ * VM списка словарей: тонкая обёртка над [DictionaryListAssembly] —
+ * сборка раннера живёт там (общая с харнесом), VM даёт только
+ * viewModelScope и продовые зависимости.
  */
 class DictionaryListViewModel @AssistedInject constructor(
-    datasourceHandler: DictionaryListEffectHandler,
-    listSubHandler: DictionaryListSubHandler,
+    useCase: DictionaryUseCase,
     navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<DictionaryListScreenState, DictionaryListMsg> {
 
-    private val stateHolder = Mate(
-        initState = DictionaryListScreenState(),
-        initEffects = emptySet(),
+    private val stateHolder = DictionaryListAssembly.create(
+        useCase = useCase,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = DictionaryListReducer(),
-        effectHandlers = listOf(
-            datasourceHandler,
-            navigationHandler,
-        ),
-        subscriptions = { it.subscriptions() },
-        subscriptionHandlers = listOf(listSubHandler),
     )
 
     override val state: StateFlow<DictionaryListScreenState>

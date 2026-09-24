@@ -18,6 +18,13 @@ import me.apomazkin.wordrow.entity.TermUiItem
 interface GroupsTabUseCase {
 
     /**
+     * Живой id текущего словаря (null — «словарей нет»). Семантика —
+     * как у words/host: один prefs-источник + fallback на первый
+     * словарь, рассинхрона между вкладками нет.
+     */
+    fun flowCurrentDictId(): Flow<Long?>
+
+    /**
      * Живой id-срез membership словаря (А13: наблюдает words + word_groups +
      * dictionary_groups; порядок id DESC — порядок «Слов»).
      */

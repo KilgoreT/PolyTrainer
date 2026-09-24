@@ -10,6 +10,8 @@ import me.apomazkin.group.MembershipEntry
 import me.apomazkin.group.RenameGroupOutcome
 import me.apomazkin.groupstab.deps.GroupsTabUseCase
 import me.apomazkin.polytrainer.mapper.toDomain
+import me.apomazkin.prefs.PrefKey
+import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordrow.entity.toUiItem
 import javax.inject.Inject
@@ -23,7 +25,19 @@ import javax.inject.Inject
 class GroupsTabUseCaseImpl @Inject constructor(
     private val groupApi: CoreDbApi.GroupApi,
     private val termApi: CoreDbApi.TermApi,
+    private val dictionaryApi: CoreDbApi.DictionaryApi,
+    private val prefsProvider: PrefsProvider,
 ) : GroupsTabUseCase {
+
+    override fun flowCurrentDictId(): Flow<Long?> = prefsProvider
+        .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
+        .map { id: Long? ->
+            // null — валидное «словарей нет»; fallback на первый словарь —
+            // как у words/host (id в prefs может отсутствовать/протухнуть).
+            (id?.let { dictionaryApi.getDictionaryById(it) }
+                ?: dictionaryApi.getDictionaryList().firstOrNull())
+                ?.id
+        }
 
     override fun membershipSlice(dictionaryId: Long): Flow<List<MembershipEntry>> =
         groupApi.membershipSlice(dictionaryId).map { slice ->

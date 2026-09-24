@@ -9,8 +9,8 @@ import me.apomazkin.wordrow.entity.TermUiItem
 sealed interface Msg {
 
     /**
-     * Проводка словаря от host (D9.4): шлётся экраном по DictionarySlot
-     * ТОЛЬКО при isResolved; null — «словарей нет».
+     * Эмиссия подписки [GroupsSub.CurrentDict]: текущий словарь
+     * сменился (null — «словарей нет»).
      */
     data class DictionaryChanged(val dictionaryId: Long?) : Msg
 

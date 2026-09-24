@@ -6,40 +6,26 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
+import me.apomazkin.dictionary.DictionaryUseCase
 
 /**
- * VM формы словаря — точка сборки цикла mate. Навигация идёт через
- * shared nav-handler приложения, per-экранного navigator'а нет.
+ * VM формы словаря: тонкая обёртка над [DictionaryFormAssembly] —
+ * сборка раннера живёт там (общая с харнесом), VM даёт только
+ * viewModelScope и продовые зависимости.
  */
 class DictionaryFormViewModel @AssistedInject constructor(
     @Assisted editingDictionaryId: Long?,
-    datasourceHandler: DictionaryFormEffectHandler,
-    flagFilterHandler: FlagFilterEffectHandler,
-    formSubHandler: DictionaryFormSubHandler,
+    useCase: DictionaryUseCase,
     navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<DictionaryFormScreenState, DictionaryFormMsg> {
 
-    private val stateHolder = Mate(
-        initState = DictionaryFormScreenState(
-            editingDictionaryId = editingDictionaryId,
-        ),
-        initEffects = if (editingDictionaryId != null) {
-            setOf(DictionaryFormEffect.LoadDictionary(editingDictionaryId))
-        } else {
-            emptySet()
-        },
+    private val stateHolder = DictionaryFormAssembly.create(
+        useCase = useCase,
+        navigationHandler = navigationHandler,
+        editingDictionaryId = editingDictionaryId,
         coroutineScope = viewModelScope,
-        reducer = DictionaryFormReducer(),
-        effectHandlers = listOf(
-            datasourceHandler,
-            flagFilterHandler,
-            navigationHandler,
-        ),
-        subscriptions = { it.subscriptions() },
-        subscriptionHandlers = listOf(formSubHandler),
     )
 
     override val state: StateFlow<DictionaryFormScreenState>

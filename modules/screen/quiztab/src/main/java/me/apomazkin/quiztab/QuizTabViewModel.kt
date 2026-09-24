@@ -6,33 +6,25 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Mate
 import io.github.kilgoret.mate.MateStateHolder
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.quiztab.logic.Msg
-import me.apomazkin.quiztab.logic.QuizTabReducer
 import me.apomazkin.quiztab.logic.QuizTabState
-import me.apomazkin.quiztab.logic.UiEffectHandler
 
 /**
- * VM вкладки квизов — точка сборки цикла mate. Навигация идёт через
- * shared nav-handler приложения, per-экранного navigator'а нет.
+ * VM вкладки квизов: тонкая обёртка над [QuizTabAssembly] — сборка
+ * раннера живёт там (общая с харнесом), VM даёт только viewModelScope
+ * и продовые зависимости.
  */
 class QuizTabViewModel @AssistedInject constructor(
     logger: LexemeLogger,
-    uiHandler: UiEffectHandler,
     navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStateHolder<QuizTabState, Msg> {
 
-    private val stateHolder = Mate(
-        initState = QuizTabState(),
-        initEffects = setOf(),
+    private val stateHolder = QuizTabAssembly.create(
+        logger = logger,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = QuizTabReducer(logger = logger),
-        effectHandlers = listOf(
-            uiHandler,
-            navigationHandler,
-        ),
     )
 
     override val state: StateFlow<QuizTabState>

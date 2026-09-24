@@ -1,16 +1,13 @@
 package me.apomazkin.wordcard.mate
 
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
 import io.github.kilgoret.mate.MateEffectHandler
 import me.apomazkin.wordcard.deps.UiHost
 
 /**
  * Обрабатывает [UiEffect]'ы через [UiHost].
  */
-class UiEffectHandler @AssistedInject constructor(
-    @Assisted private val uiHost: UiHost,
+class UiEffectHandler(
+    private val uiHost: UiHost,
 ) : MateEffectHandler<Msg, UiEffect> {
 
     override val effectFamily = UiEffect::class
@@ -35,10 +32,5 @@ class UiEffectHandler @AssistedInject constructor(
                 if (retryPressed) consumer(effect.retryMsg)
             }
         }
-    }
-
-    @AssistedFactory
-    interface Factory {
-        fun create(uiHost: UiHost): UiEffectHandler
     }
 }

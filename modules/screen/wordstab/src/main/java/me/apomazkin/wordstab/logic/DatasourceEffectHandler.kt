@@ -1,9 +1,7 @@
 package me.apomazkin.wordstab.logic
 
 import androidx.paging.cachedIn
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -35,21 +33,19 @@ sealed interface DatasourceEffect : Effect {
  * [WordsTabSub] + [WordsTabSubHandler].
  *
  * @param pagingScope scope для `cachedIn` paging-потока без фильтра
- *   (переживает пересоздание подписчиков UI); передаёт ViewModel —
- *   это её viewModelScope.
+ *   (переживает пересоздание подписчиков UI); в проде это
+ *   viewModelScope.
+ * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
+ *   в тестах можно подставить тестовый.
  */
-class DatasourceEffectHandler @AssistedInject constructor(
-        @Assisted private val pagingScope: CoroutineScope,
+class DatasourceEffectHandler(
+        private val pagingScope: CoroutineScope,
         private val wordstabUseCase: WordsTabUseCase,
         private val logger: LexemeLogger,
+        private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : MateEffectHandler<Msg, DatasourceEffect> {
 
     override val effectFamily = DatasourceEffect::class
-
-    @AssistedFactory
-    interface Factory {
-        fun create(pagingScope: CoroutineScope): DatasourceEffectHandler
-    }
 
     override suspend fun runEffect(
             effect: DatasourceEffect,
@@ -57,7 +53,7 @@ class DatasourceEffectHandler @AssistedInject constructor(
     ) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         val msg = when (val eff = effect) {
-            is DatasourceEffect.LoadTermFlow -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.LoadTermFlow -> withContext(io) {
                 // IS476: getCurrentDict() теперь nullable — страхуемся на случай race,
                 // когда reducer уже отфильтровал null, но эффект мог быть "в пути".
                 val dictionaryId = wordstabUseCase.getCurrentDict()?.id?.toInt()
@@ -77,18 +73,18 @@ class DatasourceEffectHandler @AssistedInject constructor(
                 }
             }
 
-            is DatasourceEffect.CreateWord -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.CreateWord -> withContext(io) {
                 wordstabUseCase.addWord(eff.value)
                 Msg.NoOperation
             }
 
-            is DatasourceEffect.UpdateWord -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.UpdateWord -> withContext(io) {
                 async { wordstabUseCase.updateWord(eff.wordId, eff.value) }.await()
                 Msg.NoOperation
             }
 
             is DatasourceEffect.RemoveWords -> {
-                withContext(Dispatchers.IO) {
+                withContext(io) {
                     eff.wordSet.map { id ->
                         async { wordstabUseCase.deleteWord(id.id) }.await()
                     }

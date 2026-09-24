@@ -1,5 +1,6 @@
 package me.apomazkin.dictionaryappbar.mate
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
@@ -8,7 +9,6 @@ import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateEffectHandler
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
-import javax.inject.Inject
 
 sealed interface DatasourceEffect : Effect {
     data class ChangeDict(val dict: DictUiEntity) : DatasourceEffect
@@ -19,10 +19,14 @@ sealed interface DatasourceEffect : Effect {
  * текущий словарь». Живые списки словарей — не здесь: они длящиеся и
  * декларируются подписками [DictionaryAppBarSub] +
  * [DictionaryAppBarSubHandler].
+ *
+ * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
+ *   в тестах можно подставить тестовый.
  */
-class DatasourceEffectHandler @Inject constructor(
+class DatasourceEffectHandler(
         private val useCase: DictionaryAppBarUseCase,
         private val logger: LexemeLogger,
+        private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : MateEffectHandler<Msg, DatasourceEffect> {
 
     override val effectFamily = DatasourceEffect::class
@@ -34,7 +38,7 @@ class DatasourceEffectHandler @Inject constructor(
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         val msg = when (effect) {
             is DatasourceEffect.ChangeDict -> {
-                withContext(Dispatchers.IO) {
+                withContext(io) {
                     useCase.changeDict(id = effect.dict.id)
                 }
                 Msg.Empty

@@ -96,19 +96,15 @@ class CompositionRootImpl(
                     titleRes = me.apomazkin.core_resources.R.string.vocabulary_tab_groups,
                     // Э3: FAB создания группы; скрыт под шторкой/конфирмом
                     // (читалка — урок D1.3). Drawable живёт в core-resources
-                    // (F-6). Мост распаковывает DictionarySlot в примитивы —
-                    // groupstab контракта host'а не видит.
+                    // (F-6). Словарь groups слушает сам (подписка
+                    // CurrentDict) — слот host'а игнорируется, как у words.
                     fab = FabSpec(
                         iconRes = me.apomazkin.core_resources.R.drawable.ic_add,
                         visible = { groups.isFabVisible.value },
                         onClick = groups::onFabClick,
                     ),
-                    content = { snackbarHostState, slot ->
-                        groups.Content(
-                            snackbarHostState = snackbarHostState,
-                            dictionaryId = slot.id,
-                            isDictResolved = slot.isResolved,
-                        )
+                    content = { snackbarHostState, _ ->
+                        groups.Content(snackbarHostState = snackbarHostState)
                     },
                 ),
             )
