@@ -14,10 +14,11 @@ interface MateObserver<in State, in Message, in Effect> {
     fun onEffectStarted(effect: Effect)
     fun onEffectFinished(effect: Effect, duration: Duration)
     fun onEffectFailed(effect: Effect, error: Throwable)
+    fun onEffectRecovered(effect: Effect, error: Throwable, message: Message)
     fun onCausedMessage(parent: Effect, message: Message)
-    fun onSubscriptionStarted(sub: Sub)
-    fun onSubscriptionStopped(sub: Sub)
-    fun onSubscriptionError(sub: Sub, error: Throwable)
+    fun onSubscriptionStarted(sub: Subscription)
+    fun onSubscriptionStopped(sub: Subscription)
+    fun onSubscriptionError(sub: Subscription, error: Throwable)
 }
 ```
 

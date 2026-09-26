@@ -56,11 +56,19 @@ Msg — ФАКТЫ, не команды: «кликнули», «создано�
 
 ```kotlin
 import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.RecoverableEffect
 
 /** Семейство разовых намерений экрана — исполняет [WordsEffectHandler]. */
 sealed interface WordsEffect : Effect {
-    /** Записать новое слово [value] в базу. */
-    data class CreateWord(val value: String) : WordsEffect
+    /**
+     * Записать новое слово [value] в базу. Провал записи отвечает
+     * [WordsMsg.CreateFailed] — маппинг объявлен здесь, раннер
+     * доставит его сам.
+     */
+    data class CreateWord(val value: String) :
+        WordsEffect, RecoverableEffect<WordsMsg> {
+        override fun onFail(error: Throwable) = WordsMsg.CreateFailed(value)
+    }
 }
 ```
 
@@ -122,7 +130,6 @@ Reducer здесь типизирован корневым `Effect`, а не с�
 
 ```kotlin
 import io.github.kilgoret.mate.MateEffectHandler
-import io.github.kilgoret.mate.runMateCatching
 
 /**
  * Исполнитель семейства [WordsEffect]: один эффект — один вызов
@@ -138,7 +145,7 @@ class WordsEffectHandler(
 ) : MateEffectHandler<WordsMsg, WordsEffect> {
 
     /**
-     * Декларация семейства: по ней раннер строит таблицу
+     * Декларация семейства: по ней раннер строит реестр
      * «семейство → исполнитель» и доставляет сюда каждый эффект,
      * являющийся WordsEffect. Два handler'а на одно семейство —
      * ошибка при создании раннера.
@@ -151,24 +158,19 @@ class WordsEffectHandler(
     ) {
         when (effect) {
             is WordsEffect.CreateWord -> {
-                val msg = runMateCatching {
-                    withContext(io) { useCase.addWord(effect.value) }
-                }.fold(
-                    onSuccess = { WordsMsg.WordCreated },
-                    onFailure = { WordsMsg.CreateFailed(effect.value) },
-                )
-                consumer(msg)
+                withContext(io) { useCase.addWord(effect.value) }
+                consumer(WordsMsg.WordCreated)
             }
         }
     }
 }
 ```
 
-Ожидаемые ошибки ловятся прямо в handler'е, как здесь:
-`runMateCatching` — это `runCatching`, который пробрасывает отмену
-корутины (закрытие экрана — не ошибка); любой сбой превращается в
-fail-Msg, и reducer переводит экран в состояние ошибки. Непойманное
-исключение цикл не убьёт. Полная картина — в главе
+Catch в handler'е нет: ожидаемую ошибку эффект объявил сам
+(`RecoverableEffect.onFail` в шаге 3) — при исключении раннер
+отправит `WordsMsg.CreateFailed` в цикл, и reducer переведёт экран
+в состояние ошибки. Отмена корутины (закрытие экрана) ошибкой не
+считается. Полная картина — в главе
 [«Обработка ошибок»](07_errors.md).
 
 Два приёма, которые окупятся в тестах:
@@ -210,11 +212,11 @@ object WordsAssembly {
 ViewModel — тонкая обёртка:
 
 ```kotlin
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 
 /** Тонкая обёртка: даёт раннеру viewModelScope и продовые зависимости. */
 class WordsViewModel(useCase: WordsUseCase) :
-    ViewModel(), MateStateHolder<WordsState, WordsMsg> {
+    ViewModel(), MateStore<WordsState, WordsMsg> {
 
     private val mate = WordsAssembly.create(
         useCase = useCase,
@@ -232,7 +234,7 @@ UI читает `state` подпиской и шлёт Msg — больше ем
 
 ```kotlin
 @Composable
-fun WordsScreen(holder: MateStateHolder<WordsState, WordsMsg>) {
+fun WordsScreen(holder: MateStore<WordsState, WordsMsg>) {
     val state by holder.state.collectAsStateWithLifecycle()
     // ...
     Button(onClick = { holder.accept(WordsMsg.CreateClicked) }) { /* ... */ }

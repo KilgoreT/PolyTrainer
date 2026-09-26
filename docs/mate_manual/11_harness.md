@@ -16,7 +16,7 @@ import io.github.kilgoret.mate.apptest.runAppScenario
 fun `open word card for dead word auto-closes back to main`() {
     coEvery { wordCardUseCase.getTermById(42L) } returns null
 
-    runAppScenario(registry, appNavGraph) {   // ПРОДОВАЯ таблица навигации
+    runAppScenario(registry, appNavTable) {   // ПРОДОВАЯ таблица навигации
         launch(AppScreen.Main)
 
         send(WordsMsg.OpenWordCard(42L))      // тап по слову
@@ -93,7 +93,7 @@ val HarnessContext.io: CoroutineDispatcher
 ## Навигация — та же таблица
 
 Харнес поднимает ПРОДОВЫЙ `MateNavigationHandler` с ПРОДОВЫМ
-`navGraph`; отличается только исполнитель команд: Push создаёт узел через
+`navTable`; отличается только исполнитель команд: Push создаёт узел через
 registry и кладёт на стек, Pop снимает и гасит. Прод и тест не могут
 разойтись по построению. `back()` сценария — системная «назад».
 

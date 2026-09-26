@@ -60,7 +60,7 @@ object WordsAssembly {
 ViewModel делегирует и становится тонкой:
 
 ```kotlin
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
 /**
@@ -71,7 +71,7 @@ class WordsViewModel @AssistedInject constructor(
     useCase: WordsUseCase,
     navigationHandler: MateNavigationHandler,
     logger: AppLogger,
-) : ViewModel(), MateStateHolder<WordsState, WordsMsg> {
+) : ViewModel(), MateStore<WordsState, WordsMsg> {
 
     private val mate = WordsAssembly.create(
         useCase = useCase,

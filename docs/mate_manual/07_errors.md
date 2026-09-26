@@ -14,42 +14,62 @@
 
 ## Ошибки в эффектах
 
-```kotlin
-import io.github.kilgoret.mate.runMateCatching
+Ожидаемая ошибка эффекта объявляется в самом эффекте — маркером
+`RecoverableEffect`:
 
+```kotlin
+import io.github.kilgoret.mate.RecoverableEffect
+
+sealed interface WordsEffect : Effect {
+    data class CreateWord(val value: String) :
+        WordsEffect, RecoverableEffect<WordsMsg> {
+        override fun onFail(error: Throwable) = WordsMsg.CreateFailed(value)
+    }
+}
+```
+
+Handler при этом пишет только успешный путь, без catch:
+
+```kotlin
 override suspend fun runEffect(effect: WordsEffect, consumer: (WordsMsg) -> Unit) {
     when (effect) {
         is WordsEffect.CreateWord -> {
-            val msg = runMateCatching {
-                withContext(io) { useCase.addWord(effect.value) }
-            }.fold(
-                onSuccess = { WordsMsg.WordCreated },
-                onFailure = { WordsMsg.CreateFailed(effect.value) },
-            )
-            consumer(msg)
+            withContext(io) { useCase.addWord(effect.value) }
+            consumer(WordsMsg.WordCreated)
         }
     }
 }
 ```
 
-`runMateCatching` — библиотечный `runCatching`, который пробрасывает
-`CancellationException`: отмена корутины (закрытие экрана) — не
-ошибка и не должна превращаться в fail-Msg.
+Исключение из исполнения ловит раннер: он вызывает `onFail(error)`
+эффекта и отправляет полученный Msg в цикл. Observer видит это как
+`onEffectRecovered`. Отмена корутины (закрытие экрана) в `onFail` не
+попадает — раннер пробрасывает её без recovery.
 
-Как решить, нужен ли перехват вообще:
+Правила `onFail`:
 
-- handler ничего не ловит → про отмену не думать, раннер отличит её
-  от сбоя сам;
-- handler хочет fail-Msg на любой сбой → `runMateCatching`, никакого
-  ручного кода про отмену;
-- handler ловит конкретные типы (`IOException`, `SQLiteException`) →
-  обычный catch, отмена под него не попадает.
+- чистый конструктор Msg: только поля эффекта и `error`, никакой
+  работы и обращений вовне — метод вызывается на диспатчере раннера;
+- восстановительные действия выражаются через цикл: fallback —
+  reducer на fail-Msg выпускает новый эффект; retry — счётчик попыток
+  кладётся полем эффекта (`Msg.Retry(id, attempt + 1)`);
+- маркер — только для одношаговых эффектов: Msg уходит consumer'у
+  после завершения всей работы. Эффект с промежуточными эмиссиями
+  разбивается на цепочку одношаговых через reducer.
 
-Ручной `catch (e: CancellationException) { throw e }` больше не нужен
-нигде: широкий перехват делайте через `runMateCatching`.
-
-Непойманное исключение эффекта раннер отдаёт в политику как
+Эффект без маркера при исключении уходит в политику ошибок как
 `MateError.EffectFailed`; observer получает `onEffectFailed`.
+
+Точечный перехват конкретных типов (`IOException`,
+`SQLiteException`) внутри `runEffect` легален — отмена под него не
+попадает. Широкий перехват внутри `runEffect` не пишется; если он
+всё же нужен (шаг составной работы, fallback-значение) — только
+`runSuspendCatching`: библиотечный `runCatching`, пробрасывающий
+`CancellationException`. Голый `runCatching` в suspend-коде запрещён:
+он глотает отмену.
+
+`withTimeout` внутри `runEffect`: истёкший таймаут — провал эффекта
+(уходит в `onFail` или политику), а не отмена.
 
 ## Ошибки в подписках
 
@@ -110,8 +130,10 @@ Orphan/Ambiguous — ошибки конфигурации: чинятся де�
 ## Наблюдаемость ошибок
 
 `MateObserver` видит каждую ошибку в момент возникновения:
-`onEffectFailed(effect, error)` и `onSubscriptionError(sub, error)` —
-удобно для трасс и метрик независимо от политики
+`onEffectRecovered(effect, error, message)` — эффект упал и
+восстановлен своим fail-Msg, `onEffectFailed(effect, error)` — ошибка
+ушла в политику, `onSubscriptionError(sub, error)` — упал поток
+подписки. Удобно для трасс и метрик независимо от политики
 ([глава о наблюдаемости](08_observability.md)).
 
 ## Отмена — не ошибка

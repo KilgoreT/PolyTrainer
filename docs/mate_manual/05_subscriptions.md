@@ -10,10 +10,10 @@
 решает это иначе: желаемый набор подписок — чистая функция от State.
 
 ```kotlin
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /** Семейство подписок экрана — исполняет [WordsSubHandler]. */
-sealed interface WordsSub : Sub {
+sealed interface WordsSub : Subscription {
     /** Текущий словарь приложения — жив всё время жизни экрана. */
     data object CurrentDict : WordsSub
 
@@ -31,7 +31,7 @@ sealed interface WordsSub : Sub {
  * Декларация «что экран слушает и при каких условиях» — чистая
  * функция от state; раннер диффит набор после каждого reduce.
  */
-fun WordsState.subscriptions(): Set<Sub> = buildSet {
+fun WordsState.subscriptions(): Set<Subscription> = buildSet {
     add(WordsSub.CurrentDict)
     dictionaryId?.let { add(WordsSub.Window(it, limit = window)) }
 }
@@ -58,7 +58,7 @@ class WordsSubHandler(
 ) : MateSubscriptionHandler<WordsMsg, WordsSub> {
 
     /** Декларация семейства — как effectFamily, но для подписок. */
-    override val subFamily = WordsSub::class
+    override val subscriptionFamily = WordsSub::class
 
     override fun flow(sub: WordsSub): Flow<WordsMsg> = when (sub) {
         WordsSub.CurrentDict ->
@@ -108,7 +108,7 @@ retry — generation-приёмом. Подробно — в главе
 
 ## Конвенция корреляции
 
-Msg подписки несёт параметры своего Sub (`WindowLoaded(dictionaryId,
+Msg подписки несёт параметры своего Subscription (`WindowLoaded(dictionaryId,
 words)`): reducer no-op'ит эмиссию, не совпавшую с текущим state, —
 защита от гонки на границе рестарта подписки.
 

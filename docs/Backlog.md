@@ -118,24 +118,10 @@
 ## Critical Bugs
 
 - **[disableUserInput() инвертирован].**
-  `modules/screen/quiz/chat/logic/State.kt:206` — устанавливает `isUserInputEnable = true` вместо `false`.
+  `modules/screen/quiz/chat/logic/State.kt` (~234-240, есть `//TODO`) — устанавливает `isUserInputEnable = true` вместо `false`.
   Вызывается 6 раз в ChatReducer. Пользователь может вводить текст когда не должен.
   Нужно: заменить `true` на `false`, убрать дублированные вызовы в `Msg.GetAnswer` и `Msg.Skip`.
-
-- **[TermNotLoaded не реализован].**
-  `modules/screen/wordcard/mate/WordCardReducer.kt:16` — `TODO("TermNotLoaded is not implemented")`.
-  Если слово не загрузится — краш. Нужно: добавить обработку ошибки (snackbar + закрытие экрана или retry).
-
-- **[Нет error handling в эффект-хендлерах].**
-  Ни один DatasourceEffectHandler не оборачивает вызовы в try-catch.
-  Исключение из Room/UseCase убивает coroutine scope без recovery.
-  WordCard явно бросает `IllegalStateException("Lexeme not found")`.
-  Нужно: обернуть все `withContext(Dispatchers.IO)` в try-catch, генерировать Error-сообщения.
-
-- **[Race condition в Mate.accept()].**
-  Нет синхронизации между чтением `_state.value` и записью.
-  Два эффекта вернувшие сообщения одновременно — один прочитает stale state.
-  Нужно: Mutex или `_state.update {}` вместо read-then-write.
+  (Источник также: IS481 quiz_component_picker senior review § F5 — дубль-запись из ВекторногоПиздежа слита сюда 2026-09-24.)
 
 ---
 
@@ -160,6 +146,10 @@
 ---
 
 ## Архитектура
+
+- **[Release-политика MateFailPolicy: лог + Crashlytics вместо Strict].**
+  Сейчас все 13 Assembly собирают раннеры с дефолтной `MateFailPolicy.Strict` — прод-сборка крашится на любой `MateError` (упавший эффект из-за сбоя БД включительно). Решение (ревью mate 2026-09-25): библиотека поставляет только `Strict`; release-политика — дело приложения.
+  Нужно: одна общая политика в PolyTrainer (`MateError` → LexemeLogger + Crashlytics non-fatal), прокинуть через все Assembly; debug остаётся `Strict`. «Тихая» политика отвергнута — ошибки раннера молча глотать нельзя.
 
 - **[Repository pattern: mapper API→Domain в `core-db-impl`, `CoreDbApi` возвращает domain].**
   Сейчас (после IS482) mapper `LexemeApiEntity.toDomain(): Lexeme` живёт в `app/.../mapper/LexemeMapper.kt` — соответствует convention `data-layer.md` § «Маппинг сущностей» («API → Domain в UseCase модуле»). По Clean Architecture / Repository pattern правильнее: mapper в **`core-db-impl`** (data adapter), а `CoreDbApi.LexemeApi.getLexemes()` возвращает сразу `Lexeme` (domain), не `LexemeApiEntity`.
@@ -261,14 +251,6 @@
 - **[Монолитный WordDao — 40+ методов].**
   Languages, Words, Lexemes, Quiz, Statistics — всё в одном DAO.
   Нужно: разбить на `LanguageDao`, `WordDao`, `LexemeDao`, `QuizDao`, `StatisticDao`.
-
-- **[O(n*m) в Mate — эффекты через все хендлеры].**
-  Каждый эффект всё ещё прогоняется через ВСЕ хендлеры. После IS471 фильтрация через `MateTypedEffectHandler.filter()` убрала лишние reducer.reduce(state, Empty), но сам прогон через handler-список остался.
-  Нужно: dispatch map по типу эффекта на стороне Mate перед вызовом handlers.
-
-- **[@UnsafeVariance в MateEffectHandler].**
-  Ломает type safety. Компилятор не проверяет тип эффекта для хендлера.
-  Нужно: пересмотреть generic-дизайн интерфейса без `@UnsafeVariance`.
 
 - **[Int/Long мисматч в TermApi и других API].**
   `TermApi.getTermList(dictionaryId: Int)`, `searchTermsPaging(dictionaryId: Int)` принимают Int, но dictionary id теперь Long.
@@ -406,13 +388,8 @@
   DictionaryTabState добавляет Flow на каждый поисковый паттерн. Memory leak при активном поиске.
   Нужно: ограничить размер map или очищать при смене паттерна.
 
-- **[MateFlowHandler.job — public var].**
-  Можно перезаписать без отмены предыдущего job. Subscription leak.
-  Нужно: сделать private set или список job'ов.
-
-- **[Универсальные логи на уровне Mate — редьюсер логируется по дефолту].**
-  Идея (2026-07-03, из расследования багов IS481): дебаг рантайм-поведения TEA-цикла сейчас слепой — какие Msg пришли, какой State получился, какие Effect улетели, видно только точечными принтами.
-  Нужно: встроить в `Mate` универсальное логирование по дефолту (Msg → до/после State (diff) → Set<Effect>), через уже имеющийся `LexemeLogger`, с возможностью отключения/фильтрации по модулю.
+- **[Дефолтный логгер-observer Mate во всех модулях].**
+  Механизм наблюдения готов (mate v0.1.x: `MateObserver` видит Msg → State → Set<Effect>, см. docs/mate_manual/08_observability.md), но подключается точечно. Нужно: готовый logging-observer (через `LexemeLogger`, diff состояния вместо полного дампа) и подключение по дефолту во всех Assembly с фильтрацией по модулю.
 
 ---
 
@@ -510,21 +487,6 @@
 
 ## ВекторныйПиздеж
 
-- ✅ **[D8/R8 не понимает метаданные Kotlin 2.2 — тысячи WARNING на dex-фазе].**
-  ЗАКРЫТО 2026-09-24 тем же днём: полный апгрейд стека (Gradle 9.8,
-  AGP 9.4.1, Kotlin 2.2.0 в settings, SDK 36 по требованию Play) —
-  новый R8 знает метаданные Kotlin 2.2, warnings ушли в ноль; дубль
-  версий Kotlin между settings (2.0.20) и deps/ (2.2.0) устранён.
-
-- ✅ **[Навигационные эффекты без lifecycle-гейта — краш при navigate после ухода в фон].**
-  ЗАКРЫТО 2026-09-08 (mate v0.1.2, «навигация как данные»): все nav-эффекты
-  идут через единый `MateNavigationHandler` с гейтом готовности
-  (STARTED + привязанные контроллеры) и FIFO-очередью — навигация в
-  закрытый гейт не исполняется и не теряется, ждёт открытия.
-  Историческая запись: ручной прогон миграции 0.1.5→HEAD (2026-08-29)
-  поймал FATAL `IllegalStateException: State must be at least CREATED…`
-  при navigate через ~300мс после ухода в фон.
-
 - **[IS493: живая подписка карточки на слово — закрытие при внешнем удалении].**
   UX-агент (ревью Э5, 2026-08-23) указал: слово в карточке грузится one-shot (`LoadWord` → `getTermById`), живой подписки нет — при удалении слова с другого экрана карточка остаётся stale-открытой, а мутации по ней тихо no-op'ятся (в Э5 — `WordNotFound` membership-мутаций). Живой Flow на слово с закрытием карточки по эмиссии null убрал бы весь класс stale-состояний.
   Почему не сделано сейчас: out-of-scope Э5 — меняет базовый цикл загрузки карточки; поведение не хуже существующего.
@@ -545,9 +507,6 @@
   Расследование BUG-1 (docs/features/IS481_bugs/bugs.md) показало: seed `translation` висит только на `Callback.onCreate`, а Room после destructive-пересоздания зовёт `onDestructiveMigration`+`onOpen`, но НЕ `onCreate` (Room 2.8.4, `RoomConnectionManager.onMigrate`) → после fallback приложение остаётся без built-in типа навсегда.
   Почему не сделано сейчас: путь недостижим в проде (v13 существовала только на dev-девайсе; fallback рассчитан на pre-0.1.0 internal сборки) — решение юзера: не баг, чинится переустановкой.
   Нужно: перенести seed в `Callback.onOpen` (идемпотентный `INSERT OR IGNORE`, UNIQUE на `system_key` есть) — самовосстановление на любом пути открытия БД; починить лживый комментарий в `RoomModule.onDestructiveMigration`.
-
-- **[ЗАКРЫТО IS491, 2026-08-02] [IS481 wordcard_components: `origin` lossy для не-текстовых компонентов].**
-  Закрыто фазой 2.1 IS491: `asText()` расширен на captioned (origin captioned = text, не ""); `commitDecision` и remove-ветка reducer'а стали template-aware — сохранённые значения шаблонов без текстового представления (IMAGE и будущие) уходят только в `PessimisticRemove`/БД-удаление, `LocalRemove` невозможен (тесты: `CaptionedValueTest.origin lossy fix…`).
 
 - **[IS481 wordcard_components: resubscribe-гонка emit в AvailableComponentTypesFlowHandler].**
   Ревью-агент указал: `runEffect` делает `job?.cancel()` без `join` перед relaunch → старый flow (Room) может эмитнуть устаревший `ComponentTypesLoaded` уже после нового. Для одного `dictionaryId` безвредно (идемпотентный set в reducer); при смене dictId старые типы могут на миг перетереть новые.
@@ -924,16 +883,6 @@
 
   **Зачем:** даёт sub-agent'у автономный путь «не угадывать API, посмотреть». Без вопросов к пользователю «можно ли распаковать jar».
 
-- **[State.disableUserInput() — инвертированный флаг, pre-existing bug].**
-
-  **Контекст.** `modules/screen/quiz/chat/.../logic/State.kt:238-242` — `disableUserInput()` устанавливает `isUserInputEnable = true` с `//TODO` пометкой. Семантически противоположно имени метода. Pre-existing, IS481 quiz_component_picker только подсветил при touch'е файла.
-
-  **Что сделать:** заменить на `isUserInputEnable = false`. Проверить callsite'ы — все 6 вызовов в `ChatReducer` ожидают reset инпута.
-
-  **Триггер:** при следующем заходе в state-логику либо «пора убрать TODO».
-
-  **Источник:** IS481 quiz_component_picker senior review § F5.
-
 - **[CI: androidTest (миграции, DAO) не гоняется — добавить emulator-job].**
   Ревью-агент тестов (IS493/Э2, T-1) указал: `.github/workflows/on_feature_push.yml` гоняет только lint + unit + assemble; `connectedAndroidTest` отсутствует во всех workflow. Все миграционные и DAO-тесты (`MigrationFrom11to12`, будущий `MigrationFrom12to13`, Is486DataLayerTest и др.) исполняются только вручную на девайсе и молча гниют между фичами.
   Почему не сделано сейчас: out-of-scope IS493 — CI-инфраструктура (эмулятор на runner'е: reactivecircus/android-emulator-runner или Gradle Managed Devices, кеширование AVD, время джобы) — отдельный бриф.
@@ -974,17 +923,6 @@
 
   **Не блокирует MVP** — workaround через restart есть. Но раздражает в testing/onboarding.
 
-  **Diagnostic-логи остались в коде** после расследования — нужно снести когда будет fix или решить что забить:
-  - `app/.../navigator/SettingsNavigatorImpl.kt` — `Log.d` (против гайда `docs/handbook/guides/logging.md`).
-  - `app/.../navigator/DictionaryAppBarNavigatorImpl.kt` — `Log.d`.
-  - `app/.../uiDeps/CompositionRootImpl.kt` — `logger.log` в ComponentsManager/PerDict ScreenDep (`[diag]` метки).
-  - `modules/screen/main/.../Vocabulary.kt` — `Log.d` + `popBackStack` workaround.
-  - `modules/screen/main/.../Settings.kt` — `Log.d` + `popBackStack` workaround.
-  - `modules/screen/settingstab/.../SettingsNavigationEffectHandler.kt` — `logger: LexemeLogger` ctor + `[diag]` logs.
-  - `modules/widget/dictionaryappbar/.../DictionaryAppBarNavigationEffectHandler.kt` — `Log.d`.
-  - `modules/screen/components_manager/.../ComponentsManagerViewModel.kt` — `init { logger.log("[diag] VM INIT ...") }` + `.also { ... }`.
-  - `modules/screen/per_dictionary_components/.../PerDictionaryComponentsViewModel.kt` — то же.
-  - `modules/screen/components_manager/.../mate/AllUserDefinedTypesFlowHandler.kt` — `[diag]` `subscribe()`/`launch{}`/`EMIT` логи.
-  - `modules/screen/per_dictionary_components/.../mate/ComponentsForDictionaryFlowHandler.kt` — то же.
+  **АКТУАЛИЗАЦИЯ 2026-09-24 (после mate Э5):** навигация переписана — Navigator-слои (`SettingsNavigatorImpl`, `DictionaryAppBarNavigatorImpl` и пр.) удалены, все nav-эффекты идут через единый `MateNavigationHandler` + `appNavGraph`; большинство diagnostic-логов из расследования снесено вместе с этим кодом. Под капотом остался тот же `navigation-compose` с template-based route `per_dict_components/{dictionaryId}` и `saveState/restoreState` на табах — баг МОЖЕТ жить. Перед любой работой по пункту: перепроверить репро на девайсе (удалить все словари → создать → «Компоненты»).
 
-  **Trigger:** при возврате к этой фиче (или когда юзер устанет от workaround). Сначала попробовать опцию 2 (bump library) — самый дешёвый shot. Если не сработает — опция 3 (type-safe routes) или 4 (route refactor).
+  **Trigger:** при возврате к этой фиче (или когда юзер устанет от workaround). Сначала перепроверить репро после Э5; если жив — опция 2 (bump library) как самый дешёвый shot, дальше опция 3 (type-safe routes) или 4 (route refactor).
