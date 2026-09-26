@@ -17,11 +17,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.apomazkin.core_resources.R
-import me.apomazkin.theme.LexemeStyle
-import me.apomazkin.theme.formTextHint
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.theme.LexemeStyle
+import me.apomazkin.theme.formTextHint
 
 /**
  * Ряд chip'ов для добавления значений. IMAGE — вне скоупа.
@@ -60,8 +60,11 @@ internal fun ComponentChipsRow(
                     iconRes = R.drawable.ic_add,
                     enabled = enabled,
                     onClick = {
-                        if (type.template == ComponentTemplate.CHOICE) onAddChoice(type)
-                        else onAddComponent(type.id)
+                        if (type.template == ComponentTemplate.CHOICE) {
+                            onAddChoice(type)
+                        } else {
+                            onAddComponent(type.id)
+                        }
                     },
                 )
             }

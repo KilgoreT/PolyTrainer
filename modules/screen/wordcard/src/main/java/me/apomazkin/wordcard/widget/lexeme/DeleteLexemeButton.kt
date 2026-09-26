@@ -70,7 +70,7 @@ internal fun DeleteLexemeButton(
 @PreviewWidget
 @Composable
 private fun Preview(
-    @PreviewParameter(BoolParam::class) enabled: Boolean
+    @PreviewParameter(BoolParam::class) enabled: Boolean,
 ) {
     AppTheme {
         Box(

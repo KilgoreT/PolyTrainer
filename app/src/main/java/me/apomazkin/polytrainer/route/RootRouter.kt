@@ -1,7 +1,7 @@
 package me.apomazkin.polytrainer.route
 
-import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -9,13 +9,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.compose.runtime.remember
 import me.apomazkin.dictionary.form.DictionaryFormScreen
 import me.apomazkin.dictionary.list.DictionaryListScreen
 import me.apomazkin.polytrainer.appComponent
-import me.apomazkin.polytrainer.navigator.FormNavigatorImpl
-import me.apomazkin.polytrainer.navigator.ListNavigatorImpl
-import me.apomazkin.polytrainer.navigator.SplashNavigatorImpl
 import me.apomazkin.splash.SplashScreen
 
 enum class RootPoint(
@@ -34,13 +30,17 @@ class RootRouter {
     }
 }
 
+/**
+ * Root-граф приложения. Переходами управляет AppNavigationExecutor
+ * (living-цели привязываются здесь bind/unbind) — сами composable
+ * только собирают экраны, навигационных лямбд у них нет.
+ */
 @Composable
 fun RootRouter(
     navController: NavHostController,
     onExitApp: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    var navigator: RootRouterNavigation? = null
 
     // Навконтроллер табов создаётся ЗДЕСЬ (в живущем всё приложение RootRouter), а не
     // внутри MainScreen: заход в DICTIONARY_CREATE уничтожает композицию MAIN, и
@@ -49,27 +49,28 @@ fun RootRouter(
     // компоненты не открываются после создания 2-го словаря).
     val tabsNavController = rememberNavController()
 
+    val executor = context.appComponent.getNavigationExecutor()
+    DisposableEffect(navController, tabsNavController, onExitApp) {
+        executor.bind(
+            rootNavController = navController,
+            tabsNavController = tabsNavController,
+            finishApp = onExitApp,
+        )
+        onDispose { executor.unbind() }
+    }
+
     NavHost(
         navController = navController,
         startDestination = RootRouter.START_DESTINATION.route
     ) {
         composable(RootPoint.SPLASH.route) {
-            val splashNavigator = remember {
-                SplashNavigatorImpl(
-                    onOpenDictionarySetup = { navigator?.openDictionarySetup() },
-                    onOpenMainScreen = { navigator?.openMainScreen() },
-                )
-            }
             SplashScreen(
                 factory = context.appComponent.getSplashViewModelFactory(),
-                navigator = splashNavigator,
             )
         }
         composable(RootPoint.DICTIONARY_SETUP.route) {
-            val formNavigator = remember { FormNavigatorImpl(onBack = { navigator?.openMainScreen() }) }
             DictionaryFormScreen(
                 factory = context.appComponent.getDictionaryFormViewModelFactory(),
-                navigator = formNavigator,
                 showAppBar = false,
             )
         }
@@ -83,79 +84,19 @@ fun RootRouter(
             ),
         ) { backStackEntry ->
             val editId = backStackEntry.arguments?.getLong("editId", -1L) ?: -1L
-            val formNavigator = remember(navController) {
-                FormNavigatorImpl(onBack = { navController.popBackStack() })
-            }
             DictionaryFormScreen(
                 factory = context.appComponent.getDictionaryFormViewModelFactory(),
-                navigator = formNavigator,
                 editingDictionaryId = if (editId != -1L) editId else null,
             )
         }
         composable(RootPoint.DICTIONARY_LIST.route) {
-            val listNavigator = remember(navController) {
-                ListNavigatorImpl(
-                    navController = navController,
-                    onExit = onExitApp,
-                )
-            }
             DictionaryListScreen(
                 factory = context.appComponent.getDictionaryListViewModelFactory(),
-                navigator = listNavigator,
             )
         }
         mainRouter(
             route = RootPoint.MAIN_ROUTER.route,
             tabsNavController = tabsNavController,
-            openDictionaryCreate = {
-                navController.navigate("DICTIONARY_CREATE") {
-                    launchSingleTop = true
-                }
-            },
-            openDictionaryList = {
-                navController.navigate(RootPoint.DICTIONARY_LIST.route) {
-                    launchSingleTop = true
-                }
-            }
         )
     }
-
-    navigator = object : RootRouterNavigation {
-        override fun openSplashScreen() {
-            navController.navigate(RootPoint.SPLASH.route) {
-                launchSingleTop = true
-            }
-        }
-
-        override fun openDictionarySetup() {
-            navController.navigate(RootPoint.DICTIONARY_SETUP.route) {
-                launchSingleTop = true
-                popUpTo(RootPoint.SPLASH.route) { inclusive = true }
-            }
-        }
-
-        @SuppressLint("RestrictedApi")
-        override fun openMainScreen() {
-
-            val isMainInBackStack = navController.currentBackStack.value
-                    .any { it.destination.route == MainPoint.MAIN.route }
-            if (isMainInBackStack) {
-                navController.popBackStack(MainPoint.MAIN.route, false)
-            } else {
-                navController.navigate(RootPoint.MAIN_ROUTER.route) {
-                    navController.currentDestination?.route?.let { currentRoute ->
-                        launchSingleTop = true
-                        popUpTo(currentRoute) { inclusive = true }
-                    }
-                }
-            }
-        }
-
-    }
-}
-
-interface RootRouterNavigation {
-    fun openSplashScreen()
-    fun openDictionarySetup()
-    fun openMainScreen()
 }

@@ -19,6 +19,18 @@ import me.apomazkin.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
 
+    override fun onStart() {
+        super.onStart()
+        appComponent.getNavigationExecutor().onHostStarted(true)
+    }
+
+    override fun onStop() {
+        // Закрыть гейт навигации: navigate() после ухода в фон не
+        // исполняется, а ждёт в очереди до следующего STARTED.
+        appComponent.getNavigationExecutor().onHostStarted(false)
+        super.onStop()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
 
         val splashScreen = installSplashScreen()

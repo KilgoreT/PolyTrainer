@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -13,11 +15,18 @@ android {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
     namespace = "me.apomazkin.core_db_impl"
-    compileSdk = 35
+    compileSdk = 36
+
+    testOptions {
+        targetSdk = 36
+    }
+
+    lint {
+        targetSdk = 36
+    }
     
     defaultConfig {
         minSdk = 23
-        targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     
@@ -30,8 +39,11 @@ android {
         buildConfig = true
     }
     
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

@@ -5,6 +5,17 @@
 (роадмап v0/v1/v2), [app_scenario_impl.md](app_scenario_impl.md),
 организация — [brief.md](brief.md).
 
+Статус: Э0–Э3 ✅ (v0.1.0, PolyTrainer на JitPack-зависимости, PR #498);
+Э4 ✅ библиотека (v0.1.1) + миграция всех 12 экранов PolyTrainer;
+Э5 ✅ библиотека (v0.1.2: mate-navigation, смерть MateFlowHandler) +
+PolyTrainer на appNavGraph/едином handler'е с lifecycle-гейтом
+(Backlog-краш «navigate после фона» закрыт; смоук навигации 6/6);
+Э6 ✅ библиотека (v0.1.3: mate-app-test — узловой стек, ScenarioScope,
+RecordingObserver-трасса, stubFlow) + PolyTrainer: Assembly всех 13
+экранов (VM — тонкие обёртки), io-диспатчер инъектируем, пилот из 5
+сценариев в app/src/test (идут в CI обычными юнитами) — всё в ветке
+MT_mate_e4_subscriptions.
+
 ## Э0. Репо-каркас
 
 - `KilgoreT/mate`: KMP-сборка (androidTarget + jvm + iosArm64/

@@ -1,11 +1,11 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.ComponentValueId
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentValueId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -15,9 +15,10 @@ import org.junit.Test
  * §1.4 CommitComponentValueEdit — матрица commitDecision 4×(pristine/saved)×(NOT_IN_DB/real).
  */
 class CommitComponentValueEditTest {
-
     private val reducer = WordCardReducer(NoopLogger)
+
     private fun savedKey(id: Long) = ComponentValueKey.Saved(ComponentValueId(id))
+
     private fun pKey(k: Long) = ComponentValueKey.Pristine(k)
 
     @Test
@@ -32,7 +33,12 @@ class CommitComponentValueEditTest {
     fun `2 NoOp edited equals origin closes edit no pending`() {
         val initial = loaded(lexemes = listOf(lexeme(7L, listOf(savedCv(5L, origin = "same", isEdit = true, edited = "same")))))
         val result = reducer.testReduce(initial, Msg.CommitComponentValueEdit(7L, savedKey(5L)))
-        val cv = result.state().lexemeList.single().components.single()
+        val cv = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertFalse(cv.isEdit)
         assertEquals("", cv.edited)
         assertEquals("same", cv.origin)
@@ -44,7 +50,15 @@ class CommitComponentValueEditTest {
     fun `3 NoOp trimmed equals origin`() {
         val initial = loaded(lexemes = listOf(lexeme(7L, listOf(savedCv(5L, origin = "same", isEdit = true, edited = "  same  ")))))
         val result = reducer.testReduce(initial, Msg.CommitComponentValueEdit(7L, savedKey(5L)))
-        assertFalse(result.state().lexemeList.single().components.single().isEdit)
+        assertFalse(
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .single()
+                .isEdit,
+        )
         result.assertNoEffects()
     }
 
@@ -52,7 +66,15 @@ class CommitComponentValueEditTest {
     fun `4 LocalRemove pristine empty stays pending false`() {
         val initial = loaded(lexemes = listOf(lexeme(7L, listOf(pristineCv(1L, edited = "   "), savedCv(5L)))))
         val result = reducer.testReduce(initial, Msg.CommitComponentValueEdit(7L, pKey(1L)))
-        assertTrue("pristine удалён", result.state().lexemeList.single().components.none { it.isPristine })
+        assertTrue(
+            "pristine удалён",
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .none { it.isPristine },
+        )
         assertFalse(result.state().isPendingDbOp)
         result.assertNoEffects()
     }
@@ -71,7 +93,12 @@ class CommitComponentValueEditTest {
     fun `6 PessimisticRemove empty edit nonempty origin`() {
         val initial = loaded(lexemes = listOf(lexeme(7L, listOf(savedCv(5L, origin = "x", isEdit = true, edited = "")))))
         val result = reducer.testReduce(initial, Msg.CommitComponentValueEdit(7L, savedKey(5L)))
-        val cv = result.state().lexemeList.single().components.single()
+        val cv = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertTrue(result.state().isPendingDbOp)
         assertTrue(cv.isCommitting)
         result.assertEffects(setOf(DatasourceEffect.RemoveComponentValue(ComponentValueId(5L), 7L)))
@@ -81,7 +108,12 @@ class CommitComponentValueEditTest {
     fun `7 Update saved holds edit sets committing`() {
         val initial = loaded(lexemes = listOf(lexeme(7L, listOf(savedCv(5L, origin = "old", isEdit = true, edited = "new")))))
         val result = reducer.testReduce(initial, Msg.CommitComponentValueEdit(7L, savedKey(5L)))
-        val cv = result.state().lexemeList.single().components.single()
+        val cv = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertTrue(result.state().isPendingDbOp)
         assertTrue("A10 edit держится", cv.isEdit)
         assertTrue(cv.isCommitting)
@@ -89,9 +121,12 @@ class CommitComponentValueEditTest {
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.UpdateValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 7L,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 7L,
                     componentValueId = ComponentValueId(5L),
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = textValuesOf("new"),
                 ),
             ),
@@ -103,12 +138,24 @@ class CommitComponentValueEditTest {
         val initial = loaded(lexemes = listOf(lexeme(7L, listOf(pristineCv(1L, edited = "new")))))
         val result = reducer.testReduce(initial, Msg.CommitComponentValueEdit(7L, pKey(1L)))
         assertTrue(result.state().isPendingDbOp)
-        assertTrue("pristine остаётся до Inserted-flip", result.state().lexemeList.single().components.any { it.pristineKey == 1L })
+        assertTrue(
+            "pristine остаётся до Inserted-flip",
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .any { it.pristineKey == 1L },
+        )
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.AddValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 7L,
+                    pristineKey = 1L,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = textValuesOf("new"),
                 ),
             ),
@@ -124,8 +171,11 @@ class CommitComponentValueEditTest {
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.CreateLexeme(
-                    wordId = 7L, dictionaryId = 3L, pristineKey = 1L,
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    pristineKey = 1L,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = textValuesOf("hello"),
                 ),
             ),
@@ -139,9 +189,12 @@ class CommitComponentValueEditTest {
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.UpdateValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 7L,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 7L,
                     componentValueId = ComponentValueId(5L),
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = textValuesOf("new"),
                 ),
             ),

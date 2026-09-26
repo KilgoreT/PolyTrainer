@@ -37,7 +37,12 @@ internal fun GroupInputPanelWidget(
                     GroupSheetError.EMPTY -> R.string.group_error_empty_name
                     GroupSheetError.DUPLICATE -> R.string.group_error_duplicate_name
                     GroupSheetError.RESERVED -> R.string.group_error_reserved_name
-                }
+                    // Inline в шторке сбои операций не показываются (reducer
+                    // шлёт их только снекбаром), тексты — на случай появления.
+                    GroupSheetError.CREATE_FAILED -> R.string.group_error_create_failed
+                    GroupSheetError.RENAME_FAILED -> R.string.group_error_rename_failed
+                    GroupSheetError.DELETE_FAILED -> R.string.group_error_delete_failed
+                },
             )
         },
     )

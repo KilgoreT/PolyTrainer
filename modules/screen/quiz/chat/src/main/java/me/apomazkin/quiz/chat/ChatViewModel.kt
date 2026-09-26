@@ -2,48 +2,41 @@ package me.apomazkin.quiz.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Mate
-import io.github.kilgoret.mate.MateStateHolder
-import me.apomazkin.quiz.chat.logic.AppBarFlowHandler
-import me.apomazkin.quiz.chat.logic.ChatReducer
+import io.github.kilgoret.mate.MateStore
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
+import me.apomazkin.prefs.PrefsProvider
+import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.logic.ChatScreenState
-import me.apomazkin.quiz.chat.logic.DatasourceEffect
-import me.apomazkin.quiz.chat.logic.DatasourceEffectHandler
 import me.apomazkin.quiz.chat.logic.Msg
-import me.apomazkin.quiz.chat.logic.QuizPickerFlowHandler
+import me.apomazkin.quiz.chat.quiz.QuizGame
 import me.apomazkin.ui.resource.ResourceManager
 
+/**
+ * VM экрана квиз-чата: тонкая обёртка над [ChatAssembly] — сборка
+ * раннера живёт там (общая с харнесом), VM даёт только viewModelScope
+ * и продовые зависимости.
+ */
 class ChatViewModel @AssistedInject constructor(
-    @Assisted navigator: ChatNavigator,
+    useCase: QuizChatUseCase,
+    quizGame: QuizGame,
+    prefsProvider: PrefsProvider,
     resourceManager: ResourceManager,
     logger: LexemeLogger,
-    datasourceHandler: DatasourceEffectHandler,
-    appBarFlowHandler: AppBarFlowHandler,
-    quizPickerFlowHandler: QuizPickerFlowHandler,
-    navHandlerFactory: ChatNavigationEffectHandler.Factory,
-) : ViewModel(), MateStateHolder<ChatScreenState, Msg> {
+    navigationHandler: MateNavigationHandler,
+) : ViewModel(), MateStore<ChatScreenState, Msg> {
 
-    private val stateHolder = Mate(
-        initState = ChatScreenState(),
-        initEffects = setOf(DatasourceEffect.PrepareToStart),
+    private val stateHolder = ChatAssembly.create(
+        useCase = useCase,
+        quizGame = quizGame,
+        prefsProvider = prefsProvider,
+        resourceManager = resourceManager,
+        logger = logger,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = ChatReducer(
-            logger = logger,
-            resourceManager = resourceManager,
-        ),
-        effectHandlers = listOf(
-            datasourceHandler,
-            navHandlerFactory.create(navigator),
-        ),
-        flowHandlers = listOf(
-            appBarFlowHandler,
-            quizPickerFlowHandler,
-        ),
     )
 
     override val state: StateFlow<ChatScreenState>
@@ -58,6 +51,6 @@ class ChatViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: ChatNavigator): ChatViewModel
+        fun create(): ChatViewModel
     }
 }

@@ -19,8 +19,8 @@ import org.junit.Test
  * §2.2 LexemeState component-extensions: findByKey/updateComponent/removeComponent/appendPristine.
  */
 class LexemeComponentExtTest {
-
     private fun savedK(id: Long) = ComponentValueKey.Saved(ComponentValueId(id))
+
     private fun pK(k: Long) = ComponentValueKey.Pristine(k)
 
     @Test

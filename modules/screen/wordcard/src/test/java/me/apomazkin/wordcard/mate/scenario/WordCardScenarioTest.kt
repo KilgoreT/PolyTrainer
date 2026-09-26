@@ -1,12 +1,12 @@
 package me.apomazkin.wordcard.mate.scenario
 
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertEffects
+import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentValueId
-import io.github.kilgoret.mate.state
-import io.github.kilgoret.mate.test.assertEffects
-import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.wordcard.deps.AvailableComponents
 import me.apomazkin.wordcard.mate.ComponentValueKey
 import me.apomazkin.wordcard.mate.DatasourceEffect
@@ -15,7 +15,7 @@ import me.apomazkin.wordcard.mate.NOT_IN_DB
 import me.apomazkin.wordcard.mate.NoopLogger
 import me.apomazkin.wordcard.mate.UiEffect
 import me.apomazkin.wordcard.mate.WordCardReducer
-import me.apomazkin.wordcard.mate.WordCardState
+import me.apomazkin.wordcard.mate.WordCardSub
 import me.apomazkin.wordcard.mate.ctype
 import me.apomazkin.wordcard.mate.domainCv
 import me.apomazkin.wordcard.mate.domainLexeme
@@ -23,6 +23,7 @@ import me.apomazkin.wordcard.mate.lexeme
 import me.apomazkin.wordcard.mate.loaded
 import me.apomazkin.wordcard.mate.pristineCv
 import me.apomazkin.wordcard.mate.savedCv
+import me.apomazkin.wordcard.mate.subscriptions
 import me.apomazkin.wordcard.mate.textValuesOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -33,12 +34,13 @@ import org.junit.Test
  * §3 Scenario-тесты (end-to-end через reducer, chained testReduce). Ключевые юзкейсы + traps.
  */
 class WordCardScenarioTest {
-
     private val reducer = WordCardReducer(NoopLogger)
     private val TR = ComponentTypeRef.BuiltIn(me.apomazkin.lexeme.BuiltInComponent.TRANSLATION)
     private val SYN = ComponentTypeRef.UserDefined("Synonym")
     private val EX = ComponentTypeRef.UserDefined("Example")
+
     private fun pK(k: Long) = ComponentValueKey.Pristine(k)
+
     private fun savedK(id: Long) = ComponentValueKey.Saved(ComponentValueId(id))
 
     @Test
@@ -60,8 +62,12 @@ class WordCardScenarioTest {
         committed.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.AddValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
-                    componentTypeId = ComponentTypeId(51L), componentTypeRef = SYN,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 7L,
+                    pristineKey = 1L,
+                    componentTypeId = ComponentTypeId(51L),
+                    componentTypeRef = SYN,
                     data = textValuesOf("syn"),
                 ),
             ),
@@ -87,7 +93,13 @@ class WordCardScenarioTest {
         s = reducer.testReduce(s, Msg.UpdateComponentValueInput(7L, pK(2L), "b")).state()
         s = reducer.testReduce(s, Msg.CreateComponentValue(7L, ComponentTypeId(51L))).state()
         assertEquals(4L, s.nextPristineKey)
-        assertFalse(s.lexemeList.single().addedNonMultipleTypeIds.contains(ComponentTypeId(51L)))
+        assertFalse(
+            s
+                .lexemeList
+                .single()
+                .addedNonMultipleTypeIds
+                .contains(ComponentTypeId(51L)),
+        )
     }
 
     @Test
@@ -100,8 +112,11 @@ class WordCardScenarioTest {
         committed.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.CreateLexeme(
-                    wordId = 7L, dictionaryId = 3L, pristineKey = 1L,
-                    componentTypeId = ComponentTypeId(51L), componentTypeRef = EX,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    pristineKey = 1L,
+                    componentTypeId = ComponentTypeId(51L),
+                    componentTypeRef = EX,
                     data = textValuesOf("good"),
                 ),
             ),
@@ -128,8 +143,12 @@ class WordCardScenarioTest {
         res.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.AddValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 900L, pristineKey = 2L,
-                    componentTypeId = ComponentTypeId(51L), componentTypeRef = EX,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 900L,
+                    pristineKey = 2L,
+                    componentTypeId = ComponentTypeId(51L),
+                    componentTypeRef = EX,
                     data = textValuesOf("ex"),
                 ),
             ),
@@ -154,7 +173,14 @@ class WordCardScenarioTest {
         val refreshed = reducer.testReduce(s, Msg.RefreshLexemeComponents(8L, emptyList()))
         s = refreshed.state()
         assertEquals(listOf(8L), s.lexemeList.map { it.id })
-        assertTrue("лексема стала пустым черновиком", s.lexemeList.single().components.isEmpty())
+        assertTrue(
+            "лексема стала пустым черновиком",
+            s
+                .lexemeList
+                .single()
+                .components
+                .isEmpty(),
+        )
         assertTrue(refreshed.second.isEmpty())
     }
 
@@ -173,7 +199,15 @@ class WordCardScenarioTest {
         )
         s = failed.state()
         val retry = reducer.testReduce(s, Msg.RetryLoadComponentTypes)
-        retry.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(3L)))
+        // Retry декларативный: инкремент typesGeneration перезапускает подписку
+        // ComponentTypes через дифф subscriptions(), эффектов нет.
+        assertTrue(retry.second.isEmpty())
+        assertTrue(
+            retry
+                .state()
+                .subscriptions()
+                .contains(WordCardSub.ComponentTypes(dictionaryId = 3L, generation = 1)),
+        )
         s = reducer.testReduce(retry.state(), Msg.ComponentTypesLoaded(AvailableComponents(listOf(ctype(50L, TR))))).state()
         assertEquals(1, s.availableComponentTypes.size)
     }
@@ -189,16 +223,38 @@ class WordCardScenarioTest {
         assertTrue("pending after commit#1", s.isPendingDbOp)
         // commit#2 guarded (no-op); CreateComponentValue НЕ guarded:
         val create = reducer.testReduce(s, Msg.CreateComponentValue(7L, ComponentTypeId(51L)))
-        assertTrue("pristine добавлен при pending (B5)", create.state().lexemeList.single().components.any { it.pristineKey == 2L })
+        assertTrue(
+            "pristine добавлен при pending (B5)",
+            create
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .any { it.pristineKey == 2L },
+        )
     }
 
     @Test
     fun `S_trap_3 refresh keeps typing pristine then inserted flips`() {
         var s = loaded(lexemes = listOf(lexeme(7L, listOf(savedCv(5L), pristineCv(10L, edited = "typing")))))
         s = reducer.testReduce(s, Msg.RefreshLexemeComponents(7L, listOf(domainCv(5L, 7L, "x"), domainCv(7L, 7L, "new")))).state()
-        assertTrue("pristine P10 сохранён", s.lexemeList.single().components.any { it.pristineKey == 10L })
+        assertTrue(
+            "pristine P10 сохранён",
+            s
+                .lexemeList
+                .single()
+                .components
+                .any { it.pristineKey == 10L },
+        )
         s = reducer.testReduce(s, Msg.ComponentValueInserted(7L, 10L, ComponentValueId(11L))).state()
-        assertTrue("P10 флипнут в Saved(11)", s.lexemeList.single().components.any { it.key == savedK(11L) })
+        assertTrue(
+            "P10 флипнут в Saved(11)",
+            s
+                .lexemeList
+                .single()
+                .components
+                .any { it.key == savedK(11L) },
+        )
     }
 
     @Test
@@ -218,13 +274,23 @@ class WordCardScenarioTest {
         )
         s = reducer.testReduce(s, Msg.CreateComponentValue(7L, ComponentTypeId(51L))).state()
         s = reducer.testReduce(s, Msg.CreateComponentValue(7L, ComponentTypeId(51L))).state()
-        assertEquals("пустой первый дропнут, остаётся 1 pristine", 1, s.lexemeList.single().components.count { it.isPristine })
+        assertEquals(
+            "пустой первый дропнут, остаётся 1 pristine",
+            1,
+            s
+                .lexemeList
+                .single()
+                .components
+                .count { it.isPristine },
+        )
     }
 
     @Test
     fun `S23 remove translation keeps lexeme with other component`() {
         var s = loaded(
-            lexemes = listOf(lexeme(7L, listOf(savedCv(5L, ref = TR, origin = "arg"), savedCv(6L, typeId = 51L, ref = EX, origin = "good arg")))),
+            lexemes = listOf(
+                lexeme(7L, listOf(savedCv(5L, ref = TR, origin = "arg"), savedCv(6L, typeId = 51L, ref = EX, origin = "good arg"))),
+            ),
         )
         val removed = reducer.testReduce(s, Msg.RemoveComponentValueRequested(7L, savedK(5L)))
         removed.assertEffects(setOf(DatasourceEffect.RemoveComponentValue(ComponentValueId(5L), 7L)))

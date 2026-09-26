@@ -1,5 +1,10 @@
 package me.apomazkin.per_dictionary_components.mate
 
+import io.github.kilgoret.mate.NavigationEffect
+import io.github.kilgoret.mate.effects
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
@@ -12,11 +17,6 @@ import me.apomazkin.lexeme.PerDictionarySnapshot
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import io.github.kilgoret.mate.NavigationEffect
-import io.github.kilgoret.mate.effects
-import io.github.kilgoret.mate.state
-import io.github.kilgoret.mate.test.assertNoEffects
-import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -33,11 +33,15 @@ import java.util.Date
  * Все critical fixes (F123/F124/F127/F132/F136/F138/F140) проверяются с самого начала.
  */
 class PerDictionaryComponentsReducerTest {
-
     private val reducer = PerDictionaryComponentsReducer(
         logger = object : LexemeLogger {
-            override fun log(level: LogLevel, tag: String, message: String, throwable: Throwable?) {}
-        }
+            override fun log(
+                level: LogLevel,
+                tag: String,
+                message: String,
+                throwable: Throwable?,
+            ) {}
+        },
     )
 
     private val now = Date(0L)
@@ -69,8 +73,7 @@ class PerDictionaryComponentsReducerTest {
         nextEpoch = nextEpoch,
     )
 
-    private fun stateWithRows(vararg rows: PerDictRow) =
-        baseState(items = rows.toList())
+    private fun stateWithRows(vararg rows: PerDictRow) = baseState(items = rows.toList())
 
     private fun stateWithCreateDialog(
         epochId: Long = 1L,
@@ -130,12 +133,13 @@ class PerDictionaryComponentsReducerTest {
         updatedAt = now,
     )
 
-    private fun emptyImpact() = DeletionImpact(
-        valueCount = 0,
-        dictionariesWithValues = emptyList(),
-        affectedQuizConfigs = emptyList(),
-        affectedPrefs = emptyList(),
-    )
+    private fun emptyImpact() =
+        DeletionImpact(
+            valueCount = 0,
+            dictionariesWithValues = emptyList(),
+            affectedQuizConfigs = emptyList(),
+            affectedPrefs = emptyList(),
+        )
 
     // ---- phase 2 helpers ----
 
@@ -211,8 +215,22 @@ class PerDictionaryComponentsReducerTest {
         assertEquals(false, result.state().isLoading)
         assertEquals("Spanish", result.state().dictionaryName)
         assertEquals(1, result.state().items?.size)
-        assertEquals("Notes", result.state().items?.first()?.name)
-        assertEquals(5, result.state().items?.first()?.valueCount)
+        assertEquals(
+            "Notes",
+            result
+                .state()
+                .items
+                ?.first()
+                ?.name,
+        )
+        assertEquals(
+            5,
+            result
+                .state()
+                .items
+                ?.first()
+                ?.valueCount,
+        )
         result.assertNoEffects()
     }
 
@@ -239,6 +257,25 @@ class PerDictionaryComponentsReducerTest {
 
         assertEquals(false, result.state().isLoading)
         assertTrue(result.effects().any { it is UiEffect.Snackbar })
+    }
+
+    @Test
+    fun `OnRetryClick increments loadGeneration and sets isLoading, no effects`() {
+        // Retry декларативный: инкремент generation ломает equality подписки
+        // Components — дифф раннера гасит упавшую и стартует новую; эффектов нет.
+        val initial = baseState().copy(isLoading = false, loadGeneration = 1)
+
+        val result = reducer.testReduce(initial, Msg.OnRetryClick)
+
+        assertEquals(true, result.state().isLoading)
+        assertEquals(2, result.state().loadGeneration)
+        result.assertNoEffects()
+        assertTrue(
+            "new generation must change Components subscription identity",
+            result.state().subscriptions().contains(
+                PerDictionaryComponentsSub.Components(dictionaryId = DICT_ID, generation = 2),
+            ),
+        )
     }
 
     // ===== 4.2 Create dialog =====

@@ -2,8 +2,8 @@ package me.apomazkin.wordcard.mate.ext
 
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.wordcard.mate.LexemeState
-import me.apomazkin.wordcard.mate.savedCv
 import me.apomazkin.wordcard.mate.pristineCv
+import me.apomazkin.wordcard.mate.savedCv
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -12,7 +12,6 @@ import org.junit.Test
  * (для скрытия их chip'ов в ChipsRow).
  */
 class LexemeStateTest {
-
     @Test
     fun `addedNonMultipleTypeIds excludes multi`() {
         val l = LexemeState(

@@ -51,10 +51,9 @@ import me.apomazkin.ui.preview.PreviewWidget
 @Composable
 fun rememberWordsTabHandle(
     factory: WordsTabViewModel.Factory,
-    navigator: WordsNavigator,
 ): WordsTabHandle {
     val viewModel: WordsTabViewModel = viewModel(
-        factory = viewModelFactory { factory.create(navigator) },
+        factory = viewModelFactory { factory.create() },
     )
     val state = viewModel.state.collectAsStateWithLifecycle()
     return remember(viewModel) {

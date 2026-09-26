@@ -9,5 +9,7 @@ import androidx.compose.runtime.Composable
  */
 interface VocabularyHostUiDeps {
     @Composable
-    fun AppBar(@StringRes titleResId: Int)
+    fun AppBar(
+        @StringRes titleResId: Int,
+    )
 }

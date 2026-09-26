@@ -12,7 +12,6 @@ import java.util.Date
  * Reducer tests for CloseTopBarMenu — simple toggle with guard !isMenuOpen.
  */
 class CloseTopBarMenuTest {
-
     @Test
     fun `CloseTopBarMenu sets isMenuOpen false`() {
         val reducer = WordCardReducer(NoopLogger)

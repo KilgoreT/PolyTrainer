@@ -27,10 +27,9 @@ import me.apomazkin.ui.preview.PreviewScreen
 @Composable
 fun QuizTabScreen(
     factory: QuizTabViewModel.Factory,
-    navigator: QuizTabNavigator,
     quizTabUiDeps: QuizTabUiDeps,
     viewModel: QuizTabViewModel = viewModel(
-        factory = viewModelFactory { factory.create(navigator) },
+        factory = viewModelFactory { factory.create() },
     ),
 ) {
 

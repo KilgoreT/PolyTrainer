@@ -1,12 +1,12 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.core_resources.R
-import me.apomazkin.lexeme.ComponentTypeRef
-import me.apomazkin.wordcard.deps.AvailableComponents
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.core_resources.R
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.wordcard.deps.AvailableComponents
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.IOException
@@ -15,7 +15,6 @@ import java.io.IOException
  * §1.2 ComponentTypesLoaded / ComponentTypesLoadFailed / RetryLoadComponentTypes.
  */
 class ComponentTypesFlowTest {
-
     private val reducer = WordCardReducer(NoopLogger)
     private val t1 = ctype(50L, TR)
     private val t2 = ctype(51L, ComponentTypeRef.UserDefined("Example"))
@@ -83,14 +82,26 @@ class ComponentTypesFlowTest {
     }
 
     @Test
-    fun `RetryLoadComponentTypes emits load with loaded dictionaryId`() {
+    fun `RetryLoadComponentTypes increments typesGeneration, no effects`() {
+        // Retry декларативный: инкремент generation ломает equality подписки
+        // ComponentTypes — дифф раннера гасит упавшую и стартует новую.
         val result = reducer.testReduce(loaded(dictionaryId = 9L), Msg.RetryLoadComponentTypes)
-        result.assertEffects(setOf(DatasourceEffect.LoadAvailableComponentTypes(9L)))
+
+        assertEquals(1, result.state().typesGeneration)
+        result.assertNoEffects()
+        assertEquals(
+            true,
+            result
+                .state()
+                .subscriptions()
+                .contains(WordCardSub.ComponentTypes(dictionaryId = 9L, generation = 1)),
+        )
     }
 
     @Test
     fun `RetryLoadComponentTypes on NotLoaded is no-op`() {
         val result = reducer.testReduce(WordCardState(), Msg.RetryLoadComponentTypes)
+        assertEquals(0, result.state().typesGeneration)
         result.assertNoEffects()
     }
 }

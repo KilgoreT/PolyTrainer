@@ -136,7 +136,7 @@ private fun Preview() {
         Box(
             modifier = Modifier
                 .background(color = MaterialTheme.colorScheme.tertiary)
-                .padding(12.dp)
+                .padding(12.dp),
         ) {
             WordFieldWidget(
                 loaded = WordState.Loaded(

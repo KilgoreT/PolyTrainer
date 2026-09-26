@@ -5,6 +5,9 @@ import android.content.Context
 import android.content.res.Configuration
 import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import me.apomazkin.core_db.di.CoreDbComponent
 import me.apomazkin.core_db_api.entity.ReservedGroupNames
 import me.apomazkin.polytrainer.di.AppComponent
@@ -32,6 +35,12 @@ class App : Application() {
                     .build(),
             )
         initCrashlytics()
+        // Дренаж очереди навигации живёт на application-scope (Main.immediate —
+        // команды дёргают NavController): гейт открывает/закрывает активити,
+        // очередь и её содержимое переживают пересоздание хоста.
+        appComponent.getNavigationHandler().attach(
+            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+        )
     }
 
     /**

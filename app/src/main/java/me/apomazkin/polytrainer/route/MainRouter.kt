@@ -16,8 +16,6 @@ enum class MainPoint(val route: String) {
 fun NavGraphBuilder.mainRouter(
     route: String,
     tabsNavController: NavHostController,
-    openDictionaryCreate: () -> Unit,
-    openDictionaryList: () -> Unit,
 ) {
     navigation(
         startDestination = MainPoint.MAIN.route,
@@ -41,8 +39,6 @@ fun NavGraphBuilder.mainRouter(
                         envParams = context.appComponent.getEnvParams(),
                         logger = context.appComponent.getLogger(),
                 ),
-                openDictionaryCreate = openDictionaryCreate,
-                openDictionaryList = openDictionaryList
             )
         }
     }

@@ -21,8 +21,6 @@ enum class TabPoint(val route: String) {
 fun MainScreen(
     navController: NavHostController,
     compositionRoot: CompositionRoot,
-    openDictionaryCreate: () -> Unit,
-    openDictionaryList: () -> Unit,
 ) {
     SystemBarsWidget(
         color = whiteColor,
@@ -37,26 +35,12 @@ fun MainScreen(
             navController = navController,
             startDestination = TabPoint.VOCABULARY.route
         ) {
-            vocabulary(
-                navController = navController,
-                compositionRoot = compositionRoot,
-                openDictionaryCreate = openDictionaryCreate,
-            )
-            quiz(
-                navController = navController,
-                compositionRoot = compositionRoot,
-                openDictionaryCreate = openDictionaryCreate,
-            )
-            statistic(
-                navController = navController,
-                compositionRoot = compositionRoot,
-                openDictionaryCreate = openDictionaryCreate,
-            )
-
+            vocabulary(compositionRoot = compositionRoot)
+            quiz(compositionRoot = compositionRoot)
+            statistic(compositionRoot = compositionRoot)
             settings(
                 navController = navController,
                 compositionRoot = compositionRoot,
-                openDictionaryList = openDictionaryList,
             )
         }
         BottomBarWidget(navController = navController)

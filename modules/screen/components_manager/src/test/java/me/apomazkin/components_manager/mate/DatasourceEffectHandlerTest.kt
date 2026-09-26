@@ -3,7 +3,6 @@
 package me.apomazkin.components_manager.mate
 
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
@@ -17,7 +16,6 @@ import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.logger.LexemeLogger
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -31,17 +29,9 @@ import java.util.Date
  * propagation.
  */
 class DatasourceEffectHandlerTest {
-
     private val useCase = mockk<ComponentsManagerUseCase>()
     private val logger = mockk<LexemeLogger>(relaxed = true)
-    private val allUserDefinedTypesFlowHandler = mockk<AllUserDefinedTypesFlowHandler>(relaxed = true)
-    private val dictionariesFlowHandler = mockk<DictionariesFlowHandler>(relaxed = true)
-    private val handler = DatasourceEffectHandler(
-        useCase,
-        allUserDefinedTypesFlowHandler,
-        dictionariesFlowHandler,
-        logger,
-    )
+    private val handler = DatasourceEffectHandler(useCase)
 
     private val now = Date(0L)
 
@@ -65,58 +55,62 @@ class DatasourceEffectHandlerTest {
     // ===== CreateComponent =====
 
     @Test
-    fun `CreateComponent useCase returns Success - emits CreateResult with epochId`() = runTest {
-        coEvery {
-            useCase.createUserDefinedComponent(any(), any(), any(), any())
-        } returns CreateOutcome.Success(listOf(ctype))
+    fun `CreateComponent useCase returns Success - emits CreateResult with epochId`() =
+        runTest {
+            coEvery {
+                useCase.createUserDefinedComponent(any(), any(), any(), any())
+            } returns CreateOutcome.Success(listOf(ctype))
 
-        val msg = run(
-            DatasourceEffect.CreateComponent(
-                epochId = 7L,
-                name = "Notes",
-                template = ComponentTemplate.TEXT,
-                isMultiple = false,
-                scope = Scope.Global,
+            val msg = run(
+                DatasourceEffect.CreateComponent(
+                    epochId = 7L,
+                    name = "Notes",
+                    template = ComponentTemplate.TEXT,
+                    isMultiple = false,
+                    scope = Scope.Global,
+                ),
             )
-        )
 
-        assertTrue(msg is Msg.CreateResult)
-        val res = msg as Msg.CreateResult
-        assertEquals(7L, res.epochId)
-        assertTrue(res.outcome is CreateOutcome.Success)
-    }
-
-    @Test
-    fun `CreateComponent useCase returns SameScopeCollision - emits CreateResult`() = runTest {
-        coEvery {
-            useCase.createUserDefinedComponent(any(), any(), any(), any())
-        } returns CreateOutcome.SameScopeCollision
-
-        val msg = run(
-            DatasourceEffect.CreateComponent(1L, "Notes", ComponentTemplate.TEXT, false, Scope.Global)
-        )
-
-        assertTrue(msg is Msg.CreateResult)
-        assertEquals(CreateOutcome.SameScopeCollision, (msg as Msg.CreateResult).outcome)
-    }
+            assertTrue(msg is Msg.CreateResult)
+            val res = msg as Msg.CreateResult
+            assertEquals(7L, res.epochId)
+            assertTrue(res.outcome is CreateOutcome.Success)
+        }
 
     @Test
-    fun `CreateComponent useCase throws - emits Failure outcome with epochId, logged`() = runTest {
+    fun `CreateComponent useCase returns SameScopeCollision - emits CreateResult`() =
+        runTest {
+            coEvery {
+                useCase.createUserDefinedComponent(any(), any(), any(), any())
+            } returns CreateOutcome.SameScopeCollision
+
+            val msg = run(
+                DatasourceEffect.CreateComponent(1L, "Notes", ComponentTemplate.TEXT, false, Scope.Global),
+            )
+
+            assertTrue(msg is Msg.CreateResult)
+            assertEquals(CreateOutcome.SameScopeCollision, (msg as Msg.CreateResult).outcome)
+        }
+
+    @Test
+    fun `CreateComponent useCase throws - exception propagates, onFail maps to Failure`() {
         val boom = RuntimeException("boom")
         coEvery {
             useCase.createUserDefinedComponent(any(), any(), any(), any())
         } throws boom
+        val effect = DatasourceEffect.CreateComponent(3L, "Notes", ComponentTemplate.TEXT, false, Scope.Global)
 
-        val msg = run(
-            DatasourceEffect.CreateComponent(3L, "Notes", ComponentTemplate.TEXT, false, Scope.Global)
-        )
+        // Handler ошибок не ловит — исключение уходит раннеру.
+        assertThrows(RuntimeException::class.java) {
+            kotlinx.coroutines.runBlocking { run(effect) }
+        }
 
-        assertTrue(msg is Msg.CreateResult)
-        val res = msg as Msg.CreateResult
+        // Маппинг провала объявлен в эффекте (RecoverableEffect).
+        val recovery = effect.onFail(boom)
+        assertTrue(recovery is Msg.CreateResult)
+        val res = recovery as Msg.CreateResult
         assertEquals(3L, res.epochId)
-        assertTrue(res.outcome is CreateOutcome.Failure)
         assertEquals(boom, (res.outcome as CreateOutcome.Failure).cause)
-        coVerify { logger.e(any(), any()) }
     }
 
     @Test
@@ -135,49 +129,53 @@ class DatasourceEffectHandlerTest {
     // ===== LoadImpact =====
 
     @Test
-    fun `LoadImpact useCase returns impact - emits ImpactPreviewLoaded with typeId`() = runTest {
-        val impact = DeletionImpact(
-            valueCount = 3,
-            dictionariesWithValues = emptyList(),
-            affectedQuizConfigs = emptyList(),
-            affectedPrefs = emptyList(),
-        )
-        coEvery { useCase.previewDeletionImpact(ComponentTypeId(1L)) } returns impact
+    fun `LoadImpact useCase returns impact - emits ImpactPreviewLoaded with typeId`() =
+        runTest {
+            val impact = DeletionImpact(
+                valueCount = 3,
+                dictionariesWithValues = emptyList(),
+                affectedQuizConfigs = emptyList(),
+                affectedPrefs = emptyList(),
+            )
+            coEvery { useCase.previewDeletionImpact(ComponentTypeId(1L)) } returns impact
 
-        val msg = run(DatasourceEffect.LoadImpact(ComponentTypeId(1L)))
+            val msg = run(DatasourceEffect.LoadImpact(ComponentTypeId(1L)))
 
-        assertTrue(msg is Msg.ImpactPreviewLoaded)
-        val res = msg as Msg.ImpactPreviewLoaded
-        assertEquals(ComponentTypeId(1L), res.typeId)
-        assertEquals(impact, res.impact)
-    }
+            assertTrue(msg is Msg.ImpactPreviewLoaded)
+            val res = msg as Msg.ImpactPreviewLoaded
+            assertEquals(ComponentTypeId(1L), res.typeId)
+            assertEquals(impact, res.impact)
+        }
 
     // F145: previewDeletionImpact returns null → Msg.ImpactPreviewFailed dispatched
     // с `cause == null` (НЕ synthetic IllegalStateException).
     @Test
-    fun `LoadImpact useCase returns null - emits ImpactPreviewFailed with null cause (no synthetic exception)`() = runTest {
-        coEvery { useCase.previewDeletionImpact(any()) } returns null
+    fun `LoadImpact useCase returns null - emits ImpactPreviewFailed with null cause (no synthetic exception)`() =
+        runTest {
+            coEvery { useCase.previewDeletionImpact(any()) } returns null
 
-        val msg = run(DatasourceEffect.LoadImpact(ComponentTypeId(1L)))
+            val msg = run(DatasourceEffect.LoadImpact(ComponentTypeId(1L)))
 
-        assertTrue(msg is Msg.ImpactPreviewFailed)
-        val failed = msg as Msg.ImpactPreviewFailed
-        assertEquals(ComponentTypeId(1L), failed.typeId)
-        assertNull("F145: null-return path must not wrap synthetic exception", failed.cause)
-    }
+            assertTrue(msg is Msg.ImpactPreviewFailed)
+            val failed = msg as Msg.ImpactPreviewFailed
+            assertEquals(ComponentTypeId(1L), failed.typeId)
+            assertNull("F145: null-return path must not wrap synthetic exception", failed.cause)
+        }
 
-    // F145: exception path emits ImpactPreviewFailed with the real cause (non-null).
+    // F145: exception path — провал объявлен в эффекте, cause реальный (non-null).
     @Test
-    fun `LoadImpact useCase throws - emits ImpactPreviewFailed with original cause`() = runTest {
+    fun `LoadImpact useCase throws - exception propagates, onFail carries original cause`() {
         val ex = RuntimeException("boom")
         coEvery { useCase.previewDeletionImpact(any()) } throws ex
+        val effect = DatasourceEffect.LoadImpact(ComponentTypeId(1L))
 
-        val msg = run(DatasourceEffect.LoadImpact(ComponentTypeId(1L)))
+        assertThrows(RuntimeException::class.java) {
+            kotlinx.coroutines.runBlocking { run(effect) }
+        }
 
-        assertTrue(msg is Msg.ImpactPreviewFailed)
-        val failed = msg as Msg.ImpactPreviewFailed
-        assertEquals(ComponentTypeId(1L), failed.typeId)
-        assertNotNull("exception path must carry real cause", failed.cause)
+        val failed = effect.onFail(ex)
+        assertTrue(failed is Msg.ImpactPreviewFailed)
+        assertEquals(ComponentTypeId(1L), (failed as Msg.ImpactPreviewFailed).typeId)
         assertEquals(ex, failed.cause)
     }
 
@@ -199,33 +197,40 @@ class DatasourceEffectHandlerTest {
     // ===== SoftDeleteComponent =====
 
     @Test
-    fun `SoftDeleteComponent useCase returns Success - emits DeleteResult with epochId`() = runTest {
-        val impact = DeletionImpact(
-            valueCount = 0,
-            dictionariesWithValues = emptyList(),
-            affectedQuizConfigs = emptyList(),
-            affectedPrefs = emptyList(),
-        )
-        coEvery {
-            useCase.softDeleteComponent(ComponentTypeId(1L))
-        } returns DeleteOutcome.Success(impact)
+    fun `SoftDeleteComponent useCase returns Success - emits DeleteResult with epochId`() =
+        runTest {
+            val impact = DeletionImpact(
+                valueCount = 0,
+                dictionariesWithValues = emptyList(),
+                affectedQuizConfigs = emptyList(),
+                affectedPrefs = emptyList(),
+            )
+            coEvery {
+                useCase.softDeleteComponent(ComponentTypeId(1L))
+            } returns DeleteOutcome.Success(impact)
 
-        val msg = run(DatasourceEffect.SoftDeleteComponent(epochId = 11L, typeId = ComponentTypeId(1L)))
+            val msg = run(DatasourceEffect.SoftDeleteComponent(epochId = 11L, typeId = ComponentTypeId(1L)))
 
-        assertTrue(msg is Msg.DeleteResult)
-        val res = msg as Msg.DeleteResult
-        assertEquals(11L, res.epochId)
-        assertTrue(res.outcome is DeleteOutcome.Success)
-    }
+            assertTrue(msg is Msg.DeleteResult)
+            val res = msg as Msg.DeleteResult
+            assertEquals(11L, res.epochId)
+            assertTrue(res.outcome is DeleteOutcome.Success)
+        }
 
     @Test
-    fun `SoftDeleteComponent useCase throws - emits Failure outcome`() = runTest {
-        coEvery { useCase.softDeleteComponent(any()) } throws RuntimeException("boom")
+    fun `SoftDeleteComponent useCase throws - exception propagates, onFail maps to Failure`() {
+        val boom = RuntimeException("boom")
+        coEvery { useCase.softDeleteComponent(any()) } throws boom
+        val effect = DatasourceEffect.SoftDeleteComponent(epochId = 11L, typeId = ComponentTypeId(1L))
 
-        val msg = run(DatasourceEffect.SoftDeleteComponent(epochId = 11L, typeId = ComponentTypeId(1L)))
+        assertThrows(RuntimeException::class.java) {
+            kotlinx.coroutines.runBlocking { run(effect) }
+        }
 
-        assertTrue(msg is Msg.DeleteResult)
-        assertTrue((msg as Msg.DeleteResult).outcome is DeleteOutcome.Failure)
+        val recovery = effect.onFail(boom)
+        assertTrue(recovery is Msg.DeleteResult)
+        assertEquals(11L, (recovery as Msg.DeleteResult).epochId)
+        assertTrue(recovery.outcome is DeleteOutcome.Failure)
     }
 
     // F146: CancellationException на softDeleteComponent должен re-throw,

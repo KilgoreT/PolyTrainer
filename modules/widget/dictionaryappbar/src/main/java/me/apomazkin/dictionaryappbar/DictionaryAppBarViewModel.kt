@@ -2,35 +2,32 @@ package me.apomazkin.dictionaryappbar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import me.apomazkin.dictionaryappbar.mate.DatasourceEffectHandler
-import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarReducer
+import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarState
 import me.apomazkin.dictionaryappbar.mate.Msg
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Mate
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
+/**
+ * VM виджета app bar со словарём: тонкая обёртка над
+ * [DictionaryAppBarAssembly] — сборка раннера живёт там (общая с
+ * харнесом), VM даёт только viewModelScope и продовые зависимости.
+ */
 class DictionaryAppBarViewModel @AssistedInject constructor(
-    @Assisted navigator: DictionaryAppBarNavigator,
+    useCase: DictionaryAppBarUseCase,
     logger: LexemeLogger,
-    datasourceHandler: DatasourceEffectHandler,
-    navHandlerFactory: DictionaryAppBarNavigationEffectHandler.Factory,
-) : ViewModel(), MateStateHolder<DictionaryAppBarState, Msg> {
+    navigationHandler: MateNavigationHandler,
+) : ViewModel(), MateStore<DictionaryAppBarState, Msg> {
 
-    private val stateHolder = Mate(
-        initState = DictionaryAppBarState(),
-        initEffects = setOf(),
+    private val stateHolder = DictionaryAppBarAssembly.create(
+        useCase = useCase,
+        logger = logger,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = DictionaryAppBarReducer(logger = logger),
-        effectHandlers = listOf(
-            datasourceHandler,
-            navHandlerFactory.create(navigator),
-        ),
-        flowHandlers = listOf(datasourceHandler),
     )
 
     override val state: StateFlow<DictionaryAppBarState>
@@ -40,6 +37,6 @@ class DictionaryAppBarViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: DictionaryAppBarNavigator): DictionaryAppBarViewModel
+        fun create(): DictionaryAppBarViewModel
     }
 }

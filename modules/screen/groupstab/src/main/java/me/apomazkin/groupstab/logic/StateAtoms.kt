@@ -1,11 +1,11 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.groupstab.LogTags
-import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Effect
-import me.apomazkin.mate.ReducerLogging
 import io.github.kilgoret.mate.ReducerResult
 import io.github.kilgoret.mate.begin
+import me.apomazkin.groupstab.LogTags
+import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.mate.ReducerLogging
 import me.apomazkin.wordrow.entity.TermUiItem
 import java.util.Locale
 
@@ -22,8 +22,9 @@ internal typealias GroupsResult = ReducerResult<GroupsTabState, Effect>
  * цепочки `begin()/then` — в ветках reducer'а. Reducer и ext-тест
  * НАСЛЕДУЮТ этот класс. ######
  */
-abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
-
+abstract class StateAtoms(
+    logger: LexemeLogger,
+) : ReducerLogging(logger) {
     /** Фичевый тег вкладки: шаги, сообщения reducer'а и логи handler'а —
      * под одним `###GROUPS###` (весь флоу одним grep'ом). */
     override val logTag: String = LogTags.GROUPS
@@ -125,8 +126,8 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
 
     /**
      * Компенсация вытеснения: словарь ВЫРОС под раскрытым узлом с активным
-     * окном → окно шире на дельту роста (вставка в голову не выталкивает низ)
-     * и эффект [GroupsEffect.SetWindow] с новым лимитом.
+     * окном → окно шире на дельту роста (вставка в голову не выталкивает низ);
+     * подписку с новым лимитом перезапустит дифф subscriptions().
      * Зовётся в цепочке SliceLoaded ДО [applyAllCount] — дельта считается от
      * ещё не обновлённого [AllNodeState.count].
      * @param newCount свежий счётчик слов из slice.
@@ -141,8 +142,7 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
         if (growth <= 0) return noOp("widenWindowForGrowth: no growth")
         val widened = node.window + growth
         logStep("widenWindowForGrowth", "newCount" to newCount, "window" to widened)
-        return copy(allNode = node.copy(window = widened)) to
-            setOf(GroupsEffect.SetWindow(limit = widened))
+        return copy(allNode = node.copy(window = widened)).begin()
     }
 
     /**
@@ -169,20 +169,19 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
 
     /**
      * Открыть живое окно контента: [AllNodeState.window] = [limit], спиннер
-     * окна включён; эффект [GroupsEffect.SetWindow] запускает подписку.
+     * окна включён; подписку запустит дифф subscriptions().
      * @param limit размер окна (CHUNK_SIZE при раскрытии).
      * No-op без узла.
      */
     fun GroupsTabState.openWindow(limit: Int): GroupsResult {
         val node = allNode ?: return noOp("openWindow: no node")
         logStep("openWindow", "limit" to limit)
-        return copy(allNode = node.copy(window = limit, isWindowLoading = true)) to
-            setOf(GroupsEffect.SetWindow(limit = limit))
+        return copy(allNode = node.copy(window = limit, isWindowLoading = true)).begin()
     }
 
     /**
-     * Закрыть живое окно: окно = 0, контент сброшен, спиннер погашен; эффект
-     * [GroupsEffect.SetWindow] (null) гасит подписку.
+     * Закрыть живое окно: окно = 0, контент сброшен, спиннер погашен;
+     * подписку погасит дифф subscriptions().
      * [AllNodeState.hasMore] пересчитывает следующий атом цепочки
      * ([recalcHasMore]). No-op без узла.
      */
@@ -191,12 +190,12 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
         logStep("closeWindow")
         return copy(
             allNode = node.copy(window = 0, loadedWords = emptyList(), isWindowLoading = false),
-        ) to setOf(GroupsEffect.SetWindow(limit = null))
+        ).begin()
     }
 
     /**
-     * Расширить окно на шаг «Ещё»: окно += [step], спиннер, эффект
-     * [GroupsEffect.SetWindow] с новым лимитом.
+     * Расширить окно на шаг «Ещё»: окно += [step], спиннер; подписку с
+     * новым лимитом перезапустит дифф subscriptions().
      * @param step шаг расширения (CHUNK_SIZE).
      * No-op без узла.
      */
@@ -206,7 +205,7 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
         logStep("widenWindowBy", "step" to step, "window" to newWindow)
         return copy(
             allNode = node.copy(window = newWindow, isWindowLoading = true),
-        ) to setOf(GroupsEffect.SetWindow(limit = newWindow))
+        ).begin()
     }
 
     /**
@@ -298,24 +297,20 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
     /**
      * Вычистить МЁРТВЫЕ группы из раскрытых: группа удалена под
      * раскрытием (ревью T-2). Зовётся после [applyGroups]. Меняет
-     * [GroupsTabState.expandedGroupWindows] (∩ живые); на каждое
-     * закрытое окно рождает [GroupsEffect.SetGroupWindow] (null) —
-     * подписка мёртвой группы гаснет.
+     * [GroupsTabState.expandedGroupWindows] (∩ живые); подписки мёртвых
+     * окон погасит дифф subscriptions(). Эффектов нет.
      */
     fun GroupsTabState.purgeDeadExpanded(): GroupsResult {
         val livingIds = groups.mapTo(HashSet()) { it.id }
         val dead = expandedGroupWindows.keys.filter { it !in livingIds }
         logStep("purgeDeadExpanded", "dead" to dead.size)
         if (dead.isEmpty()) return begin()
-        val effects: Set<Effect> = dead
-            .mapTo(HashSet()) { GroupsEffect.SetGroupWindow(groupId = it, limit = null) }
-        return copy(expandedGroupWindows = expandedGroupWindows - dead.toSet()) to effects
+        return copy(expandedGroupWindows = expandedGroupWindows - dead.toSet()).begin()
     }
 
     /**
-     * Свернуть ВСЕ группы (смена словаря): карта окон очищается.
-     * Подписки гасит эффект [GroupsEffect.ClearGroupWindows] ветки
-     * reducer'а (контекст смены словаря знает только она). Эффектов нет.
+     * Свернуть ВСЕ группы (смена словаря): карта окон очищается;
+     * подписки погасит дифф subscriptions(). Эффектов нет.
      */
     fun GroupsTabState.collapseAllGroups(): GroupsResult {
         logStep("collapseAllGroups")
@@ -338,39 +333,43 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
     }
 
     /**
-     * Раскрыть группу С ОКНОМ: окно = [limit], спиннер; эффект
-     * [GroupsEffect.SetGroupWindow] запускает живую подписку контента.
+     * Раскрыть группу С ОКНОМ: окно = [limit], спиннер; живую подписку
+     * контента запустит дифф subscriptions().
      * @param id id живой группы (count > 0).
      * @param limit стартовый размер окна (CHUNK_SIZE).
      */
-    fun GroupsTabState.openGroupWindow(id: Long, limit: Int): GroupsResult {
+    fun GroupsTabState.openGroupWindow(
+        id: Long,
+        limit: Int,
+    ): GroupsResult {
         logStep("openGroupWindow", "id" to id, "limit" to limit)
         return copy(
             expandedGroupWindows = expandedGroupWindows +
                 (id to GroupWindowState(window = limit, isLoading = true)),
-        ) to setOf(GroupsEffect.SetGroupWindow(groupId = id, limit = limit))
+        ).begin()
     }
 
     /**
-     * Свернуть группу: ключ уходит из карты, эффект
-     * [GroupsEffect.SetGroupWindow] (null) гасит подписку (для пустой
-     * раскрытой подписки не было — эффект no-op в handler'е).
+     * Свернуть группу: ключ уходит из карты; подписку (если была)
+     * погасит дифф subscriptions().
      * @param id id группы.
      */
     fun GroupsTabState.closeGroupWindow(id: Long): GroupsResult {
         logStep("closeGroupWindow", "id" to id)
-        return copy(expandedGroupWindows = expandedGroupWindows - id) to
-            setOf(GroupsEffect.SetGroupWindow(groupId = id, limit = null))
+        return copy(expandedGroupWindows = expandedGroupWindows - id).begin()
     }
 
     /**
-     * Расширить окно группы на шаг «Ещё»: окно += [step], спиннер,
-     * эффект [GroupsEffect.SetGroupWindow] с новым лимитом.
+     * Расширить окно группы на шаг «Ещё»: окно += [step], спиннер;
+     * подписку с новым лимитом перезапустит дифф subscriptions().
      * @param id id раскрытой группы.
      * @param step шаг расширения (CHUNK_SIZE).
      * No-op, если группа не раскрыта.
      */
-    fun GroupsTabState.widenGroupWindowBy(id: Long, step: Int): GroupsResult {
+    fun GroupsTabState.widenGroupWindowBy(
+        id: Long,
+        step: Int,
+    ): GroupsResult {
         val win = expandedGroupWindows[id]
             ?: return noOp("widenGroupWindowBy: not expanded")
         val newWindow = win.window + step
@@ -378,7 +377,7 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
         return copy(
             expandedGroupWindows = expandedGroupWindows +
                 (id to win.copy(window = newWindow, isLoading = true)),
-        ) to setOf(GroupsEffect.SetGroupWindow(groupId = id, limit = newWindow))
+        ).begin()
     }
 
     /**
@@ -389,7 +388,10 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
      * следующие атомы цепочки. No-op, если группа не раскрыта.
      * Эффектов нет.
      */
-    fun GroupsTabState.applyGroupWindowWords(id: Long, words: List<TermUiItem>): GroupsResult {
+    fun GroupsTabState.applyGroupWindowWords(
+        id: Long,
+        words: List<TermUiItem>,
+    ): GroupsResult {
         val win = expandedGroupWindows[id]
             ?: return noOp("applyGroupWindowWords: not expanded")
         logStep("applyGroupWindowWords", "id" to id, "words" to words.size)
@@ -467,7 +469,6 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
         if (expandedGroupWindows.isEmpty()) return noOp("applyGroupCounts: none expanded")
         val oldCounts = groups.associate { it.id to it.count }
         val updated = expandedGroupWindows.toMutableMap()
-        val effects = HashSet<Effect>()
         expandedGroupWindows.forEach { (id, win) ->
             // Мёртвых (нет в newCounts) не трогаем — их закроет
             // purgeDeadExpanded после applyGroups.
@@ -475,15 +476,13 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
             val oldCount = oldCounts[id] ?: 0
             val growth = newCount - oldCount
             when {
-                win.window == 0 && newCount > 0 -> {
+                // Подписки окон включает/гасит/перезапускает дифф
+                // subscriptions() по итоговому state.
+                win.window == 0 && newCount > 0 ->
                     updated[id] = GroupWindowState(window = CHUNK_SIZE, isLoading = true)
-                    effects += GroupsEffect.SetGroupWindow(groupId = id, limit = CHUNK_SIZE)
-                }
 
-                win.window > 0 && newCount == 0 -> {
+                win.window > 0 && newCount == 0 ->
                     updated[id] = GroupWindowState(window = 0, isLoading = false)
-                    effects += GroupsEffect.SetGroupWindow(groupId = id, limit = null)
-                }
 
                 win.window > 0 && growth > 0 -> {
                     val widened = win.window + growth
@@ -491,14 +490,13 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
                         window = widened,
                         hasMore = win.loadedWords.size < newCount,
                     )
-                    effects += GroupsEffect.SetGroupWindow(groupId = id, limit = widened)
                 }
 
                 else -> updated[id] = win.copy(hasMore = win.loadedWords.size < newCount)
             }
         }
-        logStep("applyGroupCounts", "expanded" to updated.size, "effects" to effects.size)
-        return copy(expandedGroupWindows = updated) to effects
+        logStep("applyGroupCounts", "expanded" to updated.size)
+        return copy(expandedGroupWindows = updated).begin()
     }
 
     /** ###### ШТОРКА ###### */
@@ -521,7 +519,10 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
      * @param name её текущее имя (предзаполнение ввода).
      * Меняет только [GroupsTabState.sheet]. Эффектов нет.
      */
-    fun GroupsTabState.openRenameSheet(groupId: Long, name: String): GroupsResult {
+    fun GroupsTabState.openRenameSheet(
+        groupId: Long,
+        name: String,
+    ): GroupsResult {
         logStep("openRenameSheet", "groupId" to groupId, "name" to name)
         return copy(
             sheet = GroupSheetState(mode = GroupSheetMode.Rename(groupId = groupId), input = name),
@@ -636,10 +637,11 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
      * Э6: переключить галку «удалить вместе со словами». Лог — СО
      * ЗНАЧЕНИЕМ (ревью UX-5). No-op без конфирма.
      * Отметка галки запускает ПАУЗУ ОСМЫСЛЕНИЯ (решение юзера):
-     * [ConfirmDeleteState.countdownLeft] = [DELETE_COUNTDOWN_SEC] +
-     * эффект [GroupsEffect.StartDeleteCountdown] (тики шлёт handler);
-     * повторная отметка перезапускает. Снятие — счётчик в 0 + эффект
-     * [GroupsEffect.CancelDeleteCountdown].
+     * [ConfirmDeleteState.countdownLeft] = [DELETE_COUNTDOWN_SEC] —
+     * тикер-подписку [GroupsSub.DeleteCountdown] включит дифф
+     * subscriptions() (жива, пока галка стоит и счётчик > 0);
+     * повторная отметка перезапускает счётчик, снятие — в 0 (подписка
+     * гаснет диффом). Эффектов нет.
      */
     fun GroupsTabState.toggleDeleteWords(): GroupsResult {
         val confirm = confirmDelete ?: return noOp("toggleDeleteWords: no confirm")
@@ -651,11 +653,11 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
                     deleteWords = true,
                     countdownLeft = DELETE_COUNTDOWN_SEC,
                 ),
-            ) to setOf(GroupsEffect.StartDeleteCountdown(seconds = DELETE_COUNTDOWN_SEC))
+            ).begin()
         } else {
             copy(
                 confirmDelete = confirm.copy(deleteWords = false, countdownLeft = 0),
-            ) to setOf(GroupsEffect.CancelDeleteCountdown)
+            ).begin()
         }
     }
 
@@ -695,8 +697,8 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
             return noOp("closeConfirmForDeadGroup: group alive")
         }
         logStep("closeConfirmForDeadGroup", "groupId" to confirm.groupId)
-        // Возможные тики паузы осмысления гасятся вместе с конфирмом.
-        return copy(confirmDelete = null) to setOf(GroupsEffect.CancelDeleteCountdown)
+        // Тикер-подписку паузы осмысления погасит дифф (конфирм = null).
+        return copy(confirmDelete = null).begin()
     }
 
     /**

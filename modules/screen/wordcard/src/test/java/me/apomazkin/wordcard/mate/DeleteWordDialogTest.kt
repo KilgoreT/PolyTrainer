@@ -22,22 +22,22 @@ import java.util.Date
  * - Global guard isPendingDbOp on RemoveWord.
  */
 class DeleteWordDialogTest {
-
     private fun loaded(
         id: Long = 1L,
         showWarningDialog: Boolean = false,
         isPendingDbOp: Boolean = false,
-    ): WordCardState = WordCardState(
-        isLoading = false,
-        isPendingDbOp = isPendingDbOp,
-        wordState = WordState.Loaded(
-            id = id,
-            dictionaryId = 3L,
-            added = Date(0L),
-            value = "w",
-            showWarningDialog = showWarningDialog,
-        ),
-    )
+    ): WordCardState =
+        WordCardState(
+            isLoading = false,
+            isPendingDbOp = isPendingDbOp,
+            wordState = WordState.Loaded(
+                id = id,
+                dictionaryId = 3L,
+                added = Date(0L),
+                value = "w",
+                showWarningDialog = showWarningDialog,
+            ),
+        )
 
     @Test
     fun `given NotLoaded when OpenDeleteWordDialog then state unchanged`() {

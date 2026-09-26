@@ -1,9 +1,9 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.group.DisplayNode
-import me.apomazkin.group.DisplayTree
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
+import me.apomazkin.group.DisplayNode
+import me.apomazkin.group.DisplayTree
 import me.apomazkin.wordrow.entity.TermUiItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,26 +17,28 @@ import java.util.Date
  * словаря, ошибки окна.
  */
 class AllNodeReducerTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
-    private fun tree(vararg ids: Long) = DisplayTree(
-        allWords = DisplayNode.AllWords(words = ids.toList(), count = ids.size),
-        groups = emptyList(),
-    )
+    private fun tree(vararg ids: Long) =
+        DisplayTree(
+            allWords = DisplayNode.AllWords(words = ids.toList(), count = ids.size),
+            groups = emptyList(),
+        )
 
-    private fun term(id: Long) = TermUiItem(
-        id = id,
-        wordValue = "w$id",
-        dictionaryId = 1L,
-        addDate = Date(0),
-    )
+    private fun term(id: Long) =
+        TermUiItem(
+            id = id,
+            wordValue = "w$id",
+            dictionaryId = 1L,
+            addDate = Date(0),
+        )
 
-    private fun stateWithNode(node: AllNodeState) = GroupsTabState(
-        isLoading = false,
-        dictionaryId = 1L,
-        allNode = node,
-    )
+    private fun stateWithNode(node: AllNodeState) =
+        GroupsTabState(
+            isLoading = false,
+            dictionaryId = 1L,
+            allNode = node,
+        )
 
     // === SliceLoaded → узел ===
 
@@ -65,16 +67,17 @@ class AllNodeReducerTest {
                 window = 50,
                 loadedWords = listOf(term(30), term(20), term(10)),
                 hasMore = false,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.SliceLoaded(tree(40, 30, 20, 10)))
 
         val node = requireNotNull(result.state().allNode)
         assertEquals(4, node.count)
-        // Компенсация вытеснения: окно расширено на дельту роста.
+        // Компенсация вытеснения: окно расширено на дельту роста; Э4 —
+        // подписку с новым лимитом перезапустит дифф subscriptions().
         assertEquals(51, node.window)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = 51)), result.effects())
+        assertTrue(result.effects().isEmpty())
         // Контент придёт живой эмиссией окна — здесь loadedWords не трогаются.
         assertEquals(listOf(30L, 20L, 10L), node.loadedWords.map { it.id })
         assertTrue(node.hasMore)
@@ -101,7 +104,7 @@ class AllNodeReducerTest {
                 window = 50,
                 loadedWords = listOf(term(30), term(20), term(10)),
                 hasMore = false,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.SliceLoaded(tree(30, 10)))
@@ -116,7 +119,7 @@ class AllNodeReducerTest {
     // === ToggleAll / LoadMore / окно ===
 
     @Test
-    fun `expand - window subscription started`() {
+    fun `expand - window opened, no effects (subscription via diff)`() {
         val current = stateWithNode(AllNodeState(count = 100, hasMore = true))
 
         val result = reducer.reduce(current, Msg.ToggleAll)
@@ -125,7 +128,8 @@ class AllNodeReducerTest {
         assertTrue(node.isExpanded)
         assertTrue(node.isWindowLoading)
         assertEquals(CHUNK_SIZE, node.window)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = CHUNK_SIZE)), result.effects())
+        // Э4: окно в state → подписку AllWindow включит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -150,7 +154,7 @@ class AllNodeReducerTest {
                 window = 50,
                 loadedWords = listOf(term(30), term(20)),
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.ToggleAll)
@@ -160,7 +164,8 @@ class AllNodeReducerTest {
         assertEquals(0, node.window)
         assertTrue(node.loadedWords.isEmpty())
         assertTrue(node.hasMore)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = null)), result.effects())
+        // Э4: окно ушло из state → подписку погасит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -172,7 +177,7 @@ class AllNodeReducerTest {
                 window = CHUNK_SIZE,
                 loadedWords = (170L downTo (171L - CHUNK_SIZE)).map { term(it) },
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.LoadMore)
@@ -180,10 +185,8 @@ class AllNodeReducerTest {
         val node = requireNotNull(result.state().allNode)
         assertEquals(CHUNK_SIZE * 2, node.window)
         assertTrue(node.isWindowLoading)
-        assertEquals(
-            setOf(GroupsEffect.SetWindow(limit = CHUNK_SIZE * 2)),
-            result.effects(),
-        )
+        // Э4: расширенное окно перезапустит подписку диффом subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -196,7 +199,7 @@ class AllNodeReducerTest {
                 loadedWords = listOf(term(30)),
                 isWindowLoading = true,
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.LoadMore)
@@ -214,7 +217,7 @@ class AllNodeReducerTest {
                 window = 50,
                 loadedWords = listOf(term(30), term(20)),
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.LoadMore)
@@ -233,7 +236,7 @@ class AllNodeReducerTest {
                 loadedWords = listOf(term(30)),
                 isWindowLoading = true,
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(
@@ -250,7 +253,7 @@ class AllNodeReducerTest {
     @Test
     fun `window loaded after collapse - ignored`() {
         val current = stateWithNode(
-            AllNodeState(count = 2, isExpanded = false, hasMore = true)
+            AllNodeState(count = 2, isExpanded = false, hasMore = true),
         )
 
         val result = reducer.reduce(current, Msg.WindowLoaded(listOf(term(30))))
@@ -269,7 +272,7 @@ class AllNodeReducerTest {
                 window = 50,
                 isWindowLoading = true,
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.WindowLoadFailed)

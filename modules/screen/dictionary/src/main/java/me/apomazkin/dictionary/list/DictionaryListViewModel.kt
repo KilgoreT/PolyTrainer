@@ -2,30 +2,27 @@ package me.apomazkin.dictionary.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import io.github.kilgoret.mate.Mate
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
+import me.apomazkin.dictionary.DictionaryUseCase
 
+/**
+ * VM списка словарей: тонкая обёртка над [DictionaryListAssembly] —
+ * сборка раннера живёт там (общая с харнесом), VM даёт только
+ * viewModelScope и продовые зависимости.
+ */
 class DictionaryListViewModel @AssistedInject constructor(
-    @Assisted navigator: ListNavigator,
-    datasourceHandler: DictionaryListEffectHandler,
-    flowHandler: DictionaryListFlowHandler,
-    navHandlerFactory: ListNavigationEffectHandler.Factory,
-) : ViewModel(), MateStateHolder<DictionaryListScreenState, DictionaryListMsg> {
+    useCase: DictionaryUseCase,
+    navigationHandler: MateNavigationHandler,
+) : ViewModel(), MateStore<DictionaryListScreenState, DictionaryListMsg> {
 
-    private val stateHolder = Mate(
-        initState = DictionaryListScreenState(),
-        initEffects = emptySet(),
+    private val stateHolder = DictionaryListAssembly.create(
+        useCase = useCase,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = DictionaryListReducer(),
-        effectHandlers = listOf(
-            datasourceHandler,
-            navHandlerFactory.create(navigator),
-        ),
-        flowHandlers = listOf(flowHandler),
     )
 
     override val state: StateFlow<DictionaryListScreenState>
@@ -35,6 +32,6 @@ class DictionaryListViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: ListNavigator): DictionaryListViewModel
+        fun create(): DictionaryListViewModel
     }
 }

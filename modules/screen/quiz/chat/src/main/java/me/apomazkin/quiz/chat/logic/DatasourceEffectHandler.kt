@@ -1,6 +1,7 @@
 package me.apomazkin.quiz.chat.logic
 
 import androidx.compose.ui.text.AnnotatedString
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -14,7 +15,6 @@ import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.quiz.QuizGame
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
-import javax.inject.Inject
 import kotlin.random.Random
 
 sealed interface DatasourceEffect : Effect {
@@ -47,11 +47,16 @@ sealed interface DatasourceEffect : Effect {
     data class SaveQuizPickerSelection(val ref: ComponentTypeRef) : DatasourceEffect
 }
 
-class DatasourceEffectHandler @Inject constructor(
+/**
+ * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
+ *   в тестах можно подставить тестовый.
+ */
+class DatasourceEffectHandler(
     private val quizGame: QuizGame,
     private val prefsProvider: PrefsProvider,
     private val useCase: QuizChatUseCase,
     private val logger: LexemeLogger,
+    private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : MateEffectHandler<Msg, DatasourceEffect> {
 
     override val effectFamily = DatasourceEffect::class
@@ -59,38 +64,38 @@ class DatasourceEffectHandler @Inject constructor(
     override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         val msg: Msg = when (effect) {
-            is DatasourceEffect.PrepareToStart -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.PrepareToStart -> withContext(io) {
                 Msg.PrepareToStart
             }
-            is DatasourceEffect.EarliestOn -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.EarliestOn -> withContext(io) {
                 prefsProvider.setBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN, true)
                 Msg.Empty
             }
-            is DatasourceEffect.EarliestOff -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.EarliestOff -> withContext(io) {
                 prefsProvider.setBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN, false)
                 Msg.Empty
             }
-            is DatasourceEffect.FrequentMistakesOn -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.FrequentMistakesOn -> withContext(io) {
                 prefsProvider.setBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN, true)
                 Msg.Empty
             }
-            is DatasourceEffect.FrequentMistakesOff -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.FrequentMistakesOff -> withContext(io) {
                 prefsProvider.setBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN, false)
                 Msg.Empty
             }
-            is DatasourceEffect.DebugOn -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.DebugOn -> withContext(io) {
                 prefsProvider.setBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN, true)
                 Msg.Empty
             }
-            is DatasourceEffect.DebugOff -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.DebugOff -> withContext(io) {
                 prefsProvider.setBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN, false)
                 Msg.Empty
             }
-            is DatasourceEffect.LoadQuiz -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.LoadQuiz -> withContext(io) {
                 async { quizGame.loadData() }.await()
                 Msg.QuizLoaded(content = quizGame.getStat())
             }
-            is DatasourceEffect.NextQuestion -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.NextQuestion -> withContext(io) {
                 if (quizGame.hasNextQuestion()) {
                     val quiz = quizGame.nextQuestion()
                     delay(Random.nextLong(100, 400))
@@ -108,14 +113,14 @@ class DatasourceEffectHandler @Inject constructor(
                 val answer = quizGame.skipAndGetAnswer()
                 Msg.ShowAnswer(value = MessageContent.create(text = answer))
             }
-            is DatasourceEffect.CheckAnswer -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.CheckAnswer -> withContext(io) {
                 val userAttempt = effect.answer.trim()
                 val assessment = quizGame.makeAssessment(userAttempt)
                 delay(Random.nextLong(100, 400))
                 Msg.Assessment(value = MessageContent.create(text = assessment))
             }
             is DatasourceEffect.Summary -> sendSummary()
-            is DatasourceEffect.LoadQuizComponentTypes -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.LoadQuizComponentTypes -> withContext(io) {
                 val dictId = useCase.getCurrentDictionaryId()
                 if (dictId == null) {
                     Msg.Empty
@@ -126,7 +131,7 @@ class DatasourceEffectHandler @Inject constructor(
                     )
                 }
             }
-            is DatasourceEffect.SaveQuizPickerSelection -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.SaveQuizPickerSelection -> withContext(io) {
                 val dictId = useCase.getCurrentDictionaryId()
                 if (dictId != null) {
                     useCase.setQuizPickerSelection(dictId, effect.ref)

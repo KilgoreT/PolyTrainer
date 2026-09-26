@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -7,11 +9,18 @@ plugins {
 
 android {
     namespace = "me.apomazkin.vocabulary"
-    compileSdk = 35
+    compileSdk = 36
+
+    testOptions {
+        targetSdk = 36
+    }
+
+    lint {
+        targetSdk = 36
+    }
 
     defaultConfig {
         minSdk = 23
-        targetSdk = 35
     }
 
     compileOptions {
@@ -19,8 +28,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

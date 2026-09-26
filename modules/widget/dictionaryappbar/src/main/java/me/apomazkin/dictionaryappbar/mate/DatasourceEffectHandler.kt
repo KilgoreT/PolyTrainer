@@ -1,46 +1,35 @@
 package me.apomazkin.dictionaryappbar.mate
 
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateEffectHandler
-import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
-import javax.inject.Inject
 
 sealed interface DatasourceEffect : Effect {
     data class ChangeDict(val dict: DictUiEntity) : DatasourceEffect
 }
 
-class DatasourceEffectHandler @Inject constructor(
+/**
+ * Исполнитель эффектов-мутаций app bar'а: разовое намерение «сменить
+ * текущий словарь». Живые списки словарей — не здесь: они длящиеся и
+ * декларируются подписками [DictionaryAppBarSub] +
+ * [DictionaryAppBarSubHandler].
+ *
+ * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
+ *   в тестах можно подставить тестовый.
+ */
+class DatasourceEffectHandler(
         private val useCase: DictionaryAppBarUseCase,
         private val logger: LexemeLogger,
-) : MateFlowHandler<Msg>,
-        MateEffectHandler<Msg, DatasourceEffect> {
+        private val io: CoroutineDispatcher = Dispatchers.IO,
+) : MateEffectHandler<Msg, DatasourceEffect> {
 
     override val effectFamily = DatasourceEffect::class
-
-    override var job: Job? = null
-
-    override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
-        job = scope.launch {
-            launch {
-                useCase.flowAvailableDict()
-                        .collectLatest { send(Msg.AvailableDict(list = it)) }
-            }
-            launch {
-                useCase.flowCurrentDict()
-                        .collectLatest { send(Msg.CurrentDict(current = it)) }
-            }
-        }
-    }
 
     override suspend fun runEffect(
             effect: DatasourceEffect,
@@ -49,7 +38,7 @@ class DatasourceEffectHandler @Inject constructor(
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         val msg = when (effect) {
             is DatasourceEffect.ChangeDict -> {
-                withContext(Dispatchers.IO) {
+                withContext(io) {
                     useCase.changeDict(id = effect.dict.id)
                 }
                 Msg.Empty

@@ -3,8 +3,8 @@ package me.apomazkin.per_dictionary_components.mate
 import androidx.compose.runtime.Stable
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.DeletionImpact
+import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.NameError
 import me.apomazkin.lexeme.PerDictionarySnapshot
 import me.apomazkin.lexeme.Scope
@@ -33,10 +33,14 @@ data class PerDictionaryComponentsScreenState(
     // ===== Init context =====
     val dictionaryId: Long,
     val dictionaryName: String? = null,
-
     // ===== Loaded data =====
     val items: List<PerDictRow>? = null,
-
+    /**
+     * Различающее поле подписки на компоненты словаря: retry после
+     * ошибки инкрементит счётчик — equality подписки ломается, дифф
+     * раннера гасит упавшую и стартует новую с теми же параметрами.
+     */
+    val loadGeneration: Int = 0,
     // ===== UI flags (explicit) =====
     val isLoading: Boolean = false,
     val isCreating: Boolean = false,
@@ -45,16 +49,13 @@ data class PerDictionaryComponentsScreenState(
     val isEditing: Boolean = false,
     /** IS486: in-flight переключения рубильника enabled (guard от double-tap по typeId). */
     val pendingEnabledToggles: Set<ComponentTypeId> = emptySet(),
-
     // ===== Dialogs =====
     val createDialog: CreateDialogState? = null,
     val deleteConfirm: DeleteConfirmState? = null,
     /** Phase 2 (IS481): edit dialog state. */
     val editDialog: EditDialogState? = null,
-
     // ===== Snackbar (F123) =====
     val snackbarState: SnackbarState? = null,
-
     // ===== Epoch counter (F124/F136 correlation) =====
     val nextEpoch: Long = 0L,
 )
@@ -191,14 +192,18 @@ data class OptionDeleteConfirmState(
 
 sealed interface EditNameError {
     data object NameEmpty : EditNameError
+
     data object SameScopeCollision : EditNameError
+
     data object CrossScopeCollision : EditNameError
 }
 
 sealed interface ImpactedLexemesPreview {
     val impactedLexemeIds: List<Long>
 
-    data class InlineOnly(override val impactedLexemeIds: List<Long>) : ImpactedLexemesPreview
+    data class InlineOnly(
+        override val impactedLexemeIds: List<Long>,
+    ) : ImpactedLexemesPreview
 
     data class InlineWithDrillIn(
         override val impactedLexemeIds: List<Long>,
@@ -211,7 +216,9 @@ sealed interface ImpactedLexemesPreview {
  * snackbar'а. UI отрисует SnackbarHost reading state.
  */
 @Stable
-data class SnackbarState(val text: String)
+data class SnackbarState(
+    val text: String,
+)
 
 /** Computed selector. Loaded и пустой ⇒ показ empty state. */
 val PerDictionaryComponentsScreenState.isEmpty: Boolean
@@ -261,7 +268,11 @@ internal fun createsCycle(
  */
 internal fun PerDictionarySnapshot.toPerDictRows(): List<PerDictRow> {
     val aliveTypeIds = types.map { it.id }.toSet()
-    val aliveOptionIds = optionsByType.values.flatten().map { it.id }.toSet()
+    val aliveOptionIds = optionsByType
+        .values
+        .flatten()
+        .map { it.id }
+        .toSet()
     return types.map { t ->
         val degraded = when (val target = t.dependsOn) {
             DependencyTarget.Lexeme -> false

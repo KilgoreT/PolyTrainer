@@ -11,23 +11,20 @@ import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
-internal fun DeleteWordMenuItem(
-        onDeleteClick: () -> Unit,
-) {
+internal fun DeleteWordMenuItem(onDeleteClick: () -> Unit) {
     MenuItem
-            .withIcon(
-                    icon = IconSource.fromResId(
-                            resId = R.drawable.ic_delete,
-                            tint = MaterialTheme.colorScheme.onError,
-                    ),
-                    title = StringSource.fromRes(
-                            resId = R.string.button_delete,
-                            style = LexemeStyle.BodyL,
-                            color = MaterialTheme.colorScheme.onError,
-                    ),
-                    onClick = onDeleteClick,
-            )
-            .Widget()
+        .withIcon(
+            icon = IconSource.fromResId(
+                resId = R.drawable.ic_delete,
+                tint = MaterialTheme.colorScheme.onError,
+            ),
+            title = StringSource.fromRes(
+                resId = R.string.button_delete,
+                style = LexemeStyle.BodyL,
+                color = MaterialTheme.colorScheme.onError,
+            ),
+            onClick = onDeleteClick,
+        ).Widget()
 }
 
 @Composable
@@ -35,7 +32,7 @@ internal fun DeleteWordMenuItem(
 private fun DeleteWordMenuItemPreview() {
     AppTheme {
         DeleteWordMenuItem(
-                onDeleteClick = {}
+            onDeleteClick = {},
         )
     }
 }

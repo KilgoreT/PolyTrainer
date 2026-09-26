@@ -1,9 +1,9 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.lexeme.ComponentTypeId
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.lexeme.ComponentTypeId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
@@ -12,14 +12,14 @@ import org.junit.Test
  * §1.11 isGuardedByPending — guarded глотаются при pending, not-guarded проходят.
  */
 class PendingGuardTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
-    private fun pendingWithSaved() = loaded(
-        isPendingDbOp = true,
-        availableTypes = listOf(ctype(50L, TR, isMultiple = true)),
-        lexemes = listOf(lexeme(7L, listOf(savedCv(5L, origin = "x", isEdit = false)))),
-    )
+    private fun pendingWithSaved() =
+        loaded(
+            isPendingDbOp = true,
+            availableTypes = listOf(ctype(50L, TR, isMultiple = true)),
+            lexemes = listOf(lexeme(7L, listOf(savedCv(5L, origin = "x", isEdit = false)))),
+        )
 
     // --- Guarded: state не меняется, эффектов нет ---
 
@@ -29,7 +29,10 @@ class PendingGuardTest {
             isPendingDbOp = true,
             lexemes = listOf(lexeme(7L, listOf(savedCv(5L, isEdit = true, edited = "new", origin = "old")))),
         )
-        val result = reducer.testReduce(initial, Msg.CommitComponentValueEdit(7L, ComponentValueKey.Saved(me.apomazkin.lexeme.ComponentValueId(5L))))
+        val result = reducer.testReduce(
+            initial,
+            Msg.CommitComponentValueEdit(7L, ComponentValueKey.Saved(me.apomazkin.lexeme.ComponentValueId(5L))),
+        )
         assertEquals(initial, result.state())
         result.assertNoEffects()
     }
@@ -37,7 +40,10 @@ class PendingGuardTest {
     @Test
     fun `EnterComponentValueEditMode_IS_guarded_parity_with_EnterTranslationEditMode`() {
         val initial = pendingWithSaved()
-        val result = reducer.testReduce(initial, Msg.EnterComponentValueEditMode(7L, ComponentValueKey.Saved(me.apomazkin.lexeme.ComponentValueId(5L))))
+        val result = reducer.testReduce(
+            initial,
+            Msg.EnterComponentValueEditMode(7L, ComponentValueKey.Saved(me.apomazkin.lexeme.ComponentValueId(5L))),
+        )
         assertEquals(initial, result.state())
         result.assertNoEffects()
     }
@@ -45,7 +51,10 @@ class PendingGuardTest {
     @Test
     fun `RemoveComponentValueRequested guarded`() {
         val initial = pendingWithSaved()
-        val result = reducer.testReduce(initial, Msg.RemoveComponentValueRequested(7L, ComponentValueKey.Saved(me.apomazkin.lexeme.ComponentValueId(5L))))
+        val result = reducer.testReduce(
+            initial,
+            Msg.RemoveComponentValueRequested(7L, ComponentValueKey.Saved(me.apomazkin.lexeme.ComponentValueId(5L))),
+        )
         assertEquals(initial, result.state())
         result.assertNoEffects()
     }

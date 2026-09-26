@@ -13,7 +13,6 @@ import org.junit.Test
  * компонентную модель IS481.
  */
 class LexemeExtTest {
-
     @Test
     fun `updateLexeme applies update to matching id only`() {
         val initial = loaded(
@@ -23,8 +22,24 @@ class LexemeExtTest {
             ),
         )
         val result = initial.updateLexeme(1L) { it.copy(components = listOf(savedCv(5L, origin = "A"))) }
-        assertEquals("A", result.lexemeList.first { it.id == 1L }.components.single().origin)
-        assertEquals("b", result.lexemeList.first { it.id == 2L }.components.single().origin)
+        assertEquals(
+            "A",
+            result
+                .lexemeList
+                .first { it.id == 1L }
+                .components
+                .single()
+                .origin,
+        )
+        assertEquals(
+            "b",
+            result
+                .lexemeList
+                .first { it.id == 2L }
+                .components
+                .single()
+                .origin,
+        )
     }
 
     @Test

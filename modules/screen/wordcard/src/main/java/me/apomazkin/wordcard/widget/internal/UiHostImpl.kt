@@ -11,8 +11,9 @@ internal class UiHostImpl(
     private val snackbarHostState: SnackbarHostState,
     private val context: Context,
 ) : UiHost {
-
-    override suspend fun showSnackbar(@StringRes messageRes: Int) {
+    override suspend fun showSnackbar(
+        @StringRes messageRes: Int,
+    ) {
         snackbarHostState.showSnackbar(context.getString(messageRes))
     }
 

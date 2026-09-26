@@ -27,6 +27,7 @@ import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
 import me.apomazkin.polytrainer.di.module.quizchat.QuizChatModule
 import me.apomazkin.polytrainer.di.module.quiztab.QuizTabModule
 import me.apomazkin.polytrainer.di.module.settingstab.SettingsModule
+import me.apomazkin.polytrainer.di.module.navigation.NavigationModule
 import me.apomazkin.polytrainer.di.module.splash.SplashModule
 import me.apomazkin.polytrainer.di.module.statistictab.StatisticModule
 import me.apomazkin.groupstab.ui.GroupsTabViewModel
@@ -77,6 +78,8 @@ interface AppComponent {
     fun getPerDictionaryComponentsViewModelFactory(): PerDictionaryComponentsViewModel.Factory
     fun getEnvParams(): EnvParams
     fun getLogger(): LexemeLogger
+    fun getNavigationHandler(): io.github.kilgoret.mate.navigation.MateNavigationHandler
+    fun getNavigationExecutor(): me.apomazkin.polytrainer.navigation.AppNavigationExecutor
 
     @Component(dependencies = [CoreDbProvider::class])
     interface CoreDbDependenciesComponent : CoreDbProvider
@@ -98,6 +101,7 @@ interface AppComponent {
         ComponentsManagerModule::class,
         PerDictionaryComponentsModule::class,
         CountryProviderModule::class,
+        NavigationModule::class,
         PrefsProviderModule::class,
         ResourceModule::class,
         EnvModule::class,

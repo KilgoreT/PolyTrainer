@@ -17,9 +17,7 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 /** Бейдж «Черновик» на карточке несохранённой лексемы (Figma 5027:1436). */
 @Composable
-internal fun DraftBadge(
-    modifier: Modifier = Modifier,
-) {
+internal fun DraftBadge(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(6.dp),

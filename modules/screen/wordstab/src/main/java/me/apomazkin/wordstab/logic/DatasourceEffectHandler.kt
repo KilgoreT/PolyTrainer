@@ -1,22 +1,18 @@
 package me.apomazkin.wordstab.logic
 
 import androidx.paging.cachedIn
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.entity.WordInfo
 import me.apomazkin.mate.EMPTY_STRING
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateEffectHandler
-import io.github.kilgoret.mate.MateFlowHandler
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
-import javax.inject.Inject
 
 sealed interface DatasourceEffect : Effect {
 
@@ -30,27 +26,26 @@ sealed interface DatasourceEffect : Effect {
     data class RemoveWords(val wordSet: Set<WordInfo>) : DatasourceEffect
 }
 
-class DatasourceEffectHandler @Inject constructor(
+/**
+ * Исполнитель эффектов вкладки «Слова»: разовые намерения (загрузка
+ * paging-потока по паттерну, создание/правка/удаление слов). Живая
+ * подписка на текущий словарь — не здесь: она декларируется
+ * [WordsTabSub] + [WordsTabSubHandler].
+ *
+ * @param pagingScope scope для `cachedIn` paging-потока без фильтра
+ *   (переживает пересоздание подписчиков UI); в проде это
+ *   viewModelScope.
+ * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
+ *   в тестах можно подставить тестовый.
+ */
+class DatasourceEffectHandler(
+        private val pagingScope: CoroutineScope,
         private val wordstabUseCase: WordsTabUseCase,
         private val logger: LexemeLogger,
-) : MateFlowHandler<Msg>,
-        MateEffectHandler<Msg, DatasourceEffect> {
+        private val io: CoroutineDispatcher = Dispatchers.IO,
+) : MateEffectHandler<Msg, DatasourceEffect> {
 
     override val effectFamily = DatasourceEffect::class
-
-    override var job: Job? = null
-    private var pagingScope: CoroutineScope? = null
-
-    override fun subscribe(scope: CoroutineScope, send: (Msg) -> Unit) {
-        pagingScope = scope
-        scope.launch {
-            // IS476: flowCurrentDict() теперь Flow<DictUiEntity?> — null проходит
-            // как валидное доменное состояние, reducer обработает в Msg.SelectDictionary.
-            wordstabUseCase.flowCurrentDict().collectLatest { dict ->
-                send(Msg.SelectDictionary(current = dict))
-            }
-        }
-    }
 
     override suspend fun runEffect(
             effect: DatasourceEffect,
@@ -58,7 +53,7 @@ class DatasourceEffectHandler @Inject constructor(
     ) {
         logger.d(tag = LogTags.MATE, message = "RunEffect: $effect")
         val msg = when (val eff = effect) {
-            is DatasourceEffect.LoadTermFlow -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.LoadTermFlow -> withContext(io) {
                 // IS476: getCurrentDict() теперь nullable — страхуемся на случай race,
                 // когда reducer уже отфильтровал null, но эффект мог быть "в пути".
                 val dictionaryId = wordstabUseCase.getCurrentDict()?.id?.toInt()
@@ -69,8 +64,7 @@ class DatasourceEffectHandler @Inject constructor(
                             pattern = eff.pattern,
                             dictionaryId = dictionaryId,
                     ).let { flow ->
-                        val scope = pagingScope
-                        if (eff.pattern.isEmpty() && scope != null) flow.cachedIn(scope) else flow
+                        if (eff.pattern.isEmpty()) flow.cachedIn(pagingScope) else flow
                     }
                     Msg.TermsLoaded(
                             pattern = eff.pattern,
@@ -79,18 +73,18 @@ class DatasourceEffectHandler @Inject constructor(
                 }
             }
 
-            is DatasourceEffect.CreateWord -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.CreateWord -> withContext(io) {
                 wordstabUseCase.addWord(eff.value)
                 Msg.NoOperation
             }
 
-            is DatasourceEffect.UpdateWord -> withContext(Dispatchers.IO) {
+            is DatasourceEffect.UpdateWord -> withContext(io) {
                 async { wordstabUseCase.updateWord(eff.wordId, eff.value) }.await()
                 Msg.NoOperation
             }
 
             is DatasourceEffect.RemoveWords -> {
-                withContext(Dispatchers.IO) {
+                withContext(io) {
                     eff.wordSet.map { id ->
                         async { wordstabUseCase.deleteWord(id.id) }.await()
                     }

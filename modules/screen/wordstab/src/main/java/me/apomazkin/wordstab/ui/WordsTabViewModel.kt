@@ -2,39 +2,33 @@ package me.apomazkin.wordstab.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import me.apomazkin.wordstab.logic.DatasourceEffect
-import me.apomazkin.wordstab.logic.DatasourceEffectHandler
+import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.logic.WordsTabState
 import me.apomazkin.wordstab.logic.Msg
-import me.apomazkin.wordstab.logic.UiEffectHandler
-import me.apomazkin.wordstab.logic.WordsTabReducer
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Mate
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
+/**
+ * VM вкладки «Слова»: тонкая обёртка над [WordsTabAssembly] — сборка
+ * раннера живёт там (общая с харнесом), VM даёт только viewModelScope
+ * (он же pagingScope) и продовые зависимости.
+ */
 class WordsTabViewModel @AssistedInject constructor(
-    @Assisted navigator: WordsNavigator,
+    useCase: WordsTabUseCase,
     logger: LexemeLogger,
-    datasourceHandler: DatasourceEffectHandler,
-    uiHandler: UiEffectHandler,
-    navHandlerFactory: WordsNavigationEffectHandler.Factory,
-) : ViewModel(), MateStateHolder<WordsTabState, Msg> {
+    navigationHandler: MateNavigationHandler,
+) : ViewModel(), MateStore<WordsTabState, Msg> {
 
-    private val stateHolder = Mate(
-        initState = WordsTabState(),
-        initEffects = setOf(DatasourceEffect.LoadTermFlow()),
+    private val stateHolder = WordsTabAssembly.create(
+        useCase = useCase,
+        logger = logger,
+        navigationHandler = navigationHandler,
+        pagingScope = viewModelScope,
         coroutineScope = viewModelScope,
-        reducer = WordsTabReducer(logger = logger),
-        effectHandlers = listOf(
-            datasourceHandler,
-            uiHandler,
-            navHandlerFactory.create(navigator),
-        ),
-        flowHandlers = listOf(datasourceHandler),
     )
 
     override val state: StateFlow<WordsTabState>
@@ -44,6 +38,6 @@ class WordsTabViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: WordsNavigator): WordsTabViewModel
+        fun create(): WordsTabViewModel
     }
 }

@@ -9,8 +9,12 @@ import me.apomazkin.lexeme.ComponentValueId
  */
 sealed interface ComponentValueKey {
     @JvmInline
-    value class Pristine(val pristineKey: Long) : ComponentValueKey
+    value class Pristine(
+        val pristineKey: Long,
+    ) : ComponentValueKey
 
     @JvmInline
-    value class Saved(val componentValueId: ComponentValueId) : ComponentValueKey
+    value class Saved(
+        val componentValueId: ComponentValueId,
+    ) : ComponentValueKey
 }

@@ -83,7 +83,7 @@ class DeleteFlowTest {
 
     @Test
     fun `should have no effects when DictionaryDeleted`() {
-        // Test case 5: FlowHandler updates list automatically via Room Flow
+        // Test case 5: список обновится сам живой подпиской (Room Flow → Sub), эффектов не нужно
         val result = reducer.testReduce(DictionaryListScreenState(), DictionaryListMsg.DictionaryDeleted)
 
         result.assertNoEffects()

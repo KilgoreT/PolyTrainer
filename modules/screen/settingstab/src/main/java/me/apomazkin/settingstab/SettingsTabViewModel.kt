@@ -2,37 +2,32 @@ package me.apomazkin.settingstab
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Mate
-import io.github.kilgoret.mate.MateStateHolder
-import me.apomazkin.settingstab.logic.DatasourceEffectHandler
+import io.github.kilgoret.mate.MateStore
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
+import me.apomazkin.settingstab.deps.SettingsTabUseCase
 import me.apomazkin.settingstab.logic.Msg
-import me.apomazkin.settingstab.logic.SettingsTabReducer
 import me.apomazkin.settingstab.logic.SettingsTabState
-import me.apomazkin.settingstab.logic.UiEffectHandler
 
+/**
+ * VM вкладки настроек: тонкая обёртка над [SettingsTabAssembly] —
+ * сборка раннера живёт там (общая с харнесом), VM даёт только
+ * viewModelScope и продовые зависимости.
+ */
 class SettingsTabViewModel @AssistedInject constructor(
-    @Assisted navigator: SettingsNavigator,
     logger: LexemeLogger,
-    datasourceHandler: DatasourceEffectHandler,
-    uiHandler: UiEffectHandler,
-    navHandlerFactory: SettingsNavigationEffectHandler.Factory,
-) : ViewModel(), MateStateHolder<SettingsTabState, Msg> {
+    useCase: SettingsTabUseCase,
+    navigationHandler: MateNavigationHandler,
+) : ViewModel(), MateStore<SettingsTabState, Msg> {
 
-    private val stateHolder = Mate(
-        initState = SettingsTabState(),
-        initEffects = setOf(),
+    private val stateHolder = SettingsTabAssembly.create(
+        useCase = useCase,
+        logger = logger,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = SettingsTabReducer(logger = logger),
-        effectHandlers = listOf(
-            datasourceHandler,
-            uiHandler,
-            navHandlerFactory.create(navigator),
-        ),
     )
 
     override val state: StateFlow<SettingsTabState>
@@ -42,6 +37,6 @@ class SettingsTabViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: SettingsNavigator): SettingsTabViewModel
+        fun create(): SettingsTabViewModel
     }
 }

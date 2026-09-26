@@ -4,10 +4,14 @@ import me.apomazkin.lexeme.Lexeme
 import java.util.Date
 
 @JvmInline
-value class WordId(val id: Long)
+value class WordId(
+    val id: Long,
+)
 
 @JvmInline
-value class Word(val value: String)
+value class Word(
+    val value: String,
+)
 
 data class Term(
     val wordId: WordId,
@@ -19,5 +23,5 @@ data class Term(
     val addedDate: Date,
     val changedDate: Date?,
     val removedDate: Date?,
-    val lexemeList: List<Lexeme>
+    val lexemeList: List<Lexeme>,
 )

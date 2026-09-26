@@ -12,21 +12,21 @@ import org.junit.Test
  * live-фильтр, submit, плоские мутационные Msg, гонки dismiss, снекбар.
  */
 class GroupSheetReducerTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
-    private fun baseState() = GroupsTabState(
-        isLoading = false,
-        dictionaryId = 1L,
-        groups = listOf(
-            GroupUiItem(id = 5, name = "Быт", count = 0),
-            GroupUiItem(id = 6, name = "Дом", count = 0),
-        ),
-        visibleGroups = listOf(
-            GroupUiItem(id = 5, name = "Быт", count = 0),
-            GroupUiItem(id = 6, name = "Дом", count = 0),
-        ),
-    )
+    private fun baseState() =
+        GroupsTabState(
+            isLoading = false,
+            dictionaryId = 1L,
+            groups = listOf(
+                GroupUiItem(id = 5, name = "Быт", count = 0),
+                GroupUiItem(id = 6, name = "Дом", count = 0),
+            ),
+            visibleGroups = listOf(
+                GroupUiItem(id = 5, name = "Быт", count = 0),
+                GroupUiItem(id = 6, name = "Дом", count = 0),
+            ),
+        )
 
     // === Открытие / ввод / фильтр ===
 
@@ -260,9 +260,15 @@ class GroupSheetReducerTest {
             sheet = GroupSheetState(mode = GroupSheetMode.Create, input = "Сад", isSubmitting = true),
         )
 
-        val result = reducer.reduce(submitting, Msg.GroupMutationFailed)
+        val result = reducer.reduce(
+            submitting,
+            Msg.GroupMutationFailed(GroupSheetError.CREATE_FAILED),
+        )
 
         val sheet = requireNotNull(result.state().sheet)
         assertFalse(sheet.isSubmitting)
+        // Сбой операции виден юзеру: снекбар с конкретной операцией.
+        assertEquals(GroupSheetError.CREATE_FAILED, result.state().errorSnackbar)
+        assertTrue(result.effects().isEmpty())
     }
 }

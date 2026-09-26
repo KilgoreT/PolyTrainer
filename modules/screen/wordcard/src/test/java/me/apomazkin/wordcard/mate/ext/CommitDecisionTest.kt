@@ -4,9 +4,9 @@ import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentValueId
+import me.apomazkin.wordcard.mate.CommitOutcome
 import me.apomazkin.wordcard.mate.ComponentValueKey
 import me.apomazkin.wordcard.mate.ComponentValueState
-import me.apomazkin.wordcard.mate.CommitOutcome
 import me.apomazkin.wordcard.mate.commitDecision
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -19,20 +19,22 @@ import org.junit.Test
  * key/typeId/ref/isMultiple на исход не влияют.
  */
 class CommitDecisionTest {
-
     private val TR = ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION)
 
-    private fun cv(isEdit: Boolean, edited: String, origin: String) =
-        ComponentValueState(
-            key = ComponentValueKey.Saved(ComponentValueId(1L)),
-            componentTypeId = ComponentTypeId(50L),
-            componentTypeRef = TR,
-            isMultiple = false,
-            isEdit = isEdit,
-            isCommitting = false,
-            origin = origin,
-            edited = edited,
-        )
+    private fun cv(
+        isEdit: Boolean,
+        edited: String,
+        origin: String,
+    ) = ComponentValueState(
+        key = ComponentValueKey.Saved(ComponentValueId(1L)),
+        componentTypeId = ComponentTypeId(50L),
+        componentTypeRef = TR,
+        isMultiple = false,
+        isEdit = isEdit,
+        isCommitting = false,
+        origin = origin,
+        edited = edited,
+    )
 
     @Test
     fun `commitDecision_returns_NoOp_when_not_editing`() {

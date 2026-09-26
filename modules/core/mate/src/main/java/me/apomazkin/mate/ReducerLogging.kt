@@ -16,8 +16,9 @@ import me.apomazkin.logger.LexemeLogger
  * Иерархия: ReducerLogging (mate) ← StateAtoms (атомы экрана) ←
  * XxxReducer / StateAtomsTest.
  */
-abstract class ReducerLogging(protected val logger: LexemeLogger) {
-
+abstract class ReducerLogging(
+    protected val logger: LexemeLogger,
+) {
     /**
      * Фичевый тег logcat всей вкладки (`###GROUPS###`): под ним пишут и
      * [logStep], и [logMessage] reducer'а, и effect handler — весь флоу
@@ -40,10 +41,15 @@ abstract class ReducerLogging(protected val logger: LexemeLogger) {
      * @param step имя атома.
      * @param attrs пары ключ=значение — параметры/результат шага.
      */
-    protected fun logStep(step: String, vararg attrs: Pair<String, Any?>) {
-        val detail =
-            if (attrs.isEmpty()) ""
-            else attrs.joinToString(separator = " ", prefix = " | ") { (key, value) -> "$key=$value" }
+    protected fun logStep(
+        step: String,
+        vararg attrs: Pair<String, Any?>,
+    ) {
+        val detail = if (attrs.isEmpty()) {
+            ""
+        } else {
+            attrs.joinToString(separator = " ", prefix = " | ") { (key, value) -> "$key=$value" }
+        }
         logger.log(tag = logTag, message = "Reduce ---step---: $step$detail")
     }
 

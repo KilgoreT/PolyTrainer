@@ -25,20 +25,68 @@ internal const val R_STRING_X = 123
  */
 internal object NotImplementedUseCase : me.apomazkin.wordcard.deps.WordCardUseCase {
     override suspend fun getTermById(wordId: Long): Term? = TODO()
+
     override suspend fun deleteWord(wordId: Long): Int = TODO()
-    override suspend fun updateWord(wordId: Long, value: String): Boolean = TODO()
-    override suspend fun deleteLexeme(wordId: Long, lexemeId: Long): me.apomazkin.wordcard.deps.RemoveLexemeResult? = TODO()
-    override suspend fun addLexemeWithComponent(wordId: Long, dictionaryId: Long, ref: ComponentTypeRef, data: me.apomazkin.lexeme.TemplateValues): Lexeme? = TODO()
-    override suspend fun addComponentValue(lexemeId: Long, componentTypeId: ComponentTypeId, data: me.apomazkin.lexeme.TemplateValues): me.apomazkin.wordcard.deps.AddComponentValueResult? = TODO()
-    override suspend fun updateComponentValue(componentValueId: ComponentValueId, lexemeId: Long, data: me.apomazkin.lexeme.TemplateValues): Lexeme? = TODO()
-    override suspend fun deleteComponentValue(componentValueId: ComponentValueId, lexemeId: Long): me.apomazkin.wordcard.deps.RemoveComponentResult? = TODO()
-    override suspend fun restoreLexemeWithComponents(wordId: Long, dictionaryId: Long, snapshot: Lexeme): Lexeme? = TODO()
-    override fun flowAvailableComponentTypes(dictionaryId: Long): kotlinx.coroutines.flow.Flow<me.apomazkin.wordcard.deps.AvailableComponents> = TODO()
+
+    override suspend fun updateWord(
+        wordId: Long,
+        value: String,
+    ): Boolean = TODO()
+
+    override suspend fun deleteLexeme(
+        wordId: Long,
+        lexemeId: Long,
+    ): me.apomazkin.wordcard.deps.RemoveLexemeResult? = TODO()
+
+    override suspend fun addLexemeWithComponent(
+        wordId: Long,
+        dictionaryId: Long,
+        ref: ComponentTypeRef,
+        data: me.apomazkin.lexeme.TemplateValues,
+    ): Lexeme? = TODO()
+
+    override suspend fun addComponentValue(
+        lexemeId: Long,
+        componentTypeId: ComponentTypeId,
+        data: me.apomazkin.lexeme.TemplateValues,
+    ): me.apomazkin.wordcard.deps.AddComponentValueResult? = TODO()
+
+    override suspend fun updateComponentValue(
+        componentValueId: ComponentValueId,
+        lexemeId: Long,
+        data: me.apomazkin.lexeme.TemplateValues,
+    ): Lexeme? = TODO()
+
+    override suspend fun deleteComponentValue(
+        componentValueId: ComponentValueId,
+        lexemeId: Long,
+    ): me.apomazkin.wordcard.deps.RemoveComponentResult? = TODO()
+
+    override suspend fun restoreLexemeWithComponents(
+        wordId: Long,
+        dictionaryId: Long,
+        snapshot: Lexeme,
+    ): Lexeme? = TODO()
+
+    override fun flowAvailableComponentTypes(
+        dictionaryId: Long,
+    ): kotlinx.coroutines.flow.Flow<me.apomazkin.wordcard.deps.AvailableComponents> = TODO()
+
     override suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String> = TODO()
+
     override fun wordGroups(wordId: Long): kotlinx.coroutines.flow.Flow<List<me.apomazkin.group.GroupNode>> = TODO()
+
     override fun dictGroups(dictionaryId: Long): kotlinx.coroutines.flow.Flow<List<me.apomazkin.group.GroupNode>> = TODO()
-    override suspend fun addWordToGroup(wordId: Long, groupId: Long): me.apomazkin.group.AddMembershipOutcome = TODO()
-    override suspend fun removeWordFromGroup(wordId: Long, groupId: Long): me.apomazkin.group.RemoveMembershipOutcome = TODO()
+
+    override suspend fun addWordToGroup(
+        wordId: Long,
+        groupId: Long,
+    ): me.apomazkin.group.AddMembershipOutcome = TODO()
+
+    override suspend fun removeWordFromGroup(
+        wordId: Long,
+        groupId: Long,
+    ): me.apomazkin.group.RemoveMembershipOutcome = TODO()
 }
 
 /**
@@ -58,20 +106,21 @@ internal fun loaded(
     isExiting: Boolean = false,
     availableTypes: List<ComponentType> = emptyList(),
     nextPristineKey: Long = 1L,
-): WordCardState = WordCardState(
-    isLoading = false,
-    isPendingDbOp = isPendingDbOp,
-    isExiting = isExiting,
-    wordState = WordState.Loaded(
-        id = wordId,
-        dictionaryId = dictionaryId,
-        added = Date(0L),
-        value = "w",
-    ),
-    lexemeList = lexemes,
-    availableComponentTypes = availableTypes,
-    nextPristineKey = nextPristineKey,
-)
+): WordCardState =
+    WordCardState(
+        isLoading = false,
+        isPendingDbOp = isPendingDbOp,
+        isExiting = isExiting,
+        wordState = WordState.Loaded(
+            id = wordId,
+            dictionaryId = dictionaryId,
+            added = Date(0L),
+            value = "w",
+        ),
+        lexemeList = lexemes,
+        availableComponentTypes = availableTypes,
+        nextPristineKey = nextPristineKey,
+    )
 
 internal fun savedCv(
     id: Long,
@@ -85,19 +134,20 @@ internal fun savedCv(
     template: ComponentTemplate = ComponentTemplate.TEXT,
     originCaption: String? = null,
     editedCaption: String? = null,
-): ComponentValueState = ComponentValueState(
-    key = ComponentValueKey.Saved(ComponentValueId(id)),
-    componentTypeId = ComponentTypeId(typeId),
-    componentTypeRef = ref,
-    isMultiple = isMultiple,
-    template = template,
-    isEdit = isEdit,
-    isCommitting = isCommitting,
-    origin = origin,
-    edited = edited,
-    originCaption = originCaption,
-    editedCaption = editedCaption,
-)
+): ComponentValueState =
+    ComponentValueState(
+        key = ComponentValueKey.Saved(ComponentValueId(id)),
+        componentTypeId = ComponentTypeId(typeId),
+        componentTypeRef = ref,
+        isMultiple = isMultiple,
+        template = template,
+        isEdit = isEdit,
+        isCommitting = isCommitting,
+        origin = origin,
+        edited = edited,
+        originCaption = originCaption,
+        editedCaption = editedCaption,
+    )
 
 internal fun pristineCv(
     key: Long,
@@ -108,21 +158,24 @@ internal fun pristineCv(
     edited: String = "",
     template: ComponentTemplate = ComponentTemplate.TEXT,
     editedCaption: String? = null,
-): ComponentValueState = ComponentValueState(
-    key = ComponentValueKey.Pristine(key),
-    componentTypeId = ComponentTypeId(typeId),
-    componentTypeRef = ref,
-    isMultiple = isMultiple,
-    template = template,
-    isEdit = true,
-    isCommitting = isCommitting,
-    origin = "",
-    edited = edited,
-    editedCaption = editedCaption,
-)
+): ComponentValueState =
+    ComponentValueState(
+        key = ComponentValueKey.Pristine(key),
+        componentTypeId = ComponentTypeId(typeId),
+        componentTypeRef = ref,
+        isMultiple = isMultiple,
+        template = template,
+        isEdit = true,
+        isCommitting = isCommitting,
+        origin = "",
+        edited = edited,
+        editedCaption = editedCaption,
+    )
 
-internal fun lexeme(id: Long, components: List<ComponentValueState>): LexemeState =
-    LexemeState(id = id, components = components)
+internal fun lexeme(
+    id: Long,
+    components: List<ComponentValueState>,
+): LexemeState = LexemeState(id = id, components = components)
 
 /** Доменный `ComponentType` для availableTypes / payload (07 §9.2). */
 internal fun ctype(
@@ -157,20 +210,25 @@ internal fun domainCv(
     isMultiple: Boolean = false,
     data: me.apomazkin.lexeme.TemplateValues = TextValues(Primitive.Text(text)),
     template: ComponentTemplate = ComponentTemplate.TEXT,
-): ComponentValue = ComponentValue(
-    id = ComponentValueId(id),
-    lexemeId = LexemeId(lexemeId),
-    type = ctype(typeId, ref, isMultiple, template),
-    data = data,
-)
+): ComponentValue =
+    ComponentValue(
+        id = ComponentValueId(id),
+        lexemeId = LexemeId(lexemeId),
+        type = ctype(typeId, ref, isMultiple, template),
+        data = data,
+    )
 
 /** Доменная `Lexeme` для payload `LexemeDraftPromoted.newLexeme` / `WordLoaded`. */
-internal fun domainLexeme(id: Long, comps: List<ComponentValue>): Lexeme = Lexeme(
-    lexemeId = LexemeId(id),
-    components = comps,
-    addDate = Date(0L),
-    changeDate = null,
-)
+internal fun domainLexeme(
+    id: Long,
+    comps: List<ComponentValue>,
+): Lexeme =
+    Lexeme(
+        lexemeId = LexemeId(id),
+        components = comps,
+        addDate = Date(0L),
+        changeDate = null,
+    )
 
 /** Минимальный `Term` для `RefreshWord`/`WordLoaded`. */
 internal fun stubTerm(
@@ -179,13 +237,14 @@ internal fun stubTerm(
     value: String = "w",
     lexemes: List<Lexeme> = emptyList(),
     dictionaryFlagRes: Int? = null,
-): Term = Term(
-    wordId = WordId(wordId),
-    word = Word(value),
-    dictionaryId = dictionaryId,
-    dictionaryFlagRes = dictionaryFlagRes,
-    addedDate = Date(0L),
-    changedDate = null,
-    removedDate = null,
-    lexemeList = lexemes,
-)
+): Term =
+    Term(
+        wordId = WordId(wordId),
+        word = Word(value),
+        dictionaryId = dictionaryId,
+        dictionaryFlagRes = dictionaryFlagRes,
+        addedDate = Date(0L),
+        changedDate = null,
+        removedDate = null,
+        lexemeList = lexemes,
+    )

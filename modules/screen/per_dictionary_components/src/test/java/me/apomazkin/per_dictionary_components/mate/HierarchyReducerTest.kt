@@ -1,5 +1,9 @@
 package me.apomazkin.per_dictionary_components.mate
 
+import io.github.kilgoret.mate.effects
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.lexeme.ComponentOption
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
@@ -12,10 +16,6 @@ import me.apomazkin.lexeme.Scope
 import me.apomazkin.lexeme.SetEnabledOutcome
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import io.github.kilgoret.mate.effects
-import io.github.kilgoret.mate.state
-import io.github.kilgoret.mate.test.assertNoEffects
-import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -30,11 +30,15 @@ import java.util.Date
  * builtin-ряды (В3), degraded-вычисление в маппере снапшота (spec §7.6).
  */
 class HierarchyReducerTest {
-
     private val reducer = PerDictionaryComponentsReducer(
         logger = object : LexemeLogger {
-            override fun log(level: LogLevel, tag: String, message: String, throwable: Throwable?) {}
-        }
+            override fun log(
+                level: LogLevel,
+                tag: String,
+                message: String,
+                throwable: Throwable?,
+            ) {}
+        },
     )
 
     private val now = Date(0L)
@@ -64,12 +68,14 @@ class HierarchyReducerTest {
         options = options,
     )
 
-    private fun baseState(items: List<PerDictRow>? = null, nextEpoch: Long = 0L) =
-        PerDictionaryComponentsScreenState(
-            dictionaryId = DICT_ID,
-            items = items,
-            nextEpoch = nextEpoch,
-        )
+    private fun baseState(
+        items: List<PerDictRow>? = null,
+        nextEpoch: Long = 0L,
+    ) = PerDictionaryComponentsScreenState(
+        dictionaryId = DICT_ID,
+        items = items,
+        nextEpoch = nextEpoch,
+    )
 
     private fun createDialogState(
         template: ComponentTemplate = ComponentTemplate.TEXT,
@@ -118,7 +124,10 @@ class HierarchyReducerTest {
         ),
     )
 
-    private fun impact(values: Int = 2, descendant: Int = 1) = DeletionImpact(
+    private fun impact(
+        values: Int = 2,
+        descendant: Int = 1,
+    ) = DeletionImpact(
         valueCount = values,
         dictionariesWithValues = listOf(DICT_ID),
         affectedQuizConfigs = emptyList(),
@@ -362,8 +371,8 @@ class HierarchyReducerTest {
             target = target,
             core = false,
             existingOptions = listOf(
-                EditOptionRow(10L, null, "муж", "мужской"),   // изменён → rename
-                EditOptionRow(11L, null, "жен", "жен"),       // не изменён
+                EditOptionRow(10L, null, "муж", "мужской"), // изменён → rename
+                EditOptionRow(11L, null, "жен", "жен"), // не изменён
             ),
             newOptionDrafts = listOf(" общ ", ""),
         ).let {
@@ -434,8 +443,12 @@ class HierarchyReducerTest {
             editDialog = EditDialogState(
                 epochId = 1L,
                 typeId = ComponentTypeId(1L),
-                originalName = "A", originalTemplate = ComponentTemplate.TEXT, originalIsMultiple = false,
-                name = "A", template = ComponentTemplate.TEXT, isMultiple = false,
+                originalName = "A",
+                originalTemplate = ComponentTemplate.TEXT,
+                originalIsMultiple = false,
+                name = "A",
+                template = ComponentTemplate.TEXT,
+                isMultiple = false,
             ),
         )
         val result = reducer.testReduce(s, Msg.EditTargetChange(DependencyTarget.Component(ComponentTypeId(2L))))
@@ -460,8 +473,12 @@ class HierarchyReducerTest {
             editDialog = EditDialogState(
                 epochId = 1L,
                 typeId = ComponentTypeId(1L),
-                originalName = "A", originalTemplate = ComponentTemplate.TEXT, originalIsMultiple = false,
-                name = "A", template = ComponentTemplate.TEXT, isMultiple = false,
+                originalName = "A",
+                originalTemplate = ComponentTemplate.TEXT,
+                originalIsMultiple = false,
+                name = "A",
+                template = ComponentTemplate.TEXT,
+                isMultiple = false,
             ),
         )
         val result = reducer.testReduce(s, Msg.EditTargetChange(DependencyTarget.Option(30L)))
@@ -480,18 +497,19 @@ class HierarchyReducerTest {
             dictionaryId = DICT_ID,
             dictionaryName = "ES",
             types = listOf(
-                domainType(id = 1L),                                                     // цель-лексема
-                choice,                                                                  // живой CHOICE
-                domainType(id = 3L, dependsOn = DependencyTarget.Component(ComponentTypeId(2L))),  // жив
+                domainType(id = 1L), // цель-лексема
+                choice, // живой CHOICE
+                domainType(id = 3L, dependsOn = DependencyTarget.Component(ComponentTypeId(2L))), // жив
                 domainType(id = 4L, dependsOn = DependencyTarget.Component(ComponentTypeId(99L))), // цель мертва
-                domainType(id = 5L, dependsOn = DependencyTarget.Option(10L)),           // опция жива
-                domainType(id = 6L, dependsOn = DependencyTarget.Option(77L)),           // опция мертва
+                domainType(id = 5L, dependsOn = DependencyTarget.Option(10L)), // опция жива
+                domainType(id = 6L, dependsOn = DependencyTarget.Option(77L)), // опция мертва
             ),
             valueCountByType = emptyMap(),
             optionsByType = mapOf(
-                ComponentTypeId(2L) to listOf(
-                    ComponentOption(id = 10L, componentTypeId = ComponentTypeId(2L), systemKey = null, label = "муж", position = 0),
-                ),
+                ComponentTypeId(2L) to
+                    listOf(
+                        ComponentOption(id = 10L, componentTypeId = ComponentTypeId(2L), systemKey = null, label = "муж", position = 0),
+                    ),
             ),
         )
         val rows = snapshot.toPerDictRows().associateBy { it.typeId.id }

@@ -33,10 +33,9 @@ import me.apomazkin.ui.preview.PreviewScreen
 @Composable
 fun StatisticTabScreen(
     factory: StatisticViewModel.Factory,
-    navigator: StatisticNavigator,
     statisticUiDeps: StatisticUiDeps,
     viewModel: StatisticViewModel = viewModel(
-        factory = viewModelFactory { factory.create(navigator) },
+        factory = viewModelFactory { factory.create() },
     ),
 ) {
     val state: StatisticState by viewModel.state.collectAsStateWithLifecycle()

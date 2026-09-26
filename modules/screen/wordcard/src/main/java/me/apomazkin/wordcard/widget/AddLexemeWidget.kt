@@ -44,14 +44,17 @@ internal fun AddLexemeWidget(
         modifier = Modifier
             .alpha(if (enabled) 1f else 0.75f)
             .let {
-                if (enabled) it.shadow(
-                    elevation = 10.dp,
-                    shape = FAB_SHAPE,
-                    ambientColor = fabShadowTint.copy(alpha = 0.5f),
-                    spotColor = fabShadowTint.copy(alpha = 0.5f),
-                ) else it
-            }
-            .size(60.dp),
+                if (enabled) {
+                    it.shadow(
+                        elevation = 10.dp,
+                        shape = FAB_SHAPE,
+                        ambientColor = fabShadowTint.copy(alpha = 0.5f),
+                        spotColor = fabShadowTint.copy(alpha = 0.5f),
+                    )
+                } else {
+                    it
+                }
+            }.size(60.dp),
         onClick = { if (enabled) onAddLexeme() },
         containerColor = if (enabled) fabLavender else fabLavenderDisabled,
         contentColor = LexemeColor.primary,
@@ -69,13 +72,13 @@ internal fun AddLexemeWidget(
 @PreviewWidget
 @Composable
 private fun Preview(
-    @PreviewParameter(BoolParam::class) enabled: Boolean
+    @PreviewParameter(BoolParam::class) enabled: Boolean,
 ) {
     AppTheme {
         Box(
             modifier = Modifier
                 .background(MaterialTheme.colorScheme.tertiary)
-                .padding(16.dp)
+                .padding(16.dp),
         ) {
             AddLexemeWidget(
                 enabled = enabled,

@@ -1,13 +1,12 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.lexeme.ComponentTypeRef
-import me.apomazkin.lexeme.ComponentValueId
 import io.github.kilgoret.mate.NavigationEffect
 import io.github.kilgoret.mate.state
-import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.assertSingleEffect
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentValueId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -17,13 +16,14 @@ import org.junit.Test
  * TDD red — против будущего API (WordLoaded(word) одно-арг, dictionaryId на Loaded).
  */
 class WordLoadedTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
     @Test
-    fun `WordLoaded sets word lexemes dictionaryId and emits LoadAvailableComponentTypes`() {
+    fun `WordLoaded sets word lexemes dictionaryId and declares subscriptions`() {
         val term = stubTerm(
-            wordId = 7L, dictionaryId = 3L, value = "w",
+            wordId = 7L,
+            dictionaryId = 3L,
+            value = "w",
             lexemes = listOf(domainLexeme(1L, listOf(domainCv(5L, 1L, "hi")))),
         )
 
@@ -34,15 +34,23 @@ class WordLoadedTest {
         assertEquals(3L, loaded.dictionaryId)
         assertFalse(state.isLoading)
         assertFalse(state.isPendingDbOp)
-        val cv = state.lexemeList.single().components.single()
+        val cv = state
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertEquals("hi", cv.origin)
         assertEquals(ComponentValueKey.Saved(ComponentValueId(5L)), cv.key)
-        result.assertEffects(
+        // Подписочных эффектов больше нет: wordState стал Loaded, живые
+        // источники (типы компонентов, группы) включит дифф subscriptions().
+        result.assertNoEffects()
+        assertEquals(
             setOf(
-                DatasourceEffect.LoadAvailableComponentTypes(3L),
-                // IS493 Э5: подписки блока групп стартуют по загрузке.
-                DatasourceEffect.SubscribeGroupBlock(wordId = 7L, dictionaryId = 3L),
-            )
+                WordCardSub.ComponentTypes(dictionaryId = 3L, generation = 0),
+                WordCardSub.WordGroups(wordId = 7L),
+                WordCardSub.DictGroups(dictionaryId = 3L),
+            ),
+            state.subscriptions(),
         )
     }
 
@@ -70,13 +78,7 @@ class WordLoadedTest {
             lexemeList = emptyList(),
         )
         assertEquals(expected, result.state())
-        result.assertEffects(
-            setOf(
-                DatasourceEffect.LoadAvailableComponentTypes(3L),
-                // IS493 Э5: подписки блока групп стартуют по загрузке.
-                DatasourceEffect.SubscribeGroupBlock(wordId = 7L, dictionaryId = 3L),
-            )
-        )
+        result.assertNoEffects()
     }
 
     @Test
@@ -86,13 +88,7 @@ class WordLoadedTest {
             Msg.WordLoaded(stubTerm()),
         )
         assertFalse(result.state().isPendingDbOp)
-        result.assertEffects(
-            setOf(
-                DatasourceEffect.LoadAvailableComponentTypes(3L),
-                // IS493 Э5: подписки блока групп стартуют по загрузке.
-                DatasourceEffect.SubscribeGroupBlock(wordId = 7L, dictionaryId = 3L),
-            )
-        )
+        result.assertNoEffects()
     }
 
     @Test
@@ -109,8 +105,12 @@ class WordLoadedTest {
             ),
         )
 
-        val comps = reducer.testReduce(WordCardState(), Msg.WordLoaded(term)).state()
-            .lexemeList.single().components
+        val comps = reducer
+            .testReduce(WordCardState(), Msg.WordLoaded(term))
+            .state()
+            .lexemeList
+            .single()
+            .components
 
         assertEquals(2, comps.size)
         assertEquals(TR, comps[0].componentTypeRef)
@@ -124,18 +124,20 @@ class WordLoadedTest {
     }
 
     @Test
-    fun `WordLoaded keeps nextPristineKey unchanged and always emits load`() {
+    fun `WordLoaded keeps nextPristineKey unchanged and declares subscriptions`() {
         val result = reducer.testReduce(
             WordCardState(nextPristineKey = 5L),
             Msg.WordLoaded(stubTerm()),
         )
         assertEquals(5L, result.state().nextPristineKey)
-        result.assertEffects(
+        result.assertNoEffects()
+        assertEquals(
             setOf(
-                DatasourceEffect.LoadAvailableComponentTypes(3L),
-                // IS493 Э5: подписки блока групп стартуют по загрузке.
-                DatasourceEffect.SubscribeGroupBlock(wordId = 7L, dictionaryId = 3L),
-            )
+                WordCardSub.ComponentTypes(dictionaryId = 3L, generation = 0),
+                WordCardSub.WordGroups(wordId = 7L),
+                WordCardSub.DictGroups(dictionaryId = 3L),
+            ),
+            result.state().subscriptions(),
         )
     }
 

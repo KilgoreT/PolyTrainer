@@ -2,34 +2,32 @@ package me.apomazkin.stattab
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Mate
-import io.github.kilgoret.mate.MateStateHolder
-import me.apomazkin.stattab.mate.DatasourceEffectHandler
+import io.github.kilgoret.mate.MateStore
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
+import me.apomazkin.stattab.deps.StatisticUseCase
 import me.apomazkin.stattab.mate.Msg
-import me.apomazkin.stattab.mate.StatisticReducer
 import me.apomazkin.stattab.mate.StatisticState
 
+/**
+ * VM вкладки статистики: тонкая обёртка над [StatisticAssembly] —
+ * сборка раннера живёт там (общая с харнесом), VM даёт только
+ * viewModelScope и продовые зависимости.
+ */
 class StatisticViewModel @AssistedInject constructor(
-    @Assisted navigator: StatisticNavigator,
+    useCase: StatisticUseCase,
     logger: LexemeLogger,
-    datasourceHandler: DatasourceEffectHandler,
-    navHandlerFactory: StatisticNavigationEffectHandler.Factory,
-) : ViewModel(), MateStateHolder<StatisticState, Msg> {
+    navigationHandler: MateNavigationHandler,
+) : ViewModel(), MateStore<StatisticState, Msg> {
 
-    private val stateHolder = Mate(
-        initState = StatisticState(),
-        initEffects = setOf(),
+    private val stateHolder = StatisticAssembly.create(
+        useCase = useCase,
+        logger = logger,
+        navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,
-        reducer = StatisticReducer(logger = logger),
-        effectHandlers = listOf(
-            navHandlerFactory.create(navigator),
-        ),
-        flowHandlers = listOf(datasourceHandler),
     )
 
     override val state: StateFlow<StatisticState>
@@ -39,6 +37,6 @@ class StatisticViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(navigator: StatisticNavigator): StatisticViewModel
+        fun create(): StatisticViewModel
     }
 }

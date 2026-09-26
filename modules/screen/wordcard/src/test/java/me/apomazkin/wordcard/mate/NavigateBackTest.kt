@@ -1,13 +1,13 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.ComponentValueId
 import io.github.kilgoret.mate.NavigationEffect
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.assertSingleEffect
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentValueId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -20,7 +20,6 @@ import org.junit.Test
  * TDD red: ссылается на будущий API (isExiting, hasInFlightCommits, новые Msg/Effect).
  */
 class NavigateBackTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
     @Test
@@ -56,7 +55,12 @@ class NavigateBackTest {
 
         val result = reducer.testReduce(initial, Msg.NavigateBack)
 
-        val cv = result.state().lexemeList.first().components.first()
+        val cv = result
+            .state()
+            .lexemeList
+            .first()
+            .components
+            .first()
         assertTrue("компонент in-flight", cv.isCommitting)
         assertTrue("edit держится", cv.isEdit)
         assertTrue("isExiting", result.state().isExiting)
@@ -85,7 +89,12 @@ class NavigateBackTest {
 
         val result = reducer.testReduce(initial, Msg.NavigateBack)
 
-        val cv = result.state().lexemeList.first().components.first()
+        val cv = result
+            .state()
+            .lexemeList
+            .first()
+            .components
+            .first()
         assertTrue("anchor pristine in-flight", cv.isCommitting)
         assertTrue("isExiting", result.state().isExiting)
         assertTrue("pending", result.state().isPendingDbOp)
@@ -120,7 +129,12 @@ class NavigateBackTest {
             Msg.RefreshLexemeComponents(lexemeId = 7L, components = listOf(domainCv(5L, 7L, "new"))),
         )
 
-        val cv = result.state().lexemeList.first().components.first()
+        val cv = result
+            .state()
+            .lexemeList
+            .first()
+            .components
+            .first()
         assertFalse("edit закрыт", cv.isEdit)
         assertFalse("isCommitting снят", cv.isCommitting)
         assertEquals("origin обновлён", "new", cv.origin)
@@ -149,7 +163,11 @@ class NavigateBackTest {
             Msg.ComponentValueInserted(lexemeId = 55L, pristineKey = 2L, newCvId = ComponentValueId(77L)),
         )
 
-        val comps = result.state().lexemeList.first().components
+        val comps = result
+            .state()
+            .lexemeList
+            .first()
+            .components
         val survivor3 = comps.first { it.pristineKey == 3L }
         assertTrue("survivor #3 всё ещё in-flight", survivor3.isCommitting)
         result.assertNoEffects("есть незавершённый survivor → без Back")
@@ -169,7 +187,12 @@ class NavigateBackTest {
 
         val result = reducer.testReduce(initial, Msg.OperationFailed(messageRes = R_STRING_X))
 
-        val survivor = result.state().lexemeList.first().components.first { it.pristineKey == 2L }
+        val survivor = result
+            .state()
+            .lexemeList
+            .first()
+            .components
+            .first { it.pristineKey == 2L }
         assertFalse("isCommitting снят даже у pristine — лоадер не виснет", survivor.isCommitting)
         assertEquals("ввод цел", "ex", survivor.edited)
         assertFalse("isExiting снят", result.state().isExiting)
@@ -191,7 +214,12 @@ class NavigateBackTest {
 
         val result = reducer.testReduce(initial, Msg.OperationFailed(messageRes = R_STRING_X))
 
-        val cv = result.state().lexemeList.first().components.first()
+        val cv = result
+            .state()
+            .lexemeList
+            .first()
+            .components
+            .first()
         assertFalse("isExiting снят — остаёмся", result.state().isExiting)
         assertFalse("pending снят", result.state().isPendingDbOp)
         assertFalse("isCommitting снят", cv.isCommitting)

@@ -5,73 +5,48 @@ import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
+import io.github.kilgoret.mate.MateStore
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Mate
-import io.github.kilgoret.mate.MateStateHolder
-import me.apomazkin.per_dictionary_components.mate.ComponentsForDictionaryFlowHandler
-import me.apomazkin.per_dictionary_components.mate.DatasourceEffectHandler
+import me.apomazkin.per_dictionary_components.deps.PerDictionaryComponentsUseCase
 import me.apomazkin.per_dictionary_components.mate.Msg
-import me.apomazkin.per_dictionary_components.mate.NavigationEffectHandler
-import me.apomazkin.per_dictionary_components.mate.PerDictionaryComponentsReducer
 import me.apomazkin.per_dictionary_components.mate.PerDictionaryComponentsScreenState
-import me.apomazkin.per_dictionary_components.mate.UiEffectHandler
 
 /**
- * ViewModel экрана `PerDictionaryComponentsScreen`. Собирает Mate из:
- * - [PerDictionaryComponentsReducer] — pure reduction.
- * - [DatasourceEffectHandler] — Effect → UseCase → Msg.
- * - [ComponentsForDictionaryFlowHandler] — auto-subscribe на init Mate (assisted dictionaryId).
- * - [UiEffectHandler] — UiEffect → UiMsg.
- * - [NavigationEffectHandler] — Back уже в base Mate Nav handler.
- *
- * `initEffects = ∅` — flow handler стартует через `subscribe(scope, send)` на init Mate.
+ * VM экрана `PerDictionaryComponentsScreen`: тонкая обёртка над
+ * [PerDictionaryComponentsAssembly] — сборка раннера живёт там (общая
+ * с харнесом), VM даёт только viewModelScope и продовые зависимости.
  */
-class PerDictionaryComponentsViewModel @AssistedInject constructor(
-    @Assisted dictionaryId: Long,
-    @Assisted navigator: PerDictionaryComponentsNavigator,
-    logger: LexemeLogger,
-    datasourceHandler: DatasourceEffectHandler,
-    flowHandlerFactory: ComponentsForDictionaryFlowHandler.Factory,
-    uiHandler: UiEffectHandler,
-    navHandlerFactory: NavigationEffectHandler.Factory,
-) : ViewModel(), MateStateHolder<PerDictionaryComponentsScreenState, Msg> {
-
-    private val flowHandler = flowHandlerFactory.create(dictionaryId).also {
-        datasourceHandler.componentsForDictionaryFlowHandler = it
-    }
-
-    private val stateHolder = Mate(
-        initState = PerDictionaryComponentsScreenState(
+class PerDictionaryComponentsViewModel
+    @AssistedInject
+    constructor(
+        @Assisted dictionaryId: Long,
+        useCase: PerDictionaryComponentsUseCase,
+        logger: LexemeLogger,
+        navigationHandler: MateNavigationHandler,
+    ) : ViewModel(),
+        MateStore<PerDictionaryComponentsScreenState, Msg> {
+        private val stateHolder = PerDictionaryComponentsAssembly.create(
+            useCase = useCase,
+            logger = logger,
+            navigationHandler = navigationHandler,
             dictionaryId = dictionaryId,
-            isLoading = true,
-        ),
-        initEffects = emptySet(),
-        coroutineScope = viewModelScope,
-        reducer = PerDictionaryComponentsReducer(logger = logger),
-        effectHandlers = listOf(
-            datasourceHandler,
-            uiHandler,
-            navHandlerFactory.create(navigator),
-        ),
-        flowHandlers = listOf(flowHandler),
-    )
+            coroutineScope = viewModelScope,
+        )
 
-    override val state: StateFlow<PerDictionaryComponentsScreenState>
-        get() = stateHolder.state
+        override val state: StateFlow<PerDictionaryComponentsScreenState>
+            get() = stateHolder.state
 
-    override fun accept(message: Msg) = stateHolder.accept(message)
+        override fun accept(message: Msg) = stateHolder.accept(message)
 
-    override fun onCleared() {
-        super.onCleared()
-        stateHolder.dispose()
+        override fun onCleared() {
+            super.onCleared()
+            stateHolder.dispose()
+        }
+
+        @AssistedFactory
+        interface Factory {
+            fun create(dictionaryId: Long): PerDictionaryComponentsViewModel
+        }
     }
-
-    @AssistedFactory
-    interface Factory {
-        fun create(
-            dictionaryId: Long,
-            navigator: PerDictionaryComponentsNavigator,
-        ): PerDictionaryComponentsViewModel
-    }
-}

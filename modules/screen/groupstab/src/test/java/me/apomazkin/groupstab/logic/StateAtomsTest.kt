@@ -19,13 +19,13 @@ import java.util.Date
  * receiver), поэтому тест НАСЛЕДУЕТ класс атомов с [NoopLogger].
  */
 class StateAtomsTest : StateAtoms(NoopLogger) {
-
-    private fun term(id: Long) = TermUiItem(
-        id = id,
-        wordValue = "w$id",
-        dictionaryId = 1L,
-        addDate = Date(0),
-    )
+    private fun term(id: Long) =
+        TermUiItem(
+            id = id,
+            wordValue = "w$id",
+            dictionaryId = 1L,
+            addDate = Date(0),
+        )
 
     private val groups = listOf(
         GroupUiItem(id = 5, name = "Быт", count = 0),
@@ -58,8 +58,10 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
     @Test
     fun `selectDictionary, clearDictionary and markDictionaryPresent`() {
         val selected = GroupsTabState(hasNoDictionary = true)
-            .selectDictionary(2L).state()
-            .markDictionaryPresent().state()
+            .selectDictionary(2L)
+            .state()
+            .markDictionaryPresent()
+            .state()
 
         assertEquals(2L, selected.dictionaryId)
         assertFalse(selected.hasNoDictionary)
@@ -80,7 +82,7 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         assertTrue(result.effects().isEmpty())
 
         assertFalse(
-            requireNotNull(GroupsTabState().applyAllCount(0).state().allNode).hasMore
+            requireNotNull(GroupsTabState().applyAllCount(0).state().allNode).hasMore,
         )
     }
 
@@ -98,7 +100,7 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
     }
 
     @Test
-    fun `widenWindowForGrowth under expanded window - widened plus SetWindow effect`() {
+    fun `widenWindowForGrowth under expanded window - widened, no effects`() {
         val result = GroupsTabState(
             allNode = AllNodeState(
                 count = 12,
@@ -110,7 +112,8 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
 
         val node = requireNotNull(result.state().allNode)
         assertEquals(11, node.window)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = 11)), result.effects())
+        // Э4: новое окно в state → подписку перезапустит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -141,7 +144,7 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
     }
 
     @Test
-    fun `openWindow - window, spinner, SetWindow effect`() {
+    fun `openWindow - window, spinner, no effects`() {
         val result = GroupsTabState(
             allNode = AllNodeState(count = 12, isExpanded = true, hasMore = true),
         ).openWindow(limit = 10)
@@ -149,7 +152,8 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         val node = requireNotNull(result.state().allNode)
         assertEquals(10, node.window)
         assertTrue(node.isWindowLoading)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = 10)), result.effects())
+        // Э4: подписку окна включит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -168,11 +172,12 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         assertEquals(0, node.window)
         assertTrue(node.loadedWords.isEmpty())
         assertFalse(node.isWindowLoading)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = null)), result.effects())
+        // Э4: window=0 убирает AllWindow из subscriptions() — дифф погасит.
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
-    fun `widenWindowBy - step added, spinner, SetWindow effect`() {
+    fun `widenWindowBy - step added, spinner, no effects`() {
         val result = GroupsTabState(
             allNode = AllNodeState(count = 30, window = 10, isExpanded = true),
         ).widenWindowBy(step = 10)
@@ -180,7 +185,8 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         val node = requireNotNull(result.state().allNode)
         assertEquals(20, node.window)
         assertTrue(node.isWindowLoading)
-        assertEquals(setOf(GroupsEffect.SetWindow(limit = 20)), result.effects())
+        // Э4: новый лимит перезапустит подписку диффом subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -263,7 +269,7 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
     }
 
     @Test
-    fun `purgeDeadExpanded - dead windows closed with effects`() {
+    fun `purgeDeadExpanded - dead windows closed, no effects`() {
         val result = GroupsTabState(
             groups = groups,
             expandedGroupWindows = mapOf(
@@ -273,11 +279,8 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         ).purgeDeadExpanded()
 
         assertEquals(setOf(5L), result.state().expandedGroupWindows.keys)
-        // Подписка мёртвой группы гаснет.
-        assertEquals(
-            setOf(GroupsEffect.SetGroupWindow(groupId = 99, limit = null)),
-            result.effects(),
-        )
+        // Подписку мёртвой группы погасит дифф subscriptions() (Э4).
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -303,9 +306,10 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         val cleared = GroupsTabState(
             groups = groups,
             expandedGroupWindows = mapOf(5L to GroupWindowState(window = 0, isLoading = false)),
-        )
-            .clearGroups().state()
-            .collapseAllGroups().state()
+        ).clearGroups()
+            .state()
+            .collapseAllGroups()
+            .state()
 
         assertEquals(emptyList<GroupUiItem>(), cleared.groups)
         assertTrue(cleared.expandedGroupWindows.isEmpty())
@@ -321,23 +325,19 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
 
         val closed = expanded.state().closeGroupWindow(5L)
         assertTrue(closed.state().expandedGroupWindows.isEmpty())
-        assertEquals(
-            setOf(GroupsEffect.SetGroupWindow(groupId = 5, limit = null)),
-            closed.effects(),
-        )
+        // Э4: ключ ушёл из карты → подписку (если была) погасит дифф.
+        assertTrue(closed.effects().isEmpty())
     }
 
     @Test
-    fun `openGroupWindow - window, spinner, SetGroupWindow effect`() {
+    fun `openGroupWindow - window, spinner, no effects`() {
         val result = GroupsTabState().openGroupWindow(id = 5L, limit = 10)
 
         val win = requireNotNull(result.state().expandedGroupWindows[5L])
         assertEquals(10, win.window)
         assertTrue(win.isLoading)
-        assertEquals(
-            setOf(GroupsEffect.SetGroupWindow(groupId = 5, limit = 10)),
-            result.effects(),
-        )
+        // Э4: подписку окна группы включит дифф subscriptions().
+        assertTrue(result.effects().isEmpty())
     }
 
     // === Шторка ===
@@ -364,7 +364,8 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
     @Test
     fun `closeSheet - only sheet dropped`() {
         val opened = GroupsTabState(groups = groups)
-            .openCreateSheet().state()
+            .openCreateSheet()
+            .state()
 
         assertEquals(null, opened.closeSheet().state().sheet)
     }
@@ -429,7 +430,14 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         assertEquals(GroupSheetError.DUPLICATE, shown.state().errorSnackbar)
         assertTrue(shown.effects().isEmpty())
 
-        assertEquals(null, shown.state().consumeErrorSnackbar().state().errorSnackbar)
+        assertEquals(
+            null,
+            shown
+                .state()
+                .consumeErrorSnackbar()
+                .state()
+                .errorSnackbar,
+        )
     }
 
     // === Конфирм / кебаб ===

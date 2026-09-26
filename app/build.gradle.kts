@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
@@ -28,15 +29,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "co.lexeme.app"
-        targetSdk = 35
+        targetSdk = 36
         minSdk = 23
         multiDexEnabled = true
 
@@ -108,6 +105,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
 dependencies {
 
     implementation(fileTree("dir" to "libs", "include" to ("*.jar")))
@@ -159,7 +162,12 @@ dependencies {
 
     //Dagger2
     implementation(diLibs.dagger)
-    implementation("com.github.blongho:worldCountryData:v1.5.4-alpha-1")
+    implementation("com.github.blongho:worldCountryData:v1.5.4-alpha-1") {
+        // Кривой pom alpha-библиотеки тянет ТЕСТОВЫЙ androidx.test:monitor
+        // в прод-classpath — строгий consistent resolution из-за этого
+        // валит androidTest-резолв (monitor 1.5.0 против 1.7.x у espresso).
+        exclude(group = "androidx.test", module = "monitor")
+    }
     ksp(diLibs.daggerCompiler)
 
     implementation(datastoreLibs.paging)
@@ -173,6 +181,8 @@ dependencies {
     testImplementation(testLibs.junit)
     testImplementation(testLibs.mockk)
     testImplementation(testLibs.coroutinesTest)
+    // Сценарный харнес mate: registry экранов + DSL сценариев.
+    testImplementation("com.github.KilgoreT.mate:mate-app-test:v0.1.6")
     androidTestImplementation(testLibs.androidxTestExt)
     androidTestImplementation(testLibs.espressoCore)
     androidTestImplementation(composeLibs.uiTestJunit4)

@@ -1,12 +1,12 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.ComponentValueId
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentValueId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
@@ -18,9 +18,10 @@ import org.junit.Test
  * + §1.5 RemoveComponentValueRequested.
  */
 class ComponentValueLifecycleTest {
-
     private val reducer = WordCardReducer(NoopLogger)
+
     private fun savedKey(id: Long) = ComponentValueKey.Saved(ComponentValueId(id))
+
     private fun pKey(k: Long) = ComponentValueKey.Pristine(k)
 
     // ---------- CreateComponentValue ----------
@@ -33,7 +34,12 @@ class ComponentValueLifecycleTest {
             nextPristineKey = 1L,
         )
         val result = reducer.testReduce(initial, Msg.CreateComponentValue(1L, ComponentTypeId(50L)))
-        val cv = result.state().lexemeList.single().components.single()
+        val cv = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertEquals(pKey(1L), cv.key)
         assertTrue(cv.isEdit)
         assertEquals(2L, result.state().nextPristineKey)
@@ -47,16 +53,24 @@ class ComponentValueLifecycleTest {
             lexemes = listOf(lexeme(1L, listOf(savedCv(5L, origin = "old", isEdit = true, edited = "new")))),
         )
         val result = reducer.testReduce(initial, Msg.CreateComponentValue(1L, ComponentTypeId(50L)))
-        val saved = result.state().lexemeList.single().components.first { it.key == savedKey(5L) }
+        val saved = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .first { it.key == savedKey(5L) }
         assertTrue("A10: edit держится", saved.isEdit)
         assertTrue("isCommitting", saved.isCommitting)
         assertTrue(result.state().isPendingDbOp)
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.UpdateValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 1L,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 1L,
                     componentValueId = ComponentValueId(5L),
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = textValuesOf("new"),
                 ),
             ),
@@ -81,7 +95,15 @@ class ComponentValueLifecycleTest {
             lexemes = listOf(lexeme(1L, emptyList())),
         )
         val result = reducer.testReduce(initial, Msg.CreateComponentValue(1L, ComponentTypeId(50L)))
-        assertTrue(result.state().lexemeList.single().components.single().isMultiple)
+        assertTrue(
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .single()
+                .isMultiple,
+        )
     }
 
     @Test
@@ -138,7 +160,12 @@ class ComponentValueLifecycleTest {
     fun `UpdateComponentValueInput updates only edited on pristine`() {
         val initial = loaded(lexemes = listOf(lexeme(1L, listOf(pristineCv(1L, edited = "")))))
         val result = reducer.testReduce(initial, Msg.UpdateComponentValueInput(1L, pKey(1L), "hi"))
-        val cv = result.state().lexemeList.single().components.single()
+        val cv = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertEquals("hi", cv.edited)
         assertEquals("", cv.origin)
         assertTrue(cv.isEdit)
@@ -149,7 +176,12 @@ class ComponentValueLifecycleTest {
     fun `UpdateComponentValueInput updates edited on saved in edit mode`() {
         val initial = loaded(lexemes = listOf(lexeme(1L, listOf(savedCv(5L, origin = "old", isEdit = true, edited = "old")))))
         val result = reducer.testReduce(initial, Msg.UpdateComponentValueInput(1L, savedKey(5L), "new"))
-        val cv = result.state().lexemeList.single().components.single()
+        val cv = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertEquals("new", cv.edited)
         assertEquals("old", cv.origin)
     }
@@ -166,7 +198,16 @@ class ComponentValueLifecycleTest {
     fun `UpdateComponentValueInput not guarded by pending`() {
         val initial = loaded(isPendingDbOp = true, lexemes = listOf(lexeme(1L, listOf(pristineCv(1L)))))
         val result = reducer.testReduce(initial, Msg.UpdateComponentValueInput(1L, pKey(1L), "hi"))
-        assertEquals("hi", result.state().lexemeList.single().components.single().edited)
+        assertEquals(
+            "hi",
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .single()
+                .edited,
+        )
     }
 
     @Test
@@ -182,7 +223,12 @@ class ComponentValueLifecycleTest {
     fun `EnterComponentValueEditMode sets edited origin and isEdit`() {
         val initial = loaded(lexemes = listOf(lexeme(1L, listOf(savedCv(5L, origin = "word", isEdit = false)))))
         val result = reducer.testReduce(initial, Msg.EnterComponentValueEditMode(1L, savedKey(5L)))
-        val cv = result.state().lexemeList.single().components.single()
+        val cv = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertTrue(cv.isEdit)
         assertEquals("word", cv.edited)
     }
@@ -201,16 +247,24 @@ class ComponentValueLifecycleTest {
             ),
         )
         val result = reducer.testReduce(initial, Msg.EnterComponentValueEditMode(1L, savedKey(5L)))
-        val six = result.state().lexemeList.single().components.first { it.key == savedKey(6L) }
+        val six = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .first { it.key == savedKey(6L) }
         assertTrue("A10: #6 edit держится", six.isEdit)
         assertTrue(six.isCommitting)
         assertTrue(result.state().isPendingDbOp)
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.UpdateValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 1L,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 1L,
                     componentValueId = ComponentValueId(6L),
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = textValuesOf("new"),
                 ),
             ),
@@ -243,7 +297,11 @@ class ComponentValueLifecycleTest {
             lexemes = listOf(lexeme(7L, listOf(pristineCv(1L, edited = "x"), savedCv(5L)))),
         )
         val result = reducer.testReduce(initial, Msg.RemoveComponentValueRequested(7L, pKey(1L)))
-        val comps = result.state().lexemeList.single().components
+        val comps = result
+            .state()
+            .lexemeList
+            .single()
+            .components
         assertTrue("pristine удалён", comps.none { it.isPristine })
         assertEquals(1, comps.size)
         result.assertNoEffects()
@@ -269,7 +327,14 @@ class ComponentValueLifecycleTest {
     fun `saved with empty origin local nullify`() {
         val initial = loaded(lexemes = listOf(lexeme(7L, listOf(savedCv(5L, origin = "")))))
         val result = reducer.testReduce(initial, Msg.RemoveComponentValueRequested(7L, savedKey(5L)))
-        assertTrue(result.state().lexemeList.single().components.isEmpty())
+        assertTrue(
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .isEmpty(),
+        )
         assertEquals(false, result.state().isPendingDbOp)
         result.assertNoEffects()
     }

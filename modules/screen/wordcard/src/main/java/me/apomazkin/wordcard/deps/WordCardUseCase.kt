@@ -15,12 +15,20 @@ import me.apomazkin.wordcard.entity.Term
  * без translation/definition-специфичных методов.
  */
 interface WordCardUseCase {
-
     // ===== Word / lexeme =====
     suspend fun getTermById(wordId: Long): Term?
+
     suspend fun deleteWord(wordId: Long): Int
-    suspend fun updateWord(wordId: Long, value: String): Boolean
-    suspend fun deleteLexeme(wordId: Long, lexemeId: Long): RemoveLexemeResult?
+
+    suspend fun updateWord(
+        wordId: Long,
+        value: String,
+    ): Boolean
+
+    suspend fun deleteLexeme(
+        wordId: Long,
+        lexemeId: Long,
+    ): RemoveLexemeResult?
 
     // ===== Generic component API =====
 
@@ -85,10 +93,16 @@ interface WordCardUseCase {
     fun dictGroups(dictionaryId: Long): Flow<List<me.apomazkin.group.GroupNode>>
 
     /** Добавить слово в группу (транзакция data-слоя, D20.2). */
-    suspend fun addWordToGroup(wordId: Long, groupId: Long): me.apomazkin.group.AddMembershipOutcome
+    suspend fun addWordToGroup(
+        wordId: Long,
+        groupId: Long,
+    ): me.apomazkin.group.AddMembershipOutcome
 
     /** Снять слово с группы (идемпотентно). */
-    suspend fun removeWordFromGroup(wordId: Long, groupId: Long): me.apomazkin.group.RemoveMembershipOutcome
+    suspend fun removeWordFromGroup(
+        wordId: Long,
+        groupId: Long,
+    ): me.apomazkin.group.RemoveMembershipOutcome
 }
 
 /**
@@ -107,11 +121,15 @@ data class AddComponentValueResult(
 )
 
 sealed interface RemoveComponentResult {
-    data class ComponentRemoved(val lexeme: Lexeme) : RemoveComponentResult
+    data class ComponentRemoved(
+        val lexeme: Lexeme,
+    ) : RemoveComponentResult
     // IS486 фаза 3: LexemeCascadeRemoved упразднён — лексема деградирует
     // в черновик (spec §9.1, решение В4), а не удаляется.
 }
 
 sealed interface RemoveLexemeResult {
-    data class Removed(val snapshot: Lexeme) : RemoveLexemeResult
+    data class Removed(
+        val snapshot: Lexeme,
+    ) : RemoveLexemeResult
 }

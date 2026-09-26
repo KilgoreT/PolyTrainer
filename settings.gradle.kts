@@ -11,14 +11,14 @@ pluginManagement {
     }
 
     plugins {
-        id("com.android.application") version "8.7.3" apply false // AGP
-        id("com.android.library") version "8.7.3" apply false
-        id("org.jetbrains.kotlin.android") version "2.0.20" apply false // Kotlin Android Plugin
+        id("com.android.application") version "9.4.1" apply false // AGP
+        id("com.android.library") version "9.4.1" apply false
+        id("org.jetbrains.kotlin.android") version "2.2.0" apply false // Kotlin Android Plugin
         id("androidx.navigation.safeargs.kotlin") version "2.9.0"
         id("com.google.gms.google-services") version "4.4.4"
         id("com.google.firebase.crashlytics") version "3.0.3"
         id("androidx.room") version "2.8.4" apply false
-        id("org.jetbrains.kotlin.jvm") version "2.0.20"
+        id("org.jetbrains.kotlin.jvm") version "2.2.0"
         id("org.jetbrains.kotlinx.kover") version "0.9.1" apply false
     }
 }

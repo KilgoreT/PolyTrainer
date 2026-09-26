@@ -1,11 +1,11 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.ComponentValueId
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentValueId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -16,7 +16,6 @@ import org.junit.Test
  * generic-модель: word-edit-commit активной правки компонента идёт через UpsertComponentValue.
  */
 class WordEditTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
     /** loaded() (с dictionaryId) + word-edit поля. */
@@ -58,16 +57,24 @@ class WordEditTest {
         val result = reducer.testReduce(initial, Msg.EnterWordEditMode)
         val loaded = result.state().wordState as WordState.Loaded
         assertTrue("word edit enabled", loaded.isEditMode)
-        val cv = result.state().lexemeList.first().components.single()
+        val cv = result
+            .state()
+            .lexemeList
+            .first()
+            .components
+            .single()
         assertTrue("A10 edit держится", cv.isEdit)
         assertTrue(cv.isCommitting)
         assertTrue(result.state().isPendingDbOp)
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.UpdateValue(
-                    wordId = 123L, dictionaryId = 3L, lexemeId = 1L,
+                    wordId = 123L,
+                    dictionaryId = 3L,
+                    lexemeId = 1L,
                     componentValueId = ComponentValueId(5L),
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = textValuesOf("edit"),
                 ),
             ),

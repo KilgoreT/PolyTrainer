@@ -62,10 +62,10 @@ import me.apomazkin.ui.ErrorStateWidget
 @Composable
 fun ComponentsManagerScreen(
     factory: ComponentsManagerViewModel.Factory,
-    navigator: ComponentsManagerNavigator,
-    viewModel: ComponentsManagerViewModel = viewModel(
-        factory = viewModelFactory { factory.create(navigator) },
-    ),
+    viewModel: ComponentsManagerViewModel =
+        viewModel(
+            factory = viewModelFactory { factory.create() },
+        ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -257,8 +257,9 @@ fun ComponentsManagerScreen(
  * `Int?` (resolved res), а не mate enum (избегаем coupling shared widget на screen-mate).
  */
 @androidx.annotation.StringRes
-private fun EditNameError.toLabelRes(): Int = when (this) {
-    EditNameError.NameEmpty -> R.string.components_name_error_empty
-    EditNameError.SameScopeCollision -> R.string.components_name_error_same_scope_collision
-    EditNameError.CrossScopeCollision -> R.string.components_name_error_cross_scope_collision
-}
+private fun EditNameError.toLabelRes(): Int =
+    when (this) {
+        EditNameError.NameEmpty -> R.string.components_name_error_empty
+        EditNameError.SameScopeCollision -> R.string.components_name_error_same_scope_collision
+        EditNameError.CrossScopeCollision -> R.string.components_name_error_cross_scope_collision
+    }

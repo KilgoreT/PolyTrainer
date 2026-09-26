@@ -1,12 +1,12 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.ComponentTypeRef
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentTypeRef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -16,7 +16,6 @@ import org.junit.Test
  * §1.8 LexemeDraftPromoted (REWRITE) — B2 pristine-merge / F3-F4 anchor-by-key / G8 in-place.
  */
 class LexemeManagementTest {
-
     private val reducer = WordCardReducer(NoopLogger)
     private val EX = ComponentTypeRef.UserDefined("Example")
     private val EX2 = ComponentTypeRef.UserDefined("Example2")
@@ -36,7 +35,9 @@ class LexemeManagementTest {
     @Test
     fun `B2_two_pristines_reemit_survivor`() {
         val initial = loaded(
-            lexemes = listOf(lexeme(NOT_IN_DB, listOf(pristineCv(1L, ref = TR, edited = "t"), pristineCv(2L, typeId = 51L, ref = EX, edited = "ex")))),
+            lexemes = listOf(
+                lexeme(NOT_IN_DB, listOf(pristineCv(1L, ref = TR, edited = "t"), pristineCv(2L, typeId = 51L, ref = EX, edited = "ex"))),
+            ),
         )
         val promoted = domainLexeme(55L, listOf(domainCv(60L, 55L, "t", ref = TR)))
         val result = reducer.testReduce(initial, Msg.LexemeDraftPromoted(promoted, anchorPristineKey = 1L))
@@ -47,8 +48,12 @@ class LexemeManagementTest {
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.AddValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 55L, pristineKey = 2L,
-                    componentTypeId = ComponentTypeId(51L), componentTypeRef = EX,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 55L,
+                    pristineKey = 2L,
+                    componentTypeId = ComponentTypeId(51L),
+                    componentTypeRef = EX,
                     data = textValuesOf("ex"),
                 ),
             ),
@@ -58,7 +63,9 @@ class LexemeManagementTest {
     @Test
     fun `F3_F4_excludes_anchor_by_key_not_order`() {
         val initial = loaded(
-            lexemes = listOf(lexeme(NOT_IN_DB, listOf(pristineCv(5L, typeId = 51L, ref = EX, edited = "ex"), pristineCv(1L, ref = TR, edited = "t")))),
+            lexemes = listOf(
+                lexeme(NOT_IN_DB, listOf(pristineCv(5L, typeId = 51L, ref = EX, edited = "ex"), pristineCv(1L, ref = TR, edited = "t"))),
+            ),
         )
         val promoted = domainLexeme(55L, listOf(domainCv(60L, 55L, "t", ref = TR)))
         val result = reducer.testReduce(initial, Msg.LexemeDraftPromoted(promoted, anchorPristineKey = 1L))
@@ -66,7 +73,12 @@ class LexemeManagementTest {
         assertEquals(1, effs.size)
         val add = effs.single() as DatasourceEffect.UpsertComponentValue.AddValue
         assertEquals("реэмит только survivor key=5", 5L, add.pristineKey)
-        val trCount = result.state().lexemeList.single().components.count { it.componentTypeRef == TR }
+        val trCount = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .count { it.componentTypeRef == TR }
         assertEquals("ровно один TRANSLATION", 1, trCount)
     }
 
@@ -91,7 +103,12 @@ class LexemeManagementTest {
         assertEquals("2 реэмита (survivors 2,3), якорь 1 исключён", 2, effs.size)
         val keys = effs.map { (it as DatasourceEffect.UpsertComponentValue.AddValue).pristineKey }.toSet()
         assertEquals(setOf(2L, 3L), keys)
-        val survivors = result.state().lexemeList.single().components.filter { it.isPristine }
+        val survivors = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .filter { it.isPristine }
         assertTrue("оба survivor in-flight", survivors.all { it.isCommitting })
     }
 
@@ -102,7 +119,15 @@ class LexemeManagementTest {
         )
         val promoted = domainLexeme(55L, listOf(domainCv(60L, 55L, "t", ref = TR)))
         val result = reducer.testReduce(initial, Msg.LexemeDraftPromoted(promoted, anchorPristineKey = 1L))
-        assertEquals(1, result.state().lexemeList.single().components.size)
+        assertEquals(
+            1,
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .size,
+        )
         result.assertNoEffects()
     }
 

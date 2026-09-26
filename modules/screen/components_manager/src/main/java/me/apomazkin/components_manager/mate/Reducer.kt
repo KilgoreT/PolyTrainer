@@ -1,5 +1,8 @@
 package me.apomazkin.components_manager.mate
 
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.MateReducer
+import io.github.kilgoret.mate.NavigationEffect
 import me.apomazkin.components_manager.LogTags
 import me.apomazkin.lexeme.CreateOutcome
 import me.apomazkin.lexeme.DeleteOutcome
@@ -7,9 +10,6 @@ import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.NameError
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Effect
-import io.github.kilgoret.mate.MateReducer
-import io.github.kilgoret.mate.NavigationEffect
 import me.apomazkin.tools.failureLabel
 
 /**
@@ -33,7 +33,6 @@ import me.apomazkin.tools.failureLabel
 class ComponentsManagerReducer(
     private val logger: LexemeLogger,
 ) : MateReducer<ComponentsManagerScreenState, Msg, Effect> {
-
     override fun reduce(
         state: ComponentsManagerScreenState,
         message: Msg,
@@ -51,480 +50,542 @@ class ComponentsManagerReducer(
     private fun reduceInner(
         state: ComponentsManagerScreenState,
         message: Msg,
-    ): Pair<ComponentsManagerScreenState, Set<Effect>> = when (message) {
-
-        // ===== Lifecycle =====
-        is Msg.TypesLoaded ->
-            state.copy(
-                userDefinedTypes = message.snapshot.toRows(),
-                isLoading = false,
-            ) to emptySet()
-
-        is Msg.TypesLoadFailed ->
-            state.copy(isLoading = false) to setOf(
-                UiEffect.Snackbar("Failed to load: ${message.cause.failureLabel()}")
-            )
-
-        // ===== Create dialog =====
-        Msg.OpenCreateDialog -> {
-            // F106: overwrite reset + F138: закрываем другие диалоги (4-way phase 2) +
-            // F140: is*ing флаги сброс.
-            val newEpoch = state.nextEpoch + 1
-            state.copy(
-                createDialog = CreateDialogState(epochId = newEpoch),
-                deleteConfirm = null,
-                editDialog = null,
-                isCreating = false,
-                isDeleting = false,
-                isEditing = false,
-                nextEpoch = newEpoch,
-            ) to emptySet()
-        }
-
-        Msg.CloseCreateDialog ->
-            state.copy(createDialog = null) to emptySet()
-
-        is Msg.CreateNameChange -> {
-            val dlg = state.createDialog
-            if (dlg == null) state to emptySet()
-            else state.copy(
-                createDialog = dlg.copy(name = message.value, nameError = null)
-            ) to emptySet()
-        }
-
-        is Msg.CreateTemplateChange -> {
-            val dlg = state.createDialog
-            if (dlg == null) state to emptySet()
-            else state.copy(createDialog = dlg.copy(template = message.template)) to emptySet()
-        }
-
-        is Msg.CreateMultiToggle -> {
-            val dlg = state.createDialog
-            if (dlg == null) state to emptySet()
-            else state.copy(createDialog = dlg.copy(isMultiple = message.isMultiple)) to emptySet()
-        }
-
-        is Msg.CreateScopeChange -> {
-            val dlg = state.createDialog
-            if (dlg == null) state to emptySet()
-            else state.copy(
-                createDialog = dlg.copy(
-                    scope = message.scope,
-                    // Phase 2: switching to Global clears multi-dict selection
-                    // (chips disappear, нечего хранить).
-                    selectedDictionaryIds = if (message.scope is Scope.Global) {
-                        emptySet()
-                    } else {
-                        dlg.selectedDictionaryIds
-                    },
-                ),
-            ) to emptySet()
-        }
-
-        Msg.SubmitCreate -> {
-            val dlg = state.createDialog
-            when {
-                dlg == null -> state to emptySet()           // guard: no dialog
-                state.isCreating -> state to emptySet()      // guard: double-tap
-                dlg.name.isBlank() ->
-                    state.copy(
-                        createDialog = dlg.copy(nameError = NameError.Empty)
-                    ) to emptySet()
-                else -> {
-                    val effectiveScope = when (val s = dlg.scope) {
-                        Scope.Global -> s
-                        is Scope.PerDictionaries -> Scope.PerDictionaries(
-                            dlg.selectedDictionaryIds.toList(),
-                        )
-                    }
-                    state.copy(isCreating = true) to setOf(
-                        DatasourceEffect.CreateComponent(
-                            epochId = dlg.epochId,
-                            name = dlg.name,
-                            template = dlg.template,
-                            isMultiple = dlg.isMultiple,
-                            scope = effectiveScope,
-                        )
-                    )
-                }
-            }
-        }
-
-        is Msg.CreateResult -> {
-            val dlg = state.createDialog
-            if (dlg != null && dlg.epochId != message.epochId) {
-                // F136: stale result — новый диалог уже открыт с другим epochId.
-                state to emptySet()
-            } else when (val o = message.outcome) {
-                is CreateOutcome.Success ->
-                    state.copy(isCreating = false, createDialog = null) to setOf(
-                        UiEffect.Snackbar("Created ${o.created.size}")
-                    )
-                CreateOutcome.NameEmpty ->
-                    if (dlg == null) {
-                        // race close-during-flight (F101) — snackbar fallback
-                        state.copy(isCreating = false) to setOf(
-                            UiEffect.Snackbar("Name cannot be empty")
-                        )
-                    } else {
-                        state.copy(
-                            isCreating = false,
-                            createDialog = dlg.copy(nameError = NameError.Empty),
-                        ) to emptySet()
-                    }
-                CreateOutcome.SameScopeCollision ->
-                    if (dlg == null) {
-                        state.copy(isCreating = false) to setOf(
-                            UiEffect.Snackbar("Name already taken in this scope")
-                        )
-                    } else {
-                        state.copy(
-                            isCreating = false,
-                            createDialog = dlg.copy(
-                                nameError = NameError.SameScopeCollision
-                            ),
-                        ) to emptySet()
-                    }
-                CreateOutcome.CrossScopeCollision ->
-                    if (dlg == null) {
-                        state.copy(isCreating = false) to setOf(
-                            UiEffect.Snackbar("Name conflicts across scopes")
-                        )
-                    } else {
-                        state.copy(
-                            isCreating = false,
-                            createDialog = dlg.copy(
-                                nameError = NameError.CrossScopeCollision
-                            ),
-                        ) to emptySet()
-                    }
-                is CreateOutcome.Failure ->
-                    state.copy(isCreating = false) to setOf(
-                        UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}")
-                    )
-            }
-        }
-
-        // ===== Delete confirm =====
-        is Msg.OpenDeleteConfirm -> {
-            val row = state.userDefinedTypes?.firstOrNull { it.typeId == message.typeId }
-            when {
-                row == null -> state to emptySet()              // guard: row not found
-                state.deleteConfirm?.typeId == message.typeId ->
-                    // F132 narrow: тот же typeId — не пересоздаём (избегаем повторного LoadImpact).
-                    state to emptySet()
-                else -> {
-                    // F138: 4-way mutual-exclusion (phase 2). F140: is*ing reset.
-                    val newEpoch = state.nextEpoch + 1
-                    state.copy(
-                        deleteConfirm = DeleteConfirmState(
-                            epochId = newEpoch,
-                            typeId = row.typeId,
-                            name = row.name,
-                            isLoadingImpact = true,
-                        ),
-                        createDialog = null,
-                        editDialog = null,
-                        isCreating = false,
-                        isDeleting = false,
-                        isEditing = false,
-                        nextEpoch = newEpoch,
-                    ) to setOf(DatasourceEffect.LoadImpact(row.typeId))
-                }
-            }
-        }
-
-        Msg.CloseDeleteConfirm ->
-            state.copy(deleteConfirm = null) to emptySet()
-
-        is Msg.ImpactPreviewLoaded -> {
-            val dlg = state.deleteConfirm
-            if (dlg == null || dlg.typeId != message.typeId) {
-                // F124: stale preview (другой dialog активен или dialog закрыт).
-                state to emptySet()
-            } else state.copy(
-                deleteConfirm = dlg.copy(impact = message.impact, isLoadingImpact = false),
-            ) to emptySet()
-        }
-
-        is Msg.ImpactPreviewFailed -> {
-            // F144: если dialog закрыт user'ом in-flight — silent (no snackbar),
-            // т.к. UX-овой релевантности больше нет. Stale typeId (F124) тоже silent.
-            val dlg = state.deleteConfirm
-            if (dlg == null) {
-                state to emptySet()
-            } else if (dlg.typeId != message.typeId) {
-                state to emptySet()
-            } else {
+    ): Pair<ComponentsManagerScreenState, Set<Effect>> =
+        when (message) {
+            // ===== Lifecycle =====
+            is Msg.TypesLoaded ->
                 state.copy(
-                    deleteConfirm = dlg.copy(isLoadingImpact = false),
-                ) to setOf(UiEffect.Snackbar("Failed to load impact"))
-            }
-        }
+                    userDefinedTypes = message.snapshot.toRows(),
+                    isLoading = false,
+                ) to emptySet()
 
-        Msg.ConfirmDelete -> {
-            val dlg = state.deleteConfirm
-            when {
-                dlg == null -> state to emptySet()                   // guard: no dialog
-                state.isDeleting -> state to emptySet()              // guard: double-tap
-                dlg.isLoadingImpact -> state to emptySet()           // F102 guard
-                else ->
-                    state.copy(isDeleting = true) to setOf(
-                        DatasourceEffect.SoftDeleteComponent(
-                            epochId = dlg.epochId,
-                            typeId = dlg.typeId,
-                        )
+            is Msg.TypesLoadFailed ->
+                state.copy(isLoading = false) to
+                    setOf(
+                        UiEffect.Snackbar("Failed to load: ${message.cause.failureLabel()}"),
                     )
-            }
-        }
 
-        is Msg.DeleteResult -> {
-            val dlg = state.deleteConfirm
-            if (dlg != null && dlg.epochId != message.epochId) {
-                state to emptySet()                                  // F136 stale
-            } else when (val o = message.outcome) {
-                is DeleteOutcome.Success ->
-                    state.copy(isDeleting = false, deleteConfirm = null) to setOf(
-                        UiEffect.Snackbar("${o.impact.valueCount} values hidden")
-                    )
-                DeleteOutcome.BuiltInProtected ->
-                    state.copy(isDeleting = false, deleteConfirm = null) to setOf(
-                        UiEffect.Snackbar("Built-in protected")
-                    )
-                DeleteOutcome.Removed ->
-                    state.copy(isDeleting = false, deleteConfirm = null) to setOf(
-                        UiEffect.Snackbar("Component removed")
-                    )
-                // IS486: защита data-слоя от потери последнего включённого ядра (spec §7.8).
-                DeleteOutcome.LastEnabledCore ->
-                    state.copy(isDeleting = false, deleteConfirm = null) to setOf(
-                        UiEffect.Snackbar("Last enabled core component")
-                    )
-                is DeleteOutcome.Failure ->
-                    state.copy(isDeleting = false) to setOf(
-                        UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}")
-                    )
-            }
-        }
-
-        // ===== Edit dialog (phase 2) =====
-        is Msg.OpenEditDialog -> {
-            val row = state.userDefinedTypes?.firstOrNull { it.typeId == message.typeId }
-            if (row == null) {
-                state to emptySet()  // guard: row not found
-            } else {
-                // F138: 4-way mutual-exclusion. F140: is*ing reset.
+            // ===== Create dialog =====
+            Msg.OpenCreateDialog -> {
+                // F106: overwrite reset + F138: закрываем другие диалоги (4-way phase 2) +
+                // F140: is*ing флаги сброс.
                 val newEpoch = state.nextEpoch + 1
                 state.copy(
-                    editDialog = EditDialogState(
-                        epochId = newEpoch,
-                        typeId = row.typeId,
-                        originalName = row.name,
-                        originalTemplate = row.template,
-                        originalIsMultiple = row.isMultiple,
-                        name = row.name,
-                        template = row.template,
-                        isMultiple = row.isMultiple,
-                    ),
-                    createDialog = null,
+                    createDialog = CreateDialogState(epochId = newEpoch),
                     deleteConfirm = null,
+                    editDialog = null,
                     isCreating = false,
                     isDeleting = false,
                     isEditing = false,
                     nextEpoch = newEpoch,
                 ) to emptySet()
             }
-        }
 
-        Msg.CloseEditDialog ->
-            state.copy(editDialog = null, isEditing = false) to emptySet()
+            Msg.CloseCreateDialog ->
+                state.copy(createDialog = null) to emptySet()
 
-        is Msg.EditNameChange -> {
-            val dlg = state.editDialog
-            if (dlg == null) state to emptySet()
-            else state.copy(
-                editDialog = dlg.copy(name = message.name, nameError = null),
-            ) to emptySet()
-        }
-
-        is Msg.EditTemplateChange -> {
-            val dlg = state.editDialog
-            if (dlg == null) state to emptySet()
-            else state.copy(editDialog = dlg.copy(template = message.template)) to emptySet()
-        }
-
-        is Msg.EditMultiToggle -> {
-            val dlg = state.editDialog
-            if (dlg == null) state to emptySet()
-            else state.copy(
-                // F018 contract: меняем isMultiple — preview инвалидируется
-                // (UI/UseCase пересчитает на новом submit'е).
-                editDialog = dlg.copy(
-                    isMultiple = message.isMultiple,
-                    impactedLexemesPreview = null,
-                ),
-            ) to emptySet()
-        }
-
-        Msg.SubmitEdit -> {
-            val dlg = state.editDialog
-            when {
-                dlg == null -> state to emptySet()           // guard: no dialog
-                state.isEditing -> state to emptySet()       // F139 double-tap guard
-                dlg.name.trim().isBlank() ->
+            is Msg.CreateNameChange -> {
+                val dlg = state.createDialog
+                if (dlg == null) {
+                    state to emptySet()
+                } else {
                     state.copy(
-                        editDialog = dlg.copy(nameError = EditNameError.NameEmpty),
+                        createDialog = dlg.copy(name = message.value, nameError = null),
                     ) to emptySet()
-                else ->
-                    state.copy(isEditing = true) to setOf(
-                        DatasourceEffect.EditComponent(
-                            epochId = dlg.epochId,
-                            typeId = dlg.typeId,
-                            name = dlg.name,
-                            template = dlg.template,
-                            isMultiple = dlg.isMultiple,
-                        ),
-                    )
+                }
             }
-        }
 
-        is Msg.EditResult -> {
-            val dlg = state.editDialog
-            if (dlg != null && dlg.epochId != message.epochId) {
-                state to emptySet()                          // F136 stale
-            } else when (val o = message.outcome) {
-                is EditOutcome.Success ->
-                    state.copy(isEditing = false, editDialog = null) to setOf(
-                        UiEffect.Snackbar("Updated"),
-                    )
-                EditOutcome.NameEmpty ->
-                    if (dlg == null) {
-                        // F101 race: dialog closed during flight.
-                        state.copy(isEditing = false) to setOf(
-                            UiEffect.Snackbar("Name cannot be empty"),
-                        )
-                    } else {
+            is Msg.CreateTemplateChange -> {
+                val dlg = state.createDialog
+                if (dlg == null) {
+                    state to emptySet()
+                } else {
+                    state.copy(createDialog = dlg.copy(template = message.template)) to emptySet()
+                }
+            }
+
+            is Msg.CreateMultiToggle -> {
+                val dlg = state.createDialog
+                if (dlg == null) {
+                    state to emptySet()
+                } else {
+                    state.copy(createDialog = dlg.copy(isMultiple = message.isMultiple)) to emptySet()
+                }
+            }
+
+            is Msg.CreateScopeChange -> {
+                val dlg = state.createDialog
+                if (dlg == null) {
+                    state to emptySet()
+                } else {
+                    state.copy(
+                        createDialog = dlg.copy(
+                            scope = message.scope,
+                            // Phase 2: switching to Global clears multi-dict selection
+                            // (chips disappear, нечего хранить).
+                            selectedDictionaryIds = if (message.scope is Scope.Global) {
+                                emptySet()
+                            } else {
+                                dlg.selectedDictionaryIds
+                            },
+                        ),
+                    ) to emptySet()
+                }
+            }
+
+            Msg.SubmitCreate -> {
+                val dlg = state.createDialog
+                when {
+                    dlg == null -> state to emptySet() // guard: no dialog
+                    state.isCreating -> state to emptySet() // guard: double-tap
+                    dlg.name.isBlank() ->
                         state.copy(
+                            createDialog = dlg.copy(nameError = NameError.Empty),
+                        ) to emptySet()
+                    else -> {
+                        val effectiveScope = when (val s = dlg.scope) {
+                            Scope.Global -> s
+                            is Scope.PerDictionaries ->
+                                Scope.PerDictionaries(
+                                    dlg.selectedDictionaryIds.toList(),
+                                )
+                        }
+                        state.copy(isCreating = true) to
+                            setOf(
+                                DatasourceEffect.CreateComponent(
+                                    epochId = dlg.epochId,
+                                    name = dlg.name,
+                                    template = dlg.template,
+                                    isMultiple = dlg.isMultiple,
+                                    scope = effectiveScope,
+                                ),
+                            )
+                    }
+                }
+            }
+
+            is Msg.CreateResult -> {
+                val dlg = state.createDialog
+                if (dlg != null && dlg.epochId != message.epochId) {
+                    // F136: stale result — новый диалог уже открыт с другим epochId.
+                    state to emptySet()
+                } else {
+                    when (val o = message.outcome) {
+                        is CreateOutcome.Success ->
+                            state.copy(isCreating = false, createDialog = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Created ${o.created.size}"),
+                                )
+                        CreateOutcome.NameEmpty ->
+                            if (dlg == null) {
+                                // race close-during-flight (F101) — snackbar fallback
+                                state.copy(isCreating = false) to
+                                    setOf(
+                                        UiEffect.Snackbar("Name cannot be empty"),
+                                    )
+                            } else {
+                                state.copy(
+                                    isCreating = false,
+                                    createDialog = dlg.copy(nameError = NameError.Empty),
+                                ) to emptySet()
+                            }
+                        CreateOutcome.SameScopeCollision ->
+                            if (dlg == null) {
+                                state.copy(isCreating = false) to
+                                    setOf(
+                                        UiEffect.Snackbar("Name already taken in this scope"),
+                                    )
+                            } else {
+                                state.copy(
+                                    isCreating = false,
+                                    createDialog = dlg.copy(
+                                        nameError = NameError.SameScopeCollision,
+                                    ),
+                                ) to emptySet()
+                            }
+                        CreateOutcome.CrossScopeCollision ->
+                            if (dlg == null) {
+                                state.copy(isCreating = false) to
+                                    setOf(
+                                        UiEffect.Snackbar("Name conflicts across scopes"),
+                                    )
+                            } else {
+                                state.copy(
+                                    isCreating = false,
+                                    createDialog = dlg.copy(
+                                        nameError = NameError.CrossScopeCollision,
+                                    ),
+                                ) to emptySet()
+                            }
+                        is CreateOutcome.Failure ->
+                            state.copy(isCreating = false) to
+                                setOf(
+                                    UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}"),
+                                )
+                    }
+                }
+            }
+
+            // ===== Delete confirm =====
+            is Msg.OpenDeleteConfirm -> {
+                val row = state.userDefinedTypes?.firstOrNull { it.typeId == message.typeId }
+                when {
+                    row == null -> state to emptySet() // guard: row not found
+                    state.deleteConfirm?.typeId == message.typeId ->
+                        // F132 narrow: тот же typeId — не пересоздаём (избегаем повторного LoadImpact).
+                        state to emptySet()
+                    else -> {
+                        // F138: 4-way mutual-exclusion (phase 2). F140: is*ing reset.
+                        val newEpoch = state.nextEpoch + 1
+                        state.copy(
+                            deleteConfirm = DeleteConfirmState(
+                                epochId = newEpoch,
+                                typeId = row.typeId,
+                                name = row.name,
+                                isLoadingImpact = true,
+                            ),
+                            createDialog = null,
+                            editDialog = null,
+                            isCreating = false,
+                            isDeleting = false,
                             isEditing = false,
+                            nextEpoch = newEpoch,
+                        ) to setOf(DatasourceEffect.LoadImpact(row.typeId))
+                    }
+                }
+            }
+
+            Msg.CloseDeleteConfirm ->
+                state.copy(deleteConfirm = null) to emptySet()
+
+            is Msg.ImpactPreviewLoaded -> {
+                val dlg = state.deleteConfirm
+                if (dlg == null || dlg.typeId != message.typeId) {
+                    // F124: stale preview (другой dialog активен или dialog закрыт).
+                    state to emptySet()
+                } else {
+                    state.copy(
+                        deleteConfirm = dlg.copy(impact = message.impact, isLoadingImpact = false),
+                    ) to emptySet()
+                }
+            }
+
+            is Msg.ImpactPreviewFailed -> {
+                // F144: если dialog закрыт user'ом in-flight — silent (no snackbar),
+                // т.к. UX-овой релевантности больше нет. Stale typeId (F124) тоже silent.
+                val dlg = state.deleteConfirm
+                if (dlg == null) {
+                    state to emptySet()
+                } else if (dlg.typeId != message.typeId) {
+                    state to emptySet()
+                } else {
+                    state.copy(
+                        deleteConfirm = dlg.copy(isLoadingImpact = false),
+                    ) to setOf(UiEffect.Snackbar("Failed to load impact"))
+                }
+            }
+
+            Msg.ConfirmDelete -> {
+                val dlg = state.deleteConfirm
+                when {
+                    dlg == null -> state to emptySet() // guard: no dialog
+                    state.isDeleting -> state to emptySet() // guard: double-tap
+                    dlg.isLoadingImpact -> state to emptySet() // F102 guard
+                    else ->
+                        state.copy(isDeleting = true) to
+                            setOf(
+                                DatasourceEffect.SoftDeleteComponent(
+                                    epochId = dlg.epochId,
+                                    typeId = dlg.typeId,
+                                ),
+                            )
+                }
+            }
+
+            is Msg.DeleteResult -> {
+                val dlg = state.deleteConfirm
+                if (dlg != null && dlg.epochId != message.epochId) {
+                    state to emptySet() // F136 stale
+                } else {
+                    when (val o = message.outcome) {
+                        is DeleteOutcome.Success ->
+                            state.copy(isDeleting = false, deleteConfirm = null) to
+                                setOf(
+                                    UiEffect.Snackbar("${o.impact.valueCount} values hidden"),
+                                )
+                        DeleteOutcome.BuiltInProtected ->
+                            state.copy(isDeleting = false, deleteConfirm = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Built-in protected"),
+                                )
+                        DeleteOutcome.Removed ->
+                            state.copy(isDeleting = false, deleteConfirm = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Component removed"),
+                                )
+                        // IS486: защита data-слоя от потери последнего включённого ядра (spec §7.8).
+                        DeleteOutcome.LastEnabledCore ->
+                            state.copy(isDeleting = false, deleteConfirm = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Last enabled core component"),
+                                )
+                        is DeleteOutcome.Failure ->
+                            state.copy(isDeleting = false) to
+                                setOf(
+                                    UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}"),
+                                )
+                    }
+                }
+            }
+
+            // ===== Edit dialog (phase 2) =====
+            is Msg.OpenEditDialog -> {
+                val row = state.userDefinedTypes?.firstOrNull { it.typeId == message.typeId }
+                if (row == null) {
+                    state to emptySet() // guard: row not found
+                } else {
+                    // F138: 4-way mutual-exclusion. F140: is*ing reset.
+                    val newEpoch = state.nextEpoch + 1
+                    state.copy(
+                        editDialog = EditDialogState(
+                            epochId = newEpoch,
+                            typeId = row.typeId,
+                            originalName = row.name,
+                            originalTemplate = row.template,
+                            originalIsMultiple = row.isMultiple,
+                            name = row.name,
+                            template = row.template,
+                            isMultiple = row.isMultiple,
+                        ),
+                        createDialog = null,
+                        deleteConfirm = null,
+                        isCreating = false,
+                        isDeleting = false,
+                        isEditing = false,
+                        nextEpoch = newEpoch,
+                    ) to emptySet()
+                }
+            }
+
+            Msg.CloseEditDialog ->
+                state.copy(editDialog = null, isEditing = false) to emptySet()
+
+            is Msg.EditNameChange -> {
+                val dlg = state.editDialog
+                if (dlg == null) {
+                    state to emptySet()
+                } else {
+                    state.copy(
+                        editDialog = dlg.copy(name = message.name, nameError = null),
+                    ) to emptySet()
+                }
+            }
+
+            is Msg.EditTemplateChange -> {
+                val dlg = state.editDialog
+                if (dlg == null) {
+                    state to emptySet()
+                } else {
+                    state.copy(editDialog = dlg.copy(template = message.template)) to emptySet()
+                }
+            }
+
+            is Msg.EditMultiToggle -> {
+                val dlg = state.editDialog
+                if (dlg == null) {
+                    state to emptySet()
+                } else {
+                    state.copy(
+                        // F018 contract: меняем isMultiple — preview инвалидируется
+                        // (UI/UseCase пересчитает на новом submit'е).
+                        editDialog = dlg.copy(
+                            isMultiple = message.isMultiple,
+                            impactedLexemesPreview = null,
+                        ),
+                    ) to emptySet()
+                }
+            }
+
+            Msg.SubmitEdit -> {
+                val dlg = state.editDialog
+                when {
+                    dlg == null -> state to emptySet() // guard: no dialog
+                    state.isEditing -> state to emptySet() // F139 double-tap guard
+                    dlg.name.trim().isBlank() ->
+                        state.copy(
                             editDialog = dlg.copy(nameError = EditNameError.NameEmpty),
                         ) to emptySet()
-                    }
-                EditOutcome.SameScopeCollision ->
-                    if (dlg == null) {
-                        state.copy(isEditing = false) to setOf(
-                            UiEffect.Snackbar("Name already taken in this scope"),
-                        )
-                    } else {
-                        state.copy(
-                            isEditing = false,
-                            editDialog = dlg.copy(nameError = EditNameError.SameScopeCollision),
-                        ) to emptySet()
-                    }
-                EditOutcome.CrossScopeCollision ->
-                    if (dlg == null) {
-                        state.copy(isEditing = false) to setOf(
-                            UiEffect.Snackbar("Name conflicts across scopes"),
-                        )
-                    } else {
-                        state.copy(
-                            isEditing = false,
-                            editDialog = dlg.copy(nameError = EditNameError.CrossScopeCollision),
-                        ) to emptySet()
-                    }
-                is EditOutcome.CardinalityDowngradeBlocked -> {
-                    if (dlg == null) {
-                        state.copy(isEditing = false) to setOf(
-                            UiEffect.Snackbar("Cardinality downgrade blocked"),
-                        )
-                    } else {
-                        val preview = if (o.impactedLexemeIds.size <= 3) {
-                            ImpactedLexemesPreview.InlineOnly(o.impactedLexemeIds)
-                        } else {
-                            ImpactedLexemesPreview.InlineWithDrillIn(
-                                impactedLexemeIds = o.impactedLexemeIds,
-                                inlineIds = o.impactedLexemeIds.take(3),
+                    else ->
+                        state.copy(isEditing = true) to
+                            setOf(
+                                DatasourceEffect.EditComponent(
+                                    epochId = dlg.epochId,
+                                    typeId = dlg.typeId,
+                                    name = dlg.name,
+                                    template = dlg.template,
+                                    isMultiple = dlg.isMultiple,
+                                ),
                             )
+                }
+            }
+
+            is Msg.EditResult -> {
+                val dlg = state.editDialog
+                if (dlg != null && dlg.epochId != message.epochId) {
+                    state to emptySet() // F136 stale
+                } else {
+                    when (val o = message.outcome) {
+                        is EditOutcome.Success ->
+                            state.copy(isEditing = false, editDialog = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Updated"),
+                                )
+                        EditOutcome.NameEmpty ->
+                            if (dlg == null) {
+                                // F101 race: dialog closed during flight.
+                                state.copy(isEditing = false) to
+                                    setOf(
+                                        UiEffect.Snackbar("Name cannot be empty"),
+                                    )
+                            } else {
+                                state.copy(
+                                    isEditing = false,
+                                    editDialog = dlg.copy(nameError = EditNameError.NameEmpty),
+                                ) to emptySet()
+                            }
+                        EditOutcome.SameScopeCollision ->
+                            if (dlg == null) {
+                                state.copy(isEditing = false) to
+                                    setOf(
+                                        UiEffect.Snackbar("Name already taken in this scope"),
+                                    )
+                            } else {
+                                state.copy(
+                                    isEditing = false,
+                                    editDialog = dlg.copy(nameError = EditNameError.SameScopeCollision),
+                                ) to emptySet()
+                            }
+                        EditOutcome.CrossScopeCollision ->
+                            if (dlg == null) {
+                                state.copy(isEditing = false) to
+                                    setOf(
+                                        UiEffect.Snackbar("Name conflicts across scopes"),
+                                    )
+                            } else {
+                                state.copy(
+                                    isEditing = false,
+                                    editDialog = dlg.copy(nameError = EditNameError.CrossScopeCollision),
+                                ) to emptySet()
+                            }
+                        is EditOutcome.CardinalityDowngradeBlocked -> {
+                            if (dlg == null) {
+                                state.copy(isEditing = false) to
+                                    setOf(
+                                        UiEffect.Snackbar("Cardinality downgrade blocked"),
+                                    )
+                            } else {
+                                val preview = if (o.impactedLexemeIds.size <= 3) {
+                                    ImpactedLexemesPreview.InlineOnly(o.impactedLexemeIds)
+                                } else {
+                                    ImpactedLexemesPreview.InlineWithDrillIn(
+                                        impactedLexemeIds = o.impactedLexemeIds,
+                                        inlineIds = o.impactedLexemeIds.take(3),
+                                    )
+                                }
+                                state.copy(
+                                    isEditing = false,
+                                    editDialog = dlg.copy(impactedLexemesPreview = preview),
+                                ) to emptySet()
+                            }
                         }
-                        state.copy(
-                            isEditing = false,
-                            editDialog = dlg.copy(impactedLexemesPreview = preview),
-                        ) to emptySet()
+                        // IS486: manager не задаёт dependsOn/CHOICE — ветки достижимы только через
+                        // data-слой напрямую; закрываем диалог со снеком (spec §7.5, §7.8, §8).
+                        EditOutcome.CycleDetected ->
+                            state.copy(isEditing = false, editDialog = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Dependency cycle detected"),
+                                )
+                        EditOutcome.MultiForbiddenForChoice ->
+                            state.copy(isEditing = false, editDialog = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Multiple values forbidden for choice"),
+                                )
+                        EditOutcome.LastEnabledCore ->
+                            state.copy(isEditing = false, editDialog = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Last enabled core component"),
+                                )
+                        EditOutcome.TemplateImmutable ->
+                            state.copy(isEditing = false, editDialog = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Template cannot be changed"),
+                                )
+                        EditOutcome.BuiltInProtected ->
+                            state.copy(isEditing = false, editDialog = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Built-in protected"),
+                                )
+                        EditOutcome.Removed ->
+                            state.copy(isEditing = false, editDialog = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Component removed"),
+                                )
+                        is EditOutcome.Failure ->
+                            state.copy(isEditing = false, editDialog = null) to
+                                setOf(
+                                    UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}"),
+                                )
                     }
                 }
-                // IS486: manager не задаёт dependsOn/CHOICE — ветки достижимы только через
-                // data-слой напрямую; закрываем диалог со снеком (spec §7.5, §7.8, §8).
-                EditOutcome.CycleDetected ->
-                    state.copy(isEditing = false, editDialog = null) to setOf(
-                        UiEffect.Snackbar("Dependency cycle detected"),
-                    )
-                EditOutcome.MultiForbiddenForChoice ->
-                    state.copy(isEditing = false, editDialog = null) to setOf(
-                        UiEffect.Snackbar("Multiple values forbidden for choice"),
-                    )
-                EditOutcome.LastEnabledCore ->
-                    state.copy(isEditing = false, editDialog = null) to setOf(
-                        UiEffect.Snackbar("Last enabled core component"),
-                    )
-                EditOutcome.TemplateImmutable ->
-                    state.copy(isEditing = false, editDialog = null) to setOf(
-                        UiEffect.Snackbar("Template cannot be changed"),
-                    )
-                EditOutcome.BuiltInProtected ->
-                    state.copy(isEditing = false, editDialog = null) to setOf(
-                        UiEffect.Snackbar("Built-in protected"),
-                    )
-                EditOutcome.Removed ->
-                    state.copy(isEditing = false, editDialog = null) to setOf(
-                        UiEffect.Snackbar("Component removed"),
-                    )
-                is EditOutcome.Failure ->
-                    state.copy(isEditing = false, editDialog = null) to setOf(
-                        UiEffect.Snackbar("Failed: ${o.cause.failureLabel()}"),
-                    )
             }
-        }
 
-        // ===== Multi-dict scope picker (phase 2) =====
-        is Msg.CreateDictionaryToggle -> {
-            val dlg = state.createDialog
-            if (dlg == null) state to emptySet()
-            else {
-                val current = dlg.selectedDictionaryIds
-                val updated = if (message.dictionaryId in current) {
-                    current - message.dictionaryId
+            // ===== Multi-dict scope picker (phase 2) =====
+            is Msg.CreateDictionaryToggle -> {
+                val dlg = state.createDialog
+                if (dlg == null) {
+                    state to emptySet()
                 } else {
-                    current + message.dictionaryId
+                    val current = dlg.selectedDictionaryIds
+                    val updated = if (message.dictionaryId in current) {
+                        current - message.dictionaryId
+                    } else {
+                        current + message.dictionaryId
+                    }
+                    state.copy(
+                        createDialog = dlg.copy(selectedDictionaryIds = updated),
+                    ) to emptySet()
+                }
+            }
+
+            is Msg.DictionariesLoaded -> {
+                // F030 invariant: editDialog НЕ мутируется.
+                val newIds = message.dictionaries.map { it.id }.toSet()
+                val updatedCreate = state.createDialog?.let { c ->
+                    c.copy(selectedDictionaryIds = c.selectedDictionaryIds.intersect(newIds))
                 }
                 state.copy(
-                    createDialog = dlg.copy(selectedDictionaryIds = updated),
+                    availableDictionaries = message.dictionaries,
+                    createDialog = updatedCreate,
                 ) to emptySet()
             }
+
+            // ===== Navigation =====
+            Msg.RequestBack -> state to setOf(NavigationEffect.Back)
+
+            // ===== Snackbar (F123) =====
+            is UiMsg.Snackbar -> state.copy(snackbarState = SnackbarState(message.text)) to emptySet()
+            Msg.DismissSnackbar -> state.copy(snackbarState = null) to emptySet()
+
+            // ===== Retry on error state (F163) =====
+            // Инкремент loadGeneration ломает equality подписки AllTypes —
+            // дифф раннера гасит упавшую и стартует новую.
+            Msg.OnRetryClick ->
+                state.copy(
+                    isLoading = true,
+                    loadGeneration = state.loadGeneration + 1,
+                ) to emptySet()
+
+            // ===== No-op =====
+            Msg.Empty -> state to emptySet()
         }
-
-        is Msg.DictionariesLoaded -> {
-            // F030 invariant: editDialog НЕ мутируется.
-            val newIds = message.dictionaries.map { it.id }.toSet()
-            val updatedCreate = state.createDialog?.let { c ->
-                c.copy(selectedDictionaryIds = c.selectedDictionaryIds.intersect(newIds))
-            }
-            state.copy(
-                availableDictionaries = message.dictionaries,
-                createDialog = updatedCreate,
-            ) to emptySet()
-        }
-
-        // ===== Navigation =====
-        Msg.RequestBack -> state to setOf(NavigationEffect.Back)
-
-        // ===== Snackbar (F123) =====
-        is UiMsg.Snackbar -> state.copy(snackbarState = SnackbarState(message.text)) to emptySet()
-        Msg.DismissSnackbar -> state.copy(snackbarState = null) to emptySet()
-
-        // ===== Retry on error state (F163) =====
-        Msg.OnRetryClick ->
-            state.copy(isLoading = true) to setOf(DatasourceEffect.LoadAllUserDefinedTypes)
-
-        // ===== No-op =====
-        Msg.Empty -> state to emptySet()
-    }
 }

@@ -41,9 +41,8 @@ import me.apomazkin.ui.preview.PreviewScreen
 @Composable
 fun SettingsTabScreen(
     factory: SettingsTabViewModel.Factory,
-    navigator: SettingsNavigator,
     viewModel: SettingsTabViewModel = viewModel(
-        factory = viewModelFactory { factory.create(navigator) },
+        factory = viewModelFactory { factory.create() },
     ),
 ) {
     val state: SettingsTabState by viewModel.state.collectAsStateWithLifecycle()

@@ -1,11 +1,11 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.group.DeleteGroupOutcome
-import me.apomazkin.group.DisplayNode
-import me.apomazkin.group.DisplayTree
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
+import me.apomazkin.group.DeleteGroupOutcome
+import me.apomazkin.group.DisplayNode
+import me.apomazkin.group.DisplayTree
 import me.apomazkin.wordrow.entity.TermUiItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,7 +20,6 @@ import java.util.Date
  * следующими Msg — до завершения сценария.
  */
 class GroupsTabScenarioTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
     private var state = GroupsTabState()
@@ -64,20 +63,22 @@ class GroupsTabScenarioTest {
         },
     )
 
-    private fun term(id: Long) = TermUiItem(
-        id = id,
-        wordValue = "w$id",
-        dictionaryId = 1L,
-        addDate = Date(0),
-    )
+    private fun term(id: Long) =
+        TermUiItem(
+            id = id,
+            wordValue = "w$id",
+            dictionaryId = 1L,
+            addDate = Date(0),
+        )
 
     // === Сценарий 1: создание группы — дубль, исправление, успех ===
 
     @Test
     fun `scenario - create group with duplicate then fix`() {
-        // Вход на вкладку: словарь отрезолвлен.
-        val subscribeEffects = send(Msg.DictionaryChanged(1L))
-        assertTrue(GroupsEffect.SubscribeSlice(1L) in subscribeEffects)
+        // Вход на вкладку: словарь отрезолвлен. Э4: подписку Slice
+        // включит дифф subscriptions() — эффектов нет.
+        assertTrue(send(Msg.DictionaryChanged(1L)).isEmpty())
+        assertTrue(GroupsSub.Slice(1L) in state.subscriptions())
         assertTrue(state.isLoading)
 
         // «Handler»: первая эмиссия combine — одна группа «Дом».
@@ -174,28 +175,31 @@ class GroupsTabScenarioTest {
         send(Msg.SliceLoaded(tree(groups = emptyList(), wordIds = (12L downTo 1L).toList())))
         assertEquals(12, requireNotNull(state.allNode).count)
 
-        // Раскрытие: окно = CHUNK_SIZE.
-        val expandEffects = send(Msg.ToggleAll)
-        assertEquals(setOf<Effect>(GroupsEffect.SetWindow(CHUNK_SIZE)), expandEffects)
+        // Раскрытие: окно = CHUNK_SIZE — подписка AllWindow через дифф.
+        assertTrue(send(Msg.ToggleAll).isEmpty())
+        assertTrue(GroupsSub.AllWindow(1L, limit = CHUNK_SIZE) in state.subscriptions())
         // «Handler»: эмиссия окна — первые 10.
         send(Msg.WindowLoaded((12L downTo 3L).map { term(it) }))
         val afterFirst = requireNotNull(state.allNode)
         assertEquals(10, afterFirst.loadedWords.size)
         assertTrue(afterFirst.hasMore)
 
-        // «Ещё»: окно шире.
-        val moreEffects = send(Msg.LoadMore)
-        assertEquals(setOf<Effect>(GroupsEffect.SetWindow(CHUNK_SIZE * 2)), moreEffects)
+        // «Ещё»: окно шире — дифф перезапустит подписку с новым лимитом.
+        assertTrue(send(Msg.LoadMore).isEmpty())
+        assertTrue(GroupsSub.AllWindow(1L, limit = CHUNK_SIZE * 2) in state.subscriptions())
         send(Msg.WindowLoaded((12L downTo 1L).map { term(it) }))
         val afterMore = requireNotNull(state.allNode)
         assertEquals(12, afterMore.loadedWords.size)
         assertFalse(afterMore.hasMore)
 
-        // Вставка слова: рост count → компенсация окна (+1).
-        val widenEffects = send(
-            Msg.SliceLoaded(tree(groups = emptyList(), wordIds = (13L downTo 1L).toList()))
+        // Вставка слова: рост count → компенсация окна (+1) — лимит
+        // подписки вырастет тем же диффом.
+        assertTrue(
+            send(
+                Msg.SliceLoaded(tree(groups = emptyList(), wordIds = (13L downTo 1L).toList())),
+            ).isEmpty(),
         )
-        assertEquals(setOf<Effect>(GroupsEffect.SetWindow(CHUNK_SIZE * 2 + 1)), widenEffects)
+        assertTrue(GroupsSub.AllWindow(1L, limit = CHUNK_SIZE * 2 + 1) in state.subscriptions())
         // «Handler»: живое окно доэмитило вставленное слово.
         send(Msg.WindowLoaded((13L downTo 1L).map { term(it) }))
         assertEquals(13, requireNotNull(state.allNode).loadedWords.size)
@@ -213,9 +217,13 @@ class GroupsTabScenarioTest {
         send(Msg.OpenCreateSheet)
         send(Msg.SheetInputChanged("Д"))
 
-        val switchEffects = send(Msg.DictionaryChanged(2L))
-        assertTrue(GroupsEffect.SubscribeSlice(2L) in switchEffects)
-        assertTrue(GroupsEffect.SetWindow(limit = null) in switchEffects)
+        // Э4: эффектов нет — старые подписки гаснут, slice нового
+        // словаря включается диффом subscriptions().
+        assertTrue(send(Msg.DictionaryChanged(2L)).isEmpty())
+        assertEquals(
+            setOf(GroupsSub.CurrentDict, GroupsSub.Slice(2L)),
+            state.subscriptions(),
+        )
         assertTrue(state.isLoading)
         assertEquals(null, state.sheet)
         assertEquals(null, state.allNode)
@@ -239,17 +247,20 @@ class GroupsTabScenarioTest {
                 treeCounted(
                     groups = listOf(Triple(5L, "Быт", 3), Triple(6L, "Дом", 0)),
                     wordIds = listOf(3L, 2L, 1L),
-                )
-            )
+                ),
+            ),
         )
 
-        // Раскрываем обе: 5 — окно, 6 — «пусто» без подписки.
-        val openEffects = send(Msg.ToggleGroup(5L))
-        assertEquals(
-            setOf<Effect>(GroupsEffect.SetGroupWindow(groupId = 5, limit = CHUNK_SIZE)),
-            openEffects,
+        // Раскрываем обе: 5 — окно (подписка через дифф), 6 — «пусто»
+        // без подписки (window=0 не попадает в набор).
+        assertTrue(send(Msg.ToggleGroup(5L)).isEmpty())
+        assertTrue(
+            GroupsSub.GroupWindow(groupId = 5, limit = CHUNK_SIZE) in state.subscriptions(),
         )
         assertTrue(send(Msg.ToggleGroup(6L)).isEmpty())
+        assertTrue(
+            state.subscriptions().none { it is GroupsSub.GroupWindow && it.groupId == 6L },
+        )
 
         // «Handler»: эмиссия окна группы 5 — чужого окна не касается.
         send(Msg.GroupWindowLoaded(5L, listOf(term(3), term(2), term(1))))
@@ -258,19 +269,22 @@ class GroupsTabScenarioTest {
 
         // Live add: слово попало в ПУСТУЮ раскрытую группу 6 — окно
         // автооткрывается (D21.1), окно группы 5 растёт на дельту? нет —
-        // её count не менялся.
-        val sliceEffects = send(
+        // её count не менялся. Подписки включает/держит дифф.
+        send(
             Msg.SliceLoaded(
                 treeCounted(
                     groups = listOf(Triple(5L, "Быт", 3), Triple(6L, "Дом", 1)),
                     wordIds = listOf(4L, 3L, 2L, 1L),
-                )
-            )
+                ),
+            ),
         )
         assertTrue(
-            GroupsEffect.SetGroupWindow(groupId = 6, limit = CHUNK_SIZE) in sliceEffects,
+            GroupsSub.GroupWindow(groupId = 6, limit = CHUNK_SIZE) in state.subscriptions(),
         )
-        assertTrue(sliceEffects.none { it == GroupsEffect.SetGroupWindow(groupId = 5, limit = CHUNK_SIZE + 3) })
+        // Окно 5 не расширилось — в наборе тот же лимит (перезапуска нет).
+        assertTrue(
+            GroupsSub.GroupWindow(groupId = 5, limit = CHUNK_SIZE) in state.subscriptions(),
+        )
         assertEquals(CHUNK_SIZE, requireNotNull(state.expandedGroupWindows[6L]).window)
 
         // «Handler»: окно 6 доэмитило контент.
@@ -280,17 +294,17 @@ class GroupsTabScenarioTest {
         assertFalse(win6.hasMore)
 
         // Снятие последнего слова из 6 под открытым окном — окно
-        // закрывается в заглушку «пусто».
-        val shrinkEffects = send(
+        // закрывается в заглушку «пусто», подписка уходит из набора.
+        send(
             Msg.SliceLoaded(
                 treeCounted(
                     groups = listOf(Triple(5L, "Быт", 3), Triple(6L, "Дом", 0)),
                     wordIds = listOf(4L, 3L, 2L, 1L),
-                )
-            )
+                ),
+            ),
         )
         assertTrue(
-            GroupsEffect.SetGroupWindow(groupId = 6, limit = null) in shrinkEffects,
+            state.subscriptions().none { it is GroupsSub.GroupWindow && it.groupId == 6L },
         )
         assertEquals(0, requireNotNull(state.expandedGroupWindows[6L]).window)
         // Окно группы 5 всё это пережило нетронутым.
@@ -308,12 +322,13 @@ class GroupsTabScenarioTest {
         // со снятой галкой, ничего не удалено.
         send(Msg.RequestDelete(groupId = 5))
         send(Msg.ToggleDeleteWords)
+        // Галка стоит, счётчик тикает — тикер-подписка в наборе (Э4).
+        assertTrue(GroupsSub.DeleteCountdown(groupId = 5) in state.subscriptions())
         // Подтверждение ВО ВРЕМЯ счётчика — no-op.
         assertTrue(send(Msg.ConfirmDelete).isEmpty())
-        assertEquals(
-            setOf<Effect>(GroupsEffect.CancelDeleteCountdown),
-            send(Msg.DismissDelete),
-        )
+        // Dismiss: эффектов нет, тикер гаснет диффом (конфирма нет).
+        assertTrue(send(Msg.DismissDelete).isEmpty())
+        assertTrue(state.subscriptions().none { it is GroupsSub.DeleteCountdown })
         assertEquals(null, state.confirmDelete)
         send(Msg.RequestDelete(groupId = 5))
         assertEquals(ConfirmDeleteState(groupId = 5), state.confirmDelete)
@@ -329,8 +344,12 @@ class GroupsTabScenarioTest {
         // «Handler»: подписка перерисовала без группы.
         send(
             Msg.DeleteWithWordsOutcomeMsg(
-                me.apomazkin.group.DeleteGroupWithWordsOutcome.Success(3),
-            )
+                me
+                    .apomazkin
+                    .group
+                    .DeleteGroupWithWordsOutcome
+                    .Success(3),
+            ),
         )
         send(Msg.SliceLoaded(treeCounted(groups = emptyList())))
         assertTrue(state.groups.isEmpty())

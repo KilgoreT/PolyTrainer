@@ -19,7 +19,6 @@ import me.apomazkin.lexeme.UserDefinedTypesSnapshot
  * на data-слое; см. ui_placement.md § Общий view).
  */
 interface ComponentsManagerUseCase {
-
     /**
      * Реактивная подписка на все user-defined component_types + aggregated usage.
      * Один dedicated snapshot — без N+1 запросов из reducer.

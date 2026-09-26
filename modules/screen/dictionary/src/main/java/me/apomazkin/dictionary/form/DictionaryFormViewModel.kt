@@ -6,34 +6,26 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import io.github.kilgoret.mate.Mate
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
+import io.github.kilgoret.mate.navigation.MateNavigationHandler
+import me.apomazkin.dictionary.DictionaryUseCase
 
+/**
+ * VM формы словаря: тонкая обёртка над [DictionaryFormAssembly] —
+ * сборка раннера живёт там (общая с харнесом), VM даёт только
+ * viewModelScope и продовые зависимости.
+ */
 class DictionaryFormViewModel @AssistedInject constructor(
     @Assisted editingDictionaryId: Long?,
-    @Assisted navigator: FormNavigator,
-    datasourceHandler: DictionaryFormEffectHandler,
-    flagFilterHandler: FlagFilterFlowHandler,
-    navHandlerFactory: FormNavigationEffectHandler.Factory,
-) : ViewModel(), MateStateHolder<DictionaryFormScreenState, DictionaryFormMsg> {
+    useCase: DictionaryUseCase,
+    navigationHandler: MateNavigationHandler,
+) : ViewModel(), MateStore<DictionaryFormScreenState, DictionaryFormMsg> {
 
-    private val stateHolder = Mate(
-        initState = DictionaryFormScreenState(
-            editingDictionaryId = editingDictionaryId,
-        ),
-        initEffects = if (editingDictionaryId != null) {
-            setOf(DictionaryFormEffect.LoadDictionary(editingDictionaryId))
-        } else {
-            emptySet()
-        },
+    private val stateHolder = DictionaryFormAssembly.create(
+        useCase = useCase,
+        navigationHandler = navigationHandler,
+        editingDictionaryId = editingDictionaryId,
         coroutineScope = viewModelScope,
-        reducer = DictionaryFormReducer(),
-        effectHandlers = listOf(
-            datasourceHandler,
-            flagFilterHandler,
-            navHandlerFactory.create(navigator),
-        ),
-        flowHandlers = listOf(flagFilterHandler),
     )
 
     override val state: StateFlow<DictionaryFormScreenState>
@@ -45,7 +37,6 @@ class DictionaryFormViewModel @AssistedInject constructor(
     interface Factory {
         fun create(
             editingDictionaryId: Long?,
-            navigator: FormNavigator,
         ): DictionaryFormViewModel
     }
 }

@@ -56,7 +56,7 @@ internal fun TopBarWidget(
             ) {
                 DeleteWordMenuItem(onDeleteClick = onDeleteWord)
             }
-        }
+        },
     )
 }
 

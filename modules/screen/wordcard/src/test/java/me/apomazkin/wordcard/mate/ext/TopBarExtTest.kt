@@ -13,7 +13,6 @@ import org.junit.Test
  * Tests for showMenu / hideMenu top-bar extensions.
  */
 class TopBarExtTest {
-
     @Test
     fun `showMenu sets isMenuOpen true`() {
         val initial = WordCardState(

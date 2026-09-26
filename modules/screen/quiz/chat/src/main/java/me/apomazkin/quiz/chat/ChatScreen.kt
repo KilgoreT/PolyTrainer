@@ -30,9 +30,8 @@ import me.apomazkin.ui.preview.PreviewScreen
 @Composable
 fun ChatScreen(
         factory: ChatViewModel.Factory,
-        navigator: ChatNavigator,
         viewModel: ChatViewModel = viewModel(
-                factory = viewModelFactory { factory.create(navigator) },
+                factory = viewModelFactory { factory.create() },
         ),
 ) {
     val state: ChatScreenState by viewModel.state.collectAsStateWithLifecycle()

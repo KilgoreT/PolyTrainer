@@ -1,9 +1,9 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.group.DeleteGroupOutcome
-import me.apomazkin.group.DeleteGroupWithWordsOutcome
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
+import me.apomazkin.group.DeleteGroupOutcome
+import me.apomazkin.group.DeleteGroupWithWordsOutcome
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -15,7 +15,6 @@ import org.junit.Test
  * деструктив, guard'ы гонок.
  */
 class GroupDeleteReducerTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
     private fun baseState(
@@ -60,16 +59,21 @@ class GroupDeleteReducerTest {
         val onState = requireNotNull(on.state().confirmDelete)
         assertTrue(onState.deleteWords)
         assertEquals(DELETE_COUNTDOWN_SEC, onState.countdownLeft)
-        assertEquals(
-            setOf(GroupsEffect.StartDeleteCountdown(seconds = DELETE_COUNTDOWN_SEC)),
-            on.effects(),
+        // Э4: тикер-подписку включит дифф subscriptions(), эффектов нет.
+        assertTrue(on.effects().isEmpty())
+        assertTrue(
+            GroupsSub.DeleteCountdown(groupId = 5) in on.state().subscriptions(),
         )
 
         val off = reducer.reduce(on.state(), Msg.ToggleDeleteWords)
         val offState = requireNotNull(off.state().confirmDelete)
         assertFalse(offState.deleteWords)
         assertEquals(0, offState.countdownLeft)
-        assertEquals(setOf(GroupsEffect.CancelDeleteCountdown), off.effects())
+        // Снятие галки гасит тикер тем же диффом — эффектов нет.
+        assertTrue(off.effects().isEmpty())
+        assertTrue(
+            off.state().subscriptions().none { it is GroupsSub.DeleteCountdown },
+        )
     }
 
     @Test
@@ -181,8 +185,8 @@ class GroupDeleteReducerTest {
         val result = reducer.reduce(confirm, Msg.DismissDelete)
 
         assertEquals(null, result.state().confirmDelete)
-        // Э6: dismiss гасит возможные тики; эффектов УДАЛЕНИЯ нет.
-        assertEquals(setOf(GroupsEffect.CancelDeleteCountdown), result.effects())
+        // Э4: тикер (если был) гасит дифф — конфирм ушёл; эффектов нет.
+        assertTrue(result.effects().isEmpty())
     }
 
     @Test
@@ -194,8 +198,11 @@ class GroupDeleteReducerTest {
         val result = reducer.reduce(checked, Msg.DismissDelete)
 
         assertEquals(null, result.state().confirmDelete)
-        // Единственный эффект — гашение тиков; удаления НЕТ.
-        assertEquals(setOf(GroupsEffect.CancelDeleteCountdown), result.effects())
+        // Эффектов НЕТ (удаления — тем более); тикер погаснет диффом.
+        assertTrue(result.effects().isEmpty())
+        assertTrue(
+            result.state().subscriptions().none { it is GroupsSub.DeleteCountdown },
+        )
     }
 
     // === Итоги удалений ===

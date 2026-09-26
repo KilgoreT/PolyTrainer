@@ -16,6 +16,12 @@ import me.apomazkin.wordrow.entity.TermUiItem
  * data-слоя, §2.4).
  */
 interface GroupsTabUseCase {
+    /**
+     * Живой id текущего словаря (null — «словарей нет»). Семантика —
+     * как у words/host: один prefs-источник + fallback на первый
+     * словарь, рассинхрона между вкладками нет.
+     */
+    fun flowCurrentDictId(): Flow<Long?>
 
     /**
      * Живой id-срез membership словаря (А13: наблюдает words + word_groups +
@@ -30,17 +36,29 @@ interface GroupsTabUseCase {
      * Живое окно контента «Все»: первые [limit] слов словаря, id DESC —
      * предикатный live-запрос (вставки/правки/удаления переэмичиваются сами).
      */
-    fun flowWordsWindow(dictionaryId: Long, limit: Int): Flow<List<TermUiItem>>
+    fun flowWordsWindow(
+        dictionaryId: Long,
+        limit: Int,
+    ): Flow<List<TermUiItem>>
 
     /**
      * Э5 (D21): живое окно контента ГРУППЫ — membership ∩ words,
      * id DESC LIMIT; add/remove membership переэмичиваются сами.
      */
-    fun flowGroupWordsWindow(groupId: Long, limit: Int): Flow<List<TermUiItem>>
+    fun flowGroupWordsWindow(
+        groupId: Long,
+        limit: Int,
+    ): Flow<List<TermUiItem>>
 
-    suspend fun createGroup(dictionaryId: Long, name: String): CreateGroupOutcome
+    suspend fun createGroup(
+        dictionaryId: Long,
+        name: String,
+    ): CreateGroupOutcome
 
-    suspend fun renameGroup(groupId: Long, name: String): RenameGroupOutcome
+    suspend fun renameGroup(
+        groupId: Long,
+        name: String,
+    ): RenameGroupOutcome
 
     suspend fun deleteGroup(groupId: Long): DeleteGroupOutcome
 

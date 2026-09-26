@@ -35,9 +35,8 @@ import me.apomazkin.ui.preview.PreviewWidget
 @Composable
 fun DictionaryListScreen(
     factory: DictionaryListViewModel.Factory,
-    navigator: ListNavigator,
     viewModel: DictionaryListViewModel = viewModel(
-        factory = viewModelFactory { factory.create(navigator) },
+        factory = viewModelFactory { factory.create() },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()

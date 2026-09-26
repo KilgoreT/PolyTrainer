@@ -11,9 +11,15 @@ import me.apomazkin.lexeme.ComponentTemplate
  */
 sealed interface CommitOutcome {
     data object NoOp : CommitOutcome
+
     data object LocalRemove : CommitOutcome
+
     data object PessimisticRemove : CommitOutcome
-    data class Update(val text: String, val caption: String? = null) : CommitOutcome
+
+    data class Update(
+        val text: String,
+        val caption: String? = null,
+    ) : CommitOutcome
 }
 
 internal fun ComponentValueState.commitDecision(): CommitOutcome {
@@ -45,7 +51,8 @@ internal fun ComponentValueState.commitDecision(): CommitOutcome {
 
 /** Шаблоны, чьё значение выражается редактируемым текстом (origin = текст). */
 internal val ComponentTemplate.hasEditableText: Boolean
-    get() = when (this) {
-        ComponentTemplate.TEXT, ComponentTemplate.CAPTIONED_TEXT -> true
-        ComponentTemplate.IMAGE, ComponentTemplate.CHOICE -> false
-    }
+    get() =
+        when (this) {
+            ComponentTemplate.TEXT, ComponentTemplate.CAPTIONED_TEXT -> true
+            ComponentTemplate.IMAGE, ComponentTemplate.CHOICE -> false
+        }

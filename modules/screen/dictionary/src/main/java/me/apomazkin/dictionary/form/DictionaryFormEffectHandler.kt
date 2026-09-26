@@ -1,11 +1,11 @@
 package me.apomazkin.dictionary.form
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.apomazkin.dictionary.DictionaryUseCase
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateEffectHandler
-import javax.inject.Inject
 
 sealed interface DictionaryFormEffect : Effect {
     data class LoadDictionary(val id: Long) : DictionaryFormEffect
@@ -17,8 +17,13 @@ sealed interface DictionaryFormEffect : Effect {
     ) : DictionaryFormEffect
 }
 
-class DictionaryFormEffectHandler @Inject constructor(
+/**
+ * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
+ *   в тестах можно подставить тестовый.
+ */
+class DictionaryFormEffectHandler(
     private val dictionaryUseCase: DictionaryUseCase,
+    private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : MateEffectHandler<DictionaryFormMsg, DictionaryFormEffect> {
 
     override val effectFamily = DictionaryFormEffect::class
@@ -26,7 +31,7 @@ class DictionaryFormEffectHandler @Inject constructor(
     override suspend fun runEffect(effect: DictionaryFormEffect, consumer: (DictionaryFormMsg) -> Unit) {
         val msg = when (effect) {
             is DictionaryFormEffect.LoadDictionary -> {
-                val item = withContext(Dispatchers.IO) {
+                val item = withContext(io) {
                     dictionaryUseCase.getDictionary(effect.id)
                 }
                 val flag = item.numericCode?.let { dictionaryUseCase.findFlag(it) }
@@ -34,14 +39,14 @@ class DictionaryFormEffectHandler @Inject constructor(
             }
 
             is DictionaryFormEffect.SaveDictionary -> {
-                withContext(Dispatchers.IO) {
+                withContext(io) {
                     dictionaryUseCase.addDictionary(effect.name, effect.numericCode)
                 }
                 DictionaryFormMsg.DictionarySaved
             }
 
             is DictionaryFormEffect.UpdateDictionary -> {
-                withContext(Dispatchers.IO) {
+                withContext(io) {
                     dictionaryUseCase.updateDictionary(effect.id, effect.name, effect.numericCode)
                 }
                 DictionaryFormMsg.DictionarySaved

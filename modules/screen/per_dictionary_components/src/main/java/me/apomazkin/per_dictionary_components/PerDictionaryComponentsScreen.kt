@@ -70,10 +70,10 @@ import me.apomazkin.ui.ErrorStateWidget
 fun PerDictionaryComponentsScreen(
     dictionaryId: Long,
     factory: PerDictionaryComponentsViewModel.Factory,
-    navigator: PerDictionaryComponentsNavigator,
-    viewModel: PerDictionaryComponentsViewModel = viewModel(
-        factory = viewModelFactory { factory.create(dictionaryId, navigator) },
-    ),
+    viewModel: PerDictionaryComponentsViewModel =
+        viewModel(
+            factory = viewModelFactory { factory.create(dictionaryId) },
+        ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -345,34 +345,37 @@ fun PerDictionaryComponentsScreen(
 private fun targetPickerItems(
     rows: List<PerDictRow>?,
     excludeTypeId: ComponentTypeId?,
-): List<TargetPickerItem> = rows.orEmpty()
-    .filter { it.typeId != excludeTypeId }
-    .flatMap { row ->
-        val cyclic = excludeTypeId != null &&
-            createsCycle(rows.orEmpty(), excludeTypeId, DependencyTarget.Component(row.typeId))
-        val componentItem = TargetPickerItem(
-            target = DependencyTarget.Component(row.typeId),
-            label = componentDisplayName(systemKey = row.systemKey, name = row.name),
-            enabled = !cyclic,
-            showCycleHint = cyclic,
-        )
-        val optionItems = row.options.map { option ->
-            TargetPickerItem(
-                target = DependencyTarget.Option(option.optionId),
-                label = optionDisplayLabel(systemKey = option.systemKey, label = option.label),
-                indent = true,
+): List<TargetPickerItem> =
+    rows
+        .orEmpty()
+        .filter { it.typeId != excludeTypeId }
+        .flatMap { row ->
+            val cyclic = excludeTypeId != null &&
+                createsCycle(rows.orEmpty(), excludeTypeId, DependencyTarget.Component(row.typeId))
+            val componentItem = TargetPickerItem(
+                target = DependencyTarget.Component(row.typeId),
+                label = componentDisplayName(systemKey = row.systemKey, name = row.name),
                 enabled = !cyclic,
+                showCycleHint = cyclic,
             )
+            val optionItems = row.options.map { option ->
+                TargetPickerItem(
+                    target = DependencyTarget.Option(option.optionId),
+                    label = optionDisplayLabel(systemKey = option.systemKey, label = option.label),
+                    indent = true,
+                    enabled = !cyclic,
+                )
+            }
+            listOf(componentItem) + optionItems
         }
-        listOf(componentItem) + optionItems
-    }
 
 /**
  * IS481 phase 2 — local маппинг [EditNameError] → StringRes.
  */
 @androidx.annotation.StringRes
-private fun EditNameError.toLabelRes(): Int = when (this) {
-    EditNameError.NameEmpty -> R.string.components_name_error_empty
-    EditNameError.SameScopeCollision -> R.string.components_name_error_same_scope_collision
-    EditNameError.CrossScopeCollision -> R.string.components_name_error_cross_scope_collision
-}
+private fun EditNameError.toLabelRes(): Int =
+    when (this) {
+        EditNameError.NameEmpty -> R.string.components_name_error_empty
+        EditNameError.SameScopeCollision -> R.string.components_name_error_same_scope_collision
+        EditNameError.CrossScopeCollision -> R.string.components_name_error_cross_scope_collision
+    }

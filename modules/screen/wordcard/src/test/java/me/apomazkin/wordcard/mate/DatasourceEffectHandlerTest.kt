@@ -3,7 +3,6 @@ package me.apomazkin.wordcard.mate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
-import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentValueId
@@ -25,7 +24,6 @@ import org.junit.Test
  * TDD red — против НОВОГО WordCardUseCase (generic) и новых Effect/Msg/result-типов.
  */
 class DatasourceEffectHandlerTest {
-
     /** Fake нового generic WordCardUseCase (лямбда-поля). */
     private class FakeUseCase(
         var getTermByIdImpl: suspend (Long) -> Term? = { null },
@@ -42,51 +40,96 @@ class DatasourceEffectHandlerTest {
             { _, _ -> null },
         var restoreImpl: suspend (Long, Long, Lexeme) -> Lexeme? = { _, _, _ -> null },
         var flowTypesImpl: (Long) -> Flow<me.apomazkin.wordcard.deps.AvailableComponents> =
-            { flowOf(me.apomazkin.wordcard.deps.AvailableComponents(emptyList())) },
+            {
+                flowOf(
+                    me
+                        .apomazkin
+                        .wordcard
+                        .deps
+                        .AvailableComponents(emptyList()),
+                )
+            },
         var captionSuggestionsImpl: suspend (ComponentTypeId) -> List<String> = { emptyList() },
     ) : WordCardUseCase {
         override suspend fun getTermById(wordId: Long): Term? = getTermByIdImpl(wordId)
+
         override suspend fun deleteWord(wordId: Long): Int = deleteWordImpl(wordId)
-        override suspend fun updateWord(wordId: Long, value: String): Boolean = updateWordImpl(wordId, value)
-        override suspend fun deleteLexeme(wordId: Long, lexemeId: Long): RemoveLexemeResult? =
-            deleteLexemeImpl(wordId, lexemeId)
+
+        override suspend fun updateWord(
+            wordId: Long,
+            value: String,
+        ): Boolean = updateWordImpl(wordId, value)
+
+        override suspend fun deleteLexeme(
+            wordId: Long,
+            lexemeId: Long,
+        ): RemoveLexemeResult? = deleteLexemeImpl(wordId, lexemeId)
+
         override suspend fun addLexemeWithComponent(
-            wordId: Long, dictionaryId: Long, ref: ComponentTypeRef, data: TemplateValues,
+            wordId: Long,
+            dictionaryId: Long,
+            ref: ComponentTypeRef,
+            data: TemplateValues,
         ): Lexeme? = addLexemeWithComponentImpl(wordId, dictionaryId, ref, data)
+
         override suspend fun addComponentValue(
-            lexemeId: Long, componentTypeId: ComponentTypeId, data: TemplateValues,
+            lexemeId: Long,
+            componentTypeId: ComponentTypeId,
+            data: TemplateValues,
         ): AddComponentValueResult? = addComponentValueImpl(lexemeId, componentTypeId, data)
+
         override suspend fun updateComponentValue(
-            componentValueId: ComponentValueId, lexemeId: Long, data: TemplateValues,
+            componentValueId: ComponentValueId,
+            lexemeId: Long,
+            data: TemplateValues,
         ): Lexeme? = updateComponentValueImpl(componentValueId, lexemeId, data)
+
         override suspend fun deleteComponentValue(
-            componentValueId: ComponentValueId, lexemeId: Long,
+            componentValueId: ComponentValueId,
+            lexemeId: Long,
         ): RemoveComponentResult? = deleteComponentValueImpl(componentValueId, lexemeId)
+
         override suspend fun restoreLexemeWithComponents(
-            wordId: Long, dictionaryId: Long, snapshot: Lexeme,
+            wordId: Long,
+            dictionaryId: Long,
+            snapshot: Lexeme,
         ): Lexeme? = restoreImpl(wordId, dictionaryId, snapshot)
+
         override fun flowAvailableComponentTypes(dictionaryId: Long): Flow<me.apomazkin.wordcard.deps.AvailableComponents> =
             flowTypesImpl(dictionaryId)
-        override suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String> =
-            captionSuggestionsImpl(componentTypeId)
+
+        override suspend fun getCaptionSuggestions(componentTypeId: ComponentTypeId): List<String> = captionSuggestionsImpl(componentTypeId)
+
         override fun wordGroups(wordId: Long): Flow<List<me.apomazkin.group.GroupNode>> = TODO()
+
         override fun dictGroups(dictionaryId: Long): Flow<List<me.apomazkin.group.GroupNode>> = TODO()
-        override suspend fun addWordToGroup(wordId: Long, groupId: Long): me.apomazkin.group.AddMembershipOutcome = TODO()
-        override suspend fun removeWordFromGroup(wordId: Long, groupId: Long): me.apomazkin.group.RemoveMembershipOutcome = TODO()
+
+        override suspend fun addWordToGroup(
+            wordId: Long,
+            groupId: Long,
+        ): me.apomazkin.group.AddMembershipOutcome = TODO()
+
+        override suspend fun removeWordFromGroup(
+            wordId: Long,
+            groupId: Long,
+        ): me.apomazkin.group.RemoveMembershipOutcome = TODO()
     }
 
     private object NoopLogger : LexemeLogger {
-        override fun log(level: LogLevel, tag: String, message: String, throwable: Throwable?) = Unit
+        override fun log(
+            level: LogLevel,
+            tag: String,
+            message: String,
+            throwable: Throwable?,
+        ) = Unit
     }
 
-    private fun run(useCase: WordCardUseCase, effect: DatasourceEffect): List<Msg> {
+    private fun run(
+        useCase: WordCardUseCase,
+        effect: DatasourceEffect,
+    ): List<Msg> {
         val msgs = mutableListOf<Msg>()
-        val handler = DatasourceEffectHandler(
-            useCase,
-            AvailableComponentTypesFlowHandler(useCase, NoopLogger),
-            GroupBlockFlowHandler(useCase, NoopLogger),
-            NoopLogger,
-        )
+        val handler = DatasourceEffectHandler(useCase, NoopLogger)
         runBlocking { handler.runEffect(effect) { msgs += it } }
         return msgs
     }
@@ -106,9 +149,16 @@ class DatasourceEffectHandlerTest {
     }
 
     @Test
-    fun `LoadWord exception yields WordNotFound`() {
-        val msgs = run(FakeUseCase(getTermByIdImpl = { throw IllegalStateException() }), DatasourceEffect.LoadWord(7L))
-        assertTrue(msgs.single() is Msg.WordNotFound)
+    fun `LoadWord exception propagates, onFail yields WordNotFound`() {
+        val effect = DatasourceEffect.LoadWord(7L)
+
+        // Handler ошибок не ловит — исключение уходит раннеру.
+        org.junit.Assert.assertThrows(IllegalStateException::class.java) {
+            run(FakeUseCase(getTermByIdImpl = { throw IllegalStateException() }), effect)
+        }
+
+        // Маппинг провала объявлен в эффекте (RecoverableEffect).
+        assertTrue(effect.onFail(IllegalStateException()) is Msg.WordNotFound)
     }
 
     @Test
@@ -118,8 +168,13 @@ class DatasourceEffectHandlerTest {
         val msgs = run(
             uc,
             DatasourceEffect.UpsertComponentValue.AddValue(
-                wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
-                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
+                wordId = 7L,
+                dictionaryId = 3L,
+                lexemeId = 7L,
+                pristineKey = 1L,
+                componentTypeId = ComponentTypeId(50L),
+                componentTypeRef = TR,
+                data = textValuesOf("v"),
             ),
         )
         assertEquals(2, msgs.size)
@@ -136,8 +191,12 @@ class DatasourceEffectHandlerTest {
         val msgs = run(
             uc,
             DatasourceEffect.UpsertComponentValue.CreateLexeme(
-                wordId = 7L, dictionaryId = 3L, pristineKey = 5L,
-                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
+                wordId = 7L,
+                dictionaryId = 3L,
+                pristineKey = 5L,
+                componentTypeId = ComponentTypeId(50L),
+                componentTypeRef = TR,
+                data = textValuesOf("v"),
             ),
         )
         assertEquals(listOf(Msg.LexemeDraftPromoted(lex, anchorPristineKey = 5L)), msgs)
@@ -150,9 +209,13 @@ class DatasourceEffectHandlerTest {
         val msgs = run(
             uc,
             DatasourceEffect.UpsertComponentValue.UpdateValue(
-                wordId = 7L, dictionaryId = 3L, lexemeId = 7L,
+                wordId = 7L,
+                dictionaryId = 3L,
+                lexemeId = 7L,
                 componentValueId = ComponentValueId(5L),
-                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("new"),
+                componentTypeId = ComponentTypeId(50L),
+                componentTypeRef = TR,
+                data = textValuesOf("new"),
             ),
         )
         assertEquals(1, msgs.size)
@@ -165,8 +228,13 @@ class DatasourceEffectHandlerTest {
         val msgs = run(
             uc,
             DatasourceEffect.UpsertComponentValue.AddValue(
-                wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
-                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
+                wordId = 7L,
+                dictionaryId = 3L,
+                lexemeId = 7L,
+                pristineKey = 1L,
+                componentTypeId = ComponentTypeId(50L),
+                componentTypeRef = TR,
+                data = textValuesOf("v"),
             ),
         )
         assertTrue(msgs.single() is Msg.OperationFailed)
@@ -220,9 +288,13 @@ class DatasourceEffectHandlerTest {
         val msgs = run(
             uc,
             DatasourceEffect.UpsertComponentValue.UpdateValue(
-                wordId = 7L, dictionaryId = 3L, lexemeId = 7L,
+                wordId = 7L,
+                dictionaryId = 3L,
+                lexemeId = 7L,
                 componentValueId = ComponentValueId(5L),
-                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("x"),
+                componentTypeId = ComponentTypeId(50L),
+                componentTypeRef = TR,
+                data = textValuesOf("x"),
             ),
         )
         assertTrue(msgs.single() is Msg.OperationFailed)
@@ -234,25 +306,35 @@ class DatasourceEffectHandlerTest {
         val msgs = run(
             uc,
             DatasourceEffect.UpsertComponentValue.CreateLexeme(
-                wordId = 7L, dictionaryId = 3L, pristineKey = 1L,
-                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("x"),
+                wordId = 7L,
+                dictionaryId = 3L,
+                pristineKey = 1L,
+                componentTypeId = ComponentTypeId(50L),
+                componentTypeRef = TR,
+                data = textValuesOf("x"),
             ),
         )
         assertTrue(msgs.single() is Msg.OperationFailed)
     }
 
     @Test
-    fun `useCase exception in upsert yields OperationFailed single Msg`() {
+    fun `useCase exception in upsert propagates, onFail yields OperationFailed`() {
         val uc = FakeUseCase(addComponentValueImpl = { _, _, _ -> throw IllegalStateException("boom") })
-        val msgs = run(
-            uc,
-            DatasourceEffect.UpsertComponentValue.AddValue(
-                wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
-                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
-            ),
+        val effect = DatasourceEffect.UpsertComponentValue.AddValue(
+            wordId = 7L,
+            dictionaryId = 3L,
+            lexemeId = 7L,
+            pristineKey = 1L,
+            componentTypeId = ComponentTypeId(50L),
+            componentTypeRef = TR,
+            data = textValuesOf("v"),
         )
-        assertEquals(1, msgs.size)
-        assertTrue(msgs.single() is Msg.OperationFailed)
+
+        org.junit.Assert.assertThrows(IllegalStateException::class.java) {
+            run(uc, effect)
+        }
+
+        assertTrue(effect.onFail(IllegalStateException("boom")) is Msg.OperationFailed)
     }
 
     @Test(expected = kotlinx.coroutines.CancellationException::class)
@@ -261,8 +343,13 @@ class DatasourceEffectHandlerTest {
         run(
             uc,
             DatasourceEffect.UpsertComponentValue.AddValue(
-                wordId = 7L, dictionaryId = 3L, lexemeId = 7L, pristineKey = 1L,
-                componentTypeId = ComponentTypeId(50L), componentTypeRef = TR, data = textValuesOf("v"),
+                wordId = 7L,
+                dictionaryId = 3L,
+                lexemeId = 7L,
+                pristineKey = 1L,
+                componentTypeId = ComponentTypeId(50L),
+                componentTypeRef = TR,
+                data = textValuesOf("v"),
             ),
         )
     }
