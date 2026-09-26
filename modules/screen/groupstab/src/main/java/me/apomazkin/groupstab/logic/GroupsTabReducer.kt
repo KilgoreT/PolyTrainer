@@ -287,7 +287,10 @@ class GroupsTabReducer(
             is Msg.DeleteWithWordsOutcomeMsg ->
                 state.noOp("delete-with-words outcome: list updated by subscription")
 
-            is Msg.GroupMutationFailed -> state.unmarkSubmitting()
+            is Msg.GroupMutationFailed ->
+                state
+                    .unmarkSubmitting()
+                    .then { it.showErrorSnackbar(message.error) }
 
             is Msg.ErrorSnackbarShown -> state.consumeErrorSnackbar()
 

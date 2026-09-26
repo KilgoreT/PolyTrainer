@@ -20,7 +20,6 @@ import org.junit.Test
  * 7. Standard case: SelectTab не трогает поля словаря
  */
 class VocabularyHostReducerTest {
-
     private val reducer = VocabularyHostReducer()
 
     @Test

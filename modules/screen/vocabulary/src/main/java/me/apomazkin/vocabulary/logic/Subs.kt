@@ -9,7 +9,6 @@ import io.github.kilgoret.mate.Subscription
  * новые подписки и гасит исчезнувшие.
  */
 sealed interface VocabularyHostSub : Subscription {
-
     /**
      * Текущий выбранный словарь приложения. Без параметров: host
      * слушает глобальный выбор всё время жизни экрана; каждая

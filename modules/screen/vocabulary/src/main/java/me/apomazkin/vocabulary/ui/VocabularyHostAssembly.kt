@@ -19,21 +19,21 @@ import me.apomazkin.vocabulary.logic.subscriptions
  * host'а нет — effectHandlers пуст.
  */
 object VocabularyHostAssembly {
-
     fun create(
         useCase: VocabularyHostUseCase,
         coroutineScope: CoroutineScope,
         observers: List<MateObserver<Any?, Any?, Effect>> = emptyList(),
-    ): Mate<VocabularyHostState, Msg, Effect> = Mate(
-        initState = VocabularyHostState(),
-        initEffects = emptySet(),
-        coroutineScope = coroutineScope,
-        reducer = VocabularyHostReducer(),
-        effectHandlers = emptyList(),
-        subscriptions = { it.subscriptions() },
-        subscriptionHandlers = listOf(
-            VocabularyHostSubHandler(useCase = useCase),
-        ),
-        observers = observers,
-    )
+    ): Mate<VocabularyHostState, Msg, Effect> =
+        Mate(
+            initState = VocabularyHostState(),
+            initEffects = emptySet(),
+            coroutineScope = coroutineScope,
+            reducer = VocabularyHostReducer(),
+            effectHandlers = emptyList(),
+            subscriptions = { it.subscriptions() },
+            subscriptionHandlers = listOf(
+                VocabularyHostSubHandler(useCase = useCase),
+            ),
+            observers = observers,
+        )
 }

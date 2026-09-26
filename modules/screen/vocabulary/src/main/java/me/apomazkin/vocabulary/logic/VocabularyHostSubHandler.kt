@@ -15,15 +15,18 @@ import javax.inject.Inject
  * Поток текущего словаря маппится в [Msg.DictionaryChanged] — null
  * проходит как валидное доменное состояние «словарей нет».
  */
-class VocabularyHostSubHandler @Inject constructor(
-    private val useCase: VocabularyHostUseCase,
-) : MateSubscriptionHandler<Msg, VocabularyHostSub> {
+class VocabularyHostSubHandler
+    @Inject
+    constructor(
+        private val useCase: VocabularyHostUseCase,
+    ) : MateSubscriptionHandler<Msg, VocabularyHostSub> {
+        override val subscriptionFamily = VocabularyHostSub::class
 
-    override val subscriptionFamily = VocabularyHostSub::class
-
-    override fun flow(sub: VocabularyHostSub): Flow<Msg> = when (sub) {
-        VocabularyHostSub.CurrentDict ->
-            useCase.flowCurrentDictId()
-                .map { dictId -> Msg.DictionaryChanged(dictionaryId = dictId) }
+        override fun flow(sub: VocabularyHostSub): Flow<Msg> =
+            when (sub) {
+                VocabularyHostSub.CurrentDict ->
+                    useCase
+                        .flowCurrentDictId()
+                        .map { dictId -> Msg.DictionaryChanged(dictionaryId = dictId) }
+            }
     }
-}

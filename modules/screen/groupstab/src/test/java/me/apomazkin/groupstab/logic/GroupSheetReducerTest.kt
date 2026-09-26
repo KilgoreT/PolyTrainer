@@ -260,9 +260,15 @@ class GroupSheetReducerTest {
             sheet = GroupSheetState(mode = GroupSheetMode.Create, input = "Сад", isSubmitting = true),
         )
 
-        val result = reducer.reduce(submitting, Msg.GroupMutationFailed)
+        val result = reducer.reduce(
+            submitting,
+            Msg.GroupMutationFailed(GroupSheetError.CREATE_FAILED),
+        )
 
         val sheet = requireNotNull(result.state().sheet)
         assertFalse(sheet.isSubmitting)
+        // Сбой операции виден юзеру: снекбар с конкретной операцией.
+        assertEquals(GroupSheetError.CREATE_FAILED, result.state().errorSnackbar)
+        assertTrue(result.effects().isEmpty())
     }
 }

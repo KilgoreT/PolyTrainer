@@ -7,9 +7,10 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -58,9 +59,10 @@ fun VocabularyHostScreen(
     uiDeps: VocabularyHostUiDeps,
     factory: VocabularyHostViewModel.Factory,
     onTabSwitched: (VocabularyTab) -> Unit = {},
-    viewModel: VocabularyHostViewModel = viewModel(
-        factory = viewModelFactory { factory.create() },
-    ),
+    viewModel: VocabularyHostViewModel =
+        viewModel(
+            factory = viewModelFactory { factory.create() },
+        ),
 ) {
     val state: VocabularyHostState by viewModel.state.collectAsStateWithLifecycle()
     VocabularyHostScreen(
@@ -109,11 +111,19 @@ internal fun VocabularyHostScreen(
             }
         },
         snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
+            // imePadding: снекбар поднимается над клавиатурой (иначе при
+            // открытой шторке ввода он рисуется ПОД ней и невидим).
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.imePadding(),
+            )
         },
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(
-            left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp
+            left = 0.dp,
+            top = 0.dp,
+            right = 0.dp,
+            bottom = 0.dp,
         ),
         floatingActionButton = {
             activeSpec.fab?.let { fab ->
@@ -172,20 +182,25 @@ internal fun VocabularyHostScreen(
 
 private val previewUiDeps = object : VocabularyHostUiDeps {
     @Composable
-    override fun AppBar(@StringRes titleResId: Int) {
+    override fun AppBar(
+        @StringRes titleResId: Int,
+    ) {
     }
 }
 
-private fun previewTabs(): Map<VocabularyTab, TabSpec> = mapOf(
-    VocabularyTab.WORDS to TabSpec(
-        titleRes = R.string.vocabulary_tab_words,
-        content = { _, _ -> Text(text = "words") },
-    ),
-    VocabularyTab.GROUPS to TabSpec(
-        titleRes = R.string.vocabulary_tab_groups,
-        content = { _, _ -> Text(text = "groups") },
-    ),
-)
+private fun previewTabs(): Map<VocabularyTab, TabSpec> =
+    mapOf(
+        VocabularyTab.WORDS to
+            TabSpec(
+                titleRes = R.string.vocabulary_tab_words,
+                content = { _, _ -> Text(text = "words") },
+            ),
+        VocabularyTab.GROUPS to
+            TabSpec(
+                titleRes = R.string.vocabulary_tab_groups,
+                content = { _, _ -> Text(text = "groups") },
+            ),
+    )
 
 @PreviewWidget
 @Composable

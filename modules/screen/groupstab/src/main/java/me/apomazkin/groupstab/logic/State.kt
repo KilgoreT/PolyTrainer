@@ -103,7 +103,17 @@ sealed interface GroupSheetMode {
 }
 
 /** Ошибка валидации мутации имени группы. */
-enum class GroupSheetError { EMPTY, DUPLICATE, RESERVED }
+enum class GroupSheetError {
+    EMPTY,
+    DUPLICATE,
+    RESERVED,
+
+    // Сбои операций (снекбар): текст называет операцию, совет один —
+    // попробовать ещё раз; коды/причины из базы юзеру не показываются.
+    CREATE_FAILED,
+    RENAME_FAILED,
+    DELETE_FAILED,
+}
 
 @Immutable
 data class GroupSheetState(

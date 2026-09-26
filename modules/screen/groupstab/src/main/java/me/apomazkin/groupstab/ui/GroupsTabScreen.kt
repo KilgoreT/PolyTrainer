@@ -105,6 +105,9 @@ class GroupsTabHandle internal constructor(
                     GroupSheetError.EMPTY -> R.string.group_error_empty_name
                     GroupSheetError.DUPLICATE -> R.string.group_error_duplicate_name
                     GroupSheetError.RESERVED -> R.string.group_error_reserved_name
+                    GroupSheetError.CREATE_FAILED -> R.string.group_error_create_failed
+                    GroupSheetError.RENAME_FAILED -> R.string.group_error_rename_failed
+                    GroupSheetError.DELETE_FAILED -> R.string.group_error_delete_failed
                 },
             )
         }

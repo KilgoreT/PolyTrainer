@@ -99,8 +99,10 @@ sealed interface Msg {
         val outcome: DeleteGroupWithWordsOutcome,
     ) : Msg
 
-    /** Исключение эффекта мутации (guard T-6): снять isSubmitting. */
-    data object GroupMutationFailed : Msg
+    /** Исключение эффекта мутации: снять isSubmitting и показать снекбар. */
+    data class GroupMutationFailed(
+        val error: GroupSheetError,
+    ) : Msg
 
     /** Снекбар ошибки показан — сброс флага. */
     data object ErrorSnackbarShown : Msg
@@ -155,7 +157,7 @@ sealed interface GroupsEffect : Effect {
         val name: String,
     ) : GroupsEffect,
         RecoverableEffect<Msg> {
-        override fun onFail(error: Throwable) = Msg.GroupMutationFailed
+        override fun onFail(error: Throwable) = Msg.GroupMutationFailed(GroupSheetError.CREATE_FAILED)
     }
 
     data class RenameGroup(
@@ -163,14 +165,14 @@ sealed interface GroupsEffect : Effect {
         val name: String,
     ) : GroupsEffect,
         RecoverableEffect<Msg> {
-        override fun onFail(error: Throwable) = Msg.GroupMutationFailed
+        override fun onFail(error: Throwable) = Msg.GroupMutationFailed(GroupSheetError.RENAME_FAILED)
     }
 
     data class DeleteGroup(
         val groupId: Long,
     ) : GroupsEffect,
         RecoverableEffect<Msg> {
-        override fun onFail(error: Throwable) = Msg.GroupMutationFailed
+        override fun onFail(error: Throwable) = Msg.GroupMutationFailed(GroupSheetError.DELETE_FAILED)
     }
 
     /** ДЕСТРУКТИВ — удалить группу вместе со словами. */
@@ -178,6 +180,6 @@ sealed interface GroupsEffect : Effect {
         val groupId: Long,
     ) : GroupsEffect,
         RecoverableEffect<Msg> {
-        override fun onFail(error: Throwable) = Msg.GroupMutationFailed
+        override fun onFail(error: Throwable) = Msg.GroupMutationFailed(GroupSheetError.DELETE_FAILED)
     }
 }

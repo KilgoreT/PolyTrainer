@@ -96,6 +96,9 @@
     <string name="group_error_empty_name">Enter a name</string>
     <string name="group_error_duplicate_name">Name already taken</string>
     <string name="group_error_reserved_name">Name is reserved</string>
+    <string name="group_error_create_failed">Couldn\'t create the group. Try again</string>
+    <string name="group_error_rename_failed">Couldn\'t rename the group. Try again</string>
+    <string name="group_error_delete_failed">Couldn\'t delete the group. Try again</string>
     <!-- IS493 Э5: пикер групп в карточке слова -->
     <string name="group_picker_title">Word groups</string>
     <string name="group_picker_empty">No groups yet</string>
