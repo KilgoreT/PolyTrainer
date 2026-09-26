@@ -13,7 +13,6 @@ import org.junit.Test
  * перезапускает упавшую подписку).
  */
 class SubsTest {
-
     @Test
     fun `word not loaded - empty set`() {
         // До WordState.Loaded слушать нечего: параметры подписок неизвестны.

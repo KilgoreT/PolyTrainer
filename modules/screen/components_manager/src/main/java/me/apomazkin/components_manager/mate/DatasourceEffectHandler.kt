@@ -1,24 +1,18 @@
 package me.apomazkin.components_manager.mate
 
-import kotlinx.coroutines.CancellationException
+import io.github.kilgoret.mate.MateEffectHandler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.apomazkin.components_manager.LogTags
 import me.apomazkin.components_manager.deps.ComponentsManagerUseCase
-import me.apomazkin.lexeme.CreateOutcome
-import me.apomazkin.lexeme.DeleteOutcome
-import me.apomazkin.lexeme.EditOutcome
-import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.MateEffectHandler
 
 /**
  * Маппер `DatasourceEffect` → `UseCase` call → `Msg.*Result`. Все IO через [Dispatchers.IO].
  *
- * Exception-safety (F125 retrofit):
- * - `CancellationException` пробрасывается без wrap'а — структурная отмена должна
- *   распространяться по coroutine иерархии (job cancellation, navigation away).
- * - Прочие throwables → typed Failure outcome + logger.e.
+ * Ошибок handler не ловит: провал каждого эффекта объявлен в его типе
+ * ([io.github.kilgoret.mate.RecoverableEffect] → typed Failure
+ * outcome), раннер доставит его сам; стектрейс логирует
+ * ErrorLoggingObserver.
  *
  * Correlation (F124/F136 retrofit):
  * - Write effects несут `epochId` (createDialog/renameDialog/deleteConfirm session id);
@@ -31,77 +25,54 @@ import io.github.kilgoret.mate.MateEffectHandler
  */
 class DatasourceEffectHandler(
     private val useCase: ComponentsManagerUseCase,
-    private val logger: LexemeLogger,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : MateEffectHandler<Msg, DatasourceEffect> {
-
     override val effectFamily = DatasourceEffect::class
 
-    override suspend fun runEffect(effect: DatasourceEffect, consumer: (Msg) -> Unit) {
+    override suspend fun runEffect(
+        effect: DatasourceEffect,
+        consumer: (Msg) -> Unit,
+    ) {
         val msg: Msg = withContext(io) {
-            try {
-                when (effect) {
-                    is DatasourceEffect.CreateComponent ->
-                        Msg.CreateResult(
-                            epochId = effect.epochId,
-                            outcome = useCase.createUserDefinedComponent(
-                                effect.name,
-                                effect.template,
-                                effect.isMultiple,
-                                effect.scope,
-                            ),
-                        )
+            when (effect) {
+                is DatasourceEffect.CreateComponent ->
+                    Msg.CreateResult(
+                        epochId = effect.epochId,
+                        outcome = useCase.createUserDefinedComponent(
+                            effect.name,
+                            effect.template,
+                            effect.isMultiple,
+                            effect.scope,
+                        ),
+                    )
 
-                    is DatasourceEffect.LoadImpact -> {
-                        // F145: null → ImpactPreviewFailed без synthetic exception
-                        // (distinct semantics: "useCase returned null" vs "exception thrown").
-                        val impact = useCase.previewDeletionImpact(effect.typeId)
-                        if (impact != null) {
-                            Msg.ImpactPreviewLoaded(typeId = effect.typeId, impact = impact)
-                        } else {
-                            Msg.ImpactPreviewFailed(typeId = effect.typeId, cause = null)
-                        }
+                is DatasourceEffect.LoadImpact -> {
+                    // F145: null → ImpactPreviewFailed без synthetic exception
+                    // (distinct semantics: "useCase returned null" vs "exception thrown").
+                    val impact = useCase.previewDeletionImpact(effect.typeId)
+                    if (impact != null) {
+                        Msg.ImpactPreviewLoaded(typeId = effect.typeId, impact = impact)
+                    } else {
+                        Msg.ImpactPreviewFailed(typeId = effect.typeId, cause = null)
                     }
-
-                    is DatasourceEffect.SoftDeleteComponent ->
-                        Msg.DeleteResult(
-                            epochId = effect.epochId,
-                            outcome = useCase.softDeleteComponent(effect.typeId),
-                        )
-
-                    is DatasourceEffect.EditComponent ->
-                        Msg.EditResult(
-                            epochId = effect.epochId,
-                            outcome = useCase.editComponent(
-                                typeId = effect.typeId,
-                                name = effect.name,
-                                template = effect.template,
-                                isMultiple = effect.isMultiple,
-                            ),
-                        )
-
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                logger.e(
-                    tag = LogTags.ALL_COMPONENTS,
-                    message = "Effect failed: ${effect::class.simpleName} — ${e.message}",
-                )
-                when (effect) {
-                    is DatasourceEffect.CreateComponent ->
-                        Msg.CreateResult(effect.epochId, CreateOutcome.Failure(e))
 
+                is DatasourceEffect.SoftDeleteComponent ->
+                    Msg.DeleteResult(
+                        epochId = effect.epochId,
+                        outcome = useCase.softDeleteComponent(effect.typeId),
+                    )
 
-                    is DatasourceEffect.LoadImpact ->
-                        Msg.ImpactPreviewFailed(effect.typeId, e)
-
-                    is DatasourceEffect.SoftDeleteComponent ->
-                        Msg.DeleteResult(effect.epochId, DeleteOutcome.Failure(e))
-
-                    is DatasourceEffect.EditComponent ->
-                        Msg.EditResult(effect.epochId, EditOutcome.Failure(e))
-                }
+                is DatasourceEffect.EditComponent ->
+                    Msg.EditResult(
+                        epochId = effect.epochId,
+                        outcome = useCase.editComponent(
+                            typeId = effect.typeId,
+                            name = effect.name,
+                            template = effect.template,
+                            isMultiple = effect.isMultiple,
+                        ),
+                    )
             }
         }
         consumer(msg)

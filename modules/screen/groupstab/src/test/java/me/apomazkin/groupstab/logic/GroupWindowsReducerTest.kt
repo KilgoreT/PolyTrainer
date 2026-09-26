@@ -1,9 +1,9 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.group.DisplayNode
-import me.apomazkin.group.DisplayTree
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
+import me.apomazkin.group.DisplayNode
+import me.apomazkin.group.DisplayTree
 import me.apomazkin.wordrow.entity.TermUiItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,15 +17,15 @@ import java.util.Date
  * компенсация роста, shrink), независимость окон разных групп.
  */
 class GroupWindowsReducerTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
-    private fun term(id: Long) = TermUiItem(
-        id = id,
-        wordValue = "w$id",
-        dictionaryId = 1L,
-        addDate = Date(0),
-    )
+    private fun term(id: Long) =
+        TermUiItem(
+            id = id,
+            wordValue = "w$id",
+            dictionaryId = 1L,
+            addDate = Date(0),
+        )
 
     private fun tree(
         groups: List<Triple<Long, String, Int>>,
@@ -47,10 +47,11 @@ class GroupWindowsReducerTest {
     )
 
     private fun baseState(
-        groups: List<GroupUiItem> = listOf(
-            GroupUiItem(id = 5, name = "Быт", count = 3),
-            GroupUiItem(id = 6, name = "Дом", count = 0),
-        ),
+        groups: List<GroupUiItem> =
+            listOf(
+                GroupUiItem(id = 5, name = "Быт", count = 3),
+                GroupUiItem(id = 6, name = "Дом", count = 0),
+            ),
         windows: Map<Long, GroupWindowState> = emptyMap(),
     ) = GroupsTabState(
         isLoading = false,
@@ -119,12 +120,13 @@ class GroupWindowsReducerTest {
         val expanded = baseState(
             groups = listOf(GroupUiItem(id = 5, name = "Быт", count = 30)),
             windows = mapOf(
-                5L to GroupWindowState(
-                    window = 10,
-                    loadedWords = (10L downTo 1L).map { term(it) },
-                    isLoading = false,
-                    hasMore = true,
-                ),
+                5L to
+                    GroupWindowState(
+                        window = 10,
+                        loadedWords = (10L downTo 1L).map { term(it) },
+                        isLoading = false,
+                        hasMore = true,
+                    ),
             ),
         )
 
@@ -152,12 +154,13 @@ class GroupWindowsReducerTest {
         val allShown = baseState(
             groups = listOf(GroupUiItem(id = 5, name = "Быт", count = 2)),
             windows = mapOf(
-                5L to GroupWindowState(
-                    window = 10,
-                    loadedWords = listOf(term(2), term(1)),
-                    isLoading = false,
-                    hasMore = true,
-                ),
+                5L to
+                    GroupWindowState(
+                        window = 10,
+                        loadedWords = listOf(term(2), term(1)),
+                        isLoading = false,
+                        hasMore = true,
+                    ),
             ),
         )
         val result = reducer.reduce(allShown, Msg.LoadMoreGroup(groupId = 5))
@@ -224,12 +227,13 @@ class GroupWindowsReducerTest {
         // Прежний count=3 в state.groups; окно 10 открыто и заполнено.
         val expanded = baseState(
             windows = mapOf(
-                5L to GroupWindowState(
-                    window = 10,
-                    loadedWords = (3L downTo 1L).map { term(it) },
-                    isLoading = false,
-                    hasMore = false,
-                ),
+                5L to
+                    GroupWindowState(
+                        window = 10,
+                        loadedWords = (3L downTo 1L).map { term(it) },
+                        isLoading = false,
+                        hasMore = false,
+                    ),
             ),
         )
 
@@ -248,19 +252,27 @@ class GroupWindowsReducerTest {
             GroupsSub.GroupWindow(groupId = 5, limit = 11) in result.state().subscriptions(),
         )
         // Новый счётчик доехал и в groups.
-        assertEquals(4, result.state().groups.single { it.id == 5L }.count)
+        assertEquals(
+            4,
+            result
+                .state()
+                .groups
+                .single { it.id == 5L }
+                .count,
+        )
     }
 
     @Test
     fun `slice count zero under open window - window closes to stub`() {
         val expanded = baseState(
             windows = mapOf(
-                5L to GroupWindowState(
-                    window = 10,
-                    loadedWords = listOf(term(1)),
-                    isLoading = false,
-                    hasMore = false,
-                ),
+                5L to
+                    GroupWindowState(
+                        window = 10,
+                        loadedWords = listOf(term(1)),
+                        isLoading = false,
+                        hasMore = false,
+                    ),
             ),
         )
 
@@ -307,12 +319,13 @@ class GroupWindowsReducerTest {
         val expanded = baseState(
             groups = listOf(GroupUiItem(id = 5, name = "Быт", count = 3)),
             windows = mapOf(
-                5L to GroupWindowState(
-                    window = 10,
-                    loadedWords = (3L downTo 1L).map { term(it) },
-                    isLoading = false,
-                    hasMore = false,
-                ),
+                5L to
+                    GroupWindowState(
+                        window = 10,
+                        loadedWords = (3L downTo 1L).map { term(it) },
+                        isLoading = false,
+                        hasMore = false,
+                    ),
             ),
         )
 

@@ -22,24 +22,24 @@ import java.util.Date
  * мэппинг term делается в reducer-ветке WordLoaded.
  */
 class WordExtTest {
-
     private fun loaded(
         value: String = "word",
         isEditMode: Boolean = false,
         edited: String = "",
         showWarningDialog: Boolean = false,
-    ): WordCardState = WordCardState(
-        isLoading = false,
-        wordState = WordState.Loaded(
-            id = 1L,
-            dictionaryId = 3L,
-            added = Date(0L),
-            value = value,
-            isEditMode = isEditMode,
-            edited = edited,
-            showWarningDialog = showWarningDialog,
-        ),
-    )
+    ): WordCardState =
+        WordCardState(
+            isLoading = false,
+            wordState = WordState.Loaded(
+                id = 1L,
+                dictionaryId = 3L,
+                added = Date(0L),
+                value = value,
+                isEditMode = isEditMode,
+                edited = edited,
+                showWarningDialog = showWarningDialog,
+            ),
+        )
 
     @Test
     fun `enableWordEdit on Loaded sets isEditMode true and edited to value`() {

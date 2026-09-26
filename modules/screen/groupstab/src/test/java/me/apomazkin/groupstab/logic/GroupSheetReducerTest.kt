@@ -12,21 +12,21 @@ import org.junit.Test
  * live-фильтр, submit, плоские мутационные Msg, гонки dismiss, снекбар.
  */
 class GroupSheetReducerTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
-    private fun baseState() = GroupsTabState(
-        isLoading = false,
-        dictionaryId = 1L,
-        groups = listOf(
-            GroupUiItem(id = 5, name = "Быт", count = 0),
-            GroupUiItem(id = 6, name = "Дом", count = 0),
-        ),
-        visibleGroups = listOf(
-            GroupUiItem(id = 5, name = "Быт", count = 0),
-            GroupUiItem(id = 6, name = "Дом", count = 0),
-        ),
-    )
+    private fun baseState() =
+        GroupsTabState(
+            isLoading = false,
+            dictionaryId = 1L,
+            groups = listOf(
+                GroupUiItem(id = 5, name = "Быт", count = 0),
+                GroupUiItem(id = 6, name = "Дом", count = 0),
+            ),
+            visibleGroups = listOf(
+                GroupUiItem(id = 5, name = "Быт", count = 0),
+                GroupUiItem(id = 6, name = "Дом", count = 0),
+            ),
+        )
 
     // === Открытие / ввод / фильтр ===
 

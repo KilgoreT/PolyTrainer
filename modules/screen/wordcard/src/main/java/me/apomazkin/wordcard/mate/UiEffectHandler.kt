@@ -9,10 +9,12 @@ import me.apomazkin.wordcard.deps.UiHost
 class UiEffectHandler(
     private val uiHost: UiHost,
 ) : MateEffectHandler<Msg, UiEffect> {
-
     override val effectFamily = UiEffect::class
 
-    override suspend fun runEffect(effect: UiEffect, consumer: (Msg) -> Unit) {
+    override suspend fun runEffect(
+        effect: UiEffect,
+        consumer: (Msg) -> Unit,
+    ) {
         when (effect) {
             is UiEffect.ShowSnackbarWithUndo -> {
                 val undoPressed = uiHost.showSnackbarWithAction(

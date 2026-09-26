@@ -7,5 +7,7 @@ import io.github.kilgoret.mate.Effect
  * локализация через ResourceKey/StringRes — задача UI sub-flow.
  */
 sealed interface UiEffect : Effect {
-    data class Snackbar(val text: String) : UiEffect
+    data class Snackbar(
+        val text: String,
+    ) : UiEffect
 }

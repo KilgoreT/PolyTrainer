@@ -1,5 +1,9 @@
 package me.apomazkin.wordcard.mate
 
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertEffects
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ChoiceValues
 import me.apomazkin.lexeme.ComponentTemplate
@@ -8,10 +12,6 @@ import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.lexeme.DependencyTarget
-import io.github.kilgoret.mate.state
-import io.github.kilgoret.mate.test.assertEffects
-import io.github.kilgoret.mate.test.assertNoEffects
-import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,7 +25,6 @@ import java.util.Date
  * | род(61 ← опция 601) | пример(62, мульти ← компонент 50).
  */
 class ParticipationAndChoiceTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
     private fun hierType(
@@ -64,7 +63,10 @@ class ParticipationAndChoiceTest {
     )
     private val allTypes = listOf(translation, partOfSpeech, gender, example)
 
-    private fun choiceCv(id: Long, optionId: Long?) = savedCv(id, typeId = 60L).copy(
+    private fun choiceCv(
+        id: Long,
+        optionId: Long?,
+    ) = savedCv(id, typeId = 60L).copy(
         template = ComponentTemplate.CHOICE,
         selectedOptionId = optionId,
         componentTypeRef = choiceRef,
@@ -139,7 +141,11 @@ class ParticipationAndChoiceTest {
             lexemes = listOf(lexeme(8L, listOf(savedCv(1L, typeId = 50L, origin = "кот"), pristine))),
         )
         val result = reducer.testReduce(state, Msg.OperationFailed(R_STRING_X))
-        val comps = result.state().lexemeList.single().components
+        val comps = result
+            .state()
+            .lexemeList
+            .single()
+            .components
         assertEquals("CHOICE-pristine удалён, перевод жив", listOf(ComponentTypeId(50L)), comps.map { it.componentTypeId })
     }
 

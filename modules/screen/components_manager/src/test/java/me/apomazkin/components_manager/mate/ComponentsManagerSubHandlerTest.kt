@@ -34,93 +34,98 @@ import java.util.Date
  *   деградирует до пустого списка (retry не предусмотрен).
  */
 class ComponentsManagerSubHandlerTest {
-
     private val useCase = mockk<ComponentsManagerUseCase>()
     private val logger = mockk<LexemeLogger>(relaxed = true)
 
     private val handler get() = ComponentsManagerSubHandler(useCase, logger)
 
-    private fun emptySnapshot() = UserDefinedTypesSnapshot(
-        types = emptyList(),
-        usage = ComponentUsage(emptyMap(), emptyMap(), emptyMap()),
-    )
+    private fun emptySnapshot() =
+        UserDefinedTypesSnapshot(
+            types = emptyList(),
+            usage = ComponentUsage(emptyMap(), emptyMap(), emptyMap()),
+        )
 
     // ===== ComponentsManagerSub.AllTypes =====
 
     @Test
-    fun `AllTypes emits TypesLoaded for initial snapshot`() = runTest {
-        val source = MutableSharedFlow<UserDefinedTypesSnapshot>(replay = 1)
-        val snapshot = emptySnapshot()
-        source.tryEmit(snapshot)
-        every { useCase.flowAllUserDefinedTypes() } returns source
+    fun `AllTypes emits TypesLoaded for initial snapshot`() =
+        runTest {
+            val source = MutableSharedFlow<UserDefinedTypesSnapshot>(replay = 1)
+            val snapshot = emptySnapshot()
+            source.tryEmit(snapshot)
+            every { useCase.flowAllUserDefinedTypes() } returns source
 
-        val emissions = mutableListOf<Msg>()
-        val job = launch {
-            handler.flow(ComponentsManagerSub.AllTypes(generation = 0)).collect { emissions += it }
+            val emissions = mutableListOf<Msg>()
+            val job = launch {
+                handler.flow(ComponentsManagerSub.AllTypes(generation = 0)).collect { emissions += it }
+            }
+            advanceUntilIdle()
+            job.cancel()
+
+            assertEquals(1, emissions.size)
+            assertEquals(snapshot, (emissions.first() as Msg.TypesLoaded).snapshot)
         }
-        advanceUntilIdle()
-        job.cancel()
-
-        assertEquals(1, emissions.size)
-        assertEquals(snapshot, (emissions.first() as Msg.TypesLoaded).snapshot)
-    }
 
     @Test
-    fun `AllTypes re-emits on each snapshot`() = runTest {
-        val source = MutableSharedFlow<UserDefinedTypesSnapshot>(replay = 1)
-        source.tryEmit(emptySnapshot())
-        every { useCase.flowAllUserDefinedTypes() } returns source
+    fun `AllTypes re-emits on each snapshot`() =
+        runTest {
+            val source = MutableSharedFlow<UserDefinedTypesSnapshot>(replay = 1)
+            source.tryEmit(emptySnapshot())
+            every { useCase.flowAllUserDefinedTypes() } returns source
 
-        val emissions = mutableListOf<Msg>()
-        val job = launch {
-            handler.flow(ComponentsManagerSub.AllTypes(generation = 0)).collect { emissions += it }
+            val emissions = mutableListOf<Msg>()
+            val job = launch {
+                handler.flow(ComponentsManagerSub.AllTypes(generation = 0)).collect { emissions += it }
+            }
+            advanceUntilIdle()
+            source.tryEmit(emptySnapshot())
+            advanceUntilIdle()
+            job.cancel()
+
+            assertEquals(2, emissions.size)
+            assertTrue(emissions.all { it is Msg.TypesLoaded })
         }
-        advanceUntilIdle()
-        source.tryEmit(emptySnapshot())
-        advanceUntilIdle()
-        job.cancel()
-
-        assertEquals(2, emissions.size)
-        assertTrue(emissions.all { it is Msg.TypesLoaded })
-    }
 
     @Test
-    fun `AllTypes flow throws - emits TypesLoadFailed and logs`() = runTest {
-        val boom = RuntimeException("boom")
-        every { useCase.flowAllUserDefinedTypes() } returns flow { throw boom }
+    fun `AllTypes flow throws - emits TypesLoadFailed and logs`() =
+        runTest {
+            val boom = RuntimeException("boom")
+            every { useCase.flowAllUserDefinedTypes() } returns flow { throw boom }
 
-        // catch завершает поток fail-сообщением — toList не виснет.
-        val emissions = handler.flow(ComponentsManagerSub.AllTypes(generation = 0)).toList()
+            // catch завершает поток fail-сообщением — toList не виснет.
+            val emissions = handler.flow(ComponentsManagerSub.AllTypes(generation = 0)).toList()
 
-        assertEquals(1, emissions.size)
-        assertEquals(boom, (emissions.first() as Msg.TypesLoadFailed).cause)
-        coVerify { logger.e(any(), any()) }
-    }
+            assertEquals(1, emissions.size)
+            assertEquals(boom, (emissions.first() as Msg.TypesLoadFailed).cause)
+            coVerify { logger.e(any(), any()) }
+        }
 
     // ===== ComponentsManagerSub.Dictionaries =====
 
     @Test
-    fun `Dictionaries emits DictionariesLoaded with list`() = runTest {
-        val dict = DictionaryApiEntity(
-            id = 1L,
-            numericCode = null,
-            name = "D1",
-            addDate = Date(0L),
-        )
-        every { useCase.flowDictionaries() } returns flowOf(listOf(dict))
+    fun `Dictionaries emits DictionariesLoaded with list`() =
+        runTest {
+            val dict = DictionaryApiEntity(
+                id = 1L,
+                numericCode = null,
+                name = "D1",
+                addDate = Date(0L),
+            )
+            every { useCase.flowDictionaries() } returns flowOf(listOf(dict))
 
-        val emissions = handler.flow(ComponentsManagerSub.Dictionaries).toList()
+            val emissions = handler.flow(ComponentsManagerSub.Dictionaries).toList()
 
-        assertEquals(listOf<Msg>(Msg.DictionariesLoaded(listOf(dict))), emissions)
-    }
+            assertEquals(listOf<Msg>(Msg.DictionariesLoaded(listOf(dict))), emissions)
+        }
 
     @Test
-    fun `Dictionaries flow throws - degrades to empty list and logs`() = runTest {
-        every { useCase.flowDictionaries() } returns flow { throw RuntimeException("boom") }
+    fun `Dictionaries flow throws - degrades to empty list and logs`() =
+        runTest {
+            every { useCase.flowDictionaries() } returns flow { throw RuntimeException("boom") }
 
-        val emissions = handler.flow(ComponentsManagerSub.Dictionaries).toList()
+            val emissions = handler.flow(ComponentsManagerSub.Dictionaries).toList()
 
-        assertEquals(listOf<Msg>(Msg.DictionariesLoaded(emptyList())), emissions)
-        coVerify { logger.e(any(), any()) }
-    }
+            assertEquals(listOf<Msg>(Msg.DictionariesLoaded(emptyList())), emissions)
+            coVerify { logger.e(any(), any()) }
+        }
 }

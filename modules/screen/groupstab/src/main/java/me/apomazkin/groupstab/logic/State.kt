@@ -96,7 +96,10 @@ data class GroupUiItem(
 @Immutable
 sealed interface GroupSheetMode {
     data object Create : GroupSheetMode
-    data class Rename(val groupId: Long) : GroupSheetMode
+
+    data class Rename(
+        val groupId: Long,
+    ) : GroupSheetMode
 }
 
 /** Ошибка валидации мутации имени группы. */

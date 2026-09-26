@@ -13,21 +13,19 @@ import java.util.Date
  * keyed in-flight, подписки, guard'ы экрана, flush-on-back, мапперы.
  */
 class GroupsBlockTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
-    private fun loadedState(
-        block: GroupsBlockState = GroupsBlockState(),
-    ) = WordCardState(
-        isLoading = false,
-        wordState = WordState.Loaded(
-            id = 3L,
-            dictionaryId = 1L,
-            added = Date(0),
-            value = "cat",
-        ),
-        groupsBlock = block,
-    )
+    private fun loadedState(block: GroupsBlockState = GroupsBlockState()) =
+        WordCardState(
+            isLoading = false,
+            wordState = WordState.Loaded(
+                id = 3L,
+                dictionaryId = 1L,
+                added = Date(0),
+                value = "cat",
+            ),
+            groupsBlock = block,
+        )
 
     private val dictGroups = listOf(GroupUi(5, "Быт"), GroupUi(6, "Дом"))
 
@@ -213,6 +211,7 @@ class GroupsBlockTest {
     @Test
     fun `scenario - add membership via picker, chip appears from subscription`() {
         var state = loadedState()
+
         fun send(msg: Msg): Set<io.github.kilgoret.mate.Effect> {
             val r = reducer.reduce(state, msg)
             state = r.first

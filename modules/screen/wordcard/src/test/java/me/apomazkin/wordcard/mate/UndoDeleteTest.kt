@@ -1,11 +1,11 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.core_resources.R
 import io.github.kilgoret.mate.NavigationEffect
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.core_resources.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -17,7 +17,6 @@ import org.junit.Test
  * RemoveLexeme (вкл. NOT_IN_DB local).
  */
 class UndoDeleteTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
     // IS486 фаза 3 (В4): тест `LexemeCascadeRemoved removes and emits undo` удалён —
@@ -53,7 +52,23 @@ class UndoDeleteTest {
 
     @Test
     fun `UndoRestoreLexeme_sets_pending_and_emits_restore`() {
-        val snapshot = domainLexeme(8L, listOf(domainCv(60L, 8L, "hi", ref = TR), domainCv(61L, 8L, "e", typeId = 51L, ref = me.apomazkin.lexeme.ComponentTypeRef.UserDefined("Example"))))
+        val snapshot = domainLexeme(
+            8L,
+            listOf(
+                domainCv(60L, 8L, "hi", ref = TR),
+                domainCv(
+                    61L,
+                    8L,
+                    "e",
+                    typeId = 51L,
+                    ref = me
+                        .apomazkin
+                        .lexeme
+                        .ComponentTypeRef
+                        .UserDefined("Example"),
+                ),
+            ),
+        )
         val initial = loaded(wordId = 7L, dictionaryId = 3L)
         val result = reducer.testReduce(initial, Msg.UndoRestoreLexeme(snapshot))
         assertTrue(result.state().isPendingDbOp)

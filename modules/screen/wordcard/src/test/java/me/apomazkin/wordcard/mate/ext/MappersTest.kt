@@ -21,7 +21,6 @@ import org.junit.Test
  * §2.1 Mappers: Lexeme.toLexemeState / ComponentValue.toComponentValueState.
  */
 class MappersTest {
-
     @Test
     fun `toLexemeState maps id and components`() {
         val lex = domainLexeme(8L, listOf(domainCv(5L, 8L, "a"), domainCv(6L, 8L, "b")))

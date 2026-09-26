@@ -2,7 +2,6 @@ package me.apomazkin.groupstab.logic
 
 import io.github.kilgoret.mate.Subscription
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -12,7 +11,6 @@ import org.junit.Test
  * подписок в набор (Slice / AllWindow / GroupWindow / DeleteCountdown).
  */
 class SubsTest {
-
     // === Slice / словарь ===
 
     @Test

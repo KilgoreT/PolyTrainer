@@ -25,7 +25,6 @@ import me.apomazkin.lexeme.SetEnabledOutcome
  * setComponentEnabled + CRUD опций.
  */
 interface PerDictionaryComponentsUseCase {
-
     /**
      * Подписка на active types применимые к словарю
      * (`(dictionary_id = :dictId OR dictionary_id IS NULL) AND removed_at IS NULL`)
@@ -70,15 +69,24 @@ interface PerDictionaryComponentsUseCase {
      * IS486: рубильник enabled (spec §6). Мягкий — без каскадов; выключение
      * последнего включённого ядра словаря → [SetEnabledOutcome.LastEnabledCore].
      */
-    suspend fun setComponentEnabled(typeId: ComponentTypeId, enabled: Boolean): SetEnabledOutcome
+    suspend fun setComponentEnabled(
+        typeId: ComponentTypeId,
+        enabled: Boolean,
+    ): SetEnabledOutcome
 
     // ===== IS486: CRUD опций CHOICE (spec К1–К5) =====
 
     /** Добавить опцию (label, в конец списка). */
-    suspend fun addOption(typeId: ComponentTypeId, label: String): OptionOutcome
+    suspend fun addOption(
+        typeId: ComponentTypeId,
+        label: String,
+    ): OptionOutcome
 
     /** Переименовать опцию (label-override; id устойчив). */
-    suspend fun renameOption(optionId: Long, label: String): OptionOutcome
+    suspend fun renameOption(
+        optionId: Long,
+        label: String,
+    ): OptionOutcome
 
     /**
      * Soft-delete опции + комбинированный каскад (значения-выборы + поддеревья

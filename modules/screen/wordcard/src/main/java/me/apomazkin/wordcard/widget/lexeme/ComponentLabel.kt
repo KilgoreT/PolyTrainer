@@ -11,14 +11,16 @@ import me.apomazkin.lexeme.toRef
 
 /** Лейбл из ref (snapshot ИЛИ живой type.toRef()). */
 @Composable
-internal fun labelOfRef(ref: ComponentTypeRef): String = when (ref) {
-    is ComponentTypeRef.BuiltIn -> when (ref.key) {
-        BuiltInComponent.TRANSLATION -> stringResource(id = R.string.word_card_bottom_translation)
-        BuiltInComponent.PART_OF_SPEECH -> stringResource(id = R.string.builtin_component_part_of_speech)
-        BuiltInComponent.EXAMPLE -> stringResource(id = R.string.builtin_component_example)   // IS491
+internal fun labelOfRef(ref: ComponentTypeRef): String =
+    when (ref) {
+        is ComponentTypeRef.BuiltIn ->
+            when (ref.key) {
+                BuiltInComponent.TRANSLATION -> stringResource(id = R.string.word_card_bottom_translation)
+                BuiltInComponent.PART_OF_SPEECH -> stringResource(id = R.string.builtin_component_part_of_speech)
+                BuiltInComponent.EXAMPLE -> stringResource(id = R.string.builtin_component_example) // IS491
+            }
+        is ComponentTypeRef.UserDefined -> ref.name
     }
-    is ComponentTypeRef.UserDefined -> ref.name
-}
 
 /**
  * A12: лейбл ЗНАЧЕНИЯ — приоритет живому типу из справочника по id, fallback на снимок ref

@@ -9,7 +9,6 @@ import io.github.kilgoret.mate.Subscription
  * включает новые подписки и гасит исчезнувшие.
  */
 sealed interface ComponentsManagerSub : Subscription {
-
     /**
      * Живой список всех пользовательских типов компонентов →
      * [Msg.TypesLoaded]; ошибка потока → [Msg.TypesLoadFailed]
@@ -19,7 +18,9 @@ sealed interface ComponentsManagerSub : Subscription {
      *   state инкрементит его в state — упавшая подписка гаснет,
      *   новая стартует.
      */
-    data class AllTypes(val generation: Int) : ComponentsManagerSub
+    data class AllTypes(
+        val generation: Int,
+    ) : ComponentsManagerSub
 
     /**
      * Живой список словарей для multi-dict scope picker'а в
@@ -35,7 +36,8 @@ sealed interface ComponentsManagerSub : Subscription {
  * создания до уничтожения раннера; у списка типов меняется только
  * generation при retry.
  */
-fun ComponentsManagerScreenState.subscriptions(): Set<Subscription> = setOf(
-    ComponentsManagerSub.AllTypes(generation = loadGeneration),
-    ComponentsManagerSub.Dictionaries,
-)
+fun ComponentsManagerScreenState.subscriptions(): Set<Subscription> =
+    setOf(
+        ComponentsManagerSub.AllTypes(generation = loadGeneration),
+        ComponentsManagerSub.Dictionaries,
+    )

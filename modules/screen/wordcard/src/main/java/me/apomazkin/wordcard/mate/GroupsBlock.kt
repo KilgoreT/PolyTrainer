@@ -1,12 +1,12 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.compose.runtime.Stable
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.ReducerResult
 import me.apomazkin.group.AddMembershipOutcome
 import me.apomazkin.group.RemoveMembershipOutcome
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.Effect
 import me.apomazkin.mate.ReducerLogging
-import io.github.kilgoret.mate.ReducerResult
 import me.apomazkin.wordcard.LogTags
 
 /**
@@ -50,8 +50,9 @@ private typealias CardResult = ReducerResult<WordCardState, Effect>
  * dispatch receiver [ReducerLogging]); [WordCardReducer] и тесты
  * НАСЛЕДУЮТ. Старые ветки карточки конвенцией не покрыты — только Э5.
  */
-abstract class GroupBlockAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
-
+abstract class GroupBlockAtoms(
+    logger: LexemeLogger,
+) : ReducerLogging(logger) {
     override val logTag: String = LogTags.WORDCARD
 
     /**
@@ -125,15 +126,17 @@ abstract class GroupBlockAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
 // groupstab/MutationMappers) ===
 
 /** Таблица исходов add: все — Done (NotFound-исходы тихие, правит подписка). */
-fun AddMembershipOutcome.toMembershipMsg(groupId: Long): Msg = when (this) {
-    is AddMembershipOutcome.Added -> Msg.MembershipDone(groupId)
-    is AddMembershipOutcome.AlreadyIn -> Msg.MembershipDone(groupId)
-    is AddMembershipOutcome.GroupNotFound -> Msg.MembershipDone(groupId)
-    is AddMembershipOutcome.WordNotFound -> Msg.MembershipDone(groupId)
-}
+fun AddMembershipOutcome.toMembershipMsg(groupId: Long): Msg =
+    when (this) {
+        is AddMembershipOutcome.Added -> Msg.MembershipDone(groupId)
+        is AddMembershipOutcome.AlreadyIn -> Msg.MembershipDone(groupId)
+        is AddMembershipOutcome.GroupNotFound -> Msg.MembershipDone(groupId)
+        is AddMembershipOutcome.WordNotFound -> Msg.MembershipDone(groupId)
+    }
 
 /** Таблица исходов remove: оба — Done (NotFound идемпотентен). */
-fun RemoveMembershipOutcome.toMembershipMsg(groupId: Long): Msg = when (this) {
-    is RemoveMembershipOutcome.Removed -> Msg.MembershipDone(groupId)
-    is RemoveMembershipOutcome.NotFound -> Msg.MembershipDone(groupId)
-}
+fun RemoveMembershipOutcome.toMembershipMsg(groupId: Long): Msg =
+    when (this) {
+        is RemoveMembershipOutcome.Removed -> Msg.MembershipDone(groupId)
+        is RemoveMembershipOutcome.NotFound -> Msg.MembershipDone(groupId)
+    }

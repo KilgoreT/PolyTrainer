@@ -12,7 +12,6 @@ import org.junit.Test
  * §2.4 commitAndCloseAllEdits(): Pair<State, Set<Effect>> (G6).
  */
 class CommitAndCloseAllEditsTest {
-
     private val EX = ComponentTypeRef.UserDefined("Example")
     private val EX2 = ComponentTypeRef.UserDefined("Example2")
 
@@ -24,9 +23,9 @@ class CommitAndCloseAllEditsTest {
                     7L,
                     listOf(
                         savedCv(5L, origin = "same", isEdit = true, edited = "same"), // NoOp
-                        savedCv(6L, origin = "old", isEdit = true, edited = "new"),    // Update
-                        savedCv(8L, origin = "x", isEdit = true, edited = ""),         // PessimisticRemove
-                        pristineCv(9L, edited = ""),                                   // LocalRemove
+                        savedCv(6L, origin = "old", isEdit = true, edited = "new"), // Update
+                        savedCv(8L, origin = "x", isEdit = true, edited = ""), // PessimisticRemove
+                        pristineCv(9L, edited = ""), // LocalRemove
                     ),
                 ),
             ),
@@ -42,9 +41,12 @@ class CommitAndCloseAllEditsTest {
         assertEquals(
             setOf(
                 DatasourceEffect.UpsertComponentValue.UpdateValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 7L,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 7L,
                     componentValueId = ComponentValueId(6L),
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = textValuesOf("new"),
                 ),
                 DatasourceEffect.RemoveComponentValue(ComponentValueId(8L), 7L),

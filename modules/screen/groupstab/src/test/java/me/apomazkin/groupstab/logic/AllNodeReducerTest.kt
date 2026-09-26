@@ -1,9 +1,9 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.group.DisplayNode
-import me.apomazkin.group.DisplayTree
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
+import me.apomazkin.group.DisplayNode
+import me.apomazkin.group.DisplayTree
 import me.apomazkin.wordrow.entity.TermUiItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,26 +17,28 @@ import java.util.Date
  * словаря, ошибки окна.
  */
 class AllNodeReducerTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
-    private fun tree(vararg ids: Long) = DisplayTree(
-        allWords = DisplayNode.AllWords(words = ids.toList(), count = ids.size),
-        groups = emptyList(),
-    )
+    private fun tree(vararg ids: Long) =
+        DisplayTree(
+            allWords = DisplayNode.AllWords(words = ids.toList(), count = ids.size),
+            groups = emptyList(),
+        )
 
-    private fun term(id: Long) = TermUiItem(
-        id = id,
-        wordValue = "w$id",
-        dictionaryId = 1L,
-        addDate = Date(0),
-    )
+    private fun term(id: Long) =
+        TermUiItem(
+            id = id,
+            wordValue = "w$id",
+            dictionaryId = 1L,
+            addDate = Date(0),
+        )
 
-    private fun stateWithNode(node: AllNodeState) = GroupsTabState(
-        isLoading = false,
-        dictionaryId = 1L,
-        allNode = node,
-    )
+    private fun stateWithNode(node: AllNodeState) =
+        GroupsTabState(
+            isLoading = false,
+            dictionaryId = 1L,
+            allNode = node,
+        )
 
     // === SliceLoaded → узел ===
 
@@ -65,7 +67,7 @@ class AllNodeReducerTest {
                 window = 50,
                 loadedWords = listOf(term(30), term(20), term(10)),
                 hasMore = false,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.SliceLoaded(tree(40, 30, 20, 10)))
@@ -102,7 +104,7 @@ class AllNodeReducerTest {
                 window = 50,
                 loadedWords = listOf(term(30), term(20), term(10)),
                 hasMore = false,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.SliceLoaded(tree(30, 10)))
@@ -152,7 +154,7 @@ class AllNodeReducerTest {
                 window = 50,
                 loadedWords = listOf(term(30), term(20)),
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.ToggleAll)
@@ -175,7 +177,7 @@ class AllNodeReducerTest {
                 window = CHUNK_SIZE,
                 loadedWords = (170L downTo (171L - CHUNK_SIZE)).map { term(it) },
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.LoadMore)
@@ -197,7 +199,7 @@ class AllNodeReducerTest {
                 loadedWords = listOf(term(30)),
                 isWindowLoading = true,
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.LoadMore)
@@ -215,7 +217,7 @@ class AllNodeReducerTest {
                 window = 50,
                 loadedWords = listOf(term(30), term(20)),
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.LoadMore)
@@ -234,7 +236,7 @@ class AllNodeReducerTest {
                 loadedWords = listOf(term(30)),
                 isWindowLoading = true,
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(
@@ -251,7 +253,7 @@ class AllNodeReducerTest {
     @Test
     fun `window loaded after collapse - ignored`() {
         val current = stateWithNode(
-            AllNodeState(count = 2, isExpanded = false, hasMore = true)
+            AllNodeState(count = 2, isExpanded = false, hasMore = true),
         )
 
         val result = reducer.reduce(current, Msg.WindowLoaded(listOf(term(30))))
@@ -270,7 +272,7 @@ class AllNodeReducerTest {
                 window = 50,
                 isWindowLoading = true,
                 hasMore = true,
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.WindowLoadFailed)

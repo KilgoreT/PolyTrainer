@@ -1,9 +1,5 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.core_resources.R
-import me.apomazkin.lexeme.ChoiceValues
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.toRef
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateReducer
 import io.github.kilgoret.mate.NavigationEffect
@@ -11,6 +7,10 @@ import io.github.kilgoret.mate.ReducerResult
 import io.github.kilgoret.mate.begin
 import io.github.kilgoret.mate.then
 import io.github.kilgoret.mate.withEffect
+import me.apomazkin.core_resources.R
+import me.apomazkin.lexeme.ChoiceValues
+import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.toRef
 
 /**
  * IS481 generic reducer. ЭТАП 0: скелет — простые (unchanged) ветки реальны,
@@ -23,9 +23,12 @@ import io.github.kilgoret.mate.withEffect
  */
 class WordCardReducer(
     logger: me.apomazkin.logger.LexemeLogger,
-) : GroupBlockAtoms(logger), MateReducer<WordCardState, Msg, Effect> {
-
-    override fun reduce(state: WordCardState, message: Msg): ReducerResult<WordCardState, Effect> {
+) : GroupBlockAtoms(logger),
+    MateReducer<WordCardState, Msg, Effect> {
+    override fun reduce(
+        state: WordCardState,
+        message: Msg,
+    ): ReducerResult<WordCardState, Effect> {
         if ((state.isPendingDbOp || state.isExiting) && message.isGuardedByPending()) {
             return state to emptySet()
         }
@@ -43,8 +46,8 @@ class WordCardReducer(
     private fun reduceImpl(
         state: WordCardState,
         message: Msg,
-    ): ReducerResult<WordCardState, Effect> {
-        return when (message) {
+    ): ReducerResult<WordCardState, Effect> =
+        when (message) {
             // ===== Top bar =====
             is Msg.OpenTopBarMenu -> state.showMenu() to emptySet()
             is Msg.CloseTopBarMenu ->
@@ -52,23 +55,32 @@ class WordCardReducer(
 
             // ===== Delete word =====
             is Msg.OpenDeleteWordDialog ->
-                if (state.wordState !is WordState.Loaded) state to emptySet()
-                else state.showWordWarningDialog() to emptySet()
+                if (state.wordState !is WordState.Loaded) {
+                    state to emptySet()
+                } else {
+                    state.showWordWarningDialog() to emptySet()
+                }
 
             is Msg.CloseDeleteWordDialog -> state.hideWordWarningDialog() to emptySet()
 
             is Msg.RemoveWord -> {
                 val loaded = state.wordState as? WordState.Loaded
-                if (loaded == null || loaded.id != message.wordId) state to emptySet()
-                else state.copy(isPendingDbOp = true).hideWordWarningDialog().hideMenu() to
+                if (loaded == null || loaded.id != message.wordId) {
+                    state to emptySet()
+                } else {
+                    state.copy(isPendingDbOp = true).hideWordWarningDialog().hideMenu() to
                         setOf(DatasourceEffect.RemoveWord(wordId = message.wordId))
+                }
             }
 
             // ===== Word edit =====
             is Msg.UpdateWordInput -> {
                 val loaded = state.wordState as? WordState.Loaded
-                if (loaded == null || !loaded.isEditMode) state to emptySet()
-                else state.updateWordEdited(message.value) to emptySet()
+                if (loaded == null || !loaded.isEditMode) {
+                    state to emptySet()
+                } else {
+                    state.updateWordEdited(message.value) to emptySet()
+                }
             }
 
             is Msg.CommitWordChanges -> {
@@ -76,7 +88,8 @@ class WordCardReducer(
                 when {
                     loaded == null -> state to emptySet()
                     loaded.edited.isBlank() -> state to emptySet()
-                    else -> state.copy(isPendingDbOp = true).disableWordEdit() to
+                    else ->
+                        state.copy(isPendingDbOp = true).disableWordEdit() to
                             setOf(
                                 DatasourceEffect.UpdateWord(
                                     wordId = loaded.id,
@@ -110,11 +123,12 @@ class WordCardReducer(
                         value = w.word.value,
                     ),
                     lexemeList = alive.map { it.toLexemeState() },
-                ) to buildSet {
-                    // Подписки (типы компонентов, группы) включит дифф
-                    // subscriptions(): wordState стал Loaded.
-                    empty.forEach { add(DatasourceEffect.PurgeEmptyLexeme(w.wordId.id, it.lexemeId.id)) }
-                }
+                ) to
+                    buildSet {
+                        // Подписки (типы компонентов, группы) включит дифф
+                        // subscriptions(): wordState стал Loaded.
+                        empty.forEach { add(DatasourceEffect.PurgeEmptyLexeme(w.wordId.id, it.lexemeId.id)) }
+                    }
             }
 
             is Msg.WordNotFound ->
@@ -122,23 +136,27 @@ class WordCardReducer(
 
             is Msg.RefreshWord -> {
                 val loaded = state.wordState as? WordState.Loaded
-                if (loaded == null) state.copy(isPendingDbOp = false) to emptySet()
-                else state.copy(
-                    isPendingDbOp = false,
-                    wordState = loaded.copy(
-                        value = message.word.word.value,
-                        isEditMode = false,
-                        edited = "",
-                    ),
-                ) to emptySet()
+                if (loaded == null) {
+                    state.copy(isPendingDbOp = false) to emptySet()
+                } else {
+                    state.copy(
+                        isPendingDbOp = false,
+                        wordState = loaded.copy(
+                            value = message.word.word.value,
+                            isEditMode = false,
+                            edited = "",
+                        ),
+                    ) to emptySet()
+                }
             }
 
             is Msg.NoOperation -> state to emptySet()
 
             // ===== Word edit (commit open edits first) =====
             is Msg.EnterWordEditMode -> {
-                if (state.wordState !is WordState.Loaded) state to emptySet()
-                else {
+                if (state.wordState !is WordState.Loaded) {
+                    state to emptySet()
+                } else {
                     val (committed, effects) = state.commitAndCloseAllEdits()
                     committed.enableWordEdit() to effects
                 }
@@ -146,8 +164,9 @@ class WordCardReducer(
 
             // ===== Lexeme create =====
             is Msg.CreateLexeme -> {
-                if (state.isCreatingLexeme) state to emptySet()
-                else {
+                if (state.isCreatingLexeme) {
+                    state to emptySet()
+                } else {
                     val (committed, effects) = state.commitAndCloseAllEdits()
                     committed.copy(lexemeList = listOf(LexemeState(id = NOT_IN_DB)) + committed.lexemeList) to effects
                 }
@@ -159,9 +178,12 @@ class WordCardReducer(
                     state.removeLexeme(NOT_IN_DB).copy(lexemeIdPendingDelete = null) to emptySet()
                 } else {
                     val loaded = state.wordState as? WordState.Loaded
-                    if (loaded == null) state to emptySet()
-                    else state.copy(isPendingDbOp = true, lexemeIdPendingDelete = null) to
+                    if (loaded == null) {
+                        state to emptySet()
+                    } else {
+                        state.copy(isPendingDbOp = true, lexemeIdPendingDelete = null) to
                             setOf(DatasourceEffect.RemoveLexeme(loaded.id, message.lexemeId))
+                    }
                 }
             }
 
@@ -169,8 +191,10 @@ class WordCardReducer(
 
             is Msg.UndoRestoreLexeme -> {
                 val loaded = state.wordState as? WordState.Loaded
-                if (loaded == null) state to emptySet()
-                else state.copy(isPendingDbOp = true) to
+                if (loaded == null) {
+                    state to emptySet()
+                } else {
+                    state.copy(isPendingDbOp = true) to
                         setOf(
                             DatasourceEffect.RestoreLexemeWithComponents(
                                 loaded.id,
@@ -178,26 +202,33 @@ class WordCardReducer(
                                 message.lexeme,
                             ),
                         )
+                }
             }
 
             is Msg.RestoreLexemeFailed ->
-                state.copy(isPendingDbOp = false) to setOf(
-                    UiEffect.ShowSnackbarWithRetry(
-                        messageRes = R.string.word_card_error_restore_lexeme,
-                        actionLabelRes = R.string.word_card_action_retry,
-                        retryMsg = Msg.UndoRestoreLexeme(message.snapshot),
-                    ),
-                )
+                state.copy(isPendingDbOp = false) to
+                    setOf(
+                        UiEffect.ShowSnackbarWithRetry(
+                            messageRes = R.string.word_card_error_restore_lexeme,
+                            actionLabelRes = R.string.word_card_action_retry,
+                            retryMsg = Msg.UndoRestoreLexeme(message.snapshot),
+                        ),
+                    )
 
             // ===== Component value lifecycle =====
             is Msg.CreateComponentValue -> reduceCreateComponentValue(state, message)
             is Msg.UpdateComponentValueInput -> {
-                val cv = state.lexemeList.firstOrNull { it.id == message.lexemeId }
+                val cv = state
+                    .lexemeList
+                    .firstOrNull { it.id == message.lexemeId }
                     ?.findByKey(message.key)
-                if (cv == null || !cv.isEdit) state to emptySet()
-                else state.updateLexeme(message.lexemeId) {
-                    it.updateComponent(message.key) { c -> c.copy(edited = message.value) }
-                } to emptySet()
+                if (cv == null || !cv.isEdit) {
+                    state to emptySet()
+                } else {
+                    state.updateLexeme(message.lexemeId) {
+                        it.updateComponent(message.key) { c -> c.copy(edited = message.value) }
+                    } to emptySet()
+                }
             }
 
             is Msg.EnterComponentValueEditMode -> {
@@ -215,20 +246,26 @@ class WordCardReducer(
 
             // ===== IS491: captioned_text =====
             is Msg.UpdateComponentCaptionInput -> {
-                val cv = state.lexemeList.firstOrNull { it.id == message.lexemeId }
+                val cv = state
+                    .lexemeList
+                    .firstOrNull { it.id == message.lexemeId }
                     ?.findByKey(message.key)
-                if (cv == null || !cv.isEdit) state to emptySet()
-                else state.updateLexeme(message.lexemeId) {
-                    it.updateComponent(message.key) { c -> c.copy(editedCaption = message.caption) }
-                } to emptySet()
+                if (cv == null || !cv.isEdit) {
+                    state to emptySet()
+                } else {
+                    state.updateLexeme(message.lexemeId) {
+                        it.updateComponent(message.key) { c -> c.copy(editedCaption = message.caption) }
+                    } to emptySet()
+                }
             }
 
             is Msg.LoadCaptionSuggestions ->
                 state to setOf(DatasourceEffect.LoadCaptionSuggestions(message.typeId))
 
-            is Msg.CaptionSuggestionsLoaded -> state.copy(
-                captionSuggestions = state.captionSuggestions + (message.typeId to message.suggestions),
-            ) to emptySet()
+            is Msg.CaptionSuggestionsLoaded ->
+                state.copy(
+                    captionSuggestions = state.captionSuggestions + (message.typeId to message.suggestions),
+                ) to emptySet()
 
             is Msg.CommitComponentValueEdit -> reduceCommitComponentValueEdit(state, message)
             is Msg.RemoveComponentValueRequested -> reduceRemoveComponentValue(state, message)
@@ -237,24 +274,30 @@ class WordCardReducer(
             is Msg.SelectComponentOption -> reduceSelectComponentOption(state, message)
 
             // ===== Component types stream =====
-            is Msg.ComponentTypesLoaded -> state.copy(
-                availableComponentTypes = message.available.types,
-                optionsByType = message.available.optionsByType,
-            ) to emptySet()
-            is Msg.ComponentTypesLoadFailed -> state to setOf(
-                UiEffect.ShowSnackbarWithRetry(
-                    messageRes = R.string.word_card_error_load_component_types,
-                    actionLabelRes = R.string.word_card_action_retry,
-                    retryMsg = Msg.RetryLoadComponentTypes,
-                ),
-            )
+            is Msg.ComponentTypesLoaded ->
+                state.copy(
+                    availableComponentTypes = message.available.types,
+                    optionsByType = message.available.optionsByType,
+                ) to emptySet()
+            is Msg.ComponentTypesLoadFailed ->
+                state to
+                    setOf(
+                        UiEffect.ShowSnackbarWithRetry(
+                            messageRes = R.string.word_card_error_load_component_types,
+                            actionLabelRes = R.string.word_card_action_retry,
+                            retryMsg = Msg.RetryLoadComponentTypes,
+                        ),
+                    )
 
             is Msg.RetryLoadComponentTypes -> {
                 val loaded = state.wordState as? WordState.Loaded
                 // Инкремент typesGeneration ломает equality подписки
                 // ComponentTypes — дифф гасит упавшую и стартует новую.
-                if (loaded == null) state to emptySet()
-                else state.copy(typesGeneration = state.typesGeneration + 1) to emptySet()
+                if (loaded == null) {
+                    state to emptySet()
+                } else {
+                    state.copy(typesGeneration = state.typesGeneration + 1) to emptySet()
+                }
             }
 
             // ===== Datasource re-read =====
@@ -280,23 +323,26 @@ class WordCardReducer(
 
                     // Направление — от факта БД (wordGroupIds, D22.3).
                     message.groupId in state.groupsBlock.wordGroupIds ->
-                        state.begin<WordCardState, Effect>()
+                        state
+                            .begin<WordCardState, Effect>()
                             .then { it.markMembershipInFlight(message.groupId) }
                             .withEffect(
                                 DatasourceEffect.RemoveMembership(
                                     wordId = loaded.id,
                                     groupId = message.groupId,
-                                )
+                                ),
                             )
 
-                    else -> state.begin<WordCardState, Effect>()
-                        .then { it.markMembershipInFlight(message.groupId) }
-                        .withEffect(
-                            DatasourceEffect.AddMembership(
-                                wordId = loaded.id,
-                                groupId = message.groupId,
+                    else ->
+                        state
+                            .begin<WordCardState, Effect>()
+                            .then { it.markMembershipInFlight(message.groupId) }
+                            .withEffect(
+                                DatasourceEffect.AddMembership(
+                                    wordId = loaded.id,
+                                    groupId = message.groupId,
+                                ),
                             )
-                        )
                 }
             }
 
@@ -310,21 +356,26 @@ class WordCardReducer(
 
             is Msg.OperationFailed -> reduceOperationFailed(state, message)
             is Msg.NavigateBack -> {
-                if (state.isExiting) state to emptySet()
-                else {
+                if (state.isExiting) {
+                    state to emptySet()
+                } else {
                     val (next, effects) = state.copy(isExiting = true).commitAndCloseAllEdits()
                     // Решение 2026-07-21: черновик живёт только в открытой карточке —
                     // выход тихо удаляет сохранённые пустые лексемы (best-effort).
                     val wordId = (next.wordState as? WordState.Loaded)?.id
-                    val purge = if (wordId == null) emptySet() else next.lexemeList
-                        .filter { it.id != NOT_IN_DB && it.components.isEmpty() }
-                        .map { DatasourceEffect.PurgeEmptyLexeme(wordId, it.id) }
-                        .toSet()
+                    val purge = if (wordId == null) {
+                        emptySet()
+                    } else {
+                        next
+                            .lexemeList
+                            .filter { it.id != NOT_IN_DB && it.components.isEmpty() }
+                            .map { DatasourceEffect.PurgeEmptyLexeme(wordId, it.id) }
+                            .toSet()
+                    }
                     next to (effects + purge)
                 }
             }
         }
-    }
 
     private fun removeLexemeWithUndo(
         state: WordCardState,
@@ -381,7 +432,7 @@ class WordCardReducer(
                             components = listOf(pristine),
                         ),
                     ) +
-                            committed.lexemeList,
+                        committed.lexemeList,
                     nextPristineKey = committed.nextPristineKey + 1,
                 ) to effects
 
@@ -395,23 +446,26 @@ class WordCardReducer(
         message: Msg.CommitComponentValueEdit,
     ): ReducerResult<WordCardState, Effect> {
         val loaded = state.wordState as? WordState.Loaded ?: return state to emptySet()
-        val lex =
-            state.lexemeList.firstOrNull { it.id == message.lexemeId } ?: return state to emptySet()
+        val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId } ?: return state to emptySet()
         val cv = lex.findByKey(message.key) ?: return state to emptySet()
         return when (val outcome = cv.commitDecision()) {
             CommitOutcome.NoOp ->
-                if (!cv.isEdit) state to emptySet()
-                else state.updateLexeme(message.lexemeId) {
-                    it.updateComponent(message.key) { c ->
-                        c.copy(isEdit = false, edited = "", editedCaption = null)
-                    }
-                } to emptySet()
+                if (!cv.isEdit) {
+                    state to emptySet()
+                } else {
+                    state.updateLexeme(message.lexemeId) {
+                        it.updateComponent(message.key) { c ->
+                            c.copy(isEdit = false, edited = "", editedCaption = null)
+                        }
+                    } to emptySet()
+                }
 
-            CommitOutcome.LocalRemove -> dropComponentMaybeCascade(
-                state,
-                message.lexemeId,
-                message.key,
-            ) to emptySet()
+            CommitOutcome.LocalRemove ->
+                dropComponentMaybeCascade(
+                    state,
+                    message.lexemeId,
+                    message.key,
+                ) to emptySet()
 
             CommitOutcome.PessimisticRemove -> {
                 val cvId = cv.componentValueId ?: return dropComponentMaybeCascade(
@@ -437,15 +491,15 @@ class WordCardReducer(
         state: WordCardState,
         message: Msg.RemoveComponentValueRequested,
     ): ReducerResult<WordCardState, Effect> {
-        val lex =
-            state.lexemeList.firstOrNull { it.id == message.lexemeId } ?: return state to emptySet()
+        val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId } ?: return state to emptySet()
         val cv = lex.findByKey(message.key) ?: return state to emptySet()
         return when {
-            cv.isPristine -> dropComponentMaybeCascade(
-                state,
-                message.lexemeId,
-                message.key,
-            ) to emptySet()
+            cv.isPristine ->
+                dropComponentMaybeCascade(
+                    state,
+                    message.lexemeId,
+                    message.key,
+                ) to emptySet()
 
             // «Пустой origin = локальный мусор» — только для шаблонов с редактируемым
             // текстом (IS481). У CHOICE origin пуст ВСЕГДА (payload в selectedOptionId),
@@ -469,7 +523,8 @@ class WordCardReducer(
         val cleared = state.copy(isPendingDbOp = false)
         val target = cleared.lexemeList.firstOrNull { it.id == message.lexemeId }
             ?: return cleared to emptySet()
-        val existingByCvId = target.components
+        val existingByCvId = target
+            .components
             .filter { it.componentValueId != null }
             .associateBy { it.componentValueId }
         val savedComps = message.components.map { domain ->
@@ -480,27 +535,30 @@ class WordCardReducer(
             val newCaption = domain.data.asCaption()
             when {
                 existing == null -> domain.toComponentValueState()
-                existing.isCommitting -> existing.copy(
-                    origin = newOrigin,
-                    selectedOptionId = newOptionId,
-                    originCaption = newCaption,
-                    isEdit = false,
-                    isCommitting = false,
-                    edited = "",
-                    editedCaption = null,
-                )
+                existing.isCommitting ->
+                    existing.copy(
+                        origin = newOrigin,
+                        selectedOptionId = newOptionId,
+                        originCaption = newCaption,
+                        isEdit = false,
+                        isCommitting = false,
+                        edited = "",
+                        editedCaption = null,
+                    )
 
-                existing.isEdit -> existing.copy(
-                    origin = newOrigin,
-                    selectedOptionId = newOptionId,
-                    originCaption = newCaption,
-                )
-                else -> existing.copy(
-                    origin = newOrigin,
-                    selectedOptionId = newOptionId,
-                    originCaption = newCaption,
-                    isEdit = false,
-                )
+                existing.isEdit ->
+                    existing.copy(
+                        origin = newOrigin,
+                        selectedOptionId = newOptionId,
+                        originCaption = newCaption,
+                    )
+                else ->
+                    existing.copy(
+                        origin = newOrigin,
+                        selectedOptionId = newOptionId,
+                        originCaption = newCaption,
+                        isEdit = false,
+                    )
             }
         }
         val pristineTail = target.components.filter { it.isPristine }
@@ -512,8 +570,7 @@ class WordCardReducer(
         state: WordCardState,
         message: Msg.ComponentValueInserted,
     ): ReducerResult<WordCardState, Effect> {
-        val lex =
-            state.lexemeList.firstOrNull { it.id == message.lexemeId } ?: return state to emptySet()
+        val lex = state.lexemeList.firstOrNull { it.id == message.lexemeId } ?: return state to emptySet()
         val pristine = lex.components.firstOrNull { it.pristineKey == message.pristineKey }
             ?: return state to emptySet()
         val savedKey = ComponentValueKey.Saved(message.newCvId)
@@ -540,23 +597,28 @@ class WordCardReducer(
         val draft = state.lexemeList.firstOrNull { it.id == NOT_IN_DB }
             ?: return state.copy(isPendingDbOp = false) to emptySet()
         val survivors = draft.components.filter {
-            it.isPristine && it.pristineKey != message.anchorPristineKey && it.edited.trim()
-                .isNotEmpty()
+            it.isPristine &&
+                it.pristineKey != message.anchorPristineKey &&
+                it
+                    .edited
+                    .trim()
+                    .isNotEmpty()
         }
         val promoted = message.newLexeme.toLexemeState()
         val survivorStates = survivors.map { it.copy(isCommitting = true) }
         val newLexeme = promoted.copy(components = promoted.components + survivorStates)
-        val effects = survivors.map { s ->
-            DatasourceEffect.UpsertComponentValue.AddValue(
-                wordId = loaded.id,
-                dictionaryId = loaded.dictionaryId,
-                lexemeId = promoted.id,
-                pristineKey = s.pristineKey!!,
-                componentTypeId = s.componentTypeId,
-                componentTypeRef = s.componentTypeRef,
-                data = templateValuesOf(s.template, s.edited.trim(), s.editedCaption),
-            )
-        }.toSet()
+        val effects = survivors
+            .map { s ->
+                DatasourceEffect.UpsertComponentValue.AddValue(
+                    wordId = loaded.id,
+                    dictionaryId = loaded.dictionaryId,
+                    lexemeId = promoted.id,
+                    pristineKey = s.pristineKey!!,
+                    componentTypeId = s.componentTypeId,
+                    componentTypeRef = s.componentTypeRef,
+                    data = templateValuesOf(s.template, s.edited.trim(), s.editedCaption),
+                )
+            }.toSet()
         val newList = state.lexemeList.map { if (it.id == NOT_IN_DB) newLexeme else it }
         return state.copy(isPendingDbOp = false, lexemeList = newList) to effects
     }
@@ -593,18 +655,20 @@ class WordCardReducer(
             isCommitting = true,
             selectedOptionId = message.optionId,
         )
-        return state.copy(isPendingDbOp = true, nextPristineKey = state.nextPristineKey + 1)
-            .updateLexeme(lex.id) { it.appendPristine(pristine) } to setOf(
-            DatasourceEffect.UpsertComponentValue.AddValue(
-                wordId = loaded.id,
-                dictionaryId = loaded.dictionaryId,
-                lexemeId = lex.id,
-                pristineKey = pristine.pristineKey!!,
-                componentTypeId = type.id,
-                componentTypeRef = type.toRef(),
-                data = ChoiceValues(message.optionId),
-            ),
-        )
+        return state
+            .copy(isPendingDbOp = true, nextPristineKey = state.nextPristineKey + 1)
+            .updateLexeme(lex.id) { it.appendPristine(pristine) } to
+            setOf(
+                DatasourceEffect.UpsertComponentValue.AddValue(
+                    wordId = loaded.id,
+                    dictionaryId = loaded.dictionaryId,
+                    lexemeId = lex.id,
+                    pristineKey = pristine.pristineKey!!,
+                    componentTypeId = type.id,
+                    componentTypeRef = type.toRef(),
+                    data = ChoiceValues(message.optionId),
+                ),
+            )
     }
 
     private fun reduceOperationFailed(
@@ -616,7 +680,8 @@ class WordCardReducer(
             isExiting = false,
             lexemeList = state.lexemeList.map { lex ->
                 lex.copy(
-                    components = lex.components
+                    components = lex
+                        .components
                         // Осиротевший CHOICE-pristine после провала AddValue — мусорный
                         // чип без пользовательского ввода: удалить (девайс-баг 2026-07-21).
                         .filterNot { it.isPristine && it.isCommitting && it.template == ComponentTemplate.CHOICE }
@@ -646,58 +711,63 @@ class WordCardReducer(
         cv: ComponentValueState,
         text: String,
         caption: String? = null,
-    ): DatasourceEffect.UpsertComponentValue = when {
-        lex.id == NOT_IN_DB -> DatasourceEffect.UpsertComponentValue.CreateLexeme(
-            wordId = loaded.id,
-            dictionaryId = loaded.dictionaryId,
-            pristineKey = cv.pristineKey!!,
-            componentTypeId = cv.componentTypeId,
-            componentTypeRef = cv.componentTypeRef,
-            data = templateValuesOf(cv.template, text, caption),
-        )
+    ): DatasourceEffect.UpsertComponentValue =
+        when {
+            lex.id == NOT_IN_DB ->
+                DatasourceEffect.UpsertComponentValue.CreateLexeme(
+                    wordId = loaded.id,
+                    dictionaryId = loaded.dictionaryId,
+                    pristineKey = cv.pristineKey!!,
+                    componentTypeId = cv.componentTypeId,
+                    componentTypeRef = cv.componentTypeRef,
+                    data = templateValuesOf(cv.template, text, caption),
+                )
 
-        cv.componentValueId != null -> DatasourceEffect.UpsertComponentValue.UpdateValue(
-            wordId = loaded.id,
-            dictionaryId = loaded.dictionaryId,
-            lexemeId = lex.id,
-            componentValueId = cv.componentValueId!!,
-            componentTypeId = cv.componentTypeId,
-            componentTypeRef = cv.componentTypeRef,
-            data = templateValuesOf(cv.template, text, caption),
-        )
+            cv.componentValueId != null ->
+                DatasourceEffect.UpsertComponentValue.UpdateValue(
+                    wordId = loaded.id,
+                    dictionaryId = loaded.dictionaryId,
+                    lexemeId = lex.id,
+                    componentValueId = cv.componentValueId!!,
+                    componentTypeId = cv.componentTypeId,
+                    componentTypeRef = cv.componentTypeRef,
+                    data = templateValuesOf(cv.template, text, caption),
+                )
 
-        else -> DatasourceEffect.UpsertComponentValue.AddValue(
-            wordId = loaded.id,
-            dictionaryId = loaded.dictionaryId,
-            lexemeId = lex.id,
-            pristineKey = cv.pristineKey!!,
-            componentTypeId = cv.componentTypeId,
-            componentTypeRef = cv.componentTypeRef,
-            data = templateValuesOf(cv.template, text, caption),
-        )
-    }
+            else ->
+                DatasourceEffect.UpsertComponentValue.AddValue(
+                    wordId = loaded.id,
+                    dictionaryId = loaded.dictionaryId,
+                    lexemeId = lex.id,
+                    pristineKey = cv.pristineKey!!,
+                    componentTypeId = cv.componentTypeId,
+                    componentTypeRef = cv.componentTypeRef,
+                    data = templateValuesOf(cv.template, text, caption),
+                )
+        }
 }
 
 /** true ⇒ Msg блокируется guard'ом isPendingDbOp / isExiting.
  * Э5 (ревью Mate-5): интенты групп гейтятся (пикер не открывается над
  * умирающей карточкой); Done/Failed/Loaded — НЕ гейтятся (иначе
  * потеряется снятие in-flight). */
-private fun Msg.isGuardedByPending(): Boolean = when (this) {
-    is Msg.RemoveWord,
-    Msg.CommitWordChanges,
-    is Msg.RemoveLexeme,
-    is Msg.CommitComponentValueEdit,
-    is Msg.RemoveComponentValueRequested,
-    is Msg.EnterComponentValueEditMode,
-    is Msg.SelectComponentOption,
-    Msg.OpenTopBarMenu,
-    Msg.OpenDeleteWordDialog,
-    is Msg.OpenDeleteLexemeDialog,
-    Msg.EnterWordEditMode,
-    Msg.CreateLexeme,
-    Msg.OpenGroupPicker,
-    is Msg.ToggleGroupMembership,
+private fun Msg.isGuardedByPending(): Boolean =
+    when (this) {
+        is Msg.RemoveWord,
+        Msg.CommitWordChanges,
+        is Msg.RemoveLexeme,
+        is Msg.CommitComponentValueEdit,
+        is Msg.RemoveComponentValueRequested,
+        is Msg.EnterComponentValueEditMode,
+        is Msg.SelectComponentOption,
+        Msg.OpenTopBarMenu,
+        Msg.OpenDeleteWordDialog,
+        is Msg.OpenDeleteLexemeDialog,
+        Msg.EnterWordEditMode,
+        Msg.CreateLexeme,
+        Msg.OpenGroupPicker,
+        is Msg.ToggleGroupMembership,
         -> true
 
-    else -> false
-}
+        else -> false
+    }

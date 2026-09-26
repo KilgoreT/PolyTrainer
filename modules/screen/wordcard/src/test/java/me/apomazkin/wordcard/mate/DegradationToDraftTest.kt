@@ -18,7 +18,6 @@ import org.junit.Test
  * restore на data-слое, не через снек).
  */
 class DegradationToDraftTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
     @Test
@@ -32,8 +31,23 @@ class DegradationToDraftTest {
         val result = reducer.testReduce(initial, Msg.RefreshLexemeComponents(8L, emptyList()))
         val s = result.state()
         assertEquals("обе лексемы живы", listOf(8L, 9L), s.lexemeList.map { it.id })
-        assertTrue("деградировавшая лексема пуста", s.lexemeList.first { it.id == 8L }.components.isEmpty())
-        assertEquals("соседняя лексема не тронута", 1, s.lexemeList.first { it.id == 9L }.components.size)
+        assertTrue(
+            "деградировавшая лексема пуста",
+            s
+                .lexemeList
+                .first { it.id == 8L }
+                .components
+                .isEmpty(),
+        )
+        assertEquals(
+            "соседняя лексема не тронута",
+            1,
+            s
+                .lexemeList
+                .first { it.id == 9L }
+                .components
+                .size,
+        )
         result.assertNoEffects()
     }
 

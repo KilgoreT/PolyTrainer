@@ -17,7 +17,6 @@ import io.github.kilgoret.mate.Subscription
  * гаснет, новая стартует.
  */
 sealed interface GroupsSub : Subscription {
-
     /**
      * Текущий выбранный словарь приложения. Без параметров: вкладка
      * слушает глобальный выбор всё время жизни экрана; каждая эмиссия
@@ -33,7 +32,9 @@ sealed interface GroupsSub : Subscription {
      *
      * @param dictionaryId словарь, чью структуру слушаем.
      */
-    data class Slice(val dictionaryId: Long) : GroupsSub
+    data class Slice(
+        val dictionaryId: Long,
+    ) : GroupsSub
 
     /**
      * Живое окно контента узла «Все»: первые [limit] слов словаря.
@@ -43,7 +44,10 @@ sealed interface GroupsSub : Subscription {
      * @param limit размер окна от головы списка; рост окна («Ещё») —
      *   это новая подписка с бо́льшим limit.
      */
-    data class AllWindow(val dictionaryId: Long, val limit: Int) : GroupsSub
+    data class AllWindow(
+        val dictionaryId: Long,
+        val limit: Int,
+    ) : GroupsSub
 
     /**
      * Живое окно контента раскрытой группы — по одной подписке на
@@ -52,7 +56,10 @@ sealed interface GroupsSub : Subscription {
      * @param groupId группа-источник.
      * @param limit размер окна от головы списка группы.
      */
-    data class GroupWindow(val groupId: Long, val limit: Int) : GroupsSub
+    data class GroupWindow(
+        val groupId: Long,
+        val limit: Int,
+    ) : GroupsSub
 
     /**
      * Секундный тикер паузы осмысления деструктивного удаления:
@@ -64,7 +71,9 @@ sealed interface GroupsSub : Subscription {
      * @param groupId группа, для которой идёт отсчёт (различает
      *   тикеры при смене цели удаления).
      */
-    data class DeleteCountdown(val groupId: Long) : GroupsSub
+    data class DeleteCountdown(
+        val groupId: Long,
+    ) : GroupsSub
 }
 
 /**
@@ -81,19 +90,20 @@ sealed interface GroupsSub : Subscription {
  * - [GroupsSub.DeleteCountdown] — конфирм деструктива с галкой и
  *   не истёкшим счётчиком.
  */
-fun GroupsTabState.subscriptions(): Set<Subscription> = buildSet {
-    add(GroupsSub.CurrentDict)
-    val dictId = dictionaryId ?: return@buildSet
-    add(GroupsSub.Slice(dictionaryId = dictId))
-    allNode
-        ?.takeIf { it.isExpanded && it.window > 0 }
-        ?.let { add(GroupsSub.AllWindow(dictionaryId = dictId, limit = it.window)) }
-    expandedGroupWindows.forEach { (groupId, windowState) ->
-        if (windowState.window > 0) {
-            add(GroupsSub.GroupWindow(groupId = groupId, limit = windowState.window))
+fun GroupsTabState.subscriptions(): Set<Subscription> =
+    buildSet {
+        add(GroupsSub.CurrentDict)
+        val dictId = dictionaryId ?: return@buildSet
+        add(GroupsSub.Slice(dictionaryId = dictId))
+        allNode
+            ?.takeIf { it.isExpanded && it.window > 0 }
+            ?.let { add(GroupsSub.AllWindow(dictionaryId = dictId, limit = it.window)) }
+        expandedGroupWindows.forEach { (groupId, windowState) ->
+            if (windowState.window > 0) {
+                add(GroupsSub.GroupWindow(groupId = groupId, limit = windowState.window))
+            }
         }
+        confirmDelete
+            ?.takeIf { it.deleteWords && it.countdownLeft > 0 }
+            ?.let { add(GroupsSub.DeleteCountdown(groupId = it.groupId)) }
     }
-    confirmDelete
-        ?.takeIf { it.deleteWords && it.countdownLeft > 0 }
-        ?.let { add(GroupsSub.DeleteCountdown(groupId = it.groupId)) }
-}

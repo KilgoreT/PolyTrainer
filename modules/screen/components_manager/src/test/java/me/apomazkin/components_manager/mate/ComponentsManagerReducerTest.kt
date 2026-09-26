@@ -1,5 +1,10 @@
 package me.apomazkin.components_manager.mate
 
+import io.github.kilgoret.mate.NavigationEffect
+import io.github.kilgoret.mate.effects
+import io.github.kilgoret.mate.state
+import io.github.kilgoret.mate.test.assertNoEffects
+import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
@@ -14,11 +19,6 @@ import me.apomazkin.lexeme.Scope
 import me.apomazkin.lexeme.UserDefinedTypesSnapshot
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import io.github.kilgoret.mate.NavigationEffect
-import io.github.kilgoret.mate.effects
-import io.github.kilgoret.mate.state
-import io.github.kilgoret.mate.test.assertNoEffects
-import io.github.kilgoret.mate.test.testReduce
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -39,11 +39,15 @@ import java.util.Date
  * - navigation / no-op.
  */
 class ComponentsManagerReducerTest {
-
     private val reducer = ComponentsManagerReducer(
         logger = object : LexemeLogger {
-            override fun log(level: LogLevel, tag: String, message: String, throwable: Throwable?) {}
-        }
+            override fun log(
+                level: LogLevel,
+                tag: String,
+                message: String,
+                throwable: Throwable?,
+            ) {}
+        },
     )
 
     // ---- helpers ----
@@ -80,19 +84,20 @@ class ComponentsManagerReducerTest {
         scope: Scope = Scope.Global,
         nameError: NameError? = null,
         isCreating: Boolean = false,
-    ): ComponentsManagerScreenState = ComponentsManagerScreenState(
-        userDefinedTypes = emptyList(),
-        isCreating = isCreating,
-        createDialog = CreateDialogState(
-            epochId = epochId,
-            name = name,
-            template = template,
-            isMultiple = isMultiple,
-            scope = scope,
-            nameError = nameError,
-        ),
-        nextEpoch = epochId,
-    )
+    ): ComponentsManagerScreenState =
+        ComponentsManagerScreenState(
+            userDefinedTypes = emptyList(),
+            isCreating = isCreating,
+            createDialog = CreateDialogState(
+                epochId = epochId,
+                name = name,
+                template = template,
+                isMultiple = isMultiple,
+                scope = scope,
+                nameError = nameError,
+            ),
+            nextEpoch = epochId,
+        )
 
     private fun stateWithDeleteConfirm(
         epochId: Long = 1L,
@@ -101,18 +106,19 @@ class ComponentsManagerReducerTest {
         impact: DeletionImpact? = null,
         isLoadingImpact: Boolean = false,
         isDeleting: Boolean = false,
-    ): ComponentsManagerScreenState = ComponentsManagerScreenState(
-        userDefinedTypes = listOf(row(id = typeId, name = name)),
-        isDeleting = isDeleting,
-        deleteConfirm = DeleteConfirmState(
-            epochId = epochId,
-            typeId = ComponentTypeId(typeId),
-            name = name,
-            impact = impact,
-            isLoadingImpact = isLoadingImpact,
-        ),
-        nextEpoch = epochId,
-    )
+    ): ComponentsManagerScreenState =
+        ComponentsManagerScreenState(
+            userDefinedTypes = listOf(row(id = typeId, name = name)),
+            isDeleting = isDeleting,
+            deleteConfirm = DeleteConfirmState(
+                epochId = epochId,
+                typeId = ComponentTypeId(typeId),
+                name = name,
+                impact = impact,
+                isLoadingImpact = isLoadingImpact,
+            ),
+            nextEpoch = epochId,
+        )
 
     private fun domainType(
         id: Long = 1L,
@@ -129,16 +135,20 @@ class ComponentsManagerReducerTest {
         updatedAt = now,
     )
 
-    private fun emptyImpact() = DeletionImpact(
-        valueCount = 0,
-        dictionariesWithValues = emptyList(),
-        affectedQuizConfigs = emptyList(),
-        affectedPrefs = emptyList(),
-    )
+    private fun emptyImpact() =
+        DeletionImpact(
+            valueCount = 0,
+            dictionariesWithValues = emptyList(),
+            affectedQuizConfigs = emptyList(),
+            affectedPrefs = emptyList(),
+        )
 
     // ---- phase 2 helpers ----
 
-    private fun dictApi(id: Long, name: String = "D$id") = DictionaryApiEntity(
+    private fun dictApi(
+        id: Long,
+        name: String = "D$id",
+    ) = DictionaryApiEntity(
         id = id,
         numericCode = null,
         name = name,
@@ -181,23 +191,24 @@ class ComponentsManagerReducerTest {
         nameError: EditNameError? = null,
         impactedLexemesPreview: ImpactedLexemesPreview? = null,
         isEditing: Boolean = false,
-    ): ComponentsManagerScreenState = ComponentsManagerScreenState(
-        userDefinedTypes = listOf(row(id = typeId, name = originalName, isMultiple = originalIsMultiple)),
-        isEditing = isEditing,
-        editDialog = editDialog(
-            epochId = epochId,
-            typeId = typeId,
-            originalName = originalName,
-            originalTemplate = originalTemplate,
-            originalIsMultiple = originalIsMultiple,
-            name = name,
-            template = template,
-            isMultiple = isMultiple,
-            nameError = nameError,
-            impactedLexemesPreview = impactedLexemesPreview,
-        ),
-        nextEpoch = epochId,
-    )
+    ): ComponentsManagerScreenState =
+        ComponentsManagerScreenState(
+            userDefinedTypes = listOf(row(id = typeId, name = originalName, isMultiple = originalIsMultiple)),
+            isEditing = isEditing,
+            editDialog = editDialog(
+                epochId = epochId,
+                typeId = typeId,
+                originalName = originalName,
+                originalTemplate = originalTemplate,
+                originalIsMultiple = originalIsMultiple,
+                name = name,
+                template = template,
+                isMultiple = isMultiple,
+                nameError = nameError,
+                impactedLexemesPreview = impactedLexemesPreview,
+            ),
+            nextEpoch = epochId,
+        )
 
     // ===== 3.1 Lifecycle =====
 
@@ -217,8 +228,22 @@ class ComponentsManagerReducerTest {
 
         assertEquals(false, result.state().isLoading)
         assertEquals(1, result.state().userDefinedTypes?.size)
-        assertEquals("Notes", result.state().userDefinedTypes?.first()?.name)
-        assertEquals(5, result.state().userDefinedTypes?.first()?.usageCount)
+        assertEquals(
+            "Notes",
+            result
+                .state()
+                .userDefinedTypes
+                ?.first()
+                ?.name,
+        )
+        assertEquals(
+            5,
+            result
+                .state()
+                .userDefinedTypes
+                ?.first()
+                ?.usageCount,
+        )
         result.assertNoEffects()
     }
 
@@ -437,7 +462,7 @@ class ComponentsManagerReducerTest {
             Msg.CreateResult(
                 epochId = 2L,
                 outcome = CreateOutcome.Success(
-                    created = listOf(domainType(1L), domainType(2L))
+                    created = listOf(domainType(1L), domainType(2L)),
                 ),
             ),
         )
@@ -1297,7 +1322,13 @@ class ComponentsManagerReducerTest {
 
         val result = reducer.testReduce(initial, Msg.CreateDictionaryToggle(5L))
 
-        assertTrue(result.state().createDialog?.selectedDictionaryIds?.contains(5L) == true)
+        assertTrue(
+            result
+                .state()
+                .createDialog
+                ?.selectedDictionaryIds
+                ?.contains(5L) == true,
+        )
     }
 
     @Test
@@ -1309,8 +1340,20 @@ class ComponentsManagerReducerTest {
 
         val result = reducer.testReduce(initial, Msg.CreateDictionaryToggle(5L))
 
-        assertFalse(result.state().createDialog?.selectedDictionaryIds?.contains(5L) == true)
-        assertTrue(result.state().createDialog?.selectedDictionaryIds?.contains(7L) == true)
+        assertFalse(
+            result
+                .state()
+                .createDialog
+                ?.selectedDictionaryIds
+                ?.contains(5L) == true,
+        )
+        assertTrue(
+            result
+                .state()
+                .createDialog
+                ?.selectedDictionaryIds
+                ?.contains(7L) == true,
+        )
     }
 
     @Test
@@ -1325,7 +1368,11 @@ class ComponentsManagerReducerTest {
         assertEquals(Scope.Global, result.state().createDialog?.scope)
         // selection cleared on switch to Global
         assertTrue(
-            result.state().createDialog?.selectedDictionaryIds?.isEmpty() == true,
+            result
+                .state()
+                .createDialog
+                ?.selectedDictionaryIds
+                ?.isEmpty() == true,
         )
     }
 

@@ -1,11 +1,11 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.groupstab.LogTags
-import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.Effect
-import me.apomazkin.mate.ReducerLogging
 import io.github.kilgoret.mate.ReducerResult
 import io.github.kilgoret.mate.begin
+import me.apomazkin.groupstab.LogTags
+import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.mate.ReducerLogging
 import me.apomazkin.wordrow.entity.TermUiItem
 import java.util.Locale
 
@@ -22,8 +22,9 @@ internal typealias GroupsResult = ReducerResult<GroupsTabState, Effect>
  * цепочки `begin()/then` — в ветках reducer'а. Reducer и ext-тест
  * НАСЛЕДУЮТ этот класс. ######
  */
-abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
-
+abstract class StateAtoms(
+    logger: LexemeLogger,
+) : ReducerLogging(logger) {
     /** Фичевый тег вкладки: шаги, сообщения reducer'а и логи handler'а —
      * под одним `###GROUPS###` (весь флоу одним grep'ом). */
     override val logTag: String = LogTags.GROUPS
@@ -337,7 +338,10 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
      * @param id id живой группы (count > 0).
      * @param limit стартовый размер окна (CHUNK_SIZE).
      */
-    fun GroupsTabState.openGroupWindow(id: Long, limit: Int): GroupsResult {
+    fun GroupsTabState.openGroupWindow(
+        id: Long,
+        limit: Int,
+    ): GroupsResult {
         logStep("openGroupWindow", "id" to id, "limit" to limit)
         return copy(
             expandedGroupWindows = expandedGroupWindows +
@@ -362,7 +366,10 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
      * @param step шаг расширения (CHUNK_SIZE).
      * No-op, если группа не раскрыта.
      */
-    fun GroupsTabState.widenGroupWindowBy(id: Long, step: Int): GroupsResult {
+    fun GroupsTabState.widenGroupWindowBy(
+        id: Long,
+        step: Int,
+    ): GroupsResult {
         val win = expandedGroupWindows[id]
             ?: return noOp("widenGroupWindowBy: not expanded")
         val newWindow = win.window + step
@@ -381,7 +388,10 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
      * следующие атомы цепочки. No-op, если группа не раскрыта.
      * Эффектов нет.
      */
-    fun GroupsTabState.applyGroupWindowWords(id: Long, words: List<TermUiItem>): GroupsResult {
+    fun GroupsTabState.applyGroupWindowWords(
+        id: Long,
+        words: List<TermUiItem>,
+    ): GroupsResult {
         val win = expandedGroupWindows[id]
             ?: return noOp("applyGroupWindowWords: not expanded")
         logStep("applyGroupWindowWords", "id" to id, "words" to words.size)
@@ -509,7 +519,10 @@ abstract class StateAtoms(logger: LexemeLogger) : ReducerLogging(logger) {
      * @param name её текущее имя (предзаполнение ввода).
      * Меняет только [GroupsTabState.sheet]. Эффектов нет.
      */
-    fun GroupsTabState.openRenameSheet(groupId: Long, name: String): GroupsResult {
+    fun GroupsTabState.openRenameSheet(
+        groupId: Long,
+        name: String,
+    ): GroupsResult {
         logStep("openRenameSheet", "groupId" to groupId, "name" to name)
         return copy(
             sheet = GroupSheetState(mode = GroupSheetMode.Rename(groupId = groupId), input = name),

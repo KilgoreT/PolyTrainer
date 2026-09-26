@@ -11,7 +11,6 @@ import org.junit.Test
  * reducer'а (message-тесты).
  */
 class MutationMappersTest {
-
     // === Маппер intent → effect ===
 
     @Test

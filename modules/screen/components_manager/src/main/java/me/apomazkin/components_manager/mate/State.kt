@@ -29,34 +29,28 @@ import me.apomazkin.lexeme.UserDefinedTypesSnapshot
 data class ComponentsManagerScreenState(
     // ===== Loaded data =====
     val userDefinedTypes: List<UserDefinedRow>? = null,
-
     /**
      * Различающее поле подписки на список типов: retry после ошибки
      * инкрементит счётчик — equality подписки ломается, дифф раннера
      * гасит упавшую и стартует новую.
      */
     val loadGeneration: Int = 0,
-
     // ===== UI flags (explicit) =====
     val isLoading: Boolean = false,
     val isCreating: Boolean = false,
     val isDeleting: Boolean = false,
     /** Phase 2: in-flight edit operation. */
     val isEditing: Boolean = false,
-
     // ===== Dialogs =====
     val createDialog: CreateDialogState? = null,
     val deleteConfirm: DeleteConfirmState? = null,
     /** Phase 2: edit dialog state. */
     val editDialog: EditDialogState? = null,
-
     // ===== Phase 2: multi-dict scope picker support =====
     /** Список словарей для chip-picker. Push'ится подпиской [ComponentsManagerSub.Dictionaries]. */
     val availableDictionaries: List<DictionaryApiEntity> = emptyList(),
-
     // ===== Snackbar (F123) =====
     val snackbarState: SnackbarState? = null,
-
     // ===== Epoch counter (F124/F136 correlation) =====
     /** Монотонно растущий счётчик; присваивается dialog'у при открытии. */
     val nextEpoch: Long = 0L,
@@ -93,10 +87,12 @@ data class CreateDialogState(
  * требующий хотя бы одной выбранной dictionary chip.
  */
 internal val CreateDialogState.canSubmit: Boolean
-    get() = name.trim().isNotEmpty() && when (scope) {
-        Scope.Global -> true
-        is Scope.PerDictionaries -> selectedDictionaryIds.isNotEmpty()
-    }
+    get() =
+        name.trim().isNotEmpty() &&
+            when (scope) {
+                Scope.Global -> true
+                is Scope.PerDictionaries -> selectedDictionaryIds.isNotEmpty()
+            }
 
 /**
  * Edit dialog state (IS481 phase 2). Хранит snapshot оригинала (для diff)
@@ -125,7 +121,9 @@ data class EditDialogState(
  */
 sealed interface EditNameError {
     data object NameEmpty : EditNameError
+
     data object SameScopeCollision : EditNameError
+
     data object CrossScopeCollision : EditNameError
 }
 
@@ -140,7 +138,9 @@ sealed interface EditNameError {
 sealed interface ImpactedLexemesPreview {
     val impactedLexemeIds: List<Long>
 
-    data class InlineOnly(override val impactedLexemeIds: List<Long>) : ImpactedLexemesPreview
+    data class InlineOnly(
+        override val impactedLexemeIds: List<Long>,
+    ) : ImpactedLexemesPreview
 
     data class InlineWithDrillIn(
         override val impactedLexemeIds: List<Long>,
@@ -163,7 +163,9 @@ data class DeleteConfirmState(
  * `Msg.DismissSnackbar` сбрасывает.
  */
 @Stable
-data class SnackbarState(val text: String)
+data class SnackbarState(
+    val text: String,
+)
 
 /** Computed selector. Loaded и пустой ⇒ показ empty state. */
 val ComponentsManagerScreenState.isEmpty: Boolean
@@ -190,8 +192,7 @@ internal fun UserDefinedTypesSnapshot.toRows(): List<UserDefinedRow> =
                 isMultiple = t.isMultiple,
                 isGlobal = t.dictionaryId == null,
             )
-        }
-        .map { (key, group) ->
+        }.map { (key, group) ->
             val head = group.first()
             val allDictIds = group.mapNotNull { it.dictionaryId }.toSet()
             UserDefinedRow(

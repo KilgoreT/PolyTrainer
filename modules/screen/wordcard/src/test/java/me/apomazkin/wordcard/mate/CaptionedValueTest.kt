@@ -1,15 +1,15 @@
 package me.apomazkin.wordcard.mate
 
-import me.apomazkin.lexeme.CaptionedTextValues
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.ComponentValueId
-import me.apomazkin.lexeme.Primitive
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.lexeme.CaptionedTextValues
+import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentValueId
+import me.apomazkin.lexeme.Primitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -30,8 +30,8 @@ import org.junit.Test
  * - Подсказки: LoadCaptionSuggestions → эффект; CaptionSuggestionsLoaded → state.
  */
 class CaptionedValueTest {
-
     private val reducer = WordCardReducer(NoopLogger)
+
     private fun savedKey(id: Long) = ComponentValueKey.Saved(ComponentValueId(id))
 
     private fun capCv(
@@ -130,7 +130,13 @@ class CaptionedValueTest {
         val result = reducer.testReduce(initial, Msg.CreateComponentValue(1L, ComponentTypeId(50L)))
         assertEquals(
             ComponentTemplate.CAPTIONED_TEXT,
-            result.state().lexemeList.single().components.single().template,
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .single()
+                .template,
         )
     }
 
@@ -139,7 +145,12 @@ class CaptionedValueTest {
         val cv = capCv(origin = "T1", originCaption = "IELTS", isEdit = false, edited = "", editedCaption = null)
         val initial = loaded(lexemes = listOf(lexeme(1L, listOf(cv))))
         val result = reducer.testReduce(initial, Msg.EnterComponentValueEditMode(1L, savedKey(5L)))
-        val edited = result.state().lexemeList.single().components.single()
+        val edited = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertTrue(edited.isEdit)
         assertEquals("T1", edited.edited)
         assertEquals("IELTS", edited.editedCaption)
@@ -153,7 +164,16 @@ class CaptionedValueTest {
             initial,
             Msg.UpdateComponentCaptionInput(1L, savedKey(5L), "Grammar"),
         )
-        assertEquals("Grammar", result.state().lexemeList.single().components.single().editedCaption)
+        assertEquals(
+            "Grammar",
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .single()
+                .editedCaption,
+        )
         result.assertNoEffects()
     }
 
@@ -165,7 +185,15 @@ class CaptionedValueTest {
             initial,
             Msg.UpdateComponentCaptionInput(1L, savedKey(5L), "Grammar"),
         )
-        assertNull(result.state().lexemeList.single().components.single().editedCaption)
+        assertNull(
+            result
+                .state()
+                .lexemeList
+                .single()
+                .components
+                .single()
+                .editedCaption,
+        )
     }
 
     // ---------- reducer: commit ----------
@@ -178,9 +206,12 @@ class CaptionedValueTest {
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.UpdateValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 1L,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 1L,
                     componentValueId = ComponentValueId(5L),
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = CaptionedTextValues(Primitive.Text("T2"), Primitive.Text("Grammar")),
                 ),
             ),
@@ -195,9 +226,12 @@ class CaptionedValueTest {
         result.assertEffects(
             setOf(
                 DatasourceEffect.UpsertComponentValue.UpdateValue(
-                    wordId = 7L, dictionaryId = 3L, lexemeId = 1L,
+                    wordId = 7L,
+                    dictionaryId = 3L,
+                    lexemeId = 1L,
                     componentValueId = ComponentValueId(5L),
-                    componentTypeId = ComponentTypeId(50L), componentTypeRef = TR,
+                    componentTypeId = ComponentTypeId(50L),
+                    componentTypeRef = TR,
                     data = CaptionedTextValues(Primitive.Text("T2"), caption = null),
                 ),
             ),
@@ -214,7 +248,8 @@ class CaptionedValueTest {
         )
         val initial = loaded(lexemes = listOf(lexeme(NOT_IN_DB, listOf(pristine))))
         val result = reducer.testReduce(initial, Msg.NavigateBack)
-        val create = result.effects()
+        val create = result
+            .effects()
             .filterIsInstance<DatasourceEffect.UpsertComponentValue.CreateLexeme>()
             .single()
         assertEquals(
@@ -238,7 +273,12 @@ class CaptionedValueTest {
             template = ComponentTemplate.CAPTIONED_TEXT,
         )
         val result = reducer.testReduce(initial, Msg.RefreshLexemeComponents(1L, listOf(domain)))
-        val merged = result.state().lexemeList.single().components.single()
+        val merged = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertEquals("new", merged.origin)
         assertEquals("Fresh", merged.originCaption)
     }
@@ -250,7 +290,12 @@ class CaptionedValueTest {
         val cv = capCv(origin = "T1", originCaption = "IELTS")
         val initial = loaded(lexemes = listOf(lexeme(1L, listOf(cv))))
         val result = reducer.testReduce(initial, Msg.CommitComponentValueEdit(1L, savedKey(5L)))
-        val closed = result.state().lexemeList.single().components.single()
+        val closed = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertTrue(!closed.isEdit)
         result.assertNoEffects()
     }

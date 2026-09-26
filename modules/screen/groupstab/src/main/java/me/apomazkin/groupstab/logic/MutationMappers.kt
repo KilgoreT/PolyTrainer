@@ -19,35 +19,39 @@ import me.apomazkin.group.RenameGroupOutcome
  */
 fun GroupSheetState.toMutationEffect(dictionaryId: Long): GroupsEffect =
     when (val mode = mode) {
-        is GroupSheetMode.Create -> GroupsEffect.CreateGroup(
-            dictionaryId = dictionaryId,
-            name = input,
-        )
+        is GroupSheetMode.Create ->
+            GroupsEffect.CreateGroup(
+                dictionaryId = dictionaryId,
+                name = input,
+            )
 
-        is GroupSheetMode.Rename -> GroupsEffect.RenameGroup(
-            groupId = mode.groupId,
-            name = input,
-        )
+        is GroupSheetMode.Rename ->
+            GroupsEffect.RenameGroup(
+                groupId = mode.groupId,
+                name = input,
+            )
     }
 
 /** Таблица соответствий исходов создания (домен → плоский Msg). */
-fun CreateGroupOutcome.toMutationMsg(): Msg = when (this) {
-    is CreateGroupOutcome.Success -> Msg.MutationApplied
-    is CreateGroupOutcome.EmptyName -> Msg.MutationRejected(GroupSheetError.EMPTY)
-    is CreateGroupOutcome.DuplicateSibling -> Msg.MutationRejected(GroupSheetError.DUPLICATE)
-    is CreateGroupOutcome.ReservedName -> Msg.MutationRejected(GroupSheetError.RESERVED)
-    // Недостижимые в Э3 заделы (Э4/Э6).
-    is CreateGroupOutcome.ParentNotFound -> Msg.MutationIgnored
-    is CreateGroupOutcome.ParentHasWords -> Msg.MutationIgnored
-}
+fun CreateGroupOutcome.toMutationMsg(): Msg =
+    when (this) {
+        is CreateGroupOutcome.Success -> Msg.MutationApplied
+        is CreateGroupOutcome.EmptyName -> Msg.MutationRejected(GroupSheetError.EMPTY)
+        is CreateGroupOutcome.DuplicateSibling -> Msg.MutationRejected(GroupSheetError.DUPLICATE)
+        is CreateGroupOutcome.ReservedName -> Msg.MutationRejected(GroupSheetError.RESERVED)
+        // Недостижимые в Э3 заделы (Э4/Э6).
+        is CreateGroupOutcome.ParentNotFound -> Msg.MutationIgnored
+        is CreateGroupOutcome.ParentHasWords -> Msg.MutationIgnored
+    }
 
 /** Таблица соответствий исходов переименования (домен → плоский Msg). */
-fun RenameGroupOutcome.toMutationMsg(): Msg = when (this) {
-    is RenameGroupOutcome.Success -> Msg.MutationApplied
-    // Группа исчезла (гонка) — поведение как Applied: шторку закрыть,
-    // список обновит живая подписка (D15.2).
-    is RenameGroupOutcome.NotFound -> Msg.MutationApplied
-    is RenameGroupOutcome.EmptyName -> Msg.MutationRejected(GroupSheetError.EMPTY)
-    is RenameGroupOutcome.DuplicateSibling -> Msg.MutationRejected(GroupSheetError.DUPLICATE)
-    is RenameGroupOutcome.ReservedName -> Msg.MutationRejected(GroupSheetError.RESERVED)
-}
+fun RenameGroupOutcome.toMutationMsg(): Msg =
+    when (this) {
+        is RenameGroupOutcome.Success -> Msg.MutationApplied
+        // Группа исчезла (гонка) — поведение как Applied: шторку закрыть,
+        // список обновит живая подписка (D15.2).
+        is RenameGroupOutcome.NotFound -> Msg.MutationApplied
+        is RenameGroupOutcome.EmptyName -> Msg.MutationRejected(GroupSheetError.EMPTY)
+        is RenameGroupOutcome.DuplicateSibling -> Msg.MutationRejected(GroupSheetError.DUPLICATE)
+        is RenameGroupOutcome.ReservedName -> Msg.MutationRejected(GroupSheetError.RESERVED)
+    }

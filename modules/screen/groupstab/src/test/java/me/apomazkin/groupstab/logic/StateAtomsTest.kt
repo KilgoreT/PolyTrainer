@@ -19,13 +19,13 @@ import java.util.Date
  * receiver), поэтому тест НАСЛЕДУЕТ класс атомов с [NoopLogger].
  */
 class StateAtomsTest : StateAtoms(NoopLogger) {
-
-    private fun term(id: Long) = TermUiItem(
-        id = id,
-        wordValue = "w$id",
-        dictionaryId = 1L,
-        addDate = Date(0),
-    )
+    private fun term(id: Long) =
+        TermUiItem(
+            id = id,
+            wordValue = "w$id",
+            dictionaryId = 1L,
+            addDate = Date(0),
+        )
 
     private val groups = listOf(
         GroupUiItem(id = 5, name = "Быт", count = 0),
@@ -58,8 +58,10 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
     @Test
     fun `selectDictionary, clearDictionary and markDictionaryPresent`() {
         val selected = GroupsTabState(hasNoDictionary = true)
-            .selectDictionary(2L).state()
-            .markDictionaryPresent().state()
+            .selectDictionary(2L)
+            .state()
+            .markDictionaryPresent()
+            .state()
 
         assertEquals(2L, selected.dictionaryId)
         assertFalse(selected.hasNoDictionary)
@@ -80,7 +82,7 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         assertTrue(result.effects().isEmpty())
 
         assertFalse(
-            requireNotNull(GroupsTabState().applyAllCount(0).state().allNode).hasMore
+            requireNotNull(GroupsTabState().applyAllCount(0).state().allNode).hasMore,
         )
     }
 
@@ -304,9 +306,10 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         val cleared = GroupsTabState(
             groups = groups,
             expandedGroupWindows = mapOf(5L to GroupWindowState(window = 0, isLoading = false)),
-        )
-            .clearGroups().state()
-            .collapseAllGroups().state()
+        ).clearGroups()
+            .state()
+            .collapseAllGroups()
+            .state()
 
         assertEquals(emptyList<GroupUiItem>(), cleared.groups)
         assertTrue(cleared.expandedGroupWindows.isEmpty())
@@ -361,7 +364,8 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
     @Test
     fun `closeSheet - only sheet dropped`() {
         val opened = GroupsTabState(groups = groups)
-            .openCreateSheet().state()
+            .openCreateSheet()
+            .state()
 
         assertEquals(null, opened.closeSheet().state().sheet)
     }
@@ -426,7 +430,14 @@ class StateAtomsTest : StateAtoms(NoopLogger) {
         assertEquals(GroupSheetError.DUPLICATE, shown.state().errorSnackbar)
         assertTrue(shown.effects().isEmpty())
 
-        assertEquals(null, shown.state().consumeErrorSnackbar().state().errorSnackbar)
+        assertEquals(
+            null,
+            shown
+                .state()
+                .consumeErrorSnackbar()
+                .state()
+                .errorSnackbar,
+        )
     }
 
     // === Конфирм / кебаб ===

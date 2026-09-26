@@ -19,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -36,18 +35,22 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.di.viewModelFactory
+import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.wordCardBackground
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewScreen
-import me.apomazkin.wordcard.mate.ComponentValueState
 import me.apomazkin.wordcard.mate.ComponentValueKey
+import me.apomazkin.wordcard.mate.ComponentValueState
 import me.apomazkin.wordcard.mate.LexemeState
 import me.apomazkin.wordcard.mate.Msg
 import me.apomazkin.wordcard.mate.NOT_IN_DB
 import me.apomazkin.wordcard.mate.WordCardState
-import me.apomazkin.wordcard.mate.addableTypeIdsFor
 import me.apomazkin.wordcard.mate.WordState
+import me.apomazkin.wordcard.mate.addableTypeIdsFor
 import me.apomazkin.wordcard.widget.AddLexemeWidget
 import me.apomazkin.wordcard.widget.ConfirmDeleteLexemeWidget
 import me.apomazkin.wordcard.widget.ConfirmDeleteWordWidget
@@ -56,11 +59,6 @@ import me.apomazkin.wordcard.widget.WordFieldWidget
 import me.apomazkin.wordcard.widget.group.GroupChipsRow
 import me.apomazkin.wordcard.widget.group.GroupPickerBottomSheetWidget
 import me.apomazkin.wordcard.widget.internal.UiHostImpl
-import me.apomazkin.core_resources.R
-import me.apomazkin.lexeme.BuiltInComponent
-import me.apomazkin.lexeme.ComponentTypeId
-import me.apomazkin.lexeme.ComponentTypeRef
-import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.wordcard.widget.lexeme.DeleteLexemeButton
 import me.apomazkin.wordcard.widget.lexeme.LexemeCard
 import me.apomazkin.wordcard.widget.lexeme.LexemeComponentsBlock
@@ -114,7 +112,9 @@ internal fun WordCardScreen(
                 },
                 onOpenGroups = if (state.isLoaded) {
                     { sendMessage(Msg.OpenGroupPicker) }
-                } else null,
+                } else {
+                    null
+                },
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -140,7 +140,7 @@ internal fun WordCardScreen(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = { focusManager.clearFocus() },
-                )
+                ),
         ) {
             if (state.wordState is WordState.Loaded) {
                 Column(

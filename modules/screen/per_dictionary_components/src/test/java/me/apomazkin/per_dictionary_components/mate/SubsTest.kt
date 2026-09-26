@@ -11,7 +11,6 @@ import org.junit.Test
  * перезапускает упавшую подписку).
  */
 class SubsTest {
-
     @Test
     fun `default state - single components subscription`() {
         val state = PerDictionaryComponentsScreenState(dictionaryId = 7L)

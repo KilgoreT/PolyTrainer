@@ -19,23 +19,26 @@ import javax.inject.Inject
  * [Msg.ItemsLoadFailed]): экран переходит в error state с кнопкой
  * Retry, которая рестартует подписку через generation-поле.
  */
-class PerDictionaryComponentsSubHandler @Inject constructor(
-    private val useCase: PerDictionaryComponentsUseCase,
-    private val logger: LexemeLogger,
-) : MateSubscriptionHandler<Msg, PerDictionaryComponentsSub> {
+class PerDictionaryComponentsSubHandler
+    @Inject
+    constructor(
+        private val useCase: PerDictionaryComponentsUseCase,
+        private val logger: LexemeLogger,
+    ) : MateSubscriptionHandler<Msg, PerDictionaryComponentsSub> {
+        override val subscriptionFamily = PerDictionaryComponentsSub::class
 
-    override val subscriptionFamily = PerDictionaryComponentsSub::class
-
-    override fun flow(sub: PerDictionaryComponentsSub): Flow<Msg> = when (sub) {
-        is PerDictionaryComponentsSub.Components ->
-            useCase.flowComponentsForDictionary(sub.dictionaryId)
-                .map<_, Msg> { snapshot -> Msg.ItemsLoaded(snapshot) }
-                .catch { e ->
-                    logger.e(
-                        tag = LogTags.DICT_COMPONENTS,
-                        message = "flow failed: ${e.message}",
-                    )
-                    emit(Msg.ItemsLoadFailed(e))
-                }
+        override fun flow(sub: PerDictionaryComponentsSub): Flow<Msg> =
+            when (sub) {
+                is PerDictionaryComponentsSub.Components ->
+                    useCase
+                        .flowComponentsForDictionary(sub.dictionaryId)
+                        .map<_, Msg> { snapshot -> Msg.ItemsLoaded(snapshot) }
+                        .catch { e ->
+                            logger.e(
+                                tag = LogTags.DICT_COMPONENTS,
+                                message = "flow failed: ${e.message}",
+                            )
+                            emit(Msg.ItemsLoadFailed(e))
+                        }
+            }
     }
-}

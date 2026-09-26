@@ -11,7 +11,6 @@ import org.junit.Test
  * (retry ломает equality и перезапускает упавшую подписку).
  */
 class SubsTest {
-
     @Test
     fun `default state - both subscriptions with generation zero`() {
         val state = ComponentsManagerScreenState()

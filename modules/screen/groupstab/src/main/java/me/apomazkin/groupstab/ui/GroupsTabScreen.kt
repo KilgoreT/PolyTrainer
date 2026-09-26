@@ -65,9 +65,7 @@ import me.apomazkin.wordrow.ui.WordRowWidget
  * наружу — FAB-читалки и Content.
  */
 @Composable
-fun rememberGroupsTabHandle(
-    factory: GroupsTabViewModel.Factory,
-): GroupsTabHandle {
+fun rememberGroupsTabHandle(factory: GroupsTabViewModel.Factory): GroupsTabHandle {
     val viewModel: GroupsTabViewModel = viewModel(
         factory = viewModelFactory { factory.create() },
     )
@@ -99,9 +97,7 @@ class GroupsTabHandle internal constructor(
      * (решение юзера; шторка к этому моменту закрыта reducer'ом).
      */
     @Composable
-    fun Content(
-        snackbarHostState: SnackbarHostState,
-    ) {
+    fun Content(snackbarHostState: SnackbarHostState) {
         val error = stateProvider.value.errorSnackbar
         val errorText = error?.let {
             stringResource(
@@ -109,7 +105,7 @@ class GroupsTabHandle internal constructor(
                     GroupSheetError.EMPTY -> R.string.group_error_empty_name
                     GroupSheetError.DUPLICATE -> R.string.group_error_duplicate_name
                     GroupSheetError.RESERVED -> R.string.group_error_reserved_name
-                }
+                },
             )
         }
         LaunchedEffect(error) {
@@ -161,16 +157,17 @@ internal fun GroupsTabContent(
 
             state.hasNoDictionary -> NoDictionaryWidget()
 
-            else -> GroupsList(
-                state = state,
-                // IS496 Р3: тап по слову при открытой панели — панель
-                // закрывается (намерение сменилось), затем карточка.
-                onWordClick = { wordId ->
-                    if (state.sheet != null) sendMessage(Msg.DismissSheet)
-                    onWordClick(wordId)
-                },
-                sendMessage = sendMessage,
-            )
+            else ->
+                GroupsList(
+                    state = state,
+                    // IS496 Р3: тап по слову при открытой панели — панель
+                    // закрывается (намерение сменилось), затем карточка.
+                    onWordClick = { wordId ->
+                        if (state.sheet != null) sendMessage(Msg.DismissSheet)
+                        onWordClick(wordId)
+                    },
+                    sendMessage = sendMessage,
+                )
         }
         if (state.sheet != null) {
             GroupInputPanelWidget(
@@ -217,7 +214,9 @@ private fun DeleteConfirmDialog(
         alarmEnabled = !counting,
         alarmButtonOverride = if (counting) {
             stringResource(id = R.string.group_delete_all_button) + " ($countdownLeft)"
-        } else null,
+        } else {
+            null
+        },
         alarmContainerColor = if (deleteWords) destructiveColor else null,
         alarmContentColor = if (deleteWords) whiteColor else null,
         onAlarmClick = { sendMessage(Msg.ConfirmDelete) },
@@ -413,16 +412,18 @@ private fun GroupKebab(
         onClickDropDown = { sendMessage(Msg.OpenKebab(groupId = groupId)) },
         onDismissRequest = { sendMessage(Msg.DismissKebab) },
     ) {
-        MenuItem.withIcon(
-            icon = EditIcon,
-            title = StringSource.fromRes(resId = R.string.group_menu_rename),
-            onClick = { sendMessage(Msg.OpenRenameSheet(groupId = groupId)) },
-        ).Widget()
-        MenuItem.withIcon(
-            icon = DeleteIcon,
-            title = StringSource.fromRes(resId = R.string.group_menu_delete),
-            onClick = { sendMessage(Msg.RequestDelete(groupId = groupId)) },
-        ).Widget()
+        MenuItem
+            .withIcon(
+                icon = EditIcon,
+                title = StringSource.fromRes(resId = R.string.group_menu_rename),
+                onClick = { sendMessage(Msg.OpenRenameSheet(groupId = groupId)) },
+            ).Widget()
+        MenuItem
+            .withIcon(
+                icon = DeleteIcon,
+                title = StringSource.fromRes(resId = R.string.group_menu_delete),
+                onClick = { sendMessage(Msg.RequestDelete(groupId = groupId)) },
+            ).Widget()
     }
 }
 

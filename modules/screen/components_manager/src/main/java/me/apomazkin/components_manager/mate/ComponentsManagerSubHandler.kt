@@ -17,34 +17,38 @@ import javax.inject.Inject
  * подписки; ошибки перехватываются на месте (`catch` → fail-Msg
  * либо деградация до пустого списка).
  */
-class ComponentsManagerSubHandler @Inject constructor(
-    private val useCase: ComponentsManagerUseCase,
-    private val logger: LexemeLogger,
-) : MateSubscriptionHandler<Msg, ComponentsManagerSub> {
+class ComponentsManagerSubHandler
+    @Inject
+    constructor(
+        private val useCase: ComponentsManagerUseCase,
+        private val logger: LexemeLogger,
+    ) : MateSubscriptionHandler<Msg, ComponentsManagerSub> {
+        override val subscriptionFamily = ComponentsManagerSub::class
 
-    override val subscriptionFamily = ComponentsManagerSub::class
+        override fun flow(sub: ComponentsManagerSub): Flow<Msg> =
+            when (sub) {
+                is ComponentsManagerSub.AllTypes ->
+                    useCase
+                        .flowAllUserDefinedTypes()
+                        .map<_, Msg> { snapshot -> Msg.TypesLoaded(snapshot) }
+                        .catch { e ->
+                            logger.e(
+                                tag = LogTags.ALL_COMPONENTS,
+                                message = "flow failed: ${e.message}",
+                            )
+                            emit(Msg.TypesLoadFailed(e))
+                        }
 
-    override fun flow(sub: ComponentsManagerSub): Flow<Msg> = when (sub) {
-        is ComponentsManagerSub.AllTypes ->
-            useCase.flowAllUserDefinedTypes()
-                .map<_, Msg> { snapshot -> Msg.TypesLoaded(snapshot) }
-                .catch { e ->
-                    logger.e(
-                        tag = LogTags.ALL_COMPONENTS,
-                        message = "flow failed: ${e.message}",
-                    )
-                    emit(Msg.TypesLoadFailed(e))
-                }
-
-        ComponentsManagerSub.Dictionaries ->
-            useCase.flowDictionaries()
-                .map<_, Msg> { list -> Msg.DictionariesLoaded(list) }
-                .catch { e ->
-                    logger.e(
-                        tag = LogTags.ALL_COMPONENTS,
-                        message = "flowDictionaries failed: ${e.message}",
-                    )
-                    emit(Msg.DictionariesLoaded(emptyList()))
-                }
+                ComponentsManagerSub.Dictionaries ->
+                    useCase
+                        .flowDictionaries()
+                        .map<_, Msg> { list -> Msg.DictionariesLoaded(list) }
+                        .catch { e ->
+                            logger.e(
+                                tag = LogTags.ALL_COMPONENTS,
+                                message = "flowDictionaries failed: ${e.message}",
+                            )
+                            emit(Msg.DictionariesLoaded(emptyList()))
+                        }
+            }
     }
-}

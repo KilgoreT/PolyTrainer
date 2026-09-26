@@ -9,7 +9,6 @@ import io.github.kilgoret.mate.Subscription
  * подписки и гасит исчезнувшие.
  */
 sealed interface PerDictionaryComponentsSub : Subscription {
-
     /**
      * Живой список компонентов словаря → [Msg.ItemsLoaded];
      * ошибка потока → [Msg.ItemsLoadFailed] (поток завершается,
@@ -32,9 +31,10 @@ sealed interface PerDictionaryComponentsSub : Subscription {
  * создания до уничтожения раннера; меняется только generation при
  * retry.
  */
-fun PerDictionaryComponentsScreenState.subscriptions(): Set<Subscription> = setOf(
-    PerDictionaryComponentsSub.Components(
-        dictionaryId = dictionaryId,
-        generation = loadGeneration,
-    ),
-)
+fun PerDictionaryComponentsScreenState.subscriptions(): Set<Subscription> =
+    setOf(
+        PerDictionaryComponentsSub.Components(
+            dictionaryId = dictionaryId,
+            generation = loadGeneration,
+        ),
+    )

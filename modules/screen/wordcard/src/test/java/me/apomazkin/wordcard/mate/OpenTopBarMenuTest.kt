@@ -11,7 +11,6 @@ import java.util.Date
  * Reducer tests for OpenTopBarMenu — simple toggle without Effect.
  */
 class OpenTopBarMenuTest {
-
     @Test
     fun `OpenTopBarMenu sets isMenuOpen true`() {
         val reducer = WordCardReducer(NoopLogger)

@@ -14,7 +14,6 @@ import io.github.kilgoret.mate.Subscription
  * state их декларирует.
  */
 sealed interface WordCardSub : Subscription {
-
     /**
      * Живой список доступных типов компонентов словаря (driver для
      * ChipsRow) → [Msg.ComponentTypesLoaded]; ошибка потока →
@@ -36,7 +35,9 @@ sealed interface WordCardSub : Subscription {
      *
      * @param wordId загруженное слово.
      */
-    data class WordGroups(val wordId: Long) : WordCardSub
+    data class WordGroups(
+        val wordId: Long,
+    ) : WordCardSub
 
     /**
      * Живой список всех групп словаря для пикера (Collator-сортировка)
@@ -44,7 +45,9 @@ sealed interface WordCardSub : Subscription {
      *
      * @param dictionaryId словарь загруженного слова.
      */
-    data class DictGroups(val dictionaryId: Long) : WordCardSub
+    data class DictGroups(
+        val dictionaryId: Long,
+    ) : WordCardSub
 }
 
 /**
@@ -53,14 +56,15 @@ sealed interface WordCardSub : Subscription {
  * пустой набор. У типов компонентов меняется только generation при
  * retry.
  */
-fun WordCardState.subscriptions(): Set<Subscription> = buildSet {
-    val loaded = wordState as? WordState.Loaded ?: return@buildSet
-    add(
-        WordCardSub.ComponentTypes(
-            dictionaryId = loaded.dictionaryId,
-            generation = typesGeneration,
-        ),
-    )
-    add(WordCardSub.WordGroups(wordId = loaded.id))
-    add(WordCardSub.DictGroups(dictionaryId = loaded.dictionaryId))
-}
+fun WordCardState.subscriptions(): Set<Subscription> =
+    buildSet {
+        val loaded = wordState as? WordState.Loaded ?: return@buildSet
+        add(
+            WordCardSub.ComponentTypes(
+                dictionaryId = loaded.dictionaryId,
+                generation = typesGeneration,
+            ),
+        )
+        add(WordCardSub.WordGroups(wordId = loaded.id))
+        add(WordCardSub.DictGroups(dictionaryId = loaded.dictionaryId))
+    }

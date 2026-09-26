@@ -9,6 +9,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.mate.ErrorLoggingObserver
+import me.apomazkin.per_dictionary_components.LogTags
 import me.apomazkin.per_dictionary_components.deps.PerDictionaryComponentsUseCase
 import me.apomazkin.per_dictionary_components.mate.DatasourceEffectHandler
 import me.apomazkin.per_dictionary_components.mate.Msg
@@ -29,7 +31,6 @@ import me.apomazkin.per_dictionary_components.mate.subscriptions
  *   в тестах можно подставить тестовый.
  */
 object PerDictionaryComponentsAssembly {
-
     fun create(
         useCase: PerDictionaryComponentsUseCase,
         logger: LexemeLogger,
@@ -38,23 +39,24 @@ object PerDictionaryComponentsAssembly {
         io: CoroutineDispatcher = Dispatchers.IO,
         coroutineScope: CoroutineScope,
         observers: List<MateObserver<Any?, Any?, Effect>> = emptyList(),
-    ): Mate<PerDictionaryComponentsScreenState, Msg, Effect> = Mate(
-        initState = PerDictionaryComponentsScreenState(
-            dictionaryId = dictionaryId,
-            isLoading = true,
-        ),
-        initEffects = emptySet(),
-        coroutineScope = coroutineScope,
-        reducer = PerDictionaryComponentsReducer(logger = logger),
-        effectHandlers = listOf(
-            DatasourceEffectHandler(useCase = useCase, logger = logger, io = io),
-            UiEffectHandler(),
-            navigationHandler,
-        ),
-        subscriptions = { it.subscriptions() },
-        subscriptionHandlers = listOf(
-            PerDictionaryComponentsSubHandler(useCase = useCase, logger = logger),
-        ),
-        observers = observers,
-    )
+    ): Mate<PerDictionaryComponentsScreenState, Msg, Effect> =
+        Mate(
+            initState = PerDictionaryComponentsScreenState(
+                dictionaryId = dictionaryId,
+                isLoading = true,
+            ),
+            initEffects = emptySet(),
+            coroutineScope = coroutineScope,
+            reducer = PerDictionaryComponentsReducer(logger = logger),
+            effectHandlers = listOf(
+                DatasourceEffectHandler(useCase = useCase, logger = logger, io = io),
+                UiEffectHandler(),
+                navigationHandler,
+            ),
+            subscriptions = { it.subscriptions() },
+            subscriptionHandlers = listOf(
+                PerDictionaryComponentsSubHandler(useCase = useCase, logger = logger),
+            ),
+            observers = observers + ErrorLoggingObserver(logger, LogTags.DICT_COMPONENTS),
+        )
 }

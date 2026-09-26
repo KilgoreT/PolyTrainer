@@ -130,8 +130,7 @@ internal fun GroupPickerBottomSheetWidget(
                             .fillMaxWidth()
                             .clickable(enabled = group.id !in block.inFlight) {
                                 sendMessage(Msg.ToggleGroupMembership(groupId = group.id))
-                            }
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                            }.padding(horizontal = 16.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(

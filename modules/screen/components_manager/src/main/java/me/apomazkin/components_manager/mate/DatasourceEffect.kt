@@ -1,9 +1,13 @@
 package me.apomazkin.components_manager.mate
 
+import io.github.kilgoret.mate.Effect
+import io.github.kilgoret.mate.RecoverableEffect
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
+import me.apomazkin.lexeme.CreateOutcome
+import me.apomazkin.lexeme.DeleteOutcome
+import me.apomazkin.lexeme.EditOutcome
 import me.apomazkin.lexeme.Scope
-import io.github.kilgoret.mate.Effect
 
 /**
  * Datasource Effects для `ComponentsManagerScreen`. См. business_contract_spec.md § IO.
@@ -16,21 +20,31 @@ import io.github.kilgoret.mate.Effect
  * `LoadImpact` несёт `typeId` (он же correlation token для preview).
  */
 sealed interface DatasourceEffect : Effect {
-
     data class CreateComponent(
         val epochId: Long,
         val name: String,
         val template: ComponentTemplate,
         val isMultiple: Boolean,
         val scope: Scope,
-    ) : DatasourceEffect
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.CreateResult(epochId, CreateOutcome.Failure(error))
+    }
 
-    data class LoadImpact(val typeId: ComponentTypeId) : DatasourceEffect
+    data class LoadImpact(
+        val typeId: ComponentTypeId,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.ImpactPreviewFailed(typeId, error)
+    }
 
     data class SoftDeleteComponent(
         val epochId: Long,
         val typeId: ComponentTypeId,
-    ) : DatasourceEffect
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.DeleteResult(epochId, DeleteOutcome.Failure(error))
+    }
 
     // Живые списки (типы, словари) эффектами не выражаются: это
     // подписки [ComponentsManagerSub], декларируемые из state; retry
@@ -46,5 +60,8 @@ sealed interface DatasourceEffect : Effect {
         val name: String,
         val template: ComponentTemplate,
         val isMultiple: Boolean,
-    ) : DatasourceEffect
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.EditResult(epochId, EditOutcome.Failure(error))
+    }
 }

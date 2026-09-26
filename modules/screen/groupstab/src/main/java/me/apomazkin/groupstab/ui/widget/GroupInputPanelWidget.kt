@@ -37,7 +37,7 @@ internal fun GroupInputPanelWidget(
                     GroupSheetError.EMPTY -> R.string.group_error_empty_name
                     GroupSheetError.DUPLICATE -> R.string.group_error_duplicate_name
                     GroupSheetError.RESERVED -> R.string.group_error_reserved_name
-                }
+                },
             )
         },
     )

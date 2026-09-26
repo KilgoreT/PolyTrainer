@@ -1,11 +1,11 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.group.DeleteGroupOutcome
-import me.apomazkin.group.DisplayNode
-import me.apomazkin.group.DisplayTree
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
+import me.apomazkin.group.DeleteGroupOutcome
+import me.apomazkin.group.DisplayNode
+import me.apomazkin.group.DisplayTree
 import me.apomazkin.wordrow.entity.TermUiItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,7 +20,6 @@ import java.util.Date
  * следующими Msg — до завершения сценария.
  */
 class GroupsTabScenarioTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
     private var state = GroupsTabState()
@@ -64,12 +63,13 @@ class GroupsTabScenarioTest {
         },
     )
 
-    private fun term(id: Long) = TermUiItem(
-        id = id,
-        wordValue = "w$id",
-        dictionaryId = 1L,
-        addDate = Date(0),
-    )
+    private fun term(id: Long) =
+        TermUiItem(
+            id = id,
+            wordValue = "w$id",
+            dictionaryId = 1L,
+            addDate = Date(0),
+        )
 
     // === Сценарий 1: создание группы — дубль, исправление, успех ===
 
@@ -196,8 +196,8 @@ class GroupsTabScenarioTest {
         // подписки вырастет тем же диффом.
         assertTrue(
             send(
-                Msg.SliceLoaded(tree(groups = emptyList(), wordIds = (13L downTo 1L).toList()))
-            ).isEmpty()
+                Msg.SliceLoaded(tree(groups = emptyList(), wordIds = (13L downTo 1L).toList())),
+            ).isEmpty(),
         )
         assertTrue(GroupsSub.AllWindow(1L, limit = CHUNK_SIZE * 2 + 1) in state.subscriptions())
         // «Handler»: живое окно доэмитило вставленное слово.
@@ -247,8 +247,8 @@ class GroupsTabScenarioTest {
                 treeCounted(
                     groups = listOf(Triple(5L, "Быт", 3), Triple(6L, "Дом", 0)),
                     wordIds = listOf(3L, 2L, 1L),
-                )
-            )
+                ),
+            ),
         )
 
         // Раскрываем обе: 5 — окно (подписка через дифф), 6 — «пусто»
@@ -275,8 +275,8 @@ class GroupsTabScenarioTest {
                 treeCounted(
                     groups = listOf(Triple(5L, "Быт", 3), Triple(6L, "Дом", 1)),
                     wordIds = listOf(4L, 3L, 2L, 1L),
-                )
-            )
+                ),
+            ),
         )
         assertTrue(
             GroupsSub.GroupWindow(groupId = 6, limit = CHUNK_SIZE) in state.subscriptions(),
@@ -300,8 +300,8 @@ class GroupsTabScenarioTest {
                 treeCounted(
                     groups = listOf(Triple(5L, "Быт", 3), Triple(6L, "Дом", 0)),
                     wordIds = listOf(4L, 3L, 2L, 1L),
-                )
-            )
+                ),
+            ),
         )
         assertTrue(
             state.subscriptions().none { it is GroupsSub.GroupWindow && it.groupId == 6L },
@@ -344,8 +344,12 @@ class GroupsTabScenarioTest {
         // «Handler»: подписка перерисовала без группы.
         send(
             Msg.DeleteWithWordsOutcomeMsg(
-                me.apomazkin.group.DeleteGroupWithWordsOutcome.Success(3),
-            )
+                me
+                    .apomazkin
+                    .group
+                    .DeleteGroupWithWordsOutcome
+                    .Success(3),
+            ),
         )
         send(Msg.SliceLoaded(treeCounted(groups = emptyList())))
         assertTrue(state.groups.isEmpty())

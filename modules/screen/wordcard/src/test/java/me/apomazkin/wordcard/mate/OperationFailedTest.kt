@@ -13,7 +13,6 @@ import org.junit.Test
  * §1.10 OperationFailed (F7 блокер + A10 isCommitting + flush isExiting).
  */
 class OperationFailedTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
     @Test
@@ -57,7 +56,12 @@ class OperationFailedTest {
             ),
         )
         val result = reducer.testReduce(initial, Msg.OperationFailed(R_STRING_X))
-        val cv = result.state().lexemeList.single().components.single()
+        val cv = result
+            .state()
+            .lexemeList
+            .single()
+            .components
+            .single()
         assertFalse("isCommitting снят", cv.isCommitting)
         assertTrue("isEdit цел", cv.isEdit)
         assertEquals("edited цел", "new", cv.edited)

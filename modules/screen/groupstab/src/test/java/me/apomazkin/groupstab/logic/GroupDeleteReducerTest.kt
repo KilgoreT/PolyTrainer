@@ -1,9 +1,9 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.group.DeleteGroupOutcome
-import me.apomazkin.group.DeleteGroupWithWordsOutcome
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
+import me.apomazkin.group.DeleteGroupOutcome
+import me.apomazkin.group.DeleteGroupWithWordsOutcome
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -15,7 +15,6 @@ import org.junit.Test
  * деструктив, guard'ы гонок.
  */
 class GroupDeleteReducerTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
     private fun baseState(

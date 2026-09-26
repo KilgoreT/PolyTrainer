@@ -1,18 +1,18 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.compose.runtime.Stable
+import io.github.kilgoret.mate.Effect
 import me.apomazkin.lexeme.ChoiceValues
 import me.apomazkin.lexeme.ComponentOption
 import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
-import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentValue
 import me.apomazkin.lexeme.ComponentValueId
 import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.lexeme.toRef
-import io.github.kilgoret.mate.Effect
 import java.util.Date
 
 const val NOT_IN_DB = -1L
@@ -56,8 +56,9 @@ data class WordCardState(
     /** computed: есть незавершённая запись (компонент ИЛИ membership Э5,
      * ревью UX-1/Arch-1: flush-on-back ждёт membership по контракту А11). */
     val hasInFlightCommits: Boolean
-        get() = lexemeList.any { l -> l.components.any { it.isCommitting } } ||
-            groupsBlock.inFlight.isNotEmpty()
+        get() =
+            lexemeList.any { l -> l.components.any { it.isCommitting } } ||
+                groupsBlock.inFlight.isNotEmpty()
 }
 
 @Stable
@@ -120,11 +121,9 @@ data class ComponentValueState(
 /**
  * ###### TOP BAR ######
  */
-fun WordCardState.showMenu(): WordCardState =
-    copy(topBarState = topBarState.copy(isMenuOpen = true))
+fun WordCardState.showMenu(): WordCardState = copy(topBarState = topBarState.copy(isMenuOpen = true))
 
-fun WordCardState.hideMenu(): WordCardState =
-    copy(topBarState = topBarState.copy(isMenuOpen = false))
+fun WordCardState.hideMenu(): WordCardState = copy(topBarState = topBarState.copy(isMenuOpen = false))
 
 /**
  * ###### WORD STATE ######
@@ -157,45 +156,47 @@ fun WordCardState.hideWordWarningDialog(): WordCardState {
 /**
  * ###### LEXEME LIST ######
  */
-fun WordCardState.updateLexeme(lexemeId: Long, update: (LexemeState) -> LexemeState): WordCardState =
-    copy(lexemeList = lexemeList.map { if (it.id == lexemeId) update(it) else it })
+fun WordCardState.updateLexeme(
+    lexemeId: Long,
+    update: (LexemeState) -> LexemeState,
+): WordCardState = copy(lexemeList = lexemeList.map { if (it.id == lexemeId) update(it) else it })
 
-fun WordCardState.removeLexeme(lexemeId: Long): WordCardState =
-    copy(lexemeList = lexemeList.filter { it.id != lexemeId })
+fun WordCardState.removeLexeme(lexemeId: Long): WordCardState = copy(lexemeList = lexemeList.filter { it.id != lexemeId })
 
 /**
  * ###### LEXEME COMPONENT EXTENSIONS ######
  */
-fun LexemeState.findByKey(key: ComponentValueKey): ComponentValueState? =
-    components.firstOrNull { it.key == key }
+fun LexemeState.findByKey(key: ComponentValueKey): ComponentValueState? = components.firstOrNull { it.key == key }
 
-fun LexemeState.updateComponent(key: ComponentValueKey, transform: (ComponentValueState) -> ComponentValueState): LexemeState =
-    copy(components = components.map { if (it.key == key) transform(it) else it })
+fun LexemeState.updateComponent(
+    key: ComponentValueKey,
+    transform: (ComponentValueState) -> ComponentValueState,
+): LexemeState = copy(components = components.map { if (it.key == key) transform(it) else it })
 
-fun LexemeState.removeComponent(key: ComponentValueKey): LexemeState =
-    copy(components = components.filterNot { it.key == key })
+fun LexemeState.removeComponent(key: ComponentValueKey): LexemeState = copy(components = components.filterNot { it.key == key })
 
-fun LexemeState.appendPristine(component: ComponentValueState): LexemeState =
-    copy(components = components + component)
+fun LexemeState.appendPristine(component: ComponentValueState): LexemeState = copy(components = components + component)
 
 /**
  * ###### ENTITY MAPPING ######
  */
-fun ComponentValue.toComponentValueState(): ComponentValueState = ComponentValueState(
-    key = ComponentValueKey.Saved(id),
-    componentTypeId = type.id,
-    componentTypeRef = type.toRef(),
-    isMultiple = type.isMultiple,
-    template = type.template,
-    origin = data.asText().orEmpty(),
-    selectedOptionId = (data as? ChoiceValues)?.optionId,
-    originCaption = data.asCaption(),
-)
+fun ComponentValue.toComponentValueState(): ComponentValueState =
+    ComponentValueState(
+        key = ComponentValueKey.Saved(id),
+        componentTypeId = type.id,
+        componentTypeRef = type.toRef(),
+        isMultiple = type.isMultiple,
+        template = type.template,
+        origin = data.asText().orEmpty(),
+        selectedOptionId = (data as? ChoiceValues)?.optionId,
+        originCaption = data.asCaption(),
+    )
 
-fun Lexeme.toLexemeState(): LexemeState = LexemeState(
-    id = lexemeId.id,
-    components = components.map { it.toComponentValueState() },
-)
+fun Lexeme.toLexemeState(): LexemeState =
+    LexemeState(
+        id = lexemeId.id,
+        components = components.map { it.toComponentValueState() },
+    )
 
 /**
  * ###### IS486: ПРАВИЛО УЧАСТИЯ (spec §6) ######
@@ -210,29 +211,37 @@ fun Lexeme.toLexemeState(): LexemeState = LexemeState(
  * существующие значения живут — их State не трогает).
  */
 fun WordCardState.addableTypeIdsFor(lexeme: LexemeState): Set<ComponentTypeId> =
-    availableComponentTypes.filter { type ->
-        type.enabled && isTargetActiveFor(lexeme, type) && type.id !in lexeme.addedNonMultipleTypeIds
-    }.map { it.id }.toSet()
+    availableComponentTypes
+        .filter { type ->
+            type.enabled && isTargetActiveFor(lexeme, type) && type.id !in lexeme.addedNonMultipleTypeIds
+        }.map { it.id }
+        .toSet()
 
-private fun isTargetActiveFor(lexeme: LexemeState, type: ComponentType): Boolean =
+private fun isTargetActiveFor(
+    lexeme: LexemeState,
+    type: ComponentType,
+): Boolean =
     when (val target = type.dependsOn) {
         DependencyTarget.Lexeme ->
             if (type.core) true else lexeme.id != NOT_IN_DB
 
         is DependencyTarget.Component ->
-            lexeme.id != NOT_IN_DB && lexeme.components.any {
-                it.componentTypeId == target.typeId && !it.isPristine
-            }
+            lexeme.id != NOT_IN_DB &&
+                lexeme.components.any {
+                    it.componentTypeId == target.typeId && !it.isPristine
+                }
 
         is DependencyTarget.Option ->
-            lexeme.id != NOT_IN_DB && lexeme.components.any {
-                !it.isPristine && it.selectedOptionId == target.optionId
-            }
+            lexeme.id != NOT_IN_DB &&
+                lexeme.components.any {
+                    !it.isPristine && it.selectedOptionId == target.optionId
+                }
     }
 
 /**
  * ###### COMMIT ALL EDIT MODES ######
  */
+
 /**
  * Commit всех правок (flush): для каждого компонента — [commitDecision], эмиссия эффектов.
  * - NoOp → закрыть edit; LocalRemove → drop локально (без эффекта);
@@ -288,25 +297,27 @@ private fun commitRealLexeme(
             is CommitOutcome.Update -> {
                 val cvId = cv.componentValueId
                 if (cvId != null) {
-                    effects += DatasourceEffect.UpsertComponentValue.UpdateValue(
-                        wordId = wordId,
-                        dictionaryId = dictionaryId,
-                        lexemeId = lexeme.id,
-                        componentValueId = cvId,
-                        componentTypeId = cv.componentTypeId,
-                        componentTypeRef = cv.componentTypeRef,
-                        data = templateValuesOf(cv.template, outcome.text, outcome.caption),
-                    )
+                    effects +=
+                        DatasourceEffect.UpsertComponentValue.UpdateValue(
+                            wordId = wordId,
+                            dictionaryId = dictionaryId,
+                            lexemeId = lexeme.id,
+                            componentValueId = cvId,
+                            componentTypeId = cv.componentTypeId,
+                            componentTypeRef = cv.componentTypeRef,
+                            data = templateValuesOf(cv.template, outcome.text, outcome.caption),
+                        )
                 } else {
-                    effects += DatasourceEffect.UpsertComponentValue.AddValue(
-                        wordId = wordId,
-                        dictionaryId = dictionaryId,
-                        lexemeId = lexeme.id,
-                        pristineKey = cv.pristineKey!!,
-                        componentTypeId = cv.componentTypeId,
-                        componentTypeRef = cv.componentTypeRef,
-                        data = templateValuesOf(cv.template, outcome.text, outcome.caption),
-                    )
+                    effects +=
+                        DatasourceEffect.UpsertComponentValue.AddValue(
+                            wordId = wordId,
+                            dictionaryId = dictionaryId,
+                            lexemeId = lexeme.id,
+                            pristineKey = cv.pristineKey!!,
+                            componentTypeId = cv.componentTypeId,
+                            componentTypeRef = cv.componentTypeRef,
+                            data = templateValuesOf(cv.template, outcome.text, outcome.caption),
+                        )
                 }
                 cv.copy(isCommitting = true)
             }
@@ -327,14 +338,15 @@ private fun commitDraftLexeme(
     val anchor = survived.firstOrNull { it.commitDecision() is CommitOutcome.Update }
         ?: return lexeme.copy(components = survived)
     val anchorOutcome = anchor.commitDecision() as CommitOutcome.Update
-    effects += DatasourceEffect.UpsertComponentValue.CreateLexeme(
-        wordId = wordId,
-        dictionaryId = dictionaryId,
-        pristineKey = anchor.pristineKey!!,
-        componentTypeId = anchor.componentTypeId,
-        componentTypeRef = anchor.componentTypeRef,
-        data = templateValuesOf(anchor.template, anchorOutcome.text, anchorOutcome.caption),
-    )
+    effects +=
+        DatasourceEffect.UpsertComponentValue.CreateLexeme(
+            wordId = wordId,
+            dictionaryId = dictionaryId,
+            pristineKey = anchor.pristineKey!!,
+            componentTypeId = anchor.componentTypeId,
+            componentTypeRef = anchor.componentTypeRef,
+            data = templateValuesOf(anchor.template, anchorOutcome.text, anchorOutcome.caption),
+        )
     val newComps = survived.map { cv ->
         if (cv.key == anchor.key) cv.copy(isCommitting = true) else cv
     }

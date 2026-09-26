@@ -7,6 +7,8 @@ import io.github.kilgoret.mate.MateObserver
 import io.github.kilgoret.mate.NavigationEffect
 import kotlinx.coroutines.CoroutineScope
 import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.mate.ErrorLoggingObserver
+import me.apomazkin.wordcard.LogTags
 import me.apomazkin.wordcard.deps.UiHost
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import me.apomazkin.wordcard.mate.DatasourceEffect
@@ -26,7 +28,6 @@ import me.apomazkin.wordcard.mate.subscriptions
  * наблюдателя ленты.
  */
 object WordCardAssembly {
-
     fun create(
         useCase: WordCardUseCase,
         logger: LexemeLogger,
@@ -35,26 +36,27 @@ object WordCardAssembly {
         uiHost: UiHost,
         coroutineScope: CoroutineScope,
         observers: List<MateObserver<Any?, Any?, Effect>> = emptyList(),
-    ): Mate<WordCardState, Msg, Effect> = Mate(
-        initState = WordCardState(),
-        initEffects = setOf(DatasourceEffect.LoadWord(wordId)),
-        coroutineScope = coroutineScope,
-        reducer = WordCardReducer(logger),
-        effectHandlers = listOf(
-            DatasourceEffectHandler(
-                wordCardUseCase = useCase,
-                logger = logger,
+    ): Mate<WordCardState, Msg, Effect> =
+        Mate(
+            initState = WordCardState(),
+            initEffects = setOf(DatasourceEffect.LoadWord(wordId)),
+            coroutineScope = coroutineScope,
+            reducer = WordCardReducer(logger),
+            effectHandlers = listOf(
+                DatasourceEffectHandler(
+                    wordCardUseCase = useCase,
+                    logger = logger,
+                ),
+                navigationHandler,
+                UiEffectHandler(uiHost = uiHost),
             ),
-            navigationHandler,
-            UiEffectHandler(uiHost = uiHost),
-        ),
-        subscriptions = { it.subscriptions() },
-        subscriptionHandlers = listOf(
-            WordCardSubHandler(
-                useCase = useCase,
-                logger = logger,
+            subscriptions = { it.subscriptions() },
+            subscriptionHandlers = listOf(
+                WordCardSubHandler(
+                    useCase = useCase,
+                    logger = logger,
+                ),
             ),
-        ),
-        observers = observers,
-    )
+            observers = observers + ErrorLoggingObserver(logger, LogTags.WORDCARD),
+        )
 }

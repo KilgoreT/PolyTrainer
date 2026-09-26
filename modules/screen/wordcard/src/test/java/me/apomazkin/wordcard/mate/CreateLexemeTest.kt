@@ -12,7 +12,6 @@ import org.junit.Test
  * commit открытых правок перед созданием.
  */
 class CreateLexemeTest {
-
     private val reducer = WordCardReducer(NoopLogger)
 
     @Test

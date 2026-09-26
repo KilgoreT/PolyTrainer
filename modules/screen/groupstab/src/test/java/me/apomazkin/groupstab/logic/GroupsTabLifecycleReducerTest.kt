@@ -1,9 +1,9 @@
 package me.apomazkin.groupstab.logic
 
-import me.apomazkin.group.DisplayNode
-import me.apomazkin.group.DisplayTree
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
+import me.apomazkin.group.DisplayNode
+import me.apomazkin.group.DisplayTree
 import me.apomazkin.wordrow.entity.TermUiItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,53 +17,57 @@ import java.util.Date
  * чистка мёртвых раскрытий/конфирма), ошибки подписки slice.
  */
 class GroupsTabLifecycleReducerTest {
-
     private val reducer = GroupsTabReducer(logger = NoopLogger)
 
-    private fun term(id: Long) = TermUiItem(
-        id = id,
-        wordValue = "w$id",
-        dictionaryId = 1L,
-        addDate = Date(0),
-    )
+    private fun term(id: Long) =
+        TermUiItem(
+            id = id,
+            wordValue = "w$id",
+            dictionaryId = 1L,
+            addDate = Date(0),
+        )
 
-    private fun stateWithNode(node: AllNodeState) = GroupsTabState(
-        isLoading = false,
-        dictionaryId = 1L,
-        allNode = node,
-    )
+    private fun stateWithNode(node: AllNodeState) =
+        GroupsTabState(
+            isLoading = false,
+            dictionaryId = 1L,
+            allNode = node,
+        )
 
-    private fun groupsTree(vararg names: Pair<Long, String>) = DisplayTree(
-        allWords = DisplayNode.AllWords(words = emptyList(), count = 0),
-        groups = names.map { (id, name) ->
-            DisplayNode.Group(
-                id = id,
-                name = name,
-                children = emptyList(),
-                directWords = emptyList(),
-                subtreeWordCount = 0,
-            )
-        },
-    )
+    private fun groupsTree(vararg names: Pair<Long, String>) =
+        DisplayTree(
+            allWords = DisplayNode.AllWords(words = emptyList(), count = 0),
+            groups = names.map { (id, name) ->
+                DisplayNode.Group(
+                    id = id,
+                    name = name,
+                    children = emptyList(),
+                    directWords = emptyList(),
+                    subtreeWordCount = 0,
+                )
+            },
+        )
 
-    private fun countedTree(groups: List<Triple<Long, String, Int>>) = DisplayTree(
-        allWords = DisplayNode.AllWords(words = emptyList(), count = 0),
-        groups = groups.map { (id, name, count) ->
-            DisplayNode.Group(
-                id = id,
-                name = name,
-                children = emptyList(),
-                directWords = (1..count).map { it.toLong() },
-                subtreeWordCount = count,
-            )
-        },
-    )
+    private fun countedTree(groups: List<Triple<Long, String, Int>>) =
+        DisplayTree(
+            allWords = DisplayNode.AllWords(words = emptyList(), count = 0),
+            groups = groups.map { (id, name, count) ->
+                DisplayNode.Group(
+                    id = id,
+                    name = name,
+                    children = emptyList(),
+                    directWords = (1..count).map { it.toLong() },
+                    subtreeWordCount = count,
+                )
+            },
+        )
 
     private fun baseState(
-        groups: List<GroupUiItem> = listOf(
-            GroupUiItem(id = 5, name = "Быт", count = 0),
-            GroupUiItem(id = 6, name = "Дом", count = 0),
-        ),
+        groups: List<GroupUiItem> =
+            listOf(
+                GroupUiItem(id = 5, name = "Быт", count = 0),
+                GroupUiItem(id = 6, name = "Дом", count = 0),
+            ),
     ) = GroupsTabState(
         isLoading = false,
         dictionaryId = 1L,
@@ -120,7 +124,7 @@ class GroupsTabLifecycleReducerTest {
                 isExpanded = true,
                 window = 50,
                 loadedWords = listOf(term(3), term(2)),
-            )
+            ),
         )
 
         val result = reducer.reduce(current, Msg.DictionaryChanged(2L))
