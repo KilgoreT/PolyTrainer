@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.dictionary.DictionaryUseCase
 
@@ -17,7 +17,7 @@ import me.apomazkin.dictionary.DictionaryUseCase
 class DictionaryListViewModel @AssistedInject constructor(
     useCase: DictionaryUseCase,
     navigationHandler: MateNavigationHandler,
-) : ViewModel(), MateStateHolder<DictionaryListScreenState, DictionaryListMsg> {
+) : ViewModel(), MateStore<DictionaryListScreenState, DictionaryListMsg> {
 
     private val stateHolder = DictionaryListAssembly.create(
         useCase = useCase,

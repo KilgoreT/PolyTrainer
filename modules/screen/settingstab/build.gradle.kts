@@ -53,5 +53,5 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation(project("path" to ":modules:core:mate"))
-    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.5")
+    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.6")
 }

@@ -19,7 +19,7 @@ class VocabularyHostSubHandler @Inject constructor(
     private val useCase: VocabularyHostUseCase,
 ) : MateSubscriptionHandler<Msg, VocabularyHostSub> {
 
-    override val subFamily = VocabularyHostSub::class
+    override val subscriptionFamily = VocabularyHostSub::class
 
     override fun flow(sub: VocabularyHostSub): Flow<Msg> = when (sub) {
         VocabularyHostSub.CurrentDict ->

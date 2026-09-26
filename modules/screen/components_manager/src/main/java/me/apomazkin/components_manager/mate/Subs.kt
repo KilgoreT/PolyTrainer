@@ -1,6 +1,6 @@
 package me.apomazkin.components_manager.mate
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок экрана менеджера компонентов — длящиеся
@@ -8,7 +8,7 @@ import io.github.kilgoret.mate.Sub
  * reduce раннер сравнивает набор [subscriptions] с активным,
  * включает новые подписки и гасит исчезнувшие.
  */
-sealed interface ComponentsManagerSub : Sub {
+sealed interface ComponentsManagerSub : Subscription {
 
     /**
      * Живой список всех пользовательских типов компонентов →
@@ -35,7 +35,7 @@ sealed interface ComponentsManagerSub : Sub {
  * создания до уничтожения раннера; у списка типов меняется только
  * generation при retry.
  */
-fun ComponentsManagerScreenState.subscriptions(): Set<Sub> = setOf(
+fun ComponentsManagerScreenState.subscriptions(): Set<Subscription> = setOf(
     ComponentsManagerSub.AllTypes(generation = loadGeneration),
     ComponentsManagerSub.Dictionaries,
 )

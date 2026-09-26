@@ -11,7 +11,7 @@ import me.apomazkin.group.MembershipEntry
 import me.apomazkin.groupstab.deps.GroupsTabUseCase
 import me.apomazkin.groupstab.logic.GroupsTabState
 import me.apomazkin.polytrainer.navigation.AppScreen
-import me.apomazkin.polytrainer.navigation.appNavGraph
+import me.apomazkin.polytrainer.navigation.appNavTable
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.logic.DatasourceEffect
@@ -24,7 +24,7 @@ import me.apomazkin.wordstab.logic.Msg as WordsMsg
 
 /**
  * Пилот сценарного харнеса: бизнес-логика приложения гоняется целиком
- * на JVM — те же Assembly и ТА ЖЕ таблица навигации [appNavGraph], что
+ * на JVM — те же Assembly и ТА ЖЕ таблица навигации [appNavTable], что
  * в проде; стабятся только use case'ы. Живая база симулируется
  * управляемыми stubFlow, время — виртуальное.
  */
@@ -54,7 +54,7 @@ class PilotScenarioTest {
             DictUiEntity(id = 0, flagRes = 0, title = "English", numericCode = 840)
         coEvery { stubs.wordsUseCase.addWord("dom") } returns 42L
 
-        runAppScenario(stubs.registry, appNavGraph) {
+        runAppScenario(stubs.registry, appNavTable) {
             launch(AppScreen.Main)
 
             send(WordsMsg.CreateWord("dom"))
@@ -76,7 +76,7 @@ class PilotScenarioTest {
         val stubs = Stubs()
         coEvery { stubs.wordCardUseCase.getTermById(42L) } returns null
 
-        runAppScenario(stubs.registry, appNavGraph) {
+        runAppScenario(stubs.registry, appNavTable) {
             launch(AppScreen.Main)
 
             send(WordsMsg.OpenWordCard(42L))
@@ -93,7 +93,7 @@ class PilotScenarioTest {
     fun `live slice updates groups tab as database changes`() {
         val stubs = Stubs()
 
-        runAppScenario(stubs.registry, appNavGraph) {
+        runAppScenario(stubs.registry, appNavTable) {
             launch(AppScreen.Main)
 
             stubs.currentDictId.emit(1L)
@@ -137,7 +137,7 @@ class PilotScenarioTest {
     fun `destructive countdown ticks on virtual time and stops at zero`() {
         val stubs = Stubs()
 
-        runAppScenario(stubs.registry, appNavGraph) {
+        runAppScenario(stubs.registry, appNavTable) {
             launch(AppScreen.Main)
             stubs.currentDictId.emit(1L)
             awaitIdle()
@@ -171,7 +171,7 @@ class PilotScenarioTest {
     fun `dictionary switch rewires group subscriptions`() {
         val stubs = Stubs()
 
-        runAppScenario(stubs.registry, appNavGraph) {
+        runAppScenario(stubs.registry, appNavTable) {
             launch(AppScreen.Main)
 
             stubs.currentDictId.emit(1L)

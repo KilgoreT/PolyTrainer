@@ -1,6 +1,6 @@
 package me.apomazkin.groupstab.logic
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,14 +26,14 @@ class SubsTest {
             confirmDelete = ConfirmDeleteState(groupId = 5, deleteWords = true, countdownLeft = 3),
         )
 
-        assertEquals(setOf<Sub>(GroupsSub.CurrentDict), state.subscriptions())
+        assertEquals(setOf<Subscription>(GroupsSub.CurrentDict), state.subscriptions())
     }
 
     @Test
     fun `dictionary only - single slice subscription`() {
         val state = GroupsTabState(dictionaryId = 1L)
 
-        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(dictionaryId = 1L)), state.subscriptions())
+        assertEquals(setOf<Subscription>(GroupsSub.CurrentDict, GroupsSub.Slice(dictionaryId = 1L)), state.subscriptions())
     }
 
     // === Окно «Все» ===
@@ -62,14 +62,14 @@ class SubsTest {
             dictionaryId = 1L,
             allNode = AllNodeState(count = 30, isExpanded = false, window = 10),
         )
-        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), collapsed.subscriptions())
+        assertEquals(setOf<Subscription>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), collapsed.subscriptions())
 
         // Раскрыт пустым (T-5а): window=0 — заглушка без подписки.
         val zeroWindow = GroupsTabState(
             dictionaryId = 1L,
             allNode = AllNodeState(count = 0, isExpanded = true, window = 0),
         )
-        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), zeroWindow.subscriptions())
+        assertEquals(setOf<Subscription>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), zeroWindow.subscriptions())
     }
 
     // === Окна групп ===
@@ -127,13 +127,13 @@ class SubsTest {
             dictionaryId = 1L,
             confirmDelete = ConfirmDeleteState(groupId = 5, deleteWords = false, countdownLeft = 3),
         )
-        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), unchecked.subscriptions())
+        assertEquals(setOf<Subscription>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), unchecked.subscriptions())
 
         // Счётчик оттикал до нуля — тикер гаснет, кнопка активна.
         val ticked = GroupsTabState(
             dictionaryId = 1L,
             confirmDelete = ConfirmDeleteState(groupId = 5, deleteWords = true, countdownLeft = 0),
         )
-        assertEquals(setOf<Sub>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), ticked.subscriptions())
+        assertEquals(setOf<Subscription>(GroupsSub.CurrentDict, GroupsSub.Slice(1L)), ticked.subscriptions())
     }
 }

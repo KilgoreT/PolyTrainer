@@ -1,6 +1,6 @@
 package me.apomazkin.stattab.mate
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок экрана статистики — длящиеся источники данных,
@@ -8,7 +8,7 @@ import io.github.kilgoret.mate.Sub
  * каждого reduce сравнивает набор [subscriptions] с активным,
  * включает новые подписки и гасит исчезнувшие.
  */
-sealed interface StatSub : Sub {
+sealed interface StatSub : Subscription {
 
     /**
      * Живые счётчики (слова / лексемы / статистика квизов) одним
@@ -23,4 +23,4 @@ sealed interface StatSub : Sub {
  * набор константный — [StatSub.Counters] живёт от создания до
  * уничтожения раннера.
  */
-fun StatisticState.subscriptions(): Set<Sub> = setOf(StatSub.Counters)
+fun StatisticState.subscriptions(): Set<Subscription> = setOf(StatSub.Counters)

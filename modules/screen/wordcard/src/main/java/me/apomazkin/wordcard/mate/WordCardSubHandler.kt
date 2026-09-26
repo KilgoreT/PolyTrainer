@@ -32,7 +32,7 @@ class WordCardSubHandler @Inject constructor(
     private val logger: LexemeLogger,
 ) : MateSubscriptionHandler<Msg, WordCardSub> {
 
-    override val subFamily = WordCardSub::class
+    override val subscriptionFamily = WordCardSub::class
 
     private val collator: Comparator<String> = run {
         val collator = Collator.getInstance()

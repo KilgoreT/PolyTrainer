@@ -6,7 +6,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
@@ -27,7 +27,7 @@ class ChatViewModel @AssistedInject constructor(
     resourceManager: ResourceManager,
     logger: LexemeLogger,
     navigationHandler: MateNavigationHandler,
-) : ViewModel(), MateStateHolder<ChatScreenState, Msg> {
+) : ViewModel(), MateStore<ChatScreenState, Msg> {
 
     private val stateHolder = ChatAssembly.create(
         useCase = useCase,

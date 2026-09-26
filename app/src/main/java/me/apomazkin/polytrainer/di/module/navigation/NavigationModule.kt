@@ -4,13 +4,13 @@ import dagger.Module
 import dagger.Provides
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.polytrainer.navigation.AppNavigationExecutor
-import me.apomazkin.polytrainer.navigation.appNavGraph
+import me.apomazkin.polytrainer.navigation.appNavTable
 import javax.inject.Singleton
 
 /**
  * Сборка навигации: ОДИН shared [MateNavigationHandler] на всё
  * приложение (навигация — глобальный ресурс: стек один, очередь
- * переходов одна) поверх таблицы [appNavGraph] и живого исполнителя
+ * переходов одна) поверх таблицы [appNavTable] и живого исполнителя
  * [AppNavigationExecutor]. Инстанс кладётся в effectHandlers каждого
  * экранного Mate.
  */
@@ -21,7 +21,7 @@ class NavigationModule {
     @Singleton
     fun provideNavigationHandler(executor: AppNavigationExecutor): MateNavigationHandler =
         MateNavigationHandler(
-            graph = appNavGraph,
+            table = appNavTable,
             executor = executor,
             readiness = executor.readiness,
         )

@@ -9,7 +9,7 @@ import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.logic.WordsTabState
 import me.apomazkin.wordstab.logic.Msg
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
 /**
@@ -21,7 +21,7 @@ class WordsTabViewModel @AssistedInject constructor(
     useCase: WordsTabUseCase,
     logger: LexemeLogger,
     navigationHandler: MateNavigationHandler,
-) : ViewModel(), MateStateHolder<WordsTabState, Msg> {
+) : ViewModel(), MateStore<WordsTabState, Msg> {
 
     private val stateHolder = WordsTabAssembly.create(
         useCase = useCase,

@@ -9,7 +9,7 @@ import me.apomazkin.dictionaryappbar.deps.DictionaryAppBarUseCase
 import me.apomazkin.dictionaryappbar.mate.DictionaryAppBarState
 import me.apomazkin.dictionaryappbar.mate.Msg
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
 /**
@@ -21,7 +21,7 @@ class DictionaryAppBarViewModel @AssistedInject constructor(
     useCase: DictionaryAppBarUseCase,
     logger: LexemeLogger,
     navigationHandler: MateNavigationHandler,
-) : ViewModel(), MateStateHolder<DictionaryAppBarState, Msg> {
+) : ViewModel(), MateStore<DictionaryAppBarState, Msg> {
 
     private val stateHolder = DictionaryAppBarAssembly.create(
         useCase = useCase,

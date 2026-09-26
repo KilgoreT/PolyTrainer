@@ -1,6 +1,6 @@
 package me.apomazkin.vocabulary.logic
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок host'а вкладок словаря — длящиеся источники
@@ -8,7 +8,7 @@ import io.github.kilgoret.mate.Sub
  * раннер сравнивает набор [subscriptions] с активным, включает
  * новые подписки и гасит исчезнувшие.
  */
-sealed interface VocabularyHostSub : Sub {
+sealed interface VocabularyHostSub : Subscription {
 
     /**
      * Текущий выбранный словарь приложения. Без параметров: host
@@ -24,4 +24,4 @@ sealed interface VocabularyHostSub : Sub {
  * поэтому набор константный — [VocabularyHostSub.CurrentDict] живёт
  * от создания до уничтожения раннера.
  */
-fun VocabularyHostState.subscriptions(): Set<Sub> = setOf(VocabularyHostSub.CurrentDict)
+fun VocabularyHostState.subscriptions(): Set<Subscription> = setOf(VocabularyHostSub.CurrentDict)

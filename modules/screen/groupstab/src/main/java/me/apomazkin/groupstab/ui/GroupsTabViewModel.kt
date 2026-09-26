@@ -9,7 +9,7 @@ import me.apomazkin.groupstab.logic.GroupsTabState
 import me.apomazkin.groupstab.logic.Msg
 import me.apomazkin.groupstab.deps.GroupsTabUseCase
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
 /**
@@ -21,7 +21,7 @@ class GroupsTabViewModel @AssistedInject constructor(
     useCase: GroupsTabUseCase,
     navigationHandler: MateNavigationHandler,
     logger: LexemeLogger,
-) : ViewModel(), MateStateHolder<GroupsTabState, Msg> {
+) : ViewModel(), MateStore<GroupsTabState, Msg> {
 
     private val stateHolder = GroupsTabAssembly.create(
         useCase = useCase,

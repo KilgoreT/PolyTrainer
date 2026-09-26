@@ -19,7 +19,7 @@ class WordsTabSubHandler @Inject constructor(
     private val useCase: WordsTabUseCase,
 ) : MateSubscriptionHandler<Msg, WordsTabSub> {
 
-    override val subFamily = WordsTabSub::class
+    override val subscriptionFamily = WordsTabSub::class
 
     override fun flow(sub: WordsTabSub): Flow<Msg> = when (sub) {
         WordsTabSub.CurrentDict ->

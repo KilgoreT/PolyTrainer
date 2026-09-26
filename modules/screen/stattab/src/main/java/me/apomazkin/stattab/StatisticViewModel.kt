@@ -6,7 +6,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.stattab.deps.StatisticUseCase
 import me.apomazkin.stattab.mate.Msg
@@ -21,7 +21,7 @@ class StatisticViewModel @AssistedInject constructor(
     useCase: StatisticUseCase,
     logger: LexemeLogger,
     navigationHandler: MateNavigationHandler,
-) : ViewModel(), MateStateHolder<StatisticState, Msg> {
+) : ViewModel(), MateStore<StatisticState, Msg> {
 
     private val stateHolder = StatisticAssembly.create(
         useCase = useCase,

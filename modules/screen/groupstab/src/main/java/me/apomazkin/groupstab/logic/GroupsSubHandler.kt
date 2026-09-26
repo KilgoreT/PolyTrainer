@@ -37,7 +37,7 @@ class GroupsSubHandler @Inject constructor(
     private val logger: LexemeLogger,
 ) : MateSubscriptionHandler<Msg, GroupsSub> {
 
-    override val subFamily = GroupsSub::class
+    override val subscriptionFamily = GroupsSub::class
 
     private val collator: Comparator<String> = run {
         val collator = Collator.getInstance()

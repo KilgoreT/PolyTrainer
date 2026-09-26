@@ -6,7 +6,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.wordcard.deps.UiHost
 import me.apomazkin.wordcard.deps.WordCardUseCase
@@ -25,7 +25,7 @@ class WordCardViewModel @AssistedInject constructor(
     useCase: WordCardUseCase,
     logger: LexemeLogger,
     navigationHandler: MateNavigationHandler,
-) : ViewModel(), MateStateHolder<WordCardState, Msg> {
+) : ViewModel(), MateStore<WordCardState, Msg> {
 
     private val stateHolder = WordCardAssembly.create(
         useCase = useCase,

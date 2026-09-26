@@ -1,6 +1,6 @@
 package me.apomazkin.dictionary.list
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок экрана списка словарей — длящиеся источники
@@ -8,7 +8,7 @@ import io.github.kilgoret.mate.Sub
  * раннер сравнивает набор [subscriptions] с активным, включает
  * новые подписки и гасит исчезнувшие.
  */
-sealed interface DictionaryListSub : Sub {
+sealed interface DictionaryListSub : Subscription {
 
     /**
      * Живой список словарей → [DictionaryListMsg.DictionariesLoaded].
@@ -23,4 +23,4 @@ sealed interface DictionaryListSub : Sub {
  * константный — [DictionaryListSub.Dictionaries] живёт от создания до
  * уничтожения раннера.
  */
-fun DictionaryListScreenState.subscriptions(): Set<Sub> = setOf(DictionaryListSub.Dictionaries)
+fun DictionaryListScreenState.subscriptions(): Set<Subscription> = setOf(DictionaryListSub.Dictionaries)

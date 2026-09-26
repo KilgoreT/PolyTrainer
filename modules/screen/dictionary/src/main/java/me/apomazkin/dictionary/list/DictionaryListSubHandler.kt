@@ -16,7 +16,7 @@ class DictionaryListSubHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
 ) : MateSubscriptionHandler<DictionaryListMsg, DictionaryListSub> {
 
-    override val subFamily = DictionaryListSub::class
+    override val subscriptionFamily = DictionaryListSub::class
 
     override fun flow(sub: DictionaryListSub): Flow<DictionaryListMsg> = when (sub) {
         DictionaryListSub.Dictionaries ->

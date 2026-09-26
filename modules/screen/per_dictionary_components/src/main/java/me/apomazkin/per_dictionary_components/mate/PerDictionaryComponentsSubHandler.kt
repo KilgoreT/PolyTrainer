@@ -24,7 +24,7 @@ class PerDictionaryComponentsSubHandler @Inject constructor(
     private val logger: LexemeLogger,
 ) : MateSubscriptionHandler<Msg, PerDictionaryComponentsSub> {
 
-    override val subFamily = PerDictionaryComponentsSub::class
+    override val subscriptionFamily = PerDictionaryComponentsSub::class
 
     override fun flow(sub: PerDictionaryComponentsSub): Flow<Msg> = when (sub) {
         is PerDictionaryComponentsSub.Components ->

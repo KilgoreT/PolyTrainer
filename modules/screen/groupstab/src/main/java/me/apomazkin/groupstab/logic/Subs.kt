@@ -1,6 +1,6 @@
 package me.apomazkin.groupstab.logic
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок вкладки «Группы» — длящиеся источники данных,
@@ -16,7 +16,7 @@ import io.github.kilgoret.mate.Sub
  * параметр (например, limit окна) — это другая подписка, старая
  * гаснет, новая стартует.
  */
-sealed interface GroupsSub : Sub {
+sealed interface GroupsSub : Subscription {
 
     /**
      * Текущий выбранный словарь приложения. Без параметров: вкладка
@@ -81,7 +81,7 @@ sealed interface GroupsSub : Sub {
  * - [GroupsSub.DeleteCountdown] — конфирм деструктива с галкой и
  *   не истёкшим счётчиком.
  */
-fun GroupsTabState.subscriptions(): Set<Sub> = buildSet {
+fun GroupsTabState.subscriptions(): Set<Subscription> = buildSet {
     add(GroupsSub.CurrentDict)
     val dictId = dictionaryId ?: return@buildSet
     add(GroupsSub.Slice(dictionaryId = dictId))

@@ -3,7 +3,7 @@ package me.apomazkin.polytrainer.navigation
 import io.github.kilgoret.mate.navigation.Screen
 
 /**
- * Экраны приложения — пункты назначения [appNavGraph], только данные
+ * Экраны приложения — пункты назначения [appNavTable], только данные
  * (аргументы перехода внутри). Как эти объекты превращаются в вызовы
  * NavController'ов — знает единственно [AppNavigationExecutor]:
  * root-стек (словари, main) и tabs-стек (карточка, квиз, настройки)

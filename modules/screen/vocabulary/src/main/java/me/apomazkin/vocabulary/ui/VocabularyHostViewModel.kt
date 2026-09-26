@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import me.apomazkin.vocabulary.deps.VocabularyHostUseCase
 import me.apomazkin.vocabulary.logic.Msg
 import me.apomazkin.vocabulary.logic.VocabularyHostState
@@ -18,7 +18,7 @@ import me.apomazkin.vocabulary.logic.VocabularyHostState
  */
 class VocabularyHostViewModel @AssistedInject constructor(
     useCase: VocabularyHostUseCase,
-) : ViewModel(), MateStateHolder<VocabularyHostState, Msg> {
+) : ViewModel(), MateStore<VocabularyHostState, Msg> {
 
     private val stateHolder = VocabularyHostAssembly.create(
         useCase = useCase,

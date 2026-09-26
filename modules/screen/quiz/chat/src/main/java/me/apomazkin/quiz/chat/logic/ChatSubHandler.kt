@@ -27,7 +27,7 @@ class ChatSubHandler @Inject constructor(
     private val prefsProvider: PrefsProvider,
 ) : MateSubscriptionHandler<Msg, ChatSub> {
 
-    override val subFamily = ChatSub::class
+    override val subscriptionFamily = ChatSub::class
 
     override fun flow(sub: ChatSub): Flow<Msg> = when (sub) {
         ChatSub.AppBarMenu -> combine(

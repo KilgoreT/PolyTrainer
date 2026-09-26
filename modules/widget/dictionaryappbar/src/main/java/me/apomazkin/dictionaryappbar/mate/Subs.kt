@@ -1,6 +1,6 @@
 package me.apomazkin.dictionaryappbar.mate
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок app bar'а словарей — длящиеся источники данных,
@@ -12,7 +12,7 @@ import io.github.kilgoret.mate.Sub
  * app bar всегда показывает выбранный словарь и держит свежий
  * список для переключателя.
  */
-sealed interface DictionaryAppBarSub : Sub {
+sealed interface DictionaryAppBarSub : Subscription {
 
     /** Живой список доступных словарей → [Msg.AvailableDict]. */
     data object AvailableDicts : DictionaryAppBarSub
@@ -25,7 +25,7 @@ sealed interface DictionaryAppBarSub : Sub {
  * Декларация подписок app bar'а: обе нужны безусловно, поэтому набор
  * константный — живут от создания до уничтожения раннера.
  */
-fun DictionaryAppBarState.subscriptions(): Set<Sub> = setOf(
+fun DictionaryAppBarState.subscriptions(): Set<Subscription> = setOf(
     DictionaryAppBarSub.AvailableDicts,
     DictionaryAppBarSub.CurrentDict,
 )

@@ -6,7 +6,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.StateFlow
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 import me.apomazkin.dictionary.DictionaryUseCase
 
@@ -19,7 +19,7 @@ class DictionaryFormViewModel @AssistedInject constructor(
     @Assisted editingDictionaryId: Long?,
     useCase: DictionaryUseCase,
     navigationHandler: MateNavigationHandler,
-) : ViewModel(), MateStateHolder<DictionaryFormScreenState, DictionaryFormMsg> {
+) : ViewModel(), MateStore<DictionaryFormScreenState, DictionaryFormMsg> {
 
     private val stateHolder = DictionaryFormAssembly.create(
         useCase = useCase,

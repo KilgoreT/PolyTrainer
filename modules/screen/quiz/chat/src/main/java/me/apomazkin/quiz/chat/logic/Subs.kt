@@ -1,6 +1,6 @@
 package me.apomazkin.quiz.chat.logic
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок экрана чат-квиза — длящиеся источники данных,
@@ -10,7 +10,7 @@ import io.github.kilgoret.mate.Sub
  *
  * Обе подписки без параметров и живут всё время жизни экрана.
  */
-sealed interface ChatSub : Sub {
+sealed interface ChatSub : Subscription {
 
     /**
      * Живые тумблеры меню app bar'а (earliest / frequent mistakes /
@@ -32,7 +32,7 @@ sealed interface ChatSub : Sub {
  * Декларация подписок экрана: обе нужны безусловно, поэтому набор
  * константный — живут от создания до уничтожения раннера.
  */
-fun ChatScreenState.subscriptions(): Set<Sub> = setOf(
+fun ChatScreenState.subscriptions(): Set<Subscription> = setOf(
     ChatSub.AppBarMenu,
     ChatSub.QuizPicker,
 )

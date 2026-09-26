@@ -182,7 +182,7 @@ dependencies {
     testImplementation(testLibs.mockk)
     testImplementation(testLibs.coroutinesTest)
     // Сценарный харнес mate: registry экранов + DSL сценариев.
-    testImplementation("com.github.KilgoreT.mate:mate-app-test:v0.1.5")
+    testImplementation("com.github.KilgoreT.mate:mate-app-test:v0.1.6")
     androidTestImplementation(testLibs.androidxTestExt)
     androidTestImplementation(testLibs.espressoCore)
     androidTestImplementation(composeLibs.uiTestJunit4)

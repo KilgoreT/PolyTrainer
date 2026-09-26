@@ -17,7 +17,7 @@ class DictionaryAppBarSubHandler @Inject constructor(
     private val useCase: DictionaryAppBarUseCase,
 ) : MateSubscriptionHandler<Msg, DictionaryAppBarSub> {
 
-    override val subFamily = DictionaryAppBarSub::class
+    override val subscriptionFamily = DictionaryAppBarSub::class
 
     override fun flow(sub: DictionaryAppBarSub): Flow<Msg> = when (sub) {
         DictionaryAppBarSub.AvailableDicts ->

@@ -41,7 +41,7 @@ import me.apomazkin.wordcard.WordCardViewModel
 /**
  * Сборка экранов вкладок. Навигационных лямбд и Impl-навигаторов
  * больше нет: Mate-экраны выражают переходы навигационными эффектами,
- * которые довозит shared nav-handler по таблице appNavGraph.
+ * которые довозит shared nav-handler по таблице appNavTable.
  */
 @Stable
 class CompositionRootImpl(

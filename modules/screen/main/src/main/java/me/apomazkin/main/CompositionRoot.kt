@@ -6,7 +6,7 @@ import androidx.compose.runtime.Stable
 /**
  * Сборка экранов вкладок app-слоем. Навигационных лямбд здесь больше
  * нет: Mate-экраны выражают переходы навигационными эффектами, которые
- * довозит shared nav-handler по таблице appNavGraph. Лямбды back
+ * довозит shared nav-handler по таблице appNavTable. Лямбды back
  * остались только у не-Mate экранов (AboutApp, WebView) — это их
  * единственное взаимодействие с навигацией.
  */

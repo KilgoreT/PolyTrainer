@@ -1,6 +1,6 @@
 package me.apomazkin.dictionary.form
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок формы словаря — длящиеся источники данных,
@@ -8,7 +8,7 @@ import io.github.kilgoret.mate.Sub
  * сравнивает набор [subscriptions] с активным, включает новые
  * подписки и гасит исчезнувшие.
  */
-sealed interface DictionaryFormSub : Sub {
+sealed interface DictionaryFormSub : Subscription {
 
     /**
      * Живой отфильтрованный список флагов стран для пикера →
@@ -24,4 +24,4 @@ sealed interface DictionaryFormSub : Sub {
  * набор константный — [DictionaryFormSub.Flags] живёт от создания до
  * уничтожения раннера.
  */
-fun DictionaryFormScreenState.subscriptions(): Set<Sub> = setOf(DictionaryFormSub.Flags)
+fun DictionaryFormScreenState.subscriptions(): Set<Subscription> = setOf(DictionaryFormSub.Flags)

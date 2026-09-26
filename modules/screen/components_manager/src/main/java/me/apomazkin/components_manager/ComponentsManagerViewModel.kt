@@ -9,7 +9,7 @@ import me.apomazkin.components_manager.deps.ComponentsManagerUseCase
 import me.apomazkin.components_manager.mate.ComponentsManagerScreenState
 import me.apomazkin.components_manager.mate.Msg
 import me.apomazkin.logger.LexemeLogger
-import io.github.kilgoret.mate.MateStateHolder
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
 
 /**
@@ -21,7 +21,7 @@ class ComponentsManagerViewModel @AssistedInject constructor(
     useCase: ComponentsManagerUseCase,
     logger: LexemeLogger,
     navigationHandler: MateNavigationHandler,
-) : ViewModel(), MateStateHolder<ComponentsManagerScreenState, Msg> {
+) : ViewModel(), MateStore<ComponentsManagerScreenState, Msg> {
 
     private val stateHolder = ComponentsManagerAssembly.create(
         useCase = useCase,

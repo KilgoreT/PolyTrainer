@@ -1,6 +1,6 @@
 package me.apomazkin.per_dictionary_components.mate
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок экрана компонентов словаря — длящиеся источники
@@ -8,7 +8,7 @@ import io.github.kilgoret.mate.Sub
  * раннер сравнивает набор [subscriptions] с активным, включает новые
  * подписки и гасит исчезнувшие.
  */
-sealed interface PerDictionaryComponentsSub : Sub {
+sealed interface PerDictionaryComponentsSub : Subscription {
 
     /**
      * Живой список компонентов словаря → [Msg.ItemsLoaded];
@@ -32,7 +32,7 @@ sealed interface PerDictionaryComponentsSub : Sub {
  * создания до уничтожения раннера; меняется только generation при
  * retry.
  */
-fun PerDictionaryComponentsScreenState.subscriptions(): Set<Sub> = setOf(
+fun PerDictionaryComponentsScreenState.subscriptions(): Set<Subscription> = setOf(
     PerDictionaryComponentsSub.Components(
         dictionaryId = dictionaryId,
         generation = loadGeneration,

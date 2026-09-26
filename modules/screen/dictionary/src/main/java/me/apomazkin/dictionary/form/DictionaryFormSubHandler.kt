@@ -16,7 +16,7 @@ class DictionaryFormSubHandler @Inject constructor(
     private val dictionaryUseCase: DictionaryUseCase,
 ) : MateSubscriptionHandler<DictionaryFormMsg, DictionaryFormSub> {
 
-    override val subFamily = DictionaryFormSub::class
+    override val subscriptionFamily = DictionaryFormSub::class
 
     override fun flow(sub: DictionaryFormSub): Flow<DictionaryFormMsg> = when (sub) {
         DictionaryFormSub.Flags ->

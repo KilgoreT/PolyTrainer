@@ -1,7 +1,7 @@
 package me.apomazkin.groupstab.logic
 
 import io.github.kilgoret.mate.MateEffectHandler
-import io.github.kilgoret.mate.runMateCatching
+import io.github.kilgoret.mate.runSuspendCatching
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,7 +15,7 @@ import me.apomazkin.logger.LexemeLogger
  * эффектом, а раннер mate роутит сюда по семейству [GroupsEffect].
  * Каждый эффект — один вызов use case → доменный outcome →
  * [toMutationMsg] (маппинг в плоский Msg ДО отправки — конвенция);
- * guard через [runMateCatching] (сбой → [Msg.GroupMutationFailed],
+ * guard через [runSuspendCatching] (сбой → [Msg.GroupMutationFailed],
  * отмена корутины пробрасывается).
  *
  * Живые потоки данных (slice, окна, тикер) — НЕ здесь: они длящиеся
@@ -39,7 +39,7 @@ class DatasourceEffectHandler(
         logger.d(tag = LogTags.GROUPS, message = "effect: $effect")
         val msg: Msg = when (val eff = effect) {
             is GroupsEffect.CreateGroup -> withContext(io) {
-                runMateCatching { useCase.createGroup(eff.dictionaryId, eff.name) }
+                runSuspendCatching { useCase.createGroup(eff.dictionaryId, eff.name) }
                     .fold(
                         onSuccess = {
                             logger.d(tag = LogTags.GROUPS, message = "create outcome: $it")
@@ -53,7 +53,7 @@ class DatasourceEffectHandler(
             }
 
             is GroupsEffect.RenameGroup -> withContext(io) {
-                runMateCatching { useCase.renameGroup(eff.groupId, eff.name) }
+                runSuspendCatching { useCase.renameGroup(eff.groupId, eff.name) }
                     .fold(
                         onSuccess = {
                             logger.d(tag = LogTags.GROUPS, message = "rename outcome: $it")
@@ -67,7 +67,7 @@ class DatasourceEffectHandler(
             }
 
             is GroupsEffect.DeleteGroup -> withContext(io) {
-                runMateCatching { useCase.deleteGroup(eff.groupId) }
+                runSuspendCatching { useCase.deleteGroup(eff.groupId) }
                     .fold(
                         onSuccess = {
                             logger.d(tag = LogTags.GROUPS, message = "delete outcome: $it")
@@ -81,7 +81,7 @@ class DatasourceEffectHandler(
             }
 
             is GroupsEffect.DeleteGroupWithWords -> withContext(io) {
-                runMateCatching { useCase.deleteGroupWithWords(eff.groupId) }
+                runSuspendCatching { useCase.deleteGroupWithWords(eff.groupId) }
                     .fold(
                         onSuccess = {
                             // Лог обоих исходов (D32: NotFound обязан

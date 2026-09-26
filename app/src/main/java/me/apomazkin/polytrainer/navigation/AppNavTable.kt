@@ -1,8 +1,8 @@
 package me.apomazkin.polytrainer.navigation
 
 import io.github.kilgoret.mate.NavigationEffect
-import io.github.kilgoret.mate.navigation.NavGraph
-import io.github.kilgoret.mate.navigation.navGraph
+import io.github.kilgoret.mate.navigation.NavTable
+import io.github.kilgoret.mate.navigation.navTable
 import me.apomazkin.dictionary.list.ListNavigationEffect
 import me.apomazkin.dictionaryappbar.DictionaryAppBarNavigationEffect
 import me.apomazkin.groupstab.logic.GroupsNavigationEffect
@@ -19,7 +19,7 @@ import me.apomazkin.wordstab.ui.WordsNavigationEffect
  * Что стоит за push/pop (стек, popUpTo, singleTop, finish) — знает
  * [AppNavigationExecutor].
  */
-val appNavGraph: NavGraph = navGraph {
+val appNavTable: NavTable = navTable {
     on<NavigationEffect.Back> { pop() }
 
     // Сплэш: первичный выбор маршрута. Back формы первичной настройки

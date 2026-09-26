@@ -1,6 +1,6 @@
 package me.apomazkin.wordstab.logic
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок вкладки «Слова» — длящиеся источники данных,
@@ -8,7 +8,7 @@ import io.github.kilgoret.mate.Sub
  * сравнивает набор [subscriptions] с активным, включает новые
  * подписки и гасит исчезнувшие.
  */
-sealed interface WordsTabSub : Sub {
+sealed interface WordsTabSub : Subscription {
 
     /**
      * Текущий выбранный словарь приложения. Без параметров: вкладка
@@ -23,4 +23,4 @@ sealed interface WordsTabSub : Sub {
  * поэтому набор константный — [WordsTabSub.CurrentDict] живёт от
  * создания до уничтожения раннера.
  */
-fun WordsTabState.subscriptions(): Set<Sub> = setOf(WordsTabSub.CurrentDict)
+fun WordsTabState.subscriptions(): Set<Subscription> = setOf(WordsTabSub.CurrentDict)

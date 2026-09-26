@@ -1,6 +1,6 @@
 package me.apomazkin.wordcard.mate
 
-import io.github.kilgoret.mate.Sub
+import io.github.kilgoret.mate.Subscription
 
 /**
  * Семейство подписок карточки слова — длящиеся источники данных,
@@ -13,7 +13,7 @@ import io.github.kilgoret.mate.Sub
  * Loaded) — до этого набор пуст, подписки стартуют сами, как только
  * state их декларирует.
  */
-sealed interface WordCardSub : Sub {
+sealed interface WordCardSub : Subscription {
 
     /**
      * Живой список доступных типов компонентов словаря (driver для
@@ -53,7 +53,7 @@ sealed interface WordCardSub : Sub {
  * пустой набор. У типов компонентов меняется только generation при
  * retry.
  */
-fun WordCardState.subscriptions(): Set<Sub> = buildSet {
+fun WordCardState.subscriptions(): Set<Subscription> = buildSet {
     val loaded = wordState as? WordState.Loaded ?: return@buildSet
     add(
         WordCardSub.ComponentTypes(

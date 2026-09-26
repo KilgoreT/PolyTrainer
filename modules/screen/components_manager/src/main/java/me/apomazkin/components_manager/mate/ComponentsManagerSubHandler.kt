@@ -22,7 +22,7 @@ class ComponentsManagerSubHandler @Inject constructor(
     private val logger: LexemeLogger,
 ) : MateSubscriptionHandler<Msg, ComponentsManagerSub> {
 
-    override val subFamily = ComponentsManagerSub::class
+    override val subscriptionFamily = ComponentsManagerSub::class
 
     override fun flow(sub: ComponentsManagerSub): Flow<Msg> = when (sub) {
         is ComponentsManagerSub.AllTypes ->
