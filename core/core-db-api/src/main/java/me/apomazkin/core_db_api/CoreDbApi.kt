@@ -13,6 +13,7 @@ import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.MembershipSliceApiEntity
 import me.apomazkin.core_db_api.entity.OptionCrudOutcome
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
+import me.apomazkin.core_db_api.entity.QuizGroupCountApiEntity
 import me.apomazkin.core_db_api.entity.RenameComponentOutcome
 import me.apomazkin.core_db_api.entity.SetEnabledComponentOutcome
 import me.apomazkin.core_db_api.entity.SoftDeleteComponentOutcome
@@ -194,8 +195,12 @@ interface CoreDbApi {
 
     interface LexemeApi {
         suspend fun getLexemeById(id: Long): LexemeApiEntity?
-        suspend fun addLexeme(wordId: Long): Long
         suspend fun deleteLexeme(id: Long): Int
+
+        // addLexeme(wordId) — УДАЛЁН (IS500): создавал лексему БЕЗ
+        // write_quiz, ломая инвариант «лексема ⇔ write_quiz»
+        // (production-вызовов не было). Создание лексемы — только
+        // atomic-методы ниже.
 
         // ===== Generic component API (IS481, AGG-6) =====
 
@@ -435,9 +440,15 @@ interface CoreDbApi {
         suspend fun addWriteQuiz(dictionaryId: Long, lexemeId: Long): Long
         suspend fun updateWriteQuiz(entity: List<WriteQuizUpsertApiEntity>): Int
 
+        /**
+         * IS500: `groupId != null` сужает выборку до слов живой группы
+         * (через лексему квиз-записи); null — весь словарь. Фильтр
+         * применяется в WHERE самого запроса — до ORDER BY/LIMIT.
+         */
         suspend fun getWriteQuizIds(
             grade: Int,
             dictionaryId: Long,
+            groupId: Long? = null,
         ): List<Long>
 
         suspend fun getWriteQuizByIds(
@@ -447,12 +458,27 @@ interface CoreDbApi {
         suspend fun getEarliestWriteQuizList(
             limit: Int,
             dictionaryId: Long,
+            groupId: Long? = null,
         ): List<WriteQuizComplexEntity>
 
         suspend fun getFrequentMistakesWriteQuizList(
             limit: Int,
             dictionaryId: Long,
+            groupId: Long? = null,
         ): List<WriteQuizComplexEntity>
+
+        /**
+         * IS500: живые группы словаря со счётчиком слов уровня 1 для
+         * квиз-пикера (см. [QuizGroupCountApiEntity]). Живой Flow:
+         * наблюдает группы, membership и лексемы.
+         */
+        fun flowQuizGroupCounts(dictionaryId: Long): Flow<List<QuizGroupCountApiEntity>>
+
+        /**
+         * IS500: счётчик уровня 1 для пункта «Все» — слова словаря с
+         * хотя бы одной лексемой.
+         */
+        fun flowDictionaryQuizWordCount(dictionaryId: Long): Flow<Int>
     }
 
     interface StatisticApi {

@@ -45,7 +45,12 @@ object ChatAssembly {
         observers: List<MateObserver<Any?, Any?, Effect>> = emptyList(),
     ): Mate<ChatScreenState, Msg, Effect> = Mate(
         initState = ChatScreenState(),
-        initEffects = setOf(DatasourceEffect.PrepareToStart),
+        // IS500: имя группы для сабтайтла — сразу на входе в экран,
+        // до старта сессии.
+        initEffects = setOf(
+            DatasourceEffect.PrepareToStart,
+            DatasourceEffect.LoadQuizGroupName,
+        ),
         coroutineScope = coroutineScope,
         reducer = ChatReducer(
             logger = logger,

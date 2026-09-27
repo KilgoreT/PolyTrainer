@@ -55,6 +55,9 @@ internal class ChatReducer(
 
             is Msg.Start -> state to setOf(DatasourceEffect.LoadQuiz)
 
+            is Msg.QuizGroupNameLoaded -> state
+                    .updateQuizGroupName(message.name) to setOf()
+
             is Msg.QuizLoaded -> {
                 val newState = state
                         .startQuiz()

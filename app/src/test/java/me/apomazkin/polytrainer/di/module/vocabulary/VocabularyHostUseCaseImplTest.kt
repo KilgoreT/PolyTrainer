@@ -1,13 +1,14 @@
 package me.apomazkin.polytrainer.di.module.vocabulary
 
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
+import me.apomazkin.polytrainer.di.module.dictionary.CurrentDictionaryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import org.junit.Assert.assertEquals
@@ -17,9 +18,8 @@ import org.junit.Test
 import java.util.Date
 
 /**
- * Test cases for VocabularyHostUseCaseImpl (IS493 Э2, D9.1).
- *
- * Семантика — как flowCurrentDict words (один prefs-источник), выход — только id:
+ * Test cases for VocabularyHostUseCaseImpl (IS493 Э2, D9.1; IS500 —
+ * делегация в CurrentDictionaryProvider, провайдер здесь живой):
  * 1. Boundary: null когда prefs пуст И список пуст (IS476 «словарей нет»)
  * 2. Standard: id из prefs, когда словарь существует
  * 3. Fallback: первый словарь списка, когда prefs пуст
@@ -48,15 +48,17 @@ class VocabularyHostUseCaseImplTest {
         every { prefsProvider.getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG) } returns prefsFlow
 
         useCase = VocabularyHostUseCaseImpl(
-            dictionaryApi = dictionaryApi,
-            prefsProvider = prefsProvider,
+            currentDictionaryProvider = CurrentDictionaryProvider(
+                dictionaryApi = dictionaryApi,
+                prefsProvider = prefsProvider,
+            ),
         )
     }
 
     @Test
     fun `emits null when prefs empty and no dictionaries`() = runTest {
         prefsFlow.value = null
-        coEvery { dictionaryApi.getDictionaryList() } returns emptyList()
+        every { dictionaryApi.flowDictionaryList() } returns flowOf(emptyList())
 
         val result: Long? = useCase.flowCurrentDictId().first()
 
@@ -66,7 +68,7 @@ class VocabularyHostUseCaseImplTest {
     @Test
     fun `emits id from prefs when dictionary exists`() = runTest {
         prefsFlow.value = 1L
-        coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEn
+        every { dictionaryApi.flowDictionaryList() } returns flowOf(listOf(dictEs, dictEn))
 
         val result = useCase.flowCurrentDictId().first()
 
@@ -76,7 +78,7 @@ class VocabularyHostUseCaseImplTest {
     @Test
     fun `emits first dictionary id when prefs empty but list non-empty`() = runTest {
         prefsFlow.value = null
-        coEvery { dictionaryApi.getDictionaryList() } returns listOf(dictEs, dictEn)
+        every { dictionaryApi.flowDictionaryList() } returns flowOf(listOf(dictEs, dictEn))
 
         val result = useCase.flowCurrentDictId().first()
 
@@ -86,8 +88,7 @@ class VocabularyHostUseCaseImplTest {
     @Test
     fun `emits first dictionary id when prefs id is stale`() = runTest {
         prefsFlow.value = 99L
-        coEvery { dictionaryApi.getDictionaryById(99L) } returns null
-        coEvery { dictionaryApi.getDictionaryList() } returns listOf(dictEn)
+        every { dictionaryApi.flowDictionaryList() } returns flowOf(listOf(dictEn))
 
         val result = useCase.flowCurrentDictId().first()
 

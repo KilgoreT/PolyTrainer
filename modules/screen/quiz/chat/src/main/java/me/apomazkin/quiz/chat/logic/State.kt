@@ -24,10 +24,22 @@ data class ChatScreenState(
         val snackbarState: SnackbarState = SnackbarState(),
 )
 
+/**
+ * IS500: [quizGroupName] — имя группы тренировки сабтайтлом аппбара;
+ * null — «Все» (сабтайтл показывается ВСЕГДА, для null UI берёт
+ * ресурс `group_all_title`).
+ */
 @Immutable
 data class AppBarState(
         val isActionMenuOpen: Boolean = false,
         val itemsState: ItemsState = ItemsState(),
+        val quizGroupName: String? = null,
+)
+
+fun ChatScreenState.updateQuizGroupName(name: String?) = copy(
+        appBarState = appBarState.copy(
+                quizGroupName = name
+        )
 )
 
 fun ChatScreenState.showActionMenu() = this.copy(

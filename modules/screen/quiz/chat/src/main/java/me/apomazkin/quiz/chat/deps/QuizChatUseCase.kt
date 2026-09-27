@@ -43,4 +43,11 @@ interface QuizChatUseCase {
      * Encoding internal: `builtin:<key>` / `user:<name>`.
      */
     suspend fun setQuizPickerSelection(dictionaryId: Long, ref: ComponentTypeRef)
+
+    /**
+     * IS500. Имя группы, по которой пойдёт квиз (валидированный выбор
+     * selection-store); null — «Все». Групповой фильтр самой выборки
+     * применяется внутри [getRandomWriteQuizList] — квиз о нём не знает.
+     */
+    suspend fun getSelectedQuizGroupName(dictionaryId: Long): String?
 }

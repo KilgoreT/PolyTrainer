@@ -142,6 +142,7 @@ dependencies {
 
     implementation(project("path" to ":modules:domain:lexeme"))
     implementation(project("path" to ":modules:domain:group"))
+    implementation(project("path" to ":modules:domain:quiz"))
 
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":core:core-db"))

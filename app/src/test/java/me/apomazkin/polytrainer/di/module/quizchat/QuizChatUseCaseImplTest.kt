@@ -5,11 +5,13 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
+import me.apomazkin.core_db_api.entity.QuizGroupCountApiEntity
 import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
@@ -17,8 +19,10 @@ import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.polytrainer.di.module.quizgroup.QuizGroupSelectionStore
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
+import me.apomazkin.quiz.QuizTypes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -32,6 +36,7 @@ class QuizChatUseCaseImplTest {
     private val quizApi = mockk<CoreDbApi.QuizApi>()
     private val lexemeApi = mockk<CoreDbApi.LexemeApi>()
     private val prefsProvider = mockk<PrefsProvider>()
+    private val quizGroupSelectionStore = mockk<QuizGroupSelectionStore>()
     private val logger = mockk<LexemeLogger>(relaxed = true)
 
     private val useCase = QuizChatUseCaseImpl(
@@ -39,12 +44,16 @@ class QuizChatUseCaseImplTest {
         quizApi = quizApi,
         lexemeApi = lexemeApi,
         prefsProvider = prefsProvider,
+        quizGroupSelectionStore = quizGroupSelectionStore,
         logger = logger,
     )
 
-    private fun stubPrefs() {
+    private fun stubPrefs(groupId: Long? = null) {
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns false
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns false
+        coEvery {
+            quizGroupSelectionStore.getValidatedSelection(any(), any())
+        } returns groupId
     }
 
     private fun makeQuizEntity(id: Long, grade: Int, dictId: Long = 1L) = WriteQuizComplexEntity(
@@ -102,6 +111,54 @@ class QuizChatUseCaseImplTest {
 
         assertEquals("Result should be empty", 0, result.size)
         coVerify(exactly = 0) { quizApi.getWriteQuizByIds(any()) }
+    }
+
+    // ===== IS500 quiz group filter =====
+
+    @Test
+    fun `group filter - validated selection passed to all three quiz queries`() = runTest {
+        stubPrefs(groupId = 5L)
+        coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns true
+        coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns true
+        coEvery {
+            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, groupId = 5L)
+        } returns listOf(1L)
+        coEvery { quizApi.getWriteQuizByIds(any()) } answers {
+            firstArg<List<Long>>().map { makeQuizEntity(it, grade = 0) }
+        }
+        coEvery {
+            quizApi.getEarliestWriteQuizList(any(), 1L, 5L)
+        } returns emptyList()
+        coEvery {
+            quizApi.getFrequentMistakesWriteQuizList(any(), 1L, 5L)
+        } returns emptyList()
+
+        useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+
+        coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L, groupId = 5L) }
+        coVerify { quizApi.getEarliestWriteQuizList(any(), 1L, 5L) }
+        coVerify { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, 5L) }
+    }
+
+    @Test
+    fun `getSelectedQuizGroupName - resolves name of validated group`() = runTest {
+        coEvery {
+            quizGroupSelectionStore.getValidatedSelection(QuizTypes.CHAT, 1L)
+        } returns 5L
+        coEvery { quizApi.flowQuizGroupCounts(1L) } returns flowOf(
+            listOf(QuizGroupCountApiEntity(groupId = 5L, name = "Быт", wordCount = 4)),
+        )
+
+        assertEquals("Быт", useCase.getSelectedQuizGroupName(1L))
+    }
+
+    @Test
+    fun `getSelectedQuizGroupName - null selection means All`() = runTest {
+        coEvery {
+            quizGroupSelectionStore.getValidatedSelection(QuizTypes.CHAT, 1L)
+        } returns null
+
+        assertNull(useCase.getSelectedQuizGroupName(1L))
     }
 
     // ===== IS481 getQuizConfig =====

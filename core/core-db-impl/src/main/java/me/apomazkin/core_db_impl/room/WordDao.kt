@@ -1,6 +1,7 @@
 package me.apomazkin.core_db_impl.room
 
 import androidx.paging.PagingSource
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -18,6 +19,16 @@ import me.apomazkin.core_db_impl.entity.TermDbEntity
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDbEntity
+
+/**
+ * IS500: проекция счётчика группы для квиз-пикера
+ * ([WordDao.flowQuizGroupCounts]).
+ */
+data class QuizGroupCountDb(
+    @ColumnInfo(name = "groupId") val groupId: Long,
+    @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "wordCount") val wordCount: Int,
+)
 
 // TODO: 20.03.2021 переименгвать Dao
 @Dao
@@ -182,6 +193,14 @@ interface WordDao {
     /**
      * LEXEME
      */
+    /**
+     * Сырой INSERT лексемы — строительный блок compound-вставок
+     * ([addLexemeWithQuiz], [addLexemeWithComponents]) и тестов.
+     * Domain-инвариант «лексема ⇔ write_quiz» держат ТОЛЬКО
+     * compound-методы: прямой вызов из production-кода создаст
+     * лексему-невидимку для квизов (IS500 считает пригодность
+     * по этому инварианту).
+     */
     @Insert
     suspend fun addLexeme(lexemeDb: LexemeDb): Long
 
@@ -262,10 +281,23 @@ interface WordDao {
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: List<WriteQuizDb>): Int
 
-    @Query("SELECT id from write_quiz WHERE grade = :grade AND dictionary_id = :langId")
+    @Query(
+        """
+        SELECT id from write_quiz
+        WHERE grade = :grade AND dictionary_id = :langId
+            AND (:groupId IS NULL OR EXISTS (
+                SELECT 1 FROM lexemes l
+                JOIN word_groups wg ON wg.word_id = l.word_id
+                JOIN dictionary_groups dg ON dg.id = wg.group_id
+                    AND dg.removed_at IS NULL
+                WHERE l.id = write_quiz.lexeme_id
+                    AND wg.group_id = :groupId))
+    """
+    )
     suspend fun getWriteQuizIds(
         grade: Int,
-        langId: Long
+        langId: Long,
+        groupId: Long?,
     ): List<Long>
 
     @Transaction
@@ -279,13 +311,21 @@ interface WordDao {
         """
         SELECT * FROM write_quiz
         WHERE dictionary_id = :langId
+            AND (:groupId IS NULL OR EXISTS (
+                SELECT 1 FROM lexemes l
+                JOIN word_groups wg ON wg.word_id = l.word_id
+                JOIN dictionary_groups dg ON dg.id = wg.group_id
+                    AND dg.removed_at IS NULL
+                WHERE l.id = write_quiz.lexeme_id
+                    AND wg.group_id = :groupId))
         ORDER BY last_select_date ASC
         LIMIT :limit
     """
     )
     suspend fun getEarliest(
         limit: Int,
-        langId: Long
+        langId: Long,
+        groupId: Long?,
     ): List<WriteQuizDbEntity>
 
     @Transaction
@@ -293,17 +333,55 @@ interface WordDao {
         """
         SELECT * FROM write_quiz
         WHERE dictionary_id = :langId
+            AND (:groupId IS NULL OR EXISTS (
+                SELECT 1 FROM lexemes l
+                JOIN word_groups wg ON wg.word_id = l.word_id
+                JOIN dictionary_groups dg ON dg.id = wg.group_id
+                    AND dg.removed_at IS NULL
+                WHERE l.id = write_quiz.lexeme_id
+                    AND wg.group_id = :groupId))
         ORDER BY error_count DESC
         LIMIT :limit
     """
     )
     suspend fun getFrequentMistakes(
         limit: Int,
-        langId: Long
+        langId: Long,
+        groupId: Long?,
     ): List<WriteQuizDbEntity>
 
-    @Query("DELETE FROM write_quiz WHERE lexeme_id = :lexemeId")
-    fun removeWriteQuiz(lexemeId: Long): Int
+    /**
+     * IS500: живые группы словаря со счётчиком слов уровня 1 — слово
+     * считается, только если имеет хотя бы одну лексему (инвариант
+     * «лексема ⇔ write_quiz»). Двойной LEFT JOIN: группа без слов (или
+     * со словами без лексем) возвращается со счётчиком 0 — порог
+     * годности живёт ТОЛЬКО в домене, SQL вторым порогом не является.
+     */
+    @Query(
+        """
+        SELECT dg.id AS groupId, dg.name AS name,
+               COUNT(DISTINCT l.word_id) AS wordCount
+        FROM dictionary_groups dg
+        LEFT JOIN word_groups wg ON wg.group_id = dg.id
+        LEFT JOIN lexemes l ON l.word_id = wg.word_id
+        WHERE dg.dictionary_id = :dictionaryId AND dg.removed_at IS NULL
+        GROUP BY dg.id
+    """
+    )
+    fun flowQuizGroupCounts(dictionaryId: Long): Flow<List<QuizGroupCountDb>>
+
+    /**
+     * IS500: счётчик уровня 1 для «Все» — слова словаря, имеющие хотя
+     * бы одну лексему.
+     */
+    @Query(
+        """
+        SELECT COUNT(*) FROM words w
+        WHERE w.dictionary_id = :dictionaryId
+            AND EXISTS (SELECT 1 FROM lexemes l WHERE l.word_id = w.id)
+    """
+    )
+    fun flowDictionaryQuizWordCount(dictionaryId: Long): Flow<Int>
 
     /**
      * STATISTIC
