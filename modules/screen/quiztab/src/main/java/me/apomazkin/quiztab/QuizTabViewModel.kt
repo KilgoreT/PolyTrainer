@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import me.apomazkin.logger.LexemeLogger
 import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.navigation.MateNavigationHandler
+import me.apomazkin.quiztab.deps.QuizTabUseCase
 import me.apomazkin.quiztab.logic.Msg
 import me.apomazkin.quiztab.logic.QuizTabState
 
@@ -17,11 +18,13 @@ import me.apomazkin.quiztab.logic.QuizTabState
  * и продовые зависимости.
  */
 class QuizTabViewModel @AssistedInject constructor(
+    useCase: QuizTabUseCase,
     logger: LexemeLogger,
     navigationHandler: MateNavigationHandler,
 ) : ViewModel(), MateStore<QuizTabState, Msg> {
 
     private val stateHolder = QuizTabAssembly.create(
+        useCase = useCase,
         logger = logger,
         navigationHandler = navigationHandler,
         coroutineScope = viewModelScope,

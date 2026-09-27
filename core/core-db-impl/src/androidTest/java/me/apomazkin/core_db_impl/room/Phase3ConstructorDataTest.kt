@@ -14,6 +14,7 @@ import me.apomazkin.core_db_api.entity.SoftDeleteComponentOutcome
 import me.apomazkin.core_db_impl.CoreDbApiImpl
 import me.apomazkin.core_db_impl.entity.ComponentTypeDb
 import me.apomazkin.core_db_impl.entity.ComponentValueDb
+import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.Scope
@@ -94,7 +95,7 @@ class Phase3ConstructorDataTest {
         childId = db.componentTypeDao().insert(typeDb("Child", dependsOnTypeId = baseId, now = now))
         grandchildId = db.componentTypeDao().insert(typeDb("Grandchild", dependsOnTypeId = childId, now = now))
         val wordId = db.wordDao().addWordSuspend(WordDb(dictionaryId = dictId, value = "gato", addDate = now))
-        lexemeId = lexemeApi().addLexeme(wordId)
+        lexemeId = db.wordDao().addLexeme(LexemeDb(wordId = wordId, addDate = now))
         listOf(baseId, childId, grandchildId).forEach { typeId ->
             db.componentValueDao().insert(
                 ComponentValueDb(

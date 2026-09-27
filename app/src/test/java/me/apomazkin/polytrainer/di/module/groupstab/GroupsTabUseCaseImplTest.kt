@@ -38,8 +38,9 @@ class GroupsTabUseCaseImplTest {
         useCase = GroupsTabUseCaseImpl(
             groupApi = groupApi,
             termApi = termApi,
-            dictionaryApi = mockk(relaxed = true),
-            prefsProvider = mockk(relaxed = true),
+            // IS500: резолв текущего словаря — CurrentDictionaryProvider
+            // (его контракт покрыт CurrentDictionaryProviderTest).
+            currentDictionaryProvider = mockk(relaxed = true),
         )
     }
 

@@ -45,6 +45,12 @@ sealed interface DatasourceEffect : Effect {
      * `Msg.QuizComponentTypesLoaded` для UI update.
      */
     data class SaveQuizPickerSelection(val ref: ComponentTypeRef) : DatasourceEffect
+
+    /**
+     * IS500. Имя группы тренировки для сабтайтла аппбара — на входе
+     * в экран (init-эффект), до старта сессии.
+     */
+    data object LoadQuizGroupName : DatasourceEffect
 }
 
 /**
@@ -93,7 +99,13 @@ class DatasourceEffectHandler(
             }
             is DatasourceEffect.LoadQuiz -> withContext(io) {
                 async { quizGame.loadData() }.await()
+                // IS500: имя группы сессии обновляется и на старте
+                // сессии (страховка «Продолжить» после смены данных).
+                consumer(loadQuizGroupName())
                 Msg.QuizLoaded(content = quizGame.getStat())
+            }
+            is DatasourceEffect.LoadQuizGroupName -> withContext(io) {
+                loadQuizGroupName()
             }
             is DatasourceEffect.NextQuestion -> withContext(io) {
                 if (quizGame.hasNextQuestion()) {
@@ -140,6 +152,20 @@ class DatasourceEffectHandler(
             }
         }
         consumer(msg)
+    }
+
+    /**
+     * IS500: валидированное имя группы тренировки (null = «Все») для
+     * сабтайтла аппбара.
+     */
+    private suspend fun loadQuizGroupName(): Msg.QuizGroupNameLoaded {
+        val groupName = useCase.getCurrentDictionaryId()
+            ?.let { useCase.getSelectedQuizGroupName(it) }
+        logger.d(
+            tag = me.apomazkin.quiz.chat.LogTags.CHAT,
+            message = "subtitle: group=${groupName ?: "all"}",
+        )
+        return Msg.QuizGroupNameLoaded(name = groupName)
     }
 
     private fun sendSummary(): Msg.Summary {

@@ -23,6 +23,7 @@ import me.apomazkin.core_db_api.entity.GroupApiEntity
 import me.apomazkin.core_db_api.entity.MembershipSliceApiEntity
 import me.apomazkin.core_db_api.entity.ReservedGroupNames
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
+import me.apomazkin.core_db_api.entity.QuizGroupCountApiEntity
 import me.apomazkin.core_db_api.entity.OptionCrudOutcome
 import me.apomazkin.core_db_api.entity.RenameComponentOutcome
 import me.apomazkin.core_db_api.entity.SetEnabledComponentOutcome
@@ -566,16 +567,6 @@ class CoreDbApiImpl @Inject constructor(
 
         override suspend fun getLexemeById(id: Long): LexemeApiEntity? {
             return wordDao.getLexemeById(id)?.toApiEntity(logger)
-        }
-
-        override suspend fun addLexeme(wordId: Long): Long {
-            val date = Date(System.currentTimeMillis())
-            return wordDao.addLexeme(
-                LexemeDb(
-                    wordId = wordId,
-                    addDate = date,
-                )
-            )
         }
 
         override suspend fun deleteLexeme(id: Long): Int {
@@ -1576,8 +1567,13 @@ class CoreDbApiImpl @Inject constructor(
         override suspend fun getWriteQuizIds(
             grade: Int,
             dictionaryId: Long,
+            groupId: Long?,
         ): List<Long> {
-            return wordDao.getWriteQuizIds(grade = grade, langId = dictionaryId)
+            return wordDao.getWriteQuizIds(
+                grade = grade,
+                langId = dictionaryId,
+                groupId = groupId,
+            )
         }
 
         override suspend fun getWriteQuizByIds(
@@ -1592,22 +1588,43 @@ class CoreDbApiImpl @Inject constructor(
         override suspend fun getEarliestWriteQuizList(
             limit: Int,
             dictionaryId: Long,
+            groupId: Long?,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getEarliest(
                 langId = dictionaryId,
                 limit = limit,
+                groupId = groupId,
             ).map { it.toApiEntity(logger) }
         }
 
         override suspend fun getFrequentMistakesWriteQuizList(
             limit: Int,
-            dictionaryId: Long
+            dictionaryId: Long,
+            groupId: Long?,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getFrequentMistakes(
                 langId = dictionaryId,
                 limit = limit,
+                groupId = groupId,
             ).map { it.toApiEntity(logger) }
         }
+
+        override fun flowQuizGroupCounts(
+            dictionaryId: Long,
+        ): Flow<List<QuizGroupCountApiEntity>> =
+            wordDao.flowQuizGroupCounts(dictionaryId)
+                .map { rows ->
+                    rows.map {
+                        QuizGroupCountApiEntity(
+                            groupId = it.groupId,
+                            name = it.name,
+                            wordCount = it.wordCount,
+                        )
+                    }
+                }
+
+        override fun flowDictionaryQuizWordCount(dictionaryId: Long): Flow<Int> =
+            wordDao.flowDictionaryQuizWordCount(dictionaryId)
     }
 
     class StatisticApiImpl @Inject constructor(

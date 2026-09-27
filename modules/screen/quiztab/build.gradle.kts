@@ -40,6 +40,7 @@ dependencies {
 
     implementation(project("path" to ":modules:core:di"))
     implementation(project("path" to ":modules:core:mate"))
+    implementation(project("path" to ":modules:domain:quiz"))
     implementation(diLibs.dagger)
     ksp(diLibs.daggerCompiler)
     implementation("javax.inject:javax.inject:1")
@@ -51,4 +52,6 @@ dependencies {
     implementation(composeLibs.lifecycleRuntimeCompose)
     implementation(composeLibs.activityCompose)
 
+    testImplementation("junit:junit:4.13.2")
+    testImplementation(project("path" to ":modules:core:mate"))
 }

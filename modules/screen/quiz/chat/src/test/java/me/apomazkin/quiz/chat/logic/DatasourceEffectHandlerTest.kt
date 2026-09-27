@@ -58,6 +58,10 @@ class DatasourceEffectHandlerTest {
             setCallDictId = dictionaryId
             setCallRef = ref
         }
+        override suspend fun getSelectedQuizGroupName(dictionaryId: Long): String? =
+            quizGroupName
+
+        var quizGroupName: String? = null
     }
 
     private val quizGame = mockk<QuizGame>(relaxed = true)
@@ -120,6 +124,38 @@ class DatasourceEffectHandlerTest {
         val msg = runEffect(handler, DatasourceEffect.LoadQuizComponentTypes)
 
         assertEquals(Msg.Empty, msg)
+    }
+
+    // ===== IS500 LoadQuizGroupName =====
+
+    @Test
+    fun `LoadQuizGroupName emits validated group name`() = runTest {
+        val fake = FakeUseCase(currentDictId = 1L).apply { quizGroupName = "Быт" }
+        val handler = makeHandler(fake)
+
+        val msg = runEffect(handler, DatasourceEffect.LoadQuizGroupName)
+
+        assertEquals(Msg.QuizGroupNameLoaded(name = "Быт"), msg)
+    }
+
+    @Test
+    fun `LoadQuizGroupName with All selection emits null name`() = runTest {
+        val fake = FakeUseCase(currentDictId = 1L)
+        val handler = makeHandler(fake)
+
+        val msg = runEffect(handler, DatasourceEffect.LoadQuizGroupName)
+
+        assertEquals(Msg.QuizGroupNameLoaded(name = null), msg)
+    }
+
+    @Test
+    fun `LoadQuizGroupName with null dict emits null name`() = runTest {
+        val fake = FakeUseCase(currentDictId = null).apply { quizGroupName = "Быт" }
+        val handler = makeHandler(fake)
+
+        val msg = runEffect(handler, DatasourceEffect.LoadQuizGroupName)
+
+        assertEquals(Msg.QuizGroupNameLoaded(name = null), msg)
     }
 
     // ===== SaveQuizPickerSelection =====

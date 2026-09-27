@@ -148,6 +148,9 @@
     <string name="quiz_tab_title">Квизы</string>
     <string name="quiz_item_title_write">Учить сейчас</string>
     <string name="quiz_item_subtitle_write">Тренируй слова в чате</string>
+    <string name="quiz_group_picker_cd">Выбор группы</string>
+    <string name="quiz_group_option_count">%1$s · %2$d</string>
+    <string name="quiz_card_disabled_subtitle">Нужно минимум %1$d слова — сейчас %2$d</string>
 
     <!--ChatQuiz-->
     <string name="chat_quiz_app_bar_title">Квиз чат</string>

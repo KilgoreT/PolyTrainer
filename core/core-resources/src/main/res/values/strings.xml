@@ -160,6 +160,9 @@
     <string name="quiz_tab_title">Quizzes</string>
     <string name="quiz_item_title_write">Learn Now</string>
     <string name="quiz_item_subtitle_write">Practice words in a chat</string>
+    <string name="quiz_group_picker_cd">Group selection</string>
+    <string name="quiz_group_option_count">%1$s · %2$d</string>
+    <string name="quiz_card_disabled_subtitle">Need at least %1$d words — now %2$d</string>
 
     <!--ChatQuiz-->
     <string name="chat_quiz_app_bar_title">Quiz chat</string>

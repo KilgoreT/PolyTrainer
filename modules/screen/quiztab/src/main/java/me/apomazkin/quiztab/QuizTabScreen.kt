@@ -10,15 +10,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.di.viewModelFactory
+import me.apomazkin.quiz.MIN_QUIZ_WORDS
+import me.apomazkin.quiz.QuizTypes
 import me.apomazkin.quiztab.deps.QuizTabUiDeps
 import me.apomazkin.quiztab.logic.Msg
 import me.apomazkin.quiztab.logic.QuizTabState
 import me.apomazkin.quiztab.logic.UiMsg
 import me.apomazkin.quiztab.logic.processor.toMateEvent
+import me.apomazkin.quiztab.widget.QuizGroupPickerItem
+import me.apomazkin.quiztab.widget.QuizGroupPickerWidget
 import me.apomazkin.quiztab.widget.QuizItemWidget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.lifecycle.LifecycleEventHandler
@@ -65,12 +70,60 @@ internal fun QuizTabScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val allTitle = stringResource(R.string.group_all_title)
+            val selectedTitle = state.selectedGroupId
+                ?.let { id -> state.groupOptions.find { it.id == id }?.name }
+                ?: allTitle
             QuizItemWidget(
                 imageRes = R.drawable.ic_quiz_write,
                 titleRes = R.string.quiz_item_title_write,
-                subTitleRes = R.string.quiz_item_subtitle_write
+                subTitle = if (state.isChatCardEnabled) {
+                    stringResource(R.string.quiz_item_subtitle_write)
+                } else {
+                    stringResource(
+                        R.string.quiz_card_disabled_subtitle,
+                        MIN_QUIZ_WORDS,
+                        state.allWordCount,
+                    )
+                },
+                enabled = state.isChatCardEnabled,
+                pickerContent = {
+                    QuizGroupPickerWidget(
+                        selectedTitle = selectedTitle,
+                        selectedGroupId = state.selectedGroupId,
+                        items = buildList {
+                            add(
+                                QuizGroupPickerItem(
+                                    groupId = null,
+                                    title = allTitle,
+                                    wordCount = state.allWordCount,
+                                    isEligible = state.isAllEligible,
+                                ),
+                            )
+                            state.groupOptions.forEach {
+                                add(
+                                    QuizGroupPickerItem(
+                                        groupId = it.id,
+                                        title = it.name,
+                                        wordCount = it.wordCount,
+                                        isEligible = it.isEligible,
+                                    ),
+                                )
+                            }
+                        },
+                        enabled = state.isChatCardEnabled,
+                        onPick = { groupId ->
+                            sendMessage(
+                                Msg.PickGroup(
+                                    quizType = QuizTypes.CHAT,
+                                    groupId = groupId,
+                                ),
+                            )
+                        },
+                    )
+                },
             ) {
-                sendMessage(Msg.OpenChat(quizType = "chat"))
+                sendMessage(Msg.OpenChat(quizType = QuizTypes.CHAT))
             }
         }
     }

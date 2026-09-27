@@ -10,6 +10,7 @@ import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordrow.entity.toUiItem
 import me.apomazkin.flags.CountryProvider
+import me.apomazkin.polytrainer.di.module.dictionary.CurrentDictionaryProvider
 import me.apomazkin.polytrainer.mapper.toDomain
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
@@ -21,6 +22,7 @@ class WordsTabUseCaseImpl @Inject constructor(
     private val termApi: CoreDbApi.TermApi,
     private val prefsProvider: PrefsProvider,
     private val countryProvider: CountryProvider,
+    private val currentDictionaryProvider: CurrentDictionaryProvider,
 ) : WordsTabUseCase {
 
     override suspend fun getCurrentDict(): DictUiEntity? {
@@ -52,20 +54,19 @@ class WordsTabUseCaseImpl @Inject constructor(
         return null
     }
 
-    override fun flowCurrentDict(): Flow<DictUiEntity?> = prefsProvider
-        .getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG)
-        .map { id: Long? ->
+    // IS500: резолв текущего словаря — через единый CurrentDictionaryProvider.
+    override fun flowCurrentDict(): Flow<DictUiEntity?> = currentDictionaryProvider
+        .flowCurrentDict()
+        .map { dict ->
             // IS476: null если ни по id, ни fallback ничего не нашли — валидное состояние
-            (id?.let { dictionaryApi.getDictionaryById(it) }
-                ?: dictionaryApi.getDictionaryList().firstOrNull())
-                ?.let { dict ->
-                    DictUiEntity(
-                        id = dict.id,
-                        flagRes = dict.numericCode?.let { nc -> countryProvider.getFlagRes(nc) } ?: 0,
-                        title = dict.name,
-                        numericCode = dict.numericCode ?: 0,
-                    )
-                }
+            dict?.let {
+                DictUiEntity(
+                    id = it.id,
+                    flagRes = it.numericCode?.let { nc -> countryProvider.getFlagRes(nc) } ?: 0,
+                    title = it.name,
+                    numericCode = it.numericCode ?: 0,
+                )
+            }
         }
 
     // TODO: Убрать нулеабельность в Dictionary: id и name

@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -28,53 +29,67 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 private const val defaultCornerRadius = 16
 private const val defaultShadow = 4
+private const val disabledAlpha = 0.5f
 
+/**
+ * IS500: карточка получила [enabled] (некликабельна и приглушена при
+ * false — явный флаг state, не вычисление), [subTitle] строкой (при
+ * disabled — объяснение причины) и слот [pickerContent] под пикер
+ * группы: у пикера своя зона клика, тап по нему не открывает чат.
+ */
 @Composable
 fun QuizItemWidget(
     modifier: Modifier = Modifier,
     @DrawableRes imageRes: Int,
     @StringRes titleRes: Int,
-    @StringRes subTitleRes: Int,
+    subTitle: String,
+    enabled: Boolean = true,
     cornerRadius: Int = defaultCornerRadius,
     shadow: Int = defaultShadow,
+    pickerContent: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable(enabled = enabled) { onClick() },
         shape = RoundedCornerShape(cornerRadius.dp),
         shadowElevation = shadow.dp
     ) {
-        Row(
+        Column(
             modifier = modifier.padding(
                 horizontal = 16.dp,
                 vertical = 12.dp,
             ),
-            horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                modifier = Modifier,
-                painter = painterResource(imageRes),
-                contentDescription = stringResource(titleRes)
-            )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            Row(
+                modifier = Modifier.alpha(if (enabled) 1f else disabledAlpha),
+                horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = stringResource(titleRes),
-                    style = LexemeStyle.BodyLBold.copy(
-                        color = MaterialTheme.colorScheme.secondary,
-                    )
+                Image(
+                    modifier = Modifier,
+                    painter = painterResource(imageRes),
+                    contentDescription = stringResource(titleRes)
                 )
-                Text(
-                    text = stringResource(subTitleRes),
-                    style = LexemeStyle.BodyL.copy(
-                        color = grayTextColor,
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = stringResource(titleRes),
+                        style = LexemeStyle.BodyLBold.copy(
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
                     )
-                )
+                    Text(
+                        text = subTitle,
+                        style = LexemeStyle.BodyL.copy(
+                            color = grayTextColor,
+                        )
+                    )
+                }
             }
+            pickerContent?.invoke()
         }
     }
 }
@@ -90,7 +105,42 @@ private fun Preview() = AppTheme {
         QuizItemWidget(
             imageRes = R.drawable.ic_quiz_write,
             titleRes = R.string.quiz_item_title_write,
-            subTitleRes = R.string.quiz_item_subtitle_write
+            subTitle = stringResource(R.string.quiz_item_subtitle_write),
+            pickerContent = {
+                QuizGroupPickerWidget(
+                    selectedTitle = "Все",
+                    selectedGroupId = null,
+                    items = emptyList(),
+                    enabled = true,
+                    onPick = {},
+                )
+            },
+        ) {}
+    }
+}
+
+@PreviewWidget
+@Composable
+private fun PreviewDisabled() = AppTheme {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+    ) {
+        QuizItemWidget(
+            imageRes = R.drawable.ic_quiz_write,
+            titleRes = R.string.quiz_item_title_write,
+            subTitle = "Нужно минимум 3 слова — сейчас 1",
+            enabled = false,
+            pickerContent = {
+                QuizGroupPickerWidget(
+                    selectedTitle = "Все",
+                    selectedGroupId = null,
+                    items = emptyList(),
+                    enabled = false,
+                    onPick = {},
+                )
+            },
         ) {}
     }
 }

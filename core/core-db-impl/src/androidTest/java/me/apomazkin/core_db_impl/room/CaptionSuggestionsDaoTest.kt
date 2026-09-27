@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import me.apomazkin.core_db_impl.CoreDbApiImpl
 import me.apomazkin.core_db_impl.entity.ComponentTypeDb
 import me.apomazkin.core_db_impl.entity.ComponentValueDb
+import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.core_db_impl.mapper.toJson
 import me.apomazkin.lexeme.CaptionedTextValues
@@ -58,15 +59,7 @@ class CaptionSuggestionsDaoTest {
             val wordId = db.wordDao().addWordSuspend(
                 WordDb(dictionaryId = dictId, value = "gato", addDate = now),
             )
-            lexemeId = CoreDbApiImpl.LexemeApiImpl(
-                database = db,
-                wordDao = db.wordDao(),
-                componentTypeDao = db.componentTypeDao(),
-                componentValueDao = db.componentValueDao(),
-                componentOptionDao = db.componentOptionDao(),
-                quizConfigDao = db.quizConfigDao(),
-                logger = logger,
-            ).addLexeme(wordId)
+            lexemeId = db.wordDao().addLexeme(LexemeDb(wordId = wordId, addDate = now))
         }
     }
 

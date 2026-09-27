@@ -12,6 +12,7 @@ import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.flags.CountryProvider
+import me.apomazkin.polytrainer.di.module.dictionary.CurrentDictionaryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import org.junit.Assert.assertEquals
@@ -71,7 +72,17 @@ class DictionaryAppBarUseCaseImplTest {
         every { prefsProvider.getLongFlow(PrefKey.CURRENT_DICTIONARY_ID_LONG) } returns prefsFlow
         every { dictionaryApi.flowDictionaryList() } returns dictListFlow
 
-        useCase = DictionaryAppBarUseCaseImpl(dictionaryApi, prefsProvider, countryProvider)
+        useCase = DictionaryAppBarUseCaseImpl(
+            dictionaryApi,
+            prefsProvider,
+            countryProvider,
+            // IS500: живой провайдер на тех же моках — семантика
+            // flowCurrentDict проверяется сквозь него.
+            CurrentDictionaryProvider(
+                dictionaryApi = dictionaryApi,
+                prefsProvider = prefsProvider,
+            ),
+        )
     }
 
     // === flowCurrentDict — reactivity ===

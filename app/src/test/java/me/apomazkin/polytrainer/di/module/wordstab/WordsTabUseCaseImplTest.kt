@@ -6,11 +6,13 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.flags.CountryProvider
+import me.apomazkin.polytrainer.di.module.dictionary.CurrentDictionaryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import org.junit.Assert.assertEquals
@@ -66,6 +68,12 @@ class WordsTabUseCaseImplTest {
             termApi = termApi,
             prefsProvider = prefsProvider,
             countryProvider = countryProvider,
+            // IS500: живой провайдер на тех же моках — семантика
+            // flowCurrentDict проверяется сквозь него.
+            currentDictionaryProvider = CurrentDictionaryProvider(
+                dictionaryApi = dictionaryApi,
+                prefsProvider = prefsProvider,
+            ),
         )
     }
 
@@ -76,7 +84,7 @@ class WordsTabUseCaseImplTest {
         // Test case 1: IS476 — пустой список + пустой prefs → null,
         // вместо throw DictionaryNotFoundException.
         prefsFlow.value = null
-        coEvery { dictionaryApi.getDictionaryList() } returns emptyList()
+        every { dictionaryApi.flowDictionaryList() } returns flowOf(emptyList())
 
         val result: DictUiEntity? = useCase.flowCurrentDict().first()
 
@@ -87,7 +95,7 @@ class WordsTabUseCaseImplTest {
     fun `flowCurrentDict emits current dict matching prefs ID`() = runTest {
         // Test case 2: prefs has id → возвращается соответствующий словарь.
         prefsFlow.value = 1L
-        coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEn
+        every { dictionaryApi.flowDictionaryList() } returns flowOf(listOf(dictEn))
 
         val result = useCase.flowCurrentDict().first()
 
@@ -101,7 +109,7 @@ class WordsTabUseCaseImplTest {
     fun `flowCurrentDict emits first dict when prefs is null but list non-empty`() = runTest {
         // Test case 3: prefs пуст, fallback на firstOrNull() из списка.
         prefsFlow.value = null
-        coEvery { dictionaryApi.getDictionaryList() } returns listOf(dictEn)
+        every { dictionaryApi.flowDictionaryList() } returns flowOf(listOf(dictEn))
 
         val result = useCase.flowCurrentDict().first()
 

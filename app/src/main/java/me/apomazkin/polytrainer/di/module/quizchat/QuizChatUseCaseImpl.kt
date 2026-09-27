@@ -1,5 +1,6 @@
 package me.apomazkin.polytrainer.di.module.quizchat
 
+import kotlinx.coroutines.flow.first
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
@@ -10,10 +11,12 @@ import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.QuizConfig
 import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.polytrainer.di.module.quizgroup.QuizGroupSelectionStore
 import me.apomazkin.polytrainer.mapper.toDomain
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.prefs.quizPickerPrefKey
+import me.apomazkin.quiz.QuizTypes
 import me.apomazkin.quiz.chat.LogTags
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.entity.QuizType
@@ -27,6 +30,7 @@ class QuizChatUseCaseImpl @Inject constructor(
     private val quizApi: CoreDbApi.QuizApi,
     private val lexemeApi: CoreDbApi.LexemeApi,
     private val prefsProvider: PrefsProvider,
+    private val quizGroupSelectionStore: QuizGroupSelectionStore,
     private val logger: LexemeLogger,
 ) : QuizChatUseCase {
     
@@ -59,10 +63,25 @@ class QuizChatUseCaseImpl @Inject constructor(
         maxGrade: Int,
         dictionaryId: Long
     ): List<WriteQuiz> {
+        // IS500: групповой фильтр резолвится ЗДЕСЬ (Д6 — в код квиза не
+        // зашивается); прецедент внутренних чтений prefs — isEarliestOn
+        // ниже. null = «Все», поведение до фичи.
+        val groupId = quizGroupSelectionStore.getValidatedSelection(
+            quizType = QuizTypes.CHAT,
+            dictionaryId = dictionaryId,
+        )
+        logger.d(
+            tag = LogTags.CHAT,
+            message = "getRandomWriteQuizList: groupFilter=${groupId ?: "all"}",
+        )
 
         val allByGrades: Map<Int, List<WriteQuiz>> = (0..maxGrade)
             .associateWith { grade ->
-                val ids = quizApi.getWriteQuizIds(grade = grade, dictionaryId = dictionaryId)
+                val ids = quizApi.getWriteQuizIds(
+                    grade = grade,
+                    dictionaryId = dictionaryId,
+                    groupId = groupId,
+                )
                 val randomIds = ids.shuffled().take(limit)
                 if (randomIds.isEmpty()) return@associateWith emptyList()
                 quizApi.getWriteQuizByIds(randomIds)
@@ -99,7 +118,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                 ?: false
         if (isEarliestOn) {
             val earliest = quizApi
-                    .getEarliestWriteQuizList(limit, dictionaryId)
+                    .getEarliestWriteQuizList(limit, dictionaryId, groupId)
                     .shuffled()
                     .toDomainEntity(type = QuizType.EARLIEST)
                     .take(2)
@@ -109,7 +128,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                 ?: false
         if (isFrequentMistakesOn) {
             val frequentMistakes = quizApi
-                .getFrequentMistakesWriteQuizList(limit, dictionaryId)
+                .getFrequentMistakesWriteQuizList(limit, dictionaryId, groupId)
                 .shuffled()
                 .toDomainEntity(type = QuizType.ERRORS)
                 .take(2)
@@ -153,6 +172,19 @@ class QuizChatUseCaseImpl @Inject constructor(
 
     override suspend fun setQuizPickerSelection(dictionaryId: Long, ref: ComponentTypeRef) {
         prefsProvider.setStringByRawKey(quizPickerPrefKey(dictionaryId), encodeRef(ref))
+    }
+
+    // ===== IS500 quiz group =====
+
+    override suspend fun getSelectedQuizGroupName(dictionaryId: Long): String? {
+        val groupId = quizGroupSelectionStore.getValidatedSelection(
+            quizType = QuizTypes.CHAT,
+            dictionaryId = dictionaryId,
+        ) ?: return null
+        return quizApi.flowQuizGroupCounts(dictionaryId)
+            .first()
+            .find { it.groupId == groupId }
+            ?.name
     }
 }
 

@@ -70,6 +70,7 @@ include(":modules:library:flags")
 //Domain
 include(":modules:domain:lexeme")
 include(":modules:domain:group")
+include(":modules:domain:quiz")
 
 //Old
 include(":core:core-resources")
