@@ -9,18 +9,18 @@ plugins {
 
 android {
     namespace = "me.apomazkin.dictionaryappbar"
-    compileSdk = 36
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     testOptions {
-        targetSdk = 36
+        targetSdk = libs.versions.targetSdk.get().toInt()
     }
 
     lint {
-        targetSdk = 36
+        targetSdk = libs.versions.targetSdk.get().toInt()
     }
 
     defaultConfig {
-        minSdk = 23
+        minSdk = libs.versions.minSdk.get().toInt()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")

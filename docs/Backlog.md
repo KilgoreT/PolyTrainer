@@ -457,6 +457,14 @@
   Почему не сделано сейчас: практический риск нулевой, та же категория defensive-валидации.
   Нужно: trim-валидация в `addComponentOption`/`renameComponentOption` + ветка outcome.
 
+- **[Сборка: единый источник правды для версий в `deps/project.versions.toml`].**
+  В IS504 (2026-09-28) SDK (`compileSdk`/`targetSdk`/`minSdk`) переведены на чтение из каталога `libs.versions.*` во всех 32 модулях. Остальное пока зашито в модулях:
+  - версия JVM 17 — 109 мест (`JavaVersion.VERSION_17` ×73, `JvmTarget.JVM_17` ×32, `jvmToolchain(17)` ×4) → одна запись `jvm` в toml;
+  - зависимости строкой мимо каталога (~80 строк): mate `v0.1.6` ×11 (4 артефакта — при апгрейде mate правится 11 мест), `junit 4.13.2` ×23, `androidx.test.ext:junit 1.2.1` ×14, `espresso-core 3.6.1` ×14, `javax.inject:1` ×9, разовые `coroutines 1.7.3` (сверить с версией каталога — возможен рассинхрон), `kotlin-stdlib-jdk8 2.1.0`, `org.json`, `worldCountryData`;
+  - устаревшие/мёртвые версии: `aGPVersion = "8.9.1"` и `kotlinCompilerExtensionVersion` в toml, `kotlin-gradle-plugin:2.0.20` и `com.android.tools.build:gradle:8.7.3` в скриптах — фактический стек Kotlin 2.2.0 / AGP 9.4.1; выяснить, что реально используется, мёртвое удалить.
+  Смежно: `build-logic` — пустая заготовка convention-плагина («Hello from MyPlugin!», не подключён); настоящий плагин позволил бы убрать SDK/JVM-настройки из модулей совсем.
+  Почему не сделано сейчас: IS504 — блокер релиза 0.1.8, объём сознательно минимальный.
+
 - **[40 TODO в кодовой базе].**
   Включая баг с именем БД (данные теряются), неработающий convention plugin, неоптимальная загрузка Flow (#377).
   Нужно: разобрать каждый TODO — или починить, или создать задачу, или удалить.
