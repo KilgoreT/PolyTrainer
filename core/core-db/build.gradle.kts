@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp") version "2.2.0-2.0.2"
+    id("com.google.devtools.ksp")
 }
 android {
     namespace = "me.apomazkin.core_db"
@@ -24,15 +24,15 @@ android {
     }
     
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
     }
     
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
     }
 }
 
@@ -46,7 +46,7 @@ dependencies {
     implementation(diLibs.dagger)
     ksp(diLibs.daggerCompiler)
 
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    testImplementation(testLibs.junit)
+    androidTestImplementation(testLibs.androidxTestExt)
+    androidTestImplementation(testLibs.espressoCore)
 }

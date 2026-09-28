@@ -10,7 +10,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.devtools.ksp") version "2.2.0-2.0.2"
+    id("com.google.devtools.ksp")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
     id("org.jetbrains.kotlinx.kover")
@@ -25,8 +25,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
     }
 
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -111,7 +111,7 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
     }
 }
 
@@ -167,7 +167,7 @@ dependencies {
 
     //Dagger2
     implementation(diLibs.dagger)
-    implementation("com.github.blongho:worldCountryData:v1.5.4-alpha-1") {
+    implementation(otherLibs.flagLib) {
         // Кривой pom alpha-библиотеки тянет ТЕСТОВЫЙ androidx.test:monitor
         // в прод-classpath — строгий consistent resolution из-за этого
         // валит androidTest-резолв (monitor 1.5.0 против 1.7.x у espresso).
@@ -185,9 +185,9 @@ dependencies {
     // Test
     testImplementation(testLibs.junit)
     testImplementation(testLibs.mockk)
-    testImplementation(testLibs.coroutinesTest)
+    testImplementation(kotlinLibs.coroutinesTest)
     // Сценарный харнес mate: registry экранов + DSL сценариев.
-    testImplementation("com.github.KilgoreT.mate:mate-app-test:v0.1.6")
+    testImplementation(otherLibs.mateAppTest)
     androidTestImplementation(testLibs.androidxTestExt)
     androidTestImplementation(testLibs.espressoCore)
     androidTestImplementation(composeLibs.uiTestJunit4)

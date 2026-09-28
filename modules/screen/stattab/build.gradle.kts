@@ -24,15 +24,15 @@ android {
     }
     
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
     }
     
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
     }
 }
 
@@ -42,7 +42,7 @@ dependencies {
     implementation(project("path" to ":modules:core:mate"))
     implementation(diLibs.dagger)
     ksp(diLibs.daggerCompiler)
-    implementation("javax.inject:javax.inject:1")
+    implementation(diLibs.javaxInject)
     implementation(project("path" to ":modules:core:theme"))
     implementation(project("path" to ":modules:core:ui"))
     implementation(project("path" to ":core:core-resources"))

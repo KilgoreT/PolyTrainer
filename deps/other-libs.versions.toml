@@ -1,5 +1,10 @@
 [versions]
 flagLibVersion = "v1.5.4-alpha-1"
+mateVersion = "v0.1.6"
 
 [libraries]
 flagLib = { group = "com.github.blongho", name = "worldCountryData", version.ref = "flagLibVersion" }
+mateCore = { group = "com.github.KilgoreT.mate", name = "mate-core", version.ref = "mateVersion" }
+mateNavigation = { group = "com.github.KilgoreT.mate", name = "mate-navigation", version.ref = "mateVersion" }
+mateTest = { group = "com.github.KilgoreT.mate", name = "mate-test", version.ref = "mateVersion" }
+mateAppTest = { group = "com.github.KilgoreT.mate", name = "mate-app-test", version.ref = "mateVersion" }

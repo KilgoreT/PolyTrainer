@@ -23,15 +23,15 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
     }
 
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
     }
 }
 
@@ -40,5 +40,5 @@ dependencies {
     implementation(project("path" to ":modules:core:ui"))
     implementation(project("path" to ":modules:domain:lexeme"))
 
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(testLibs.junit)
 }
