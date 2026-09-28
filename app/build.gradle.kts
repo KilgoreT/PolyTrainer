@@ -98,7 +98,11 @@ android {
                     "proguard-rules.pro"
             )
             val logLevel = project.findProperty("LOG_LEVEL")?.toString() ?: "NONE"
-            val remoteLogLevel = project.findProperty("REMOTE_LOG_LEVEL")?.toString() ?: "WARNING"
+            // Отправка в Firebase по умолчанию — только у магазинной сборки;
+            // локальный release (проверка R8 и т.п.) молчит, пока не передан
+            // -PREMOTE_LOG_LEVEL (spec logger, «Отправка в Firebase»).
+            val defaultRemoteLevel = if (getBuildSource() == BuildSource.CI_PROD) "WARNING" else "NONE"
+            val remoteLogLevel = project.findProperty("REMOTE_LOG_LEVEL")?.toString() ?: defaultRemoteLevel
             buildConfigField("String", "LOG_LEVEL", "\"$logLevel\"")
             buildConfigField("String", "REMOTE_LOG_LEVEL", "\"$remoteLogLevel\"")
         }

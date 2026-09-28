@@ -1,6 +1,8 @@
 package me.apomazkin.polytrainer.navigation
 
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptionsBuilder
 import io.github.kilgoret.mate.navigation.NavCommand
 import io.github.kilgoret.mate.navigation.NavigationExecutor
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,11 +77,56 @@ class AppNavigationExecutor @Inject constructor(
 
     override fun execute(command: NavCommand) {
         logger.d(tag = LogTags.NAV, message = "execute: $command")
-        when (command) {
-            is NavCommand.Push -> push(command.screen as AppScreen)
-            NavCommand.Pop -> pop()
+        // IS502 (крэш A, последний рубеж): гонки NavController
+        // (`State must be at least 'CREATED'…`) — IllegalStateException.
+        // Навигация — UI-жест: потерянный повторный переход безвреден,
+        // упавший процесс — нет. ERROR уезжает в Crashlytics non-fatal
+        // через CrashlyticsSink.
+        try {
+            when (command) {
+                is NavCommand.Push -> push(command.screen as AppScreen)
+                NavCommand.Pop -> pop()
+            }
+        } catch (e: IllegalStateException) {
+            logger.e(
+                tag = LogTags.NAV,
+                message = "execute failed | command=$command",
+                throwable = e,
+            )
         }
     }
+
+    /**
+     * IS502 (крэш A): идемпотентный гейт двойной навигации. Повторный
+     * push экрана, чей entry уже на вершине стека, но ещё не прогрет
+     * до RESUMED (переход в полёте — двойной тап, дубль эффекта),
+     * пропускается: второй navigate в это окно переводит
+     * INITIALIZED-entry в DESTROYED и роняет процесс. Экраны
+     * различаются первым сегментом route (аргументы и query
+     * шаблона/значения не сравнимы строково).
+     */
+    private fun NavHostController.navigateGated(
+        route: String,
+        builder: NavOptionsBuilder.() -> Unit = {},
+    ) {
+        val top = currentBackStackEntry
+        if (top != null &&
+            baseSegment(top.destination.route) == baseSegment(route) &&
+            !top.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        ) {
+            logger.d(
+                tag = LogTags.NAV,
+                message = "push skipped | route=$route reason=in-flight",
+            )
+            return
+        }
+        navigate(route, builder)
+    }
+
+    private fun baseSegment(route: String?): String? =
+        route
+            ?.substringBefore('?')
+            ?.substringBefore('/')
 
     private fun push(screen: AppScreen) {
         val root = rootNavController ?: return
@@ -87,20 +134,20 @@ class AppNavigationExecutor @Inject constructor(
         when (screen) {
             // ===== root-стек =====
             AppScreen.DictionarySetup ->
-                root.navigate(RootPoint.DICTIONARY_SETUP.route) {
+                root.navigateGated(RootPoint.DICTIONARY_SETUP.route) {
                     launchSingleTop = true
                     popUpTo(RootPoint.SPLASH.route) { inclusive = true }
                 }
 
             is AppScreen.DictionaryCreate ->
-                root.navigate(
+                root.navigateGated(
                     screen.editId
                         ?.let { "DICTIONARY_CREATE?editId=$it" }
                         ?: "DICTIONARY_CREATE",
                 ) { launchSingleTop = true }
 
             AppScreen.DictionaryList ->
-                root.navigate(RootPoint.DICTIONARY_LIST.route) { launchSingleTop = true }
+                root.navigateGated(RootPoint.DICTIONARY_LIST.route) { launchSingleTop = true }
 
             AppScreen.Main -> openMainScreen(root)
 
@@ -108,21 +155,21 @@ class AppNavigationExecutor @Inject constructor(
 
             // ===== tabs-стек =====
             is AppScreen.WordCard ->
-                tabs.navigate(MainRoutes.wordCard(screen.wordId)) { launchSingleTop = true }
+                tabs.navigateGated(MainRoutes.wordCard(screen.wordId)) { launchSingleTop = true }
 
             is AppScreen.PerDictionaryComponents ->
-                tabs.navigate(MainRoutes.perDictionaryComponents(screen.dictionaryId)) {
+                tabs.navigateGated(MainRoutes.perDictionaryComponents(screen.dictionaryId)) {
                     launchSingleTop = true
                 }
 
             is AppScreen.ChatQuiz ->
-                tabs.navigate(MainRoutes.quizChat(screen.quizType)) { launchSingleTop = true }
+                tabs.navigateGated(MainRoutes.quizChat(screen.quizType)) { launchSingleTop = true }
 
             AppScreen.AboutApp ->
-                tabs.navigate(MainRoutes.ABOUT_APP) { launchSingleTop = true }
+                tabs.navigateGated(MainRoutes.ABOUT_APP) { launchSingleTop = true }
 
             is AppScreen.WebView ->
-                tabs.navigate(MainRoutes.webView(screen.pageKey)) { launchSingleTop = true }
+                tabs.navigateGated(MainRoutes.webView(screen.pageKey)) { launchSingleTop = true }
         }
     }
 
@@ -159,7 +206,7 @@ class AppNavigationExecutor @Inject constructor(
         if (isMainInBackStack) {
             root.popBackStack(MainPoint.MAIN.route, false)
         } else {
-            root.navigate(RootPoint.MAIN_ROUTER.route) {
+            root.navigateGated(RootPoint.MAIN_ROUTER.route) {
                 root.currentDestination?.route?.let { currentRoute ->
                     launchSingleTop = true
                     popUpTo(currentRoute) { inclusive = true }

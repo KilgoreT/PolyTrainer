@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import com.google.firebase.FirebaseApp
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +14,7 @@ import me.apomazkin.core_db_api.entity.ReservedGroupNames
 import me.apomazkin.polytrainer.di.AppComponent
 import me.apomazkin.polytrainer.di.DaggerAppComponent
 import me.apomazkin.polytrainer.di.DaggerAppComponent_CoreDbDependenciesComponent
+import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.polytrainer.di.LoggerComponent
 import java.util.Locale
 
@@ -34,7 +36,7 @@ class App : Application() {
                     .coreDbProvider(CoreDbComponent.init(this, logger, reservedGroupNames()))
                     .build(),
             )
-        initCrashlytics()
+        initRemoteReporting(logger)
         // Дренаж очереди навигации живёт на application-scope (Main.immediate —
         // команды дёргают NavController): гейт открывает/закрывает активити,
         // очередь и её содержимое переживают пересоздание хоста.
@@ -58,10 +60,23 @@ class App : Application() {
         return ReservedGroupNames(values = names)
     }
 
-    private fun initCrashlytics() {
+    /**
+     * Единственный выключатель отправки в Firebase: включена ⇔
+     * `REMOTE_LOG_LEVEL` не `NONE`. Управляет сбором Crashlytics (в том
+     * числе фатальных крашей, которые SDK ловит сам) и Analytics;
+     * `CrashlyticsSink` логгера подключается по тому же значению.
+     * Автостарт обоих SDK выключен в манифесте.
+     */
+    private fun initRemoteReporting(logger: LexemeLogger) {
         FirebaseApp.initializeApp(applicationContext)
-        val isCrashlyticsEnable = !BuildConfig.DEBUG
-        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(isCrashlyticsEnable)
+        val isRemoteEnabled = BuildConfig.REMOTE_LOG_LEVEL != "NONE"
+        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(isRemoteEnabled)
+        FirebaseAnalytics.getInstance(this).setAnalyticsCollectionEnabled(isRemoteEnabled)
+        logger.i(
+            tag = LogTags.APP,
+            message = "remote reporting: ${if (isRemoteEnabled) "on" else "off"} " +
+                "| level=${BuildConfig.REMOTE_LOG_LEVEL}",
+        )
     }
 }
 
