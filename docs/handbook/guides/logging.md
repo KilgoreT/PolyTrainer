@@ -29,16 +29,17 @@ LexemeLogger.log(level, tag, message)
 | Sink | Куда | Маппинг уровней |
 |------|------|-----------------|
 | `LogcatSink` | Android Logcat | DEBUG→Log.d, INFO→Log.i, WARNING→Log.w, ERROR→Log.e |
-| `CrashlyticsSink` | Firebase Crashlytics | WARNING→breadcrumb (`Crashlytics.log`), ERROR→non-fatal (`recordException`) |
+| `CrashlyticsSink` | Firebase Crashlytics | WARNING→breadcrumb (`Crashlytics.log`), ERROR→non-fatal (`recordException`); переданное исключение уходит как есть |
 
 ### Конфигурация при сборке
 
-Каждый sink имеет свой `minLevel` из `BuildConfig`:
+Каждый sink имеет свой `minLevel` из `BuildConfig`. Значения по умолчанию (флаг не передан):
 
-| Build type | LOG_LEVEL (logcat) | REMOTE_LOG_LEVEL (crashlytics) |
-|------------|--------------------|---------------------------------|
-| debug | DEBUG | NONE (отключен) |
-| release | NONE (отключен) | WARNING |
+| Сборка | LOG_LEVEL (logcat) | REMOTE_LOG_LEVEL |
+|--------|--------------------|------------------|
+| Магазинная (release из CI) | NONE (отключен) | WARNING |
+| Локальный release (проверка R8 и т.п.) | NONE (отключен) | NONE (отключен) |
+| Debug | DEBUG | NONE (отключен) |
 
 `NONE` — sink не создаётся.
 
@@ -46,6 +47,18 @@ LexemeLogger.log(level, tag, message)
 ```bash
 ./gradlew assembleRelease -PLOG_LEVEL=DEBUG -PREMOTE_LOG_LEVEL=ERROR
 ```
+
+### Отправка в Firebase
+
+`REMOTE_LOG_LEVEL` — единственный выключатель всей отправки: не `NONE` → включены сбор Crashlytics (включая настоящие краши), сбор Firebase Analytics и `CrashlyticsSink`; `NONE` → с устройства не уходит ничего. Магазинная сборка шлёт всегда, тестовые молчат.
+
+Проверить отправку на тестовой сборке:
+```bash
+./scripts/cc-build.sh :app:installDebug -PREMOTE_LOG_LEVEL=WARNING
+```
+При старте в логе: `remote reporting: on | level=WARNING`.
+
+Корзина в Firebase зависит от пакета, не от флага: debug (`co.lexeme.app.dev`) → dev-приложение, любой release (`co.lexeme.app`, включая локальный) → прод. Локальный release с флагом пишет в прод — только осознанно. Подробности — `docs/handbook/specs/logger/spec.md`, «Отправка в Firebase».
 
 ### DI
 
@@ -74,8 +87,8 @@ object LoggerModule {
 |---------|-------|--------------------|-------------|
 | DEBUG | `d()` | Отладка, трассировка, временные логи | Logcat (debug build) |
 | INFO | `i()` | Значимые события (навигация, загрузка данных) | Logcat (debug build) |
-| WARNING | `w()` | Проблема, но приложение работает | Crashlytics breadcrumb |
-| ERROR | `e()` | Критическая ошибка, неожиданное состояние | Crashlytics non-fatal exception |
+| WARNING | `w()` | Проблема, но приложение работает | Crashlytics breadcrumb (когда отправка включена) |
+| ERROR | `e()` | Критическая ошибка, неожиданное состояние | Crashlytics non-fatal exception (когда отправка включена) |
 
 Иерархия: DEBUG < INFO < WARNING < ERROR. Sink получает только сообщения `>= minLevel`.
 
