@@ -7,20 +7,20 @@ plugins {
 }
 android {
     namespace = "me.apomazkin.core_db"
-    compileSdk = 36
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     testOptions {
-        targetSdk = 36
+        targetSdk = libs.versions.targetSdk.get().toInt()
     }
 
     lint {
-        targetSdk = 36
+        targetSdk = libs.versions.targetSdk.get().toInt()
     }
     
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        minSdk = 23
+        minSdk = libs.versions.minSdk.get().toInt()
     }
     
     compileOptions {

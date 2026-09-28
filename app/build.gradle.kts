@@ -29,12 +29,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    compileSdk = 36
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "co.lexeme.app"
-        targetSdk = 36
-        minSdk = 23
+        targetSdk = libs.versions.targetSdk.get().toInt()
+        minSdk = libs.versions.minSdk.get().toInt()
         multiDexEnabled = true
 
         val appVersion = getVersionName()

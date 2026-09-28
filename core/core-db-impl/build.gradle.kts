@@ -15,18 +15,18 @@ android {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
     namespace = "me.apomazkin.core_db_impl"
-    compileSdk = 36
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     testOptions {
-        targetSdk = 36
+        targetSdk = libs.versions.targetSdk.get().toInt()
     }
 
     lint {
-        targetSdk = 36
+        targetSdk = libs.versions.targetSdk.get().toInt()
     }
     
     defaultConfig {
-        minSdk = 23
+        minSdk = libs.versions.minSdk.get().toInt()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     
