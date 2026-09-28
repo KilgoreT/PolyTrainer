@@ -1,24 +1,18 @@
 [versions]
-kotlinGPVersion = "2.2.0"
 aGPVersion = "8.9.1" # AGP
-kotlinJvmPluginVersion = "2.2.0"
-testLoggerVersion = "4.0.0"
+kotlinGPVersion = "2.2.0"
+kspVersion = "2.2.0-2.0.2"
+koverVersion = "0.9.1"
+jvm = "17"
 minSdk = "24"
 targetSdk = "36"
 compileSdk = "36"
-kotlinCompilerExtensionVersion = "1.5.3" # legacy, unused with kotlin.plugin.compose
-firebaseCrashlyticsVersion = "3.0.3"
-
-[libraries]
-kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlinGPVersion" }
-android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "aGPVersion" }
 
 [plugins]
 android-app-gp = { id = "com.android.application", version.ref = "aGPVersion" }
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlinGPVersion" }
 android-lib-gp = { id = "com.android.library", version.ref = "aGPVersion" }
 kotlin-gp = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinGPVersion" }
-kotlin-jvm-gp = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinJvmPluginVersion" }
-test-logger = { id = "com.adarshr.test-logger", version.ref = "testLoggerVersion" }
-firebase-crashlytics-gp = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsVersion" }
-
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlinGPVersion" }
+kotlin-jvm-gp = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinGPVersion" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "kspVersion" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "koverVersion" }

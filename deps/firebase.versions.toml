@@ -1,7 +1,13 @@
 [versions]
 bom-version = "34.12.0"
+googleServicesVersion = "4.4.4"
+crashlyticsPluginVersion = "3.0.3"
 
 [libraries]
 firebaseBOM = { group = "com.google.firebase", name = "firebase-bom", version.ref = "bom-version" }
 firebaseCrashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebaseAnalytics = { module = "com.google.firebase:firebase-analytics" }
+
+[plugins]
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServicesVersion" }
+crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "crashlyticsPluginVersion" }

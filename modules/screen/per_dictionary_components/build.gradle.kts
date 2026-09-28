@@ -24,15 +24,15 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
     }
 
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
     }
 }
 
@@ -55,6 +55,6 @@ dependencies {
 
     testImplementation(testLibs.junit)
     testImplementation(testLibs.mockk)
-    testImplementation(testLibs.coroutinesTest)
-    testImplementation("com.github.KilgoreT.mate:mate-test:v0.1.6")
+    testImplementation(kotlinLibs.coroutinesTest)
+    testImplementation(otherLibs.mateTest)
 }

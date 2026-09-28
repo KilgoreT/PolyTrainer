@@ -23,3 +23,6 @@ uiTestManifest = { group = "androidx.compose.ui", name = "ui-test-manifest", ver
 
 [bundles]
 composePreview = ["uiTooling", "uiToolingPreview"]
+
+[plugins]
+navigation-safeargs = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigation-compose-version" }

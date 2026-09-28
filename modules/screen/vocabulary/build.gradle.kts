@@ -24,15 +24,15 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
     }
 
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
     }
 }
 
@@ -47,11 +47,11 @@ dependencies {
     // (подписка на текущий словарь), исключение D1.1 закрыто.
     implementation(diLibs.dagger)
     ksp(diLibs.daggerCompiler)
-    implementation("javax.inject:javax.inject:1")
+    implementation(diLibs.javaxInject)
 
     implementation(composeLibs.lifecycleViewmodelCompose)
     implementation(composeLibs.lifecycleRuntimeCompose)
 
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(testLibs.junit)
     testImplementation(project("path" to ":modules:core:mate"))
 }

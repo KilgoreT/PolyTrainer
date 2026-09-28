@@ -22,15 +22,15 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
     }
 
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
     }
 }
 
@@ -39,8 +39,8 @@ dependencies {
     // приходит с JitPack, здесь остаётся проектная обвязка
     // (ReducerLogging/LogTags/Constants). api — потребители получают
     // библиотеку транзитивно, их зависимости не меняются.
-    api("com.github.KilgoreT.mate:mate-core:v0.1.6")
-    api("com.github.KilgoreT.mate:mate-navigation:v0.1.6")
+    api(otherLibs.mateCore)
+    api(otherLibs.mateNavigation)
     api(project("path" to ":modules:core:logger"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation(kotlinLibs.coroutinesCore)
 }

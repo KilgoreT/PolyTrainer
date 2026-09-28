@@ -15,3 +15,6 @@ roomTesting = { group = "androidx.room", name = "room-testing", version.ref = "r
 sqliteBundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqliteBundledVersion" }
 documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfileVersion" }
 paging = { group = "androidx.paging", name = "paging-runtime-ktx", version.ref = "pagingVersion" }
+
+[plugins]
+room = { id = "androidx.room", version.ref = "roomVersion" }
