@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.padding
@@ -28,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -53,6 +56,7 @@ fun ChatMessageWidget(
     state: ChatMessageState,
     showUserActions: Boolean,
     showStartAction: Boolean,
+    flight: FlightState,
     sendMessage: (Msg) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
@@ -111,7 +115,7 @@ fun ChatMessageWidget(
             .imeNestedScroll()
             .trackInsertShift(lazyListState, insertShift),
         state = lazyListState,
-        contentPadding = PaddingValues(all = 16.dp),
+        contentPadding = PaddingValues(all = ChatMotion.LIST_PADDING),
         // Реверс не меняет семантику arrangement: прижатие короткого
         // контента к низу — только явным Alignment.Bottom.
         verticalArrangement = Arrangement.spacedBy(ChatMotion.ITEM_SPACING, Alignment.Bottom),
@@ -164,11 +168,14 @@ fun ChatMessageWidget(
             // Въезд снизу — для сообщений Lexeme и набранных ответов, на
             // дистанцию сдвига соседей (tracker; 0 — если подвозили скроллом
             // из истории). Пузыри из кнопок («Начать», чипы) не въезжают —
-            // они превращаются из кнопки на её месте.
+            // они превращаются из кнопки на её месте. Набранный ответ в
+            // полёте (FlightState) тоже не въезжает: к нему летит копия
+            // текста из поля, сам пузырь скрыт до конца полёта.
             val itemKey = item.order.toString()
             val isNew = insertShift.isNewKey(itemKey)
+            val flying = item.origin == UserMessageOrigin.INPUT && flight.order == item.order
             val slideIn = isNew &&
-                (item.isSystemMessage || item.origin == UserMessageOrigin.INPUT)
+                (item.isSystemMessage || (item.origin == UserMessageOrigin.INPUT && !flying))
             // animateItem — первым в цепочке (анимируется узел элемента), только
             // placement: соседи едут той же кривой, что въезжает новый.
             val bubbleModifier = Modifier
@@ -222,7 +229,36 @@ fun ChatMessageWidget(
                         geometryMorph = geometryMorph,
                         fromStart = item.origin == UserMessageOrigin.START_BUTTON,
                         shiftFromLeftPx = if (fromShowAnswer) skipShiftPx else 0f,
+                        // В полёте: пузырь сообщает слою свою позицию (цель) и
+                        // не рисуется, пока к нему летит копия текста из поля.
+                        surfaceModifier = if (flying) {
+                            Modifier
+                                .onGloballyPositioned { flight.target = it.positionInRoot() }
+                                .graphicsLayer { alpha = if (flight.order == item.order) 0f else 1f }
+                        } else {
+                            Modifier
+                        },
                     )
+                    // Призрак обоих чипов: их элемент исчез тем же апдейтом, что
+                    // добавил ответ; ряд стоит на своём месте (чип = пузырь по
+                    // геометрии, ширина строки та же) и гаснет в окне смены
+                    // «чипы → плейсхолдер» — синхронно с проявлением
+                    // плейсхолдера в поле.
+                    if (flying) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .graphicsLayer {
+                                    alpha = 1f - ChatMotion.window(
+                                        flight.progress, ChatMotion.SWAP_START, ChatMotion.SWAP_END,
+                                    )
+                                },
+                            horizontalArrangement = Arrangement.spacedBy(ACTION_CHIP_SPACING),
+                        ) {
+                            ChatButtonWidget(title = R.string.chat_quiz_msg_user_show_answer, enabled = false) {}
+                            ChatButtonWidget(title = R.string.chat_quiz_msg_user_skip, enabled = false) {}
+                        }
+                    }
                     if ((fromShowAnswer || fromSkip) && t < 1f) {
                         ChatButtonWidget(
                             modifier = Modifier
@@ -444,6 +480,7 @@ private fun Preview() {
             ),
             showUserActions = true,
             showStartAction = false,
+            flight = remember { FlightState() },
         ) {}
     }
 }

@@ -30,8 +30,8 @@ import me.apomazkin.theme.whiteColor
 import me.apomazkin.ui.preview.PreviewWidget
 import kotlin.math.roundToInt
 
-private val BUBBLE_CORNER = 20.dp
-private val BUBBLE_TAIL_CORNER = 8.dp
+private val BUBBLE_CORNER = ChatMotion.BUBBLE_CORNER
+private val BUBBLE_TAIL_CORNER = ChatMotion.BUBBLE_TAIL_CORNER
 
 /**
  * Превращение системной кнопки в пузырь двумя долями (0 — вид кнопки,
@@ -42,6 +42,9 @@ private val BUBBLE_TAIL_CORNER = 8.dp
  * цвет уже primary, меняется геометрия: широкая по центру → по тексту
  * справа. [shiftFromLeftPx] — старт левее своего места (чип «Показать
  * ответ» стоит левее «Пропустить»): пузырь уезжает вправо на своё место.
+ * [surfaceModifier] — на сам пузырь (`Surface`), не на строку: по нему
+ * лента снимает координаты цели полёта текста и прячет пузырь на время
+ * полёта.
  */
 @Composable
 fun UserMessageWidget(
@@ -51,6 +54,7 @@ fun UserMessageWidget(
     geometryMorph: Float = 1f,
     fromStart: Boolean = false,
     shiftFromLeftPx: Float = 0f,
+    surfaceModifier: Modifier = Modifier,
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val onPrimary = MaterialTheme.colorScheme.onPrimary
@@ -85,7 +89,8 @@ fun UserMessageWidget(
                     constraints.copy(minWidth = minWidth, minHeight = minHeightPx)
                 )
                 layout(placeable.width, placeable.height) { placeable.place(0, 0) }
-            },
+            }
+                .then(surfaceModifier),
             shape = RoundedCornerShape(
                 topStart = corner,
                 topEnd = corner,
@@ -100,7 +105,10 @@ fun UserMessageWidget(
         ) {
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(
+                        horizontal = ChatMotion.BUBBLE_PADDING_H,
+                        vertical = ChatMotion.BUBBLE_PADDING_V,
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(

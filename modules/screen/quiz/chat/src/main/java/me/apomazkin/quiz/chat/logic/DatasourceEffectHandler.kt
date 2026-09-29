@@ -196,5 +196,5 @@ class DatasourceEffectHandler(
     private fun botPauseMs(): Long = Random.nextLong(BOT_PAUSE_MIN_MS, BOT_PAUSE_MAX_MS)
 }
 
-private const val BOT_PAUSE_MIN_MS = 2000L
-private const val BOT_PAUSE_MAX_MS = 2100L
+private const val BOT_PAUSE_MIN_MS = 7000L
+private const val BOT_PAUSE_MAX_MS = 7200L
