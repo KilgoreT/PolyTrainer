@@ -63,7 +63,8 @@ internal class ChatReducer(
                         .startQuiz()
                         .userMessage(
                                 message = startUserMessage()
-                                        .toMessageContent()
+                                        .toMessageContent(),
+                                origin = UserMessageOrigin.START_BUTTON,
                         )
                 val newNewState = if (message.content != null) {
                     newState.systemMessage(
@@ -109,7 +110,10 @@ internal class ChatReducer(
             )
 
             is Msg.GetAnswer -> state
-                    .userMessage(message = showAnswerUserMessage().toMessageContent())
+                    .userMessage(
+                            message = showAnswerUserMessage().toMessageContent(),
+                            origin = UserMessageOrigin.SHOW_ANSWER_CHIP,
+                    )
                     .clearUserInput()
                     .disableUserInput()
                     .hideUserActions()
@@ -127,7 +131,8 @@ internal class ChatReducer(
 
             is Msg.Skipped -> state
                     .userMessage(
-                            message = skipUserMessage().toMessageContent()
+                            message = skipUserMessage().toMessageContent(),
+                            origin = UserMessageOrigin.SKIP_CHIP,
                     ) to setOf(DatasourceEffect.NextQuestion)
 
             is Msg.Assessment -> state

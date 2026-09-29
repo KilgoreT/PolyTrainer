@@ -1,5 +1,7 @@
 package me.apomazkin.quiz.chat.widget.message
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,38 +17,72 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import me.apomazkin.quiz.chat.R
 import me.apomazkin.quiz.chat.logic.ChatMessage
 import me.apomazkin.quiz.chat.logic.Msg
+import me.apomazkin.quiz.chat.widget.ChatMotion
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.ui.preview.BoolParam
 import me.apomazkin.ui.preview.PreviewWidget
 
+/**
+ * [avatarDescends] — сообщение продолжает цепочку системных: аватар
+ * стартует на месте аватара предыдущего пузыря (на высоту своего ряда +
+ * зазор выше) и той же кривой, что движение ленты, опускается на своё
+ * место; у предыдущего аватар в этот же кадр заменён пустым местом —
+ * одна иконка непрерывно съезжает вниз.
+ */
 @Composable
 fun SystemMessageWidget(
     modifier: Modifier = Modifier,
     message: ChatMessage,
     showAvatar: Boolean,
     isInChain: Boolean,
+    avatarDescends: Boolean = false,
+    motionDurationMs: Int = ChatMotion.DURATION_MS,
     showButtons: Boolean,
     sendMessage: (Msg) -> Unit,
 ) {
+    // Состояние под ключом сообщения: LazyList переиспользует композицию
+    // ушедшего элемента для нового.
+    val descent = remember(message.order) { Animatable(if (avatarDescends) 0f else 1f) }
+    LaunchedEffect(message.order) {
+        if (avatarDescends) {
+            descent.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(motionDurationMs, easing = ChatMotion.EASING),
+            )
+        }
+    }
+    // Высота ряда известна из раскладки этого же кадра — до рисования.
+    val rowHeightPx = remember { IntArray(1) }
+    val spacingPx = with(LocalDensity.current) { ChatMotion.ITEM_SPACING.toPx() }
     Box(
         modifier = modifier,
     ) {
         Row(
-            modifier = Modifier,
+            modifier = Modifier.onSizeChanged { rowHeightPx[0] = it.height },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
             if (showAvatar) {
-                AvatarWidget(avatarRes = R.drawable.ic_logo)
+                AvatarWidget(
+                    modifier = Modifier.graphicsLayer {
+                        translationY = -(rowHeightPx[0] + spacingPx) * (1f - descent.value)
+                    },
+                    avatarRes = R.drawable.ic_logo_avatar,
+                )
             } else {
                 Spacer(modifier = Modifier.width(48.dp))
             }

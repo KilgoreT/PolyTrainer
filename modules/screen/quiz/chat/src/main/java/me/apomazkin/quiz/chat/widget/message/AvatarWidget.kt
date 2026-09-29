@@ -39,6 +39,6 @@ fun AvatarWidget(
 @Composable
 private fun Preview() {
     AvatarWidget(
-        avatarRes = R.drawable.ic_logo,
+        avatarRes = R.drawable.ic_logo_avatar,
     )
 }

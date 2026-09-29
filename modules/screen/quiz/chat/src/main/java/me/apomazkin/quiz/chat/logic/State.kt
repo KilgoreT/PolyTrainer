@@ -150,12 +150,23 @@ fun ChatMessageState.isPreviousHasSameType(
     return previous.isSystemMessage == current.isSystemMessage
 }
 
+/**
+ * Откуда пришло сообщение юзера: UI превращает породившую его системную
+ * кнопку в пузырь на месте, а не показывает пузырь как новый.
+ * [START_BUTTON] — широкая кнопка «Начать» по центру (пузырь сужается и
+ * уезжает вправо); [SKIP_CHIP] — правый чип «Пропустить» (перекраска на
+ * месте); [SHOW_ANSWER_CHIP] — левый чип «Показать ответ» (перекраска +
+ * сдвиг вправо на место «Пропустить»); [INPUT] — набрано в поле ввода.
+ */
+enum class UserMessageOrigin { INPUT, START_BUTTON, SKIP_CHIP, SHOW_ANSWER_CHIP }
+
 @Stable
 data class ChatMessage(
         val order: Int = -1,
         val isSystemMessage: Boolean,
         val message: MessageValue,
         val buttons: List<ChatButton> = listOf(),
+        val origin: UserMessageOrigin = UserMessageOrigin.INPUT,
 ) {
 
     sealed class MessageValue {
@@ -209,10 +220,12 @@ data class ChatMessage(
         fun addUserMessage(
                 message: MessageContent,
                 order: Int,
+                origin: UserMessageOrigin = UserMessageOrigin.INPUT,
         ) = ChatMessage(
                 order = order,
                 isSystemMessage = false,
                 message = Plain(message.text.text),
+                origin = origin,
         )
     }
 }
@@ -275,9 +288,11 @@ fun ChatScreenState.clearUserInput() = copy(
 
 fun ChatScreenState.userMessage(
         message: MessageContent,
+        origin: UserMessageOrigin = UserMessageOrigin.INPUT,
 ) = copy(
         chat = chat.addUserMessage(
-                message = message
+                message = message,
+                origin = origin,
         )
 )
 
@@ -297,11 +312,15 @@ fun ChatScreenState.systemMessage(
 
 fun ChatState.nextOrder() = messagesState.list.size
 
-fun ChatState.addUserMessage(message: MessageContent) = copy(
+fun ChatState.addUserMessage(
+        message: MessageContent,
+        origin: UserMessageOrigin = UserMessageOrigin.INPUT,
+) = copy(
         messagesState = messagesState.copy(
                 list = messagesState.list + ChatMessage.addUserMessage(
                         message = message,
                         order = nextOrder(),
+                        origin = origin,
                 )
         )
 )

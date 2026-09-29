@@ -333,6 +333,7 @@ interface WordDao {
         """
         SELECT * FROM write_quiz
         WHERE dictionary_id = :langId
+            AND error_count > 0
             AND (:groupId IS NULL OR EXISTS (
                 SELECT 1 FROM lexemes l
                 JOIN word_groups wg ON wg.word_id = l.word_id
