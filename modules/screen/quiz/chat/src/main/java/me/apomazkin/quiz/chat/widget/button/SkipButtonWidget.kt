@@ -14,9 +14,11 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun SkipButtonWidget(
+    modifier: Modifier = Modifier,
     sendMessage: (Msg) -> Unit
 ) {
     ChatButtonWidget(
+        modifier = modifier,
         title = R.string.chat_quiz_msg_user_skip
     ) {
         sendMessage.invoke(Msg.Skip)

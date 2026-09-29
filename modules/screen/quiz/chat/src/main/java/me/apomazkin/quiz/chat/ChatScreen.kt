@@ -58,25 +58,33 @@ internal fun ChatScreen(
             },
     ) { paddings: PaddingValues ->
 
+        // Фон — на полный экран, вне imePadding: клавиатура его закрывает, а не
+        // пересчитывает (при FillHeight в сжатом Box картинка сужалась по аспекту
+        // и по бокам вылезала подложка). Crop — без подложки при любом аспекте.
         Box(
                 modifier = Modifier
                         .fillMaxSize()
                         .padding(paddings)
                         .consumeWindowInsets(paddings)
-                        .imePadding()
                         .background(color = MaterialTheme.colorScheme.tertiary)
         ) {
             Image(
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.FillHeight,
+                    contentScale = ContentScale.Crop,
                     painter = painterResource(R.drawable.ic_chat_bg),
                     contentDescription = stringResource(R.string.chat_quiz_bg_image_content_description)
             )
-            when (state.loading) {
-                true -> InitQuizWidget()
-                false -> ChatWidget(
-                        state = state.chat,
-                ) { sendMessage(it) }
+            Box(
+                    modifier = Modifier
+                            .fillMaxSize()
+                            .imePadding()
+            ) {
+                when (state.loading) {
+                    true -> InitQuizWidget()
+                    false -> ChatWidget(
+                            state = state.chat,
+                    ) { sendMessage(it) }
+                }
             }
         }
     }

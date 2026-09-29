@@ -18,6 +18,7 @@ import me.apomazkin.core_db_impl.room.dao.GroupDao
 import me.apomazkin.core_db_impl.room.dao.QuizConfigDao
 import me.apomazkin.core_db_impl.room.migrations.Migration_011_to_012
 import me.apomazkin.core_db_impl.room.migrations.Migration_012_to_013
+import me.apomazkin.core_db_impl.room.migrations.Migration_013_to_014
 import me.apomazkin.logger.LexemeLogger
 import javax.inject.Singleton
 
@@ -33,6 +34,8 @@ import javax.inject.Singleton
  * - M12→M13 (`Migration_012_to_013.kt`) — IS493 группы: dictionary_groups +
  *   word_groups (составной PK), только DDL, таблицы пустые; все этапы фичи —
  *   в одной миграции.
+ * - M13→M14 (`Migration_013_to_014.kt`) — IS508: unique-индекс
+ *   write_quiz.lexeme_id (схлопывание дублей + DROP/CREATE индекса).
  *
  * **Fallback на destructive migration**: если когда-то встретится install с БД
  * `user_version < 11` (pre-0.1.0 internal сборка) и без зарегистрированной миграции —
@@ -59,7 +62,7 @@ class RoomModule {
         )
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
-            .addMigrations(Migration_011_to_012, Migration_012_to_013)
+            .addMigrations(Migration_011_to_012, Migration_012_to_013, Migration_013_to_014)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onDestructiveMigration(connection: SQLiteConnection) {

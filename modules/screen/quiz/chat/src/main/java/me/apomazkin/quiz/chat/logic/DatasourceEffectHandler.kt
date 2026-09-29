@@ -110,10 +110,13 @@ class DatasourceEffectHandler(
             is DatasourceEffect.NextQuestion -> withContext(io) {
                 if (quizGame.hasNextQuestion()) {
                     val quiz = quizGame.nextQuestion()
-                    delay(Random.nextLong(100, 400))
+                    delay(botPauseMs())
                     Msg.NextQuestion(content = MessageContent.create(text = quiz))
                 } else {
                     async { quizGame.saveSession() }.await()
+                    // Финал — тоже сообщение бота: пауза, чтобы оценка последнего
+                    // ответа успела доехать до вставки итогов.
+                    delay(botPauseMs())
                     Msg.SessionOver(MessageContent.create(text = quizGame.summaryGeneral()))
                 }
             }
@@ -121,17 +124,23 @@ class DatasourceEffectHandler(
                 quizGame.skip()
                 Msg.Skipped
             }
-            is DatasourceEffect.GetAnswer -> {
+            is DatasourceEffect.GetAnswer -> withContext(io) {
                 val answer = quizGame.skipAndGetAnswer()
+                // Пауза как перед любым сообщением бота: пузырь юзера
+                // «Показать ответ» успевает встать, ответ въезжает следом.
+                delay(botPauseMs())
                 Msg.ShowAnswer(value = MessageContent.create(text = answer))
             }
             is DatasourceEffect.CheckAnswer -> withContext(io) {
                 val userAttempt = effect.answer.trim()
                 val assessment = quizGame.makeAssessment(userAttempt)
-                delay(Random.nextLong(100, 400))
+                delay(botPauseMs())
                 Msg.Assessment(value = MessageContent.create(text = assessment))
             }
-            is DatasourceEffect.Summary -> sendSummary()
+            is DatasourceEffect.Summary -> withContext(io) {
+                delay(botPauseMs())
+                sendSummary()
+            }
             is DatasourceEffect.LoadQuizComponentTypes -> withContext(io) {
                 val dictId = useCase.getCurrentDictionaryId()
                 if (dictId == null) {
@@ -176,4 +185,16 @@ class DatasourceEffectHandler(
             }
         )
     }
+
+    /**
+     * Пауза «бот думает» перед сообщением. Нижняя граница — не короче
+     * анимации въезда пузыря, чтобы пузыри шли по одному, а не
+     * накладывались анимациями (чат-фикс 6). Значения намеренно
+     * замедленные (решение юзера 2026-09-29, проверка анимаций на
+     * магазинной сборке); рабочие — 400–650 мс.
+     */
+    private fun botPauseMs(): Long = Random.nextLong(BOT_PAUSE_MIN_MS, BOT_PAUSE_MAX_MS)
 }
+
+private const val BOT_PAUSE_MIN_MS = 2000L
+private const val BOT_PAUSE_MAX_MS = 2100L

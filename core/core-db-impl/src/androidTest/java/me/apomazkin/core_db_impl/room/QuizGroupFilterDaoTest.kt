@@ -192,6 +192,17 @@ class QuizGroupFilterDaoTest {
         assertEquals(inGroup, result.single().lexemeDbWithWordDbRelation.wordDb.id)
     }
 
+    @Test
+    fun frequentMistakes_zeroErrors_excluded() = runBlocking {
+        // IS508 (Д6): «частые ошибки» — только строки с ошибками.
+        addQuizWordCustom("no-mistakes", lastSelect = null, errorCount = 0)
+        val withMistakes = addQuizWordCustom("mistaken", lastSelect = null, errorCount = 1)
+
+        val result = db.wordDao().getFrequentMistakes(limit = 10, langId = dictId, groupId = null)
+
+        assertEquals(listOf(withMistakes), result.map { it.lexemeDbWithWordDbRelation.wordDb.id })
+    }
+
     // === Счётчики ===
 
     @Test

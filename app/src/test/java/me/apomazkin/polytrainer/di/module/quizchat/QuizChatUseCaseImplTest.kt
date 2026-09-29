@@ -56,7 +56,16 @@ class QuizChatUseCaseImplTest {
         } returns groupId
     }
 
-    private fun makeQuizEntity(id: Long, grade: Int, dictId: Long = 1L) = WriteQuizComplexEntity(
+    /**
+     * Квиз-запись с `lexemeId == id`; `wordId` отдельно — IS508 моделирует
+     * «две лексемы одного слова» (пины Д1/Д4).
+     */
+    private fun makeQuizEntity(
+        id: Long,
+        grade: Int,
+        dictId: Long = 1L,
+        wordId: Long = id,
+    ) = WriteQuizComplexEntity(
         quizData = WriteQuizApiEntity(
             id = id,
             dictionaryId = dictId,
@@ -65,8 +74,55 @@ class QuizChatUseCaseImplTest {
             addDate = Date(),
         ),
         lexemeData = LexemeApiEntity(id = id, addDate = Date()),
-        wordData = WordApiEntity(id = id, dictionaryId = dictId, value = "word_$id", addDate = Date()),
+        wordData = WordApiEntity(id = wordId, dictionaryId = dictId, value = "word_$wordId", addDate = Date()),
     )
+
+    private fun stubBucket(grade: Int, ids: List<Long>) {
+        coEvery { quizApi.getWriteQuizIds(grade = grade, dictionaryId = 1L) } returns ids
+    }
+
+    private fun stubGetByIds(gradeOf: (Long) -> Int = { 0 }, wordOf: (Long) -> Long = { it }) {
+        coEvery { quizApi.getWriteQuizByIds(any()) } answers {
+            firstArg<List<Long>>().map { makeQuizEntity(it, grade = gradeOf(it), wordId = wordOf(it)) }
+        }
+    }
+
+    private fun List<me.apomazkin.quiz.chat.entity.WriteQuiz>.lexemeIds(): List<Long> =
+        map { it.lexeme.lexemeId.id }
+
+    // ===== IS508 grade distribution pin (on pre-fix code) =====
+
+    @Test
+    fun `grade distribution - halves remaining per grade, fills from leftovers`() = runTest {
+        stubPrefs()
+        stubBucket(grade = 0, ids = (1L..10L).toList())
+        stubBucket(grade = 1, ids = (11L..20L).toList())
+        stubBucket(grade = 2, ids = (21L..30L).toList())
+        stubGetByIds(gradeOf = { ((it - 1) / 10).toInt() })
+
+        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 2, dictionaryId = 1L)
+
+        assertEquals(10, result.size)
+        // корзина 0 → limit/2 = 5, корзина 1 → remaining/2 = 2, корзина 2 → 1;
+        // добор до 10 — из остатков любых грейдов (перемешан).
+        assertTrue(result.count { it.grade == 0 } >= 5)
+        assertTrue(result.count { it.grade == 1 } >= 2)
+        assertTrue(result.count { it.grade == 2 } >= 1)
+        assertEquals(result.size, result.lexemeIds().toSet().size)
+    }
+
+    @Test
+    fun `grade distribution - single small bucket, no fill from nowhere`() = runTest {
+        stubPrefs()
+        stubBucket(grade = 0, ids = listOf(1L, 2L))
+        stubBucket(grade = 1, ids = emptyList())
+        stubBucket(grade = 2, ids = emptyList())
+        stubGetByIds()
+
+        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 2, dictionaryId = 1L)
+
+        assertEquals(setOf(1L, 2L), result.lexemeIds().toSet())
+    }
 
     @Test
     fun `normal - returns items within limit`() = runTest {
@@ -111,6 +167,123 @@ class QuizChatUseCaseImplTest {
 
         assertEquals("Result should be empty", 0, result.size)
         coVerify(exactly = 0) { quizApi.getWriteQuizByIds(any()) }
+    }
+
+    // ===== IS508 no duplicates =====
+
+    private fun stubAddons(earliest: List<Long>? = null, errors: List<Long>? = null, wordOf: (Long) -> Long = { it }) {
+        coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns (earliest != null)
+        coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns (errors != null)
+        earliest?.let { ids ->
+            coEvery { quizApi.getEarliestWriteQuizList(any(), 1L, null) } returns
+                ids.map { makeQuizEntity(it, grade = 0, wordId = wordOf(it)) }
+        }
+        errors?.let { ids ->
+            coEvery { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, null) } returns
+                ids.map { makeQuizEntity(it, grade = 0, wordId = wordOf(it)) }
+        }
+    }
+
+    @Test
+    fun `add-ons - lexeme never taken twice, next candidates taken`() = runTest {
+        // 1 отсекается корзиной, 5 — «давними»: у добавок остаются 4,5 и 6.
+        stubPrefs()
+        stubBucket(grade = 0, ids = listOf(1L, 2L, 3L))
+        stubGetByIds()
+        stubAddons(earliest = listOf(1L, 4L, 5L), errors = listOf(1L, 5L, 6L))
+
+        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+
+        val lexemeIds = result.lexemeIds()
+        assertEquals(lexemeIds.size, lexemeIds.toSet().size)
+        assertEquals(setOf(1L, 2L, 3L, 4L, 5L, 6L), lexemeIds.toSet())
+    }
+
+    @Test
+    fun `add-on cap - at most ADDON_SIZE taken from candidates`() = runTest {
+        stubPrefs()
+        stubBucket(grade = 0, ids = listOf(1L, 2L, 3L))
+        stubGetByIds()
+        stubAddons(earliest = listOf(4L, 5L, 6L, 7L))
+
+        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+
+        val added = result.lexemeIds().toSet() - setOf(1L, 2L, 3L)
+        assertEquals(5, result.size)
+        assertEquals(2, added.size)
+        assertTrue(added.all { it in setOf(4L, 5L, 6L, 7L) })
+    }
+
+    @Test
+    fun `only mistakes on - filtered against bucket`() = runTest {
+        stubPrefs()
+        stubBucket(grade = 0, ids = listOf(1L, 2L))
+        stubGetByIds()
+        stubAddons(errors = listOf(1L, 3L, 4L))
+
+        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+
+        assertEquals(setOf(1L, 2L, 3L, 4L), result.lexemeIds().toSet())
+    }
+
+    @Test
+    fun `add-on fully overlapping bucket - contributes nothing (Д3)`() = runTest {
+        stubPrefs()
+        stubBucket(grade = 0, ids = listOf(1L, 2L))
+        stubGetByIds()
+        stubAddons(earliest = listOf(1L, 2L))
+
+        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+
+        assertEquals(setOf(1L, 2L), result.lexemeIds().toSet())
+        assertEquals(2, result.size)
+    }
+
+    @Test
+    fun `two lexemes of one word - both taken when no other candidates (Д1)`() = runTest {
+        stubPrefs()
+        stubBucket(grade = 0, ids = listOf(1L, 2L))
+        stubGetByIds(wordOf = { 1L })
+
+        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+
+        assertEquals(setOf(1L, 2L), result.lexemeIds().toSet())
+    }
+
+    @Test
+    fun `word preference - second lexeme of same word skipped while other words available (Д4)`() = runTest {
+        // Корзина 0: лексемы 1 и 2 — слово 1; корзина 1: лексемы 3 и 4 — слова 3 и 4.
+        // Из корзины берётся не больше limit id, поэтому обе корзины не длиннее limit —
+        // иначе часть кандидатов отсекается ещё до выбора слов (нестабильный тест).
+        // limit=3: по одной из каждой корзины, добор одного — слово 1 уже в порции,
+        // значит добирается оставшееся новое слово: 3 и 4 всегда, из 1/2 — ровно одна.
+        stubPrefs()
+        stubBucket(grade = 0, ids = listOf(1L, 2L))
+        stubBucket(grade = 1, ids = listOf(3L, 4L))
+        stubGetByIds(gradeOf = { if (it <= 2L) 0 else 1 }, wordOf = { if (it <= 2L) 1L else it })
+
+        val result = useCase.getRandomWriteQuizList(limit = 3, maxGrade = 1, dictionaryId = 1L)
+
+        val ids = result.lexemeIds().toSet()
+        assertEquals(3, ids.size)
+        assertTrue(3L in ids)
+        assertTrue(4L in ids)
+        assertTrue((1L in ids) != (2L in ids))
+    }
+
+    @Test
+    fun `word preference in add-on - new word first, same word by second pass (Д4)`() = runTest {
+        // порция: лексема 1 слова 1; «давние»: 4 (слово 1) и 5 (слово 5);
+        // ADDON_SIZE=2 — 5 первым проходом, 4 вторым: обе входят.
+        stubPrefs()
+        stubBucket(grade = 0, ids = listOf(1L))
+        stubGetByIds()
+        stubAddons(earliest = listOf(4L, 5L), wordOf = { if (it == 4L) 1L else it })
+
+        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+
+        assertEquals(setOf(1L, 4L, 5L), result.lexemeIds().toSet())
+        assertEquals(2, result.map { it.word.id }.toSet().size)
     }
 
     // ===== IS500 quiz group filter =====

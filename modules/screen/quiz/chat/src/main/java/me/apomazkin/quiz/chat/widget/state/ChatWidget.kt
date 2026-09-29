@@ -1,16 +1,15 @@
 package me.apomazkin.quiz.chat.widget.state
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import me.apomazkin.quiz.chat.R
 import me.apomazkin.quiz.chat.logic.ChatScreenState
 import me.apomazkin.quiz.chat.logic.ChatState
@@ -18,11 +17,9 @@ import me.apomazkin.quiz.chat.logic.MessageContent
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.logic.systemMessage
 import me.apomazkin.quiz.chat.widget.ChatMessageWidget
-import me.apomazkin.quiz.chat.widget.button.ShowAnswerButtonWidget
-import me.apomazkin.quiz.chat.widget.button.SkipButtonWidget
+import me.apomazkin.quiz.chat.widget.ChatMotion
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
-import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 import me.apomazkin.ui.input.PrimaryTextFieldWidget
 import me.apomazkin.ui.preview.PreviewWidget
 
@@ -37,28 +34,28 @@ fun ChatWidget(
         modifier = modifier
             .fillMaxSize(),
     ) {
+        // «Начать» — системная кнопка внутри ленты (под приветствием), а не
+        // полоса под ней: нажатие превращает её в пузырь юзера на месте.
         ChatMessageWidget(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1F),
             state = state.messagesState,
+            showUserActions = state.showUserActions,
+            showStartAction = !state.readyToStart,
             sendMessage = sendMessage,
         )
-        
-        if (state.readyToStart) {
-            if (state.showUserActions) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp, end = 16.dp),
-                    horizontalArrangement = Arrangement
-                        .spacedBy(8.dp, Alignment.End),
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    ShowAnswerButtonWidget { sendMessage.invoke(it) }
-                    SkipButtonWidget { sendMessage.invoke(it) }
-                }
-            }
+
+        // Поле ввода разворачивается снизу той же кривой, что «Начать»
+        // превращается в пузырь: лента уезжает вверх одним движением,
+        // а не скачком на высоту поля.
+        AnimatedVisibility(
+            visible = state.readyToStart,
+            enter = expandVertically(
+                animationSpec = tween(ChatMotion.DURATION_MS, easing = ChatMotion.EASING),
+            ),
+            exit = ExitTransition.None,
+        ) {
             PrimaryTextFieldWidget(
                 modifier = Modifier
                     .background(color = whiteColor),
@@ -69,15 +66,6 @@ fun ChatWidget(
                 isSendEnabled = state.inputState.isNotEmpty() && state.inputState.isNotBlank(),
                 onValueChange = { sendMessage(Msg.UserTextChange(it)) },
                 onSendAction = { sendMessage(Msg.UserAttempt(state.inputState)) }
-            )
-        } else {
-            PrimaryFullButtonWidget(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp),
-                titleRes = R.string.chat_quiz_start_button_title,
-                enabled = true,
-                onClick = { sendMessage(Msg.Start) }
             )
         }
     }

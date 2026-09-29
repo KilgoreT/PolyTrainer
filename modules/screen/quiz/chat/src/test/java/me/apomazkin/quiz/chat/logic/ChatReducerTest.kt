@@ -207,4 +207,31 @@ class ChatReducerTest {
 
         assertEquals(r1.state(), r2.state())
     }
+
+    // ===== IS508 чат-фикс 2: кнопки действий — элемент ленты =====
+
+    /** Сессия идёт: вопрос — последнее сообщение, флаг действий поднят. */
+    private fun questionState(): ChatScreenState = reducer
+        .testReduce(initialState, Msg.NextQuestion(MessageContent.create(text = "question")))
+        .state()
+
+    @Test
+    fun `NextQuestion raises showUserActions, question is last system message without buttons`() {
+        val state = questionState()
+        val last = state.chat.messagesState.list.last()
+
+        assertTrue(state.chat.showUserActions)
+        assertTrue(last.isSystemMessage)
+        assertTrue(last.buttons.isEmpty())
+    }
+
+    @Test
+    fun `UserAttempt, GetAnswer, Skip drop showUserActions`() {
+        val state = questionState()
+
+        listOf(Msg.UserAttempt("x"), Msg.GetAnswer, Msg.Skip).forEach { msg ->
+            val result = reducer.testReduce(state, msg)
+            assertEquals("$msg", false, result.state().chat.showUserActions)
+        }
+    }
 }

@@ -3,9 +3,9 @@ package me.apomazkin.quiz.chat.widget.button.base
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -26,21 +27,29 @@ import me.apomazkin.ui.preview.PreviewWidget
 
 @Composable
 fun ChatButtonWidget(
+    modifier: Modifier = Modifier,
     @StringRes title: Int,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
+    // Высота — по содержимому, как у пузыря юзера (тот же стиль BodyM и те же
+    // отступы 16/8): кнопка занимает ровно место будущего пузыря, и при
+    // замене стопка выше не оседает. Не кликабельный Surface(onClick): тот
+    // раздувает раскладку до минимальной зоны касания 48dp, рисуя фон по
+    // содержимому, — ряд чипов был выше пузыря на 18dp при одинаковом виде.
+    val shape = RoundedCornerShape(
+        topStart = 20.dp,
+        topEnd = 20.dp,
+        bottomStart = 20.dp,
+        bottomEnd = 8.dp,
+    )
     Surface(
-        modifier = Modifier
-            .height(48.dp),
-        shape = RoundedCornerShape(
-            topStart = 20.dp,
-            topEnd = 20.dp,
-            bottomStart = 20.dp,
-            bottomEnd = 8.dp,
-        ),
+        modifier = modifier
+            .clip(shape)
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = shape,
         border = BorderStroke(width = 1.dp, color = chatMessageBtnBorder),
         color = whiteColor,
-        onClick = onClick,
     ) {
         Box(
             modifier = Modifier

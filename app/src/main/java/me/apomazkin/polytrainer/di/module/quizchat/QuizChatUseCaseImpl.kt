@@ -9,6 +9,7 @@ import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.lexeme.LexemeId
 import me.apomazkin.lexeme.QuizConfig
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.polytrainer.di.module.quizgroup.QuizGroupSelectionStore
@@ -88,55 +89,76 @@ class QuizChatUseCaseImpl @Inject constructor(
                     .toDomainEntity(type = QuizType.GRADES)
             }
         val sortedGrades = allByGrades.toSortedMap()
-        
-        val result = mutableSetOf<WriteQuiz>()
+
+        // IS508: порция ключуется лексемой — один вопрос один раз, это
+        // свойство контейнера, а не отдельных фильтров (Д1, Д7).
+        val portion = LinkedHashMap<LexemeId, WriteQuiz>()
+
+        // Берёт в порцию до count кандидатов: лексема ещё не в порции;
+        // первый проход — только новые слова, второй — остальные (Д4).
+        fun pick(candidates: List<WriteQuiz>, count: Int): List<WriteQuiz> {
+            val picked = mutableListOf<WriteQuiz>()
+            fun tryTake(quiz: WriteQuiz, allowSameWord: Boolean) {
+                if (picked.size >= count) return
+                if (quiz.lexeme.lexemeId in portion) return
+                if (!allowSameWord && portion.values.any { it.word.id == quiz.word.id }) return
+                portion[quiz.lexeme.lexemeId] = quiz
+                picked += quiz
+            }
+            candidates.forEach { tryTake(it, allowSameWord = false) }
+            candidates.forEach { tryTake(it, allowSameWord = true) }
+            return picked
+        }
+
         var remaining = limit
-        
-        for ((grade, list) in sortedGrades) {
+        for ((_, list) in sortedGrades) {
             if (remaining <= 0) break
-            val expectedCount = if (result.isEmpty()) {
+            val expectedCount = if (portion.isEmpty()) {
                 limit / 2
             } else {
                 remaining / 2
             }.coerceAtLeast(1)
-            
-            val available = list.take(expectedCount)
-            result += available
-            remaining -= available.size
-        }
-        
-        if (result.size < limit) {
-            val leftovers = sortedGrades.values
-                .flatten()
-                .filterNot { it in result }
-                .shuffled()
-            result += leftovers.take(limit - result.size)
+            remaining -= pick(list, expectedCount).size
         }
 
+        if (portion.size < limit) {
+            pick(sortedGrades.values.flatten().shuffled(), limit - portion.size)
+        }
+        val gradesCount = portion.size
 
+        var earliestAdded = 0
+        var earliestCandidates = 0
         val isEarliestOn = prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN)
                 ?: false
         if (isEarliestOn) {
-            val earliest = quizApi
+            val candidates = quizApi
                     .getEarliestWriteQuizList(limit, dictionaryId, groupId)
-                    .shuffled()
                     .toDomainEntity(type = QuizType.EARLIEST)
-                    .take(2)
-            result += earliest
+            earliestCandidates = candidates.size
+            earliestAdded = pick(candidates.shuffled(), ADDON_SIZE).size
         }
+        var errorsAdded = 0
+        var errorsCandidates = 0
         val isFrequentMistakesOn = prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN)
                 ?: false
         if (isFrequentMistakesOn) {
-            val frequentMistakes = quizApi
+            val candidates = quizApi
                 .getFrequentMistakesWriteQuizList(limit, dictionaryId, groupId)
-                .shuffled()
                 .toDomainEntity(type = QuizType.ERRORS)
-                .take(2)
-            result += frequentMistakes
+            errorsCandidates = candidates.size
+            errorsAdded = pick(candidates.shuffled(), ADDON_SIZE).size
         }
 
-        return result
-            .shuffled()
+        // Выключенная опция — «off», чтобы не путать с «включена, кандидатов нет» (+0/0).
+        val earliestMark = if (isEarliestOn) "+$earliestAdded/$earliestCandidates" else "off"
+        val errorsMark = if (isFrequentMistakesOn) "+$errorsAdded/$errorsCandidates" else "off"
+        logger.d(
+            tag = LogTags.CHAT,
+            message = "getRandomWriteQuizList: portion grades=$gradesCount " +
+                "earliest=$earliestMark errors=$errorsMark " +
+                "total=${portion.size} words=${portion.values.distinctBy { it.word.id }.size}",
+        )
+        return portion.values.shuffled()
     }
 
     override suspend fun getQuizConfig(
@@ -187,6 +209,9 @@ class QuizChatUseCaseImpl @Inject constructor(
             ?.name
     }
 }
+
+/** IS508: размер добавки «Самые давние» / «Частые ошибки». */
+private const val ADDON_SIZE = 2
 
 private const val PREFIX_BUILTIN = "builtin:"
 private const val PREFIX_USER = "user:"

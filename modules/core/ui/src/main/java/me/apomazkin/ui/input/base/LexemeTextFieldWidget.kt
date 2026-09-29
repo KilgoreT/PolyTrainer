@@ -94,9 +94,13 @@ fun LexemeTextFieldWidget(
                     autoCorrectEnabled = autoCorrect,
                     imeAction = imeAction
             ),
+            // Рамка прозрачна во всех состояниях: без disabledBorderColor M3
+            // рисует серую, и она видна, пока поле чата выключено между
+            // «Начать» и первым вопросом.
             colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
+                    disabledBorderColor = Color.Transparent,
             ),
             keyboardActions = KeyboardActions { onKeyboardActions.invoke() }
     )

@@ -33,7 +33,7 @@ import me.apomazkin.core_db_impl.room.dao.QuizConfigDao
         GroupDb::class,
         WordGroupDb::class,
     ],
-    version = 13
+    version = 14
 )
 @TypeConverters(DateTimeConverter::class)
 abstract class Database : RoomDatabase() {

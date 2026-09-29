@@ -19,7 +19,8 @@ import java.util.Date
             onDelete = ForeignKey.CASCADE,
         )
     ],
-    indices = [Index("lexeme_id")]
+    // IS508: одна лексема — одна квиз-строка; инвариант закреплён схемой (v14).
+    indices = [Index("lexeme_id", unique = true)]
 )
 data class WriteQuizDb(
         @PrimaryKey(autoGenerate = true)
