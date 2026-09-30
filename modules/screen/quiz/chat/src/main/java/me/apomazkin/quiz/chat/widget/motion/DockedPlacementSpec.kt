@@ -1,4 +1,4 @@
-package me.apomazkin.quiz.chat.widget
+package me.apomazkin.quiz.chat.widget.motion
 
 import androidx.compose.animation.core.AnimationVector
 import androidx.compose.animation.core.AnimationVector2D
@@ -6,17 +6,27 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.TwoWayConverter
 import androidx.compose.animation.core.VectorizedFiniteAnimationSpec
 import androidx.compose.ui.unit.IntOffset
+import me.apomazkin.quiz.chat.widget.ChatMotion
 import kotlin.math.abs
 
 /**
- * Placement соседей при въезде нового элемента «со стыковкой». Новый
- * элемент едет из-под поля ввода одной кривой [ChatMotion.EASING] на
- * дистанцию «добавка [extraPx] + сдвиг D»; соседи стоят, пока он не
- * пройдёт добавку (не встанет к ним в зазор), и дальше едут с ним как
- * одно целое: остаток пути соседа = min(D, остаток пути нового). Сдвиг D
- * известен только самой анимации (initial → target), поэтому кривая
- * считается здесь, а не задаётся tween-ом с задержкой (у того две фазы
- * со своим разгоном — на рабочей скорости читалось как пинок).
+ * Доля пути соседа при доле времени [eased] (после кривой) — стыковка с
+ * новым элементом: новый едет на «добавка [extraPx] + сдвиг [distance]»,
+ * сосед стоит, пока новый проходит добавку, и дальше остаток пути у них
+ * общий. Сдвиг 0 — сосед на месте (доля 1).
+ */
+internal fun dockedFraction(extraPx: Float, distance: Float, eased: Float): Float {
+    val d = abs(distance)
+    if (d == 0f) return 1f
+    return (((extraPx + d) * eased - extraPx) / d).coerceIn(0f, 1f)
+}
+
+/**
+ * Placement соседей при въезде нового элемента «со стыковкой» — по
+ * [dockedFraction]. Сдвиг известен только самой анимации
+ * (initial → target), поэтому кривая считается здесь, а не задаётся
+ * tween-ом с задержкой (у того две фазы со своим разгоном — читалось как
+ * пинок).
  */
 internal class DockedPlacementSpec(
     private val durationMs: Int,
@@ -66,13 +76,7 @@ internal class DockedPlacementSpec(
             initialVelocity: AnimationVector2D,
         ): AnimationVector2D = AnimationVector2D(0f, 0f)
 
-        /** Сосед стоит, пока новый элемент проходит добавку, затем едет с ним. */
-        private fun docked(from: Float, to: Float, e: Float): Float {
-            val d = abs(to - from)
-            if (d == 0f) return to
-            val travelled = (extraPx + d) * e - extraPx
-            val fraction = (travelled / d).coerceIn(0f, 1f)
-            return from + (to - from) * fraction
-        }
+        private fun docked(from: Float, to: Float, e: Float): Float =
+            from + (to - from) * dockedFraction(extraPx, to - from, e)
     }
 }

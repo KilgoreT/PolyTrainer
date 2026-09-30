@@ -7,10 +7,8 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.padding
@@ -21,34 +19,43 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import me.apomazkin.quiz.chat.R
 import me.apomazkin.quiz.chat.logic.ChatMessage
 import me.apomazkin.quiz.chat.logic.ChatMessageState
+import me.apomazkin.quiz.chat.logic.ChatTiming
 import me.apomazkin.quiz.chat.logic.MessageContent
 import me.apomazkin.quiz.chat.logic.Msg
-import me.apomazkin.quiz.chat.logic.UserMessageOrigin
 import me.apomazkin.quiz.chat.logic.isPreviousHasSameType
-import me.apomazkin.quiz.chat.widget.button.ACTION_CHIP_SPACING
 import me.apomazkin.quiz.chat.widget.button.StartActionWidget
 import me.apomazkin.quiz.chat.widget.button.UserActionsWidget
-import me.apomazkin.quiz.chat.widget.button.base.ChatButtonWidget
+import me.apomazkin.quiz.chat.widget.message.FlyingUserMessage
+import me.apomazkin.quiz.chat.widget.message.MorphState
+import me.apomazkin.quiz.chat.widget.message.MorphingUserMessage
 import me.apomazkin.quiz.chat.widget.message.SystemMessageWidget
 import me.apomazkin.quiz.chat.widget.message.UserMessageWidget
+import me.apomazkin.quiz.chat.widget.motion.ChatItem
+import me.apomazkin.quiz.chat.widget.motion.DockedPlacementSpec
+import me.apomazkin.quiz.chat.widget.motion.Entrance
+import me.apomazkin.quiz.chat.widget.motion.InsertShiftTracker
+import me.apomazkin.quiz.chat.widget.motion.LaidOutItem
+import me.apomazkin.quiz.chat.widget.motion.entranceFor
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.preview.PreviewWidget
 
+/**
+ * Лента чата от низа. Движение: соседей двигает placement LazyList
+ * ([DockedPlacementSpec]), новые элементы въезжают по дистанции трекера
+ * ([InsertShiftTracker], [slideInWithColumn]); как элемент входит,
+ * решает [entranceFor] один раз на ключ, лента только раздаёт роли:
+ * въезд, превращение из кнопки ([MorphingUserMessage]), полёт ответа
+ * ([FlyingUserMessage]).
+ */
 @Composable
 fun ChatMessageWidget(
     modifier: Modifier = Modifier,
@@ -59,7 +66,7 @@ fun ChatMessageWidget(
     sendMessage: (Msg) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
-    val durationMs = ChatMotion.DURATION_MS
+    val durationMs = ChatTiming.MOTION_DURATION_MS
     val listPaddingPx = with(LocalDensity.current) { ChatMotion.LIST_PADDING.toPx() }
     // Въезд «со стыковкой»: новый элемент едет из-под поля одной кривой на
     // добавку + сдвиг соседей; соседи стоят, пока он проходит добавку, и
@@ -68,19 +75,13 @@ fun ChatMessageWidget(
     val slideSpec = remember { tween<Float>(durationMs, easing = LinearEasing) }
     val placementSpecOn = remember { DockedPlacementSpec(durationMs, listPaddingPx) }
 
-    val insertShift = remember { InsertShiftTracker() }
-    // «Новый» — ключ, которого не было в предыдущей раскладке (см. tracker):
-    // въезжает и морфится только он; старое сообщение, заново скомпонованное
-    // после выпадения из окна, — нет. При первой композиции новых нет.
+    val tracker = remember { InsertShiftTracker() }
+    // «Новое» сообщение — порядок выше всех размещённых (см. tracker):
+    // въезжает и морфится только оно; история — нет.
     val isLastMessageNew = state.list.lastOrNull()
-        ?.let { insertShift.isNewKey(it.order.toString()) } ?: false
+        ?.let { tracker.isNewOrder(it.order) } ?: false
     val morphState = remember { MorphState() }
     val placementSpec = if (morphState.active) null else placementSpecOn
-    // Ширина чипа «Пропустить» (px) — на неё + зазор пузырь «Показать ответ»
-    // уезжает вправо со своего места. Обычное поле: читается при композиции
-    // нового пузыря, чип к этому моменту давно измерен.
-    val skipChipWidthPx = remember { IntArray(1) }
-    val chipSpacingPx = with(LocalDensity.current) { ACTION_CHIP_SPACING.toPx() }
 
     // Лента от низа (reverseLayout): индекс 0 — нижний элемент. При
     // изменении набора элементов, если лента у конца, — закрепить (0, 0)
@@ -99,7 +100,7 @@ fun ChatMessageWidget(
         SideEffect {
             if (!lazyListState.canScrollBackward) {
                 lazyListState.requestScrollToItem(0)
-                insertShift.armed = true
+                tracker.armed = true
             }
         }
     }
@@ -116,7 +117,7 @@ fun ChatMessageWidget(
         // ленте, чтобы внутренний скролл поля ввода клавиатурой не управлял.
         modifier = modifier
             .imeNestedScroll()
-            .trackInsertShift(lazyListState, insertShift),
+            .trackInsertShift(lazyListState, tracker, isLastMessageNew),
         state = lazyListState,
         contentPadding = PaddingValues(all = ChatMotion.LIST_PADDING),
         // Реверс не меняет семантику arrangement: прижатие короткого
@@ -131,22 +132,21 @@ fun ChatMessageWidget(
         // скачком уезжает (так «прыгала» цепочка над вопросом).
         if (showUserActions) {
             item(key = USER_ACTIONS_KEY) {
+                // Вход защёлкивается на первой композиции элемента: на
+                // следующих последнее сообщение уже не «новое».
+                val entrance = remember(USER_ACTIONS_KEY) {
+                    entranceFor(ChatItem.Actions, isNew = isLastMessageNew, flightOrder = null)
+                }
                 UserActionsWidget(
                     modifier = Modifier
                         .animateItem(fadeInSpec = null, placementSpec = placementSpec, fadeOutSpec = null)
-                        .slideInWithColumn(
-                            key = USER_ACTIONS_KEY,
-                            enabled = isLastMessageNew,
-                            tracker = insertShift,
-                            spec = slideSpec,
-                        ),
-                    onSkipChipMeasured = { skipChipWidthPx[0] = it },
+                        .slideInIf(entrance, USER_ACTIONS_KEY, tracker, slideSpec),
                     sendMessage = sendMessage,
                 )
             }
         }
         // «Начать» — системная кнопка под приветствием, на месте будущего
-        // пузыря юзера «Начать»; есть с первой композиции, въезда нет.
+        // пузыря юзера «Начать»; есть с первой композиции, входа нет.
         if (showStartAction) {
             item(key = START_ACTION_KEY) {
                 StartActionWidget(
@@ -163,126 +163,64 @@ fun ChatMessageWidget(
             // Логика цепочек / аватара / кнопок финала — по индексу в
             // оригинальном (хронологическом) списке.
             val index = state.list.lastIndex - reversedIndex
+            val isInChain = index > 0 && state.list[index - 1].isSystemMessage
+            val itemKey = item.order.toString()
+            // Вход решается один раз на ключ: на следующих композициях
+            // сообщение уже не «новое», а анимация должна дойти до конца.
+            val entrance = remember(itemKey) {
+                entranceFor(
+                    item = ChatItem.Message(message = item, isInChain = isInChain),
+                    isNew = tracker.isNewOrder(item.order),
+                    flightOrder = flight.order,
+                )
+            }
 
             // Один корень на элемент: в реверсе несколько placeable одного
             // элемента размещаются в обратном порядке — Spacer лёг бы под
             // пузырь. Отступ при смене стороны — модификатором корня.
+            // animateItem — первым в цепочке (анимируется узел элемента),
+            // только placement: соседи едут той же кривой, что въезжает новый.
             val topSpace = if (state.isPreviousHasSameType(index)) 0.dp else 8.dp
-            // Въезд снизу — для сообщений Lexeme и набранных ответов, на
-            // дистанцию сдвига соседей (tracker; 0 — если подвозили скроллом
-            // из истории). Пузыри из кнопок («Начать», чипы) не въезжают —
-            // они превращаются из кнопки на её месте. Набранный ответ в
-            // полёте (FlightState) тоже не въезжает: к нему летит копия
-            // текста из поля, сам пузырь скрыт до конца полёта.
-            val itemKey = item.order.toString()
-            val isNew = insertShift.isNewKey(itemKey)
-            val flying = item.origin == UserMessageOrigin.INPUT && flight.order == item.order
-            val slideIn = isNew &&
-                (item.isSystemMessage || (item.origin == UserMessageOrigin.INPUT && !flying))
-            // animateItem — первым в цепочке (анимируется узел элемента), только
-            // placement: соседи едут той же кривой, что въезжает новый.
             val bubbleModifier = Modifier
                 .animateItem(fadeInSpec = null, placementSpec = placementSpec, fadeOutSpec = null)
                 .padding(top = topSpace)
-                .slideInWithColumn(key = itemKey, enabled = slideIn, tracker = insertShift, spec = slideSpec)
+                .slideInIf(entrance, itemKey, tracker, slideSpec)
 
-            if (item.isSystemMessage) {
-                val notShowAvatar = index < state.list.lastIndex
-                        && state.list[index + 1].isSystemMessage
-                val isInChain = index > 0
-                        && state.list[index - 1].isSystemMessage
-                val isLastMessage = index == state.list.lastIndex
-                SystemMessageWidget(
-                    modifier = bubbleModifier,
-                    showAvatar = notShowAvatar.not(),
-                    isInChain = isInChain,
-                    // Новое сообщение продолжает цепочку — аватар не перескакивает,
-                    // а съезжает с предыдущего пузыря на этот.
-                    avatarDescends = isNew && isInChain,
-                    avatarDescentExtraPx = { insertShift.slideExtra(itemKey, listPaddingPx) },
-                    motionDurationMs = durationMs,
-                    showButtons = isLastMessage,
-                    message = item,
-                    sendMessage = sendMessage
-                )
-            } else {
-                // t — линейное время превращения; фазы: сосед гаснет → пузырь
-                // перекрашивается; геометрия — весь интервал.
-                val t = actionMorph(
-                    key = itemKey,
-                    enabled = item.origin != UserMessageOrigin.INPUT && isNew,
-                    morphState = morphState,
-                    durationMs = durationMs,
-                )
-                val geometryMorph = ChatMotion.window(t, 0f, 1f)
-                val colorMorph = ChatMotion.window(t, ChatMotion.RECOLOR_START, 1f)
-                val ghostFade = ChatMotion.window(t, 0f, ChatMotion.GHOST_FADE_END)
-                val fromShowAnswer = item.origin == UserMessageOrigin.SHOW_ANSWER_CHIP
-                val fromSkip = item.origin == UserMessageOrigin.SKIP_CHIP
-                val skipShiftPx = skipChipWidthPx[0] + chipSpacingPx
-                // Box — один корень элемента (реверс переворачивает несколько
-                // placeable). Внутри — пузырь и, пока идёт превращение, призрак
-                // второго чипа: из «Показать ответ» — «Пропустить» едет вправо
-                // с той же скоростью, тает и уходит за край; из «Пропустить» —
-                // «Показать ответ» тает на месте слева. Призрак одной высоты с
-                // пузырём (чип = пузырь по геометрии), размер элемента не меняет.
-                Box(modifier = bubbleModifier) {
-                    UserMessageWidget(
-                        message = item.message,
-                        colorMorph = colorMorph,
-                        geometryMorph = geometryMorph,
-                        fromStart = item.origin == UserMessageOrigin.START_BUTTON,
-                        shiftFromLeftPx = if (fromShowAnswer) skipShiftPx else 0f,
-                        // В полёте: пузырь сообщает слою свою позицию (цель) и
-                        // не рисуется, пока к нему летит копия текста из поля.
-                        surfaceModifier = if (flying) {
-                            Modifier
-                                .onGloballyPositioned { flight.target = it.positionInRoot() }
-                                .graphicsLayer { alpha = if (flight.order == item.order) 0f else 1f }
-                        } else {
-                            Modifier
-                        },
+            when {
+                item.isSystemMessage -> {
+                    val notShowAvatar = index < state.list.lastIndex
+                            && state.list[index + 1].isSystemMessage
+                    val isLastMessage = index == state.list.lastIndex
+                    SystemMessageWidget(
+                        modifier = bubbleModifier,
+                        showAvatar = notShowAvatar.not(),
+                        isInChain = isInChain,
+                        // Новое сообщение продолжает цепочку — аватар не перескакивает,
+                        // а съезжает с предыдущего пузыря на этот.
+                        avatarDescends = (entrance as? Entrance.SlideFromBelow)?.avatarDescends == true,
+                        avatarDescentExtraPx = { tracker.slideExtra(itemKey, listPaddingPx) },
+                        showButtons = isLastMessage,
+                        message = item,
+                        sendMessage = sendMessage
                     )
-                    // Призрак обоих чипов: их элемент исчез тем же апдейтом, что
-                    // добавил ответ; ряд стоит на своём месте (чип = пузырь по
-                    // геометрии, ширина строки та же) и гаснет в окне смены
-                    // «чипы → плейсхолдер» — синхронно с проявлением
-                    // плейсхолдера в поле.
-                    if (flying) {
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .graphicsLayer {
-                                    alpha = 1f - ChatMotion.window(
-                                        flight.progress, ChatMotion.SWAP_START, ChatMotion.SWAP_END,
-                                    )
-                                },
-                            horizontalArrangement = Arrangement.spacedBy(ACTION_CHIP_SPACING),
-                        ) {
-                            ChatButtonWidget(title = R.string.chat_quiz_msg_user_show_answer, enabled = false) {}
-                            ChatButtonWidget(title = R.string.chat_quiz_msg_user_skip, enabled = false) {}
-                        }
-                    }
-                    if ((fromShowAnswer || fromSkip) && t < 1f) {
-                        ChatButtonWidget(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .graphicsLayer {
-                                    // Уезжающий «Пропустить» едет с пузырём и тает всю
-                                    // дорогу до края; стоящий «Показать ответ» гаснет в
-                                    // первой фазе — до того, как пузырь начнёт синеть.
-                                    translationX = if (fromShowAnswer) skipShiftPx * geometryMorph else -skipShiftPx
-                                    alpha = if (fromShowAnswer) 1f - geometryMorph else 1f - ghostFade
-                                },
-                            title = if (fromShowAnswer) {
-                                R.string.chat_quiz_msg_user_skip
-                            } else {
-                                R.string.chat_quiz_msg_user_show_answer
-                            },
-                            enabled = false,
-                        ) {}
-                    }
                 }
+                entrance is Entrance.MorphFromButton -> MorphingUserMessage(
+                    modifier = bubbleModifier,
+                    itemKey = itemKey,
+                    message = item.message,
+                    origin = entrance.origin,
+                    morphState = morphState,
+                )
+                entrance is Entrance.Flight -> FlyingUserMessage(
+                    modifier = bubbleModifier,
+                    message = item.message,
+                    order = item.order,
+                    flight = flight,
+                )
+                else -> UserMessageWidget(
+                    modifier = bubbleModifier,
+                    message = item.message,
+                )
             }
         }
     }
@@ -293,139 +231,47 @@ private const val USER_ACTIONS_KEY = "user_actions"
 private const val START_ACTION_KEY = "start_action"
 
 /**
- * Доля превращения «системная кнопка → пузырь юзера» для нового сообщения,
- * порождённого кнопкой: 0 → 1 той же кривой, что движение ленты. Пузырь
- * встаёт на место кнопки (форма и размер совпадают), меняется только цвет.
- */
-@Composable
-private fun actionMorph(key: Any, enabled: Boolean, morphState: MorphState, durationMs: Int): Float {
-    // Состояние под ключом элемента: LazyList переиспользует композицию.
-    val latched = remember(key) { enabled }
-    if (!latched) return 1f
-    val progress = remember(key) { Animatable(0f) }
-    LaunchedEffect(key) {
-        morphState.active = true
-        try {
-            // Линейное время: кривые — у каждой фазы своя (ChatMotion.window).
-            progress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMs, easing = LinearEasing),
-            )
-        } finally {
-            morphState.active = false
-        }
-    }
-    return progress.value
-}
-
-/**
- * Идёт превращение кнопки в пузырь: высота элемента-пузыря меняется
- * покадрово, и placement соседей на это время выключен — иначе они
- * догоняли бы раскладку с отставанием. Вставок в это окно нет (пауза
- * бота длиннее анимации).
- */
-private class MorphState {
-    var active by mutableStateOf(false)
-}
-
-/**
- * Дистанция въезда новых элементов (px) = на сколько placement сдвинул
- * соседей: смещение прежнего нижнего СООБЩЕНИЯ (чипы не в счёт — они
- * исчезают) между двумя раскладками, в координатах ленты от низа.
- * Положительная — соседи уехали вверх (вставили сообщение), отрицательная —
- * осели (исчезли чипы). Новые элементы стартуют на эту дистанцию ниже
- * места и едут с колонкой одним куском. Взводится (`armed`) только когда
- * лента закреплена у конца через requestScrollToItem; при подвозе
- * скроллом из истории — 0.
- */
-private class InsertShiftTracker {
-    var anchorKey: Any? = null
-    var anchorOffset: Int = 0
-    var armed: Boolean = false
-
-    /**
-     * Дистанция въезда по ключу нового элемента. Заполняется расчётом после
-     * измерения ленты — до размещения; сам элемент дистанцию не «захватывает»
-     * и ничего не регистрирует: LazyList переиспользует композицию ушедшего
-     * элемента для нового, и всё, что элемент помнит про себя, может
-     * пережить смену ключа. Пока ключа нет в карте — элемент не рисуется.
-     */
-    val distances = HashMap<Any, Float>()
-
-    /**
-     * Ключи всех элементов, побывавших в раскладке. «Новый» элемент = ключа
-     * ещё не было: старое сообщение, заново скомпонованное LazyList после
-     * выпадения из окна, новым не считается (иначе оно «въезжало» бы и
-     * морфилось заново — мелькание). До первой раскладки новых нет.
-     */
-    val knownKeys = HashSet<Any>()
-    var hasLaidOut: Boolean = false
-
-    fun isNewKey(key: Any): Boolean = hasLaidOut && key !in knownKeys
-
-    /**
-     * Добавка к въезду по ключу: [extraPx] (нижний отступ ленты — старт
-     * целиком под полем ввода) только при реальном въезде (сдвиг > 0);
-     * при подвозе из истории и при оседании (сдвиг ≤ 0) — 0. Та же
-     * добавка компенсируется в спуске аватара.
-     */
-    fun slideExtra(key: Any, extraPx: Float): Float =
-        if ((distances[key] ?: 0f) > 0f) extraPx else 0f
-}
-
-/**
- * Считает дистанцию после измерения ленты (layoutInfo уже свежий) и раздаёт
- * её новым ключам этого прохода — до их размещения. Взведённый расчёт даёт
- * дистанцию сдвига соседей, не взведённый (подвоз скроллом из истории) —
- * 0, без въезда. Обычные поля, не snapshot-state: читаются в graphicsLayer,
- * который и так перерисовывается по прогрессу анимации.
+ * Проекция раскладки в трекер после измерения ленты (layoutInfo уже
+ * свежий), до размещения элементов: трекер считает сдвиг и раздаёт
+ * дистанции новым ключам этого прохода.
  */
 private fun Modifier.trackInsertShift(
     lazyListState: LazyListState,
     tracker: InsertShiftTracker,
+    lastMessageIsNew: Boolean,
 ): Modifier = layout { measurable, constraints ->
     val placeable = measurable.measure(constraints)
-    val items = lazyListState.layoutInfo.visibleItemsInfo
-    val shift = if (tracker.armed) {
-        tracker.armed = false
-        items.firstOrNull { it.key == tracker.anchorKey }
-            ?.let { (it.offset - tracker.anchorOffset).toFloat() }
-            ?: 0f
-    } else {
-        0f
-    }
-    // Элементы кнопок в «известные» не попадают: они появляются заново с
-    // каждым вопросом и въезжают каждый раз. Дистанция выдаётся один раз
-    // (пока ключа нет в карте), чтобы промежуточные проходы раскладки не
-    // обнулили её посреди въезда. Дистанции сообщений не чистятся (элемент
-    // может на проход выпасть из видимых — и остался бы без неё навсегда);
-    // у кнопок — чистятся при исчезновении, чтобы следующее появление
-    // получило свою.
-    val visibleKeys = items.map { it.key }.toSet()
-    items.forEach { item ->
-        val isActionKey = item.key == USER_ACTIONS_KEY || item.key == START_ACTION_KEY
-        if (item.key !in tracker.knownKeys && item.key !in tracker.distances) {
-            tracker.distances[item.key] = shift
-        }
-        if (!isActionKey) tracker.knownKeys += item.key
-    }
-    tracker.hasLaidOut = true
-    if (USER_ACTIONS_KEY !in visibleKeys) tracker.distances.remove(USER_ACTIONS_KEY)
-    if (START_ACTION_KEY !in visibleKeys) tracker.distances.remove(START_ACTION_KEY)
-    items.firstOrNull { it.key != USER_ACTIONS_KEY && it.key != START_ACTION_KEY }?.let {
-        tracker.anchorKey = it.key
-        tracker.anchorOffset = it.offset
-    }
+    tracker.onLaidOut(
+        items = lazyListState.layoutInfo.visibleItemsInfo.map { info ->
+            val isAction = info.key == USER_ACTIONS_KEY || info.key == START_ACTION_KEY
+            LaidOutItem(
+                key = info.key,
+                offset = info.offset,
+                isAction = isAction,
+                order = if (isAction) null else (info.key as? String)?.toIntOrNull(),
+            )
+        },
+        lastMessageIsNew = lastMessageIsNew,
+    )
     layout(placeable.width, placeable.height) {
         placeable.place(0, 0)
     }
 }
 
+/** Въезд снизу — только для входа [Entrance.SlideFromBelow]; вход защёлкнут на ключ, условие стабильно. */
+@Composable
+private fun Modifier.slideInIf(
+    entrance: Entrance,
+    key: Any,
+    tracker: InsertShiftTracker,
+    spec: FiniteAnimationSpec<Float>,
+): Modifier = if (entrance is Entrance.SlideFromBelow) slideInWithColumn(key, tracker, spec) else this
+
 /**
  * Въезд нового элемента снизу одной кривой [ChatMotion.EASING]. Старт —
  * ниже места на дистанцию сдвига соседей (её после измерения ленты
- * раздаёт [trackInsertShift] по ключу) плюс нижний contentPadding: лента
- * режет содержимое по своей границе, а между низом последнего элемента и
+ * раздаёт трекер по ключу) плюс нижний contentPadding: лента режет
+ * содержимое по своей границе, а между низом последнего элемента и
  * границей лежит отступ — без добавки верхняя полоса нового элемента (и
  * аватар у низа ряда) видна в первом кадре над полем ввода. Соседи
  * стыкуются с ним ([DockedPlacementSpec]): стоят, пока он проходит
@@ -437,21 +283,16 @@ private fun Modifier.trackInsertShift(
 @Composable
 private fun Modifier.slideInWithColumn(
     key: Any,
-    enabled: Boolean,
     tracker: InsertShiftTracker,
     spec: FiniteAnimationSpec<Float>,
 ): Modifier {
-    // Решение защёлкивается на первой композиции ключа: на следующих ключ
-    // уже «известен», и без защёлки анимация оборвалась бы на полпути.
-    val latched = remember(key) { enabled }
-    if (!latched) return this
     val progress = remember(key) { Animatable(0f) }
     LaunchedEffect(key) {
         progress.animateTo(targetValue = 1f, animationSpec = spec)
     }
     val extraPx = with(LocalDensity.current) { ChatMotion.LIST_PADDING.toPx() }
     return graphicsLayer {
-        val d = tracker.distances[key]
+        val d = tracker.distanceOf(key)
         val p = progress.value
         when {
             d != null -> {

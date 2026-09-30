@@ -41,10 +41,11 @@ private val BUBBLE_TAIL_CORNER = ChatMotion.BUBBLE_TAIL_CORNER
  * (белая с рамкой → primary). Для кнопки «Начать» ([fromStart] = true)
  * цвет уже primary, меняется геометрия: широкая по центру → по тексту
  * справа. [shiftFromLeftPx] — старт левее своего места (чип «Показать
- * ответ» стоит левее «Пропустить»): пузырь уезжает вправо на своё место.
- * [surfaceModifier] — на сам пузырь (`Surface`), не на строку: по нему
- * лента снимает координаты цели полёта текста и прячет пузырь на время
- * полёта.
+ * ответ» стоит левее «Пропустить»): пузырь уезжает вправо на своё место;
+ * лямбда — читается в слое рисования, ширина соседа известна после
+ * раскладки того же кадра. [surfaceModifier] — на сам пузырь (`Surface`),
+ * не на строку: по нему лента снимает координаты и размер пузыря и прячет
+ * его на время полёта.
  */
 @Composable
 fun UserMessageWidget(
@@ -53,7 +54,7 @@ fun UserMessageWidget(
     colorMorph: Float = 1f,
     geometryMorph: Float = 1f,
     fromStart: Boolean = false,
-    shiftFromLeftPx: Float = 0f,
+    shiftFromLeftPx: () -> Float = { 0f },
     surfaceModifier: Modifier = Modifier,
 ) {
     val primary = MaterialTheme.colorScheme.primary
@@ -79,7 +80,7 @@ fun UserMessageWidget(
             // Минимальные ширина и высота — от кнопки «Начать», тают с morph:
             // в нуле пузырь ровно повторяет кнопку, в единице — по тексту.
             modifier = Modifier
-                .graphicsLayer { translationX = -shiftFromLeftPx * (1f - geometryMorph) }
+                .graphicsLayer { translationX = -shiftFromLeftPx() * (1f - geometryMorph) }
                 .layout { measurable, constraints ->
                 val minWidth = (constraints.maxWidth * wideFraction)
                     .roundToInt()

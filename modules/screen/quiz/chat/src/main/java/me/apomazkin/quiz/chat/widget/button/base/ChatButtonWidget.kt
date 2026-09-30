@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.quiz.chat.R
+import me.apomazkin.quiz.chat.widget.ChatMotion
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.chatMessageBtnBorder
@@ -32,16 +33,17 @@ fun ChatButtonWidget(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    // Высота — по содержимому, как у пузыря юзера (тот же стиль BodyM и те же
-    // отступы 16/8): кнопка занимает ровно место будущего пузыря, и при
-    // замене стопка выше не оседает. Не кликабельный Surface(onClick): тот
-    // раздувает раскладку до минимальной зоны касания 48dp, рисуя фон по
-    // содержимому, — ряд чипов был выше пузыря на 18dp при одинаковом виде.
+    // Геометрия — ровно пузыря юзера (ChatMotion.BUBBLE_*: те же углы, те
+    // же отступы, тот же стиль BodyM): кнопка занимает место будущего
+    // пузыря, и при замене стопка выше не оседает. Не кликабельный
+    // Surface(onClick): тот раздувает раскладку до минимальной зоны касания
+    // 48dp, рисуя фон по содержимому, — ряд чипов был выше пузыря на 18dp
+    // при одинаковом виде.
     val shape = RoundedCornerShape(
-        topStart = 20.dp,
-        topEnd = 20.dp,
-        bottomStart = 20.dp,
-        bottomEnd = 8.dp,
+        topStart = ChatMotion.BUBBLE_CORNER,
+        topEnd = ChatMotion.BUBBLE_CORNER,
+        bottomStart = ChatMotion.BUBBLE_CORNER,
+        bottomEnd = ChatMotion.BUBBLE_TAIL_CORNER,
     )
     Surface(
         modifier = modifier
@@ -53,7 +55,10 @@ fun ChatButtonWidget(
     ) {
         Box(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(
+                    horizontal = ChatMotion.BUBBLE_PADDING_H,
+                    vertical = ChatMotion.BUBBLE_PADDING_V,
+                ),
             contentAlignment = Alignment.Center
         ) {
             Text(

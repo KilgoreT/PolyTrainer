@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import me.apomazkin.quiz.chat.logic.ChatTiming
 import me.apomazkin.theme.LexemeStyle
 
 /**
@@ -129,7 +130,7 @@ internal fun FlightLayer(
     val fieldTextColor = MaterialTheme.colorScheme.onSurface
     val bubbleStyle = LexemeStyle.BodyM
     val fieldScale = LexemeStyle.BodyL.fontSize.value / LexemeStyle.BodyM.fontSize.value
-    val durationMs = ChatMotion.DURATION_MS
+    val durationMs = ChatTiming.MOTION_DURATION_MS
 
     LaunchedEffect(flight.order) {
         val order = flight.order ?: return@LaunchedEffect

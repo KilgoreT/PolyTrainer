@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import me.apomazkin.quiz.chat.R
 import me.apomazkin.quiz.chat.logic.ChatMessage
+import me.apomazkin.quiz.chat.logic.ChatTiming
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.widget.ChatMotion
 import me.apomazkin.theme.AppTheme
@@ -55,7 +56,7 @@ fun SystemMessageWidget(
     isInChain: Boolean,
     avatarDescends: Boolean = false,
     avatarDescentExtraPx: () -> Float = { 0f },
-    motionDurationMs: Int = ChatMotion.DURATION_MS,
+    motionDurationMs: Int = ChatTiming.MOTION_DURATION_MS,
     showButtons: Boolean,
     sendMessage: (Msg) -> Unit,
 ) {

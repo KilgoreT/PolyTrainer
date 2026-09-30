@@ -1,5 +1,7 @@
 package me.apomazkin.quiz.chat.logic
 
+import androidx.compose.ui.text.AnnotatedString
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -213,7 +215,32 @@ class DatasourceEffectHandlerTest {
         val msg = runEffect(handler, DatasourceEffect.DeliverSystemMessages(listOf(a, b)))
 
         assertEquals(Msg.SystemMessageDelivered(message = a, rest = listOf(b)), msg)
-        assertTrue("пауза бота перед сообщением", testScheduler.currentTime > 0L)
+        assertTrue(
+            "пауза бота не короче минимальной",
+            testScheduler.currentTime >= ChatTiming.BOT_PAUSE_MIN_MS,
+        )
+    }
+
+    @Test
+    fun `bot messages wait at least the minimal pause`() = runTest {
+        every { quizGame.hasNextQuestion() } returns true
+        every { quizGame.nextQuestion() } returns AnnotatedString("q")
+        every { quizGame.makeAssessment(any()) } returns AnnotatedString("ok")
+        every { quizGame.skipAndGetAnswer() } returns AnnotatedString("answer")
+        val handler = makeVirtualTimeHandler()
+
+        listOf(
+            DatasourceEffect.NextQuestion,
+            DatasourceEffect.CheckAnswer("x"),
+            DatasourceEffect.GetAnswer,
+        ).forEach { effect ->
+            val before = testScheduler.currentTime
+            runEffect(handler, effect)
+            assertTrue(
+                "$effect: пауза не короче минимальной",
+                testScheduler.currentTime - before >= ChatTiming.BOT_PAUSE_MIN_MS,
+            )
+        }
     }
 
     @Test

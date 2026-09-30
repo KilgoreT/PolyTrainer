@@ -19,6 +19,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import me.apomazkin.quiz.chat.R
 import me.apomazkin.quiz.chat.logic.ChatScreenState
 import me.apomazkin.quiz.chat.logic.ChatState
+import me.apomazkin.quiz.chat.logic.ChatTiming
 import me.apomazkin.quiz.chat.logic.MessageContent
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.logic.nextOrder
@@ -74,7 +75,7 @@ fun ChatWidget(
             AnimatedVisibility(
                 visible = state.readyToStart,
                 enter = expandVertically(
-                    animationSpec = tween(ChatMotion.DURATION_MS, easing = ChatMotion.EASING),
+                    animationSpec = tween(ChatTiming.MOTION_DURATION_MS, easing = ChatMotion.EASING),
                 ),
                 exit = ExitTransition.None,
             ) {
