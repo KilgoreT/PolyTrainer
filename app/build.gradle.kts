@@ -193,6 +193,17 @@ dependencies {
     androidTestImplementation(composeLibs.uiTestJunit4)
     debugImplementation(composeLibs.uiTooling)
     debugImplementation(composeLibs.uiTestManifest)
+
+    constraints {
+        // androidx.test:core 1.7.0 (espresso 3.7 / ext junit 1.3 — нужны на
+        // Android 15+) тянет concurrent-futures 1.2.0, а боевой runtime
+        // резолвит 1.1.0; consistent resolution AGP требует одной версии в
+        // androidTest и боевом classpath — поднимаем боевую.
+        implementation("androidx.concurrent:concurrent-futures") {
+            version { require("1.2.0") }
+            because("androidTest-classpath обязан совпадать с боевым (consistent resolution)")
+        }
+    }
 }
 
 fun getBuildSource(): BuildSource {

@@ -21,6 +21,9 @@ android {
     
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
+        // Compose UI-тесты движения ленты (androidTest): без runner'а
+        // JUnit4-тесты на девайсе не стартуют.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     
     compileOptions {
@@ -65,5 +68,7 @@ dependencies {
     testImplementation(otherLibs.mateTest)
     androidTestImplementation(testLibs.androidxTestExt)
     androidTestImplementation(testLibs.espressoCore)
-    
+    androidTestImplementation(composeLibs.uiTestJunit4)
+    debugImplementation(composeLibs.uiTestManifest)
+
 }

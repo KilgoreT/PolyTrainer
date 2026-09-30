@@ -234,4 +234,50 @@ class ChatReducerTest {
             assertEquals("$msg", false, result.state().chat.showUserActions)
         }
     }
+
+    // ===== IS508 чат-фикс 8: пачки сообщений бота — по одному =====
+
+    private fun ChatScreenState.messageCount(): Int = chat.messagesState.list.size
+
+    @Test
+    fun `SessionOver adds summary now and queues options via DeliverSystemMessages`() {
+        val state = questionState()
+        val result = reducer.testReduce(state, Msg.SessionOver(MessageContent.create(text = "summary")))
+        val newState = result.state()
+
+        assertEquals(state.messageCount() + 1, newState.messageCount())
+        assertTrue(newState.chat.messagesState.list.last().isSystemMessage)
+        assertTrue(newState.chat.messagesState.list.last().buttons.isEmpty())
+        val effect = result.effects().single() as DatasourceEffect.DeliverSystemMessages
+        assertEquals(1, effect.messages.size)
+        assertEquals(3, effect.messages.single().buttons.size)
+    }
+
+    @Test
+    fun `SystemMessageDelivered adds message and requeues the rest until empty`() {
+        val state = questionState()
+        val a = MessageContent.create(text = "a")
+        val b = MessageContent.create(text = "b")
+
+        val r1 = reducer.testReduce(state, Msg.SystemMessageDelivered(message = a, rest = listOf(b)))
+        assertEquals(state.messageCount() + 1, r1.state().messageCount())
+        assertEquals(1, r1.effects().size)
+        assertTrue(r1.effects().contains(DatasourceEffect.DeliverSystemMessages(listOf(b))))
+
+        val r2 = reducer.testReduce(r1.state(), Msg.SystemMessageDelivered(message = b, rest = emptyList()))
+        assertEquals(state.messageCount() + 2, r2.state().messageCount())
+        r2.assertNoEffects()
+    }
+
+    @Test
+    fun `Summary adds first now, queues options, drops user actions`() {
+        val state = questionState()
+        val result = reducer.testReduce(state, Msg.Summary(listOf(MessageContent.create(text = "detail"))))
+
+        assertEquals(state.messageCount() + 1, result.state().messageCount())
+        assertEquals(false, result.state().chat.showUserActions)
+        val effect = result.effects().single() as DatasourceEffect.DeliverSystemMessages
+        assertEquals(1, effect.messages.size)
+        assertEquals(2, effect.messages.single().buttons.size)
+    }
 }

@@ -32,6 +32,7 @@ private val DEFAULT_SEND_ICON = R.drawable.ic_send
 fun PrimaryTextFieldWidget(
     modifier: Modifier = Modifier,
     @StringRes placeHolder: Int? = null,
+    placeholderModifier: Modifier = Modifier,
     autoCorrect: Boolean = true,
     isSendEnabled: Boolean,
     @DrawableRes sendIconRes: Int = DEFAULT_SEND_ICON,
@@ -72,6 +73,7 @@ fun PrimaryTextFieldWidget(
                 .focusRequester(focusRequester),
             autoCorrect = autoCorrect,
             placeHolder = placeHolder,
+            placeholderModifier = placeholderModifier,
             isInputEnabled = isInputEnabled,
             value = value,
             onValueChange = onValueChange,

@@ -141,26 +141,19 @@ internal class ChatReducer(
                     ) to setOf(DatasourceEffect.NextQuestion)
 
 
+            // Пачки сообщений бота идут по одному: первое — сразу, остальные
+            // капельно через DeliverSystemMessages (пауза перед каждым).
             is Msg.SessionOver -> state
-                    .systemMessage(message = message.value)
-                    .systemMessage(
-                            message = completionMessage2().toMessageContent(
-                                    buttons = listOf(
-                                            ChatMessage.ChatButton(
-                                                    R.string.chat_quiz_system_btn_continue,
-                                                    UserAction.CONTINUE
-                                            ),
-                                            ChatMessage.ChatButton(
-                                                    R.string.chat_quiz_system_btn_result,
-                                                    UserAction.SUMMARY
-                                            ),
-                                            ChatMessage.ChatButton(
-                                                    R.string.chat_quiz_system_btn_finish,
-                                                    UserAction.EXIT
-                                            ),
-                                    )
-                            ),
-                    ) to emptySet()
+                    .systemMessage(message = message.value) to
+                    setOf(DatasourceEffect.DeliverSystemMessages(listOf(sessionOverOptions())))
+
+            is Msg.SystemMessageDelivered -> state
+                    .systemMessage(message = message.message) to
+                    if (message.rest.isEmpty()) {
+                        emptySet()
+                    } else {
+                        setOf(DatasourceEffect.DeliverSystemMessages(message.rest))
+                    }
 
             is Msg.UserAction -> {
                 val effects: Set<Effect> = when (message.action) {
@@ -188,25 +181,15 @@ internal class ChatReducer(
                             message = message.value,
                     ) to setOf()
 
-            is Msg.Summary -> state
-                    .systemMessage(message.value)
-                    .systemMessage(
-                            message = completionMessage2().toMessageContent(
-                                    buttons = listOf(
-                                            ChatMessage.ChatButton(
-                                                    R.string.chat_quiz_system_btn_continue,
-                                                    UserAction.CONTINUE
-                                            ),
-                                            ChatMessage.ChatButton(
-                                                    R.string.chat_quiz_system_btn_finish,
-                                                    UserAction.EXIT
-                                            )
-                                    )
-                            )
-                    )
-                    .clearUserInput()
-                    .hideUserActions()
-                    .disableUserInput() to emptySet()
+            is Msg.Summary -> {
+                val first = message.value.firstOrNull()
+                val queue = message.value.drop(1) + summaryOptions()
+                val newState = if (first != null) state.systemMessage(message = first) else state
+                newState
+                        .clearUserInput()
+                        .hideUserActions()
+                        .disableUserInput() to setOf(DatasourceEffect.DeliverSystemMessages(queue))
+            }
 
             is Msg.SelectQuizComponent -> state to
                     setOf(DatasourceEffect.SaveQuizPickerSelection(message.ref))
@@ -268,6 +251,23 @@ internal class ChatReducer(
     private fun completionMessage2(): String {
         return resourceManager.stringByResId(R.string.chat_quiz_msg_system_session_end2)
     }
+
+    /** Финал сессии: сообщение с кнопками «Продолжить» / «Результат» / «Завершить». */
+    private fun sessionOverOptions(): MessageContent = completionMessage2().toMessageContent(
+            buttons = listOf(
+                    ChatMessage.ChatButton(R.string.chat_quiz_system_btn_continue, UserAction.CONTINUE),
+                    ChatMessage.ChatButton(R.string.chat_quiz_system_btn_result, UserAction.SUMMARY),
+                    ChatMessage.ChatButton(R.string.chat_quiz_system_btn_finish, UserAction.EXIT),
+            )
+    )
+
+    /** После сводки: сообщение с кнопками «Продолжить» / «Завершить». */
+    private fun summaryOptions(): MessageContent = completionMessage2().toMessageContent(
+            buttons = listOf(
+                    ChatMessage.ChatButton(R.string.chat_quiz_system_btn_continue, UserAction.CONTINUE),
+                    ChatMessage.ChatButton(R.string.chat_quiz_system_btn_finish, UserAction.EXIT),
+            )
+    )
 
     private fun String.annotated(): AnnotatedString {
         return buildAnnotatedString {

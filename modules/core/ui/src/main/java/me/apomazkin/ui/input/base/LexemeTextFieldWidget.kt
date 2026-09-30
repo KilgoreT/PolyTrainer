@@ -40,6 +40,7 @@ fun LexemeTextFieldWidget(
         autoCorrect: Boolean = true,
         erasable: Boolean = false,
         @StringRes placeHolder: Int?,
+        placeholderModifier: Modifier = Modifier,
         isInputEnabled: Boolean = true,
         value: String,
         onValueChange: (String) -> Unit,
@@ -81,6 +82,7 @@ fun LexemeTextFieldWidget(
             placeholder = {
                 placeHolder?.let {
                     Text(
+                            modifier = placeholderModifier,
                             text = stringResource(id = it),
                             style = LexemeStyle.BodyM.copy(color = grayTextColor)
                     )

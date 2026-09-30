@@ -1,6 +1,7 @@
 package me.apomazkin.quiz.chat.widget.message
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,13 +23,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import me.apomazkin.quiz.chat.R
+import androidx.compose.ui.platform.testTag
 import me.apomazkin.quiz.chat.logic.ChatMessage
+import me.apomazkin.quiz.chat.logic.ChatTiming
+import me.apomazkin.quiz.chat.widget.ChatTestTags
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.widget.ChatMotion
 import me.apomazkin.theme.AppTheme
@@ -41,7 +45,10 @@ import me.apomazkin.ui.preview.PreviewWidget
  * стартует на месте аватара предыдущего пузыря (на высоту своего ряда +
  * зазор выше) и той же кривой, что движение ленты, опускается на своё
  * место; у предыдущего аватар в этот же кадр заменён пустым местом —
- * одна иконка непрерывно съезжает вниз.
+ * одна иконка непрерывно съезжает вниз. [avatarDescentExtraPx] — добавка
+ * к дистанции спуска, равная добавке въезда ряда (старт под полем
+ * ввода): въезд и спуск компенсируют друг друга, иконка на экране стоит
+ * на месте. Читается при размещении и перерисовке.
  */
 @Composable
 fun SystemMessageWidget(
@@ -50,18 +57,21 @@ fun SystemMessageWidget(
     showAvatar: Boolean,
     isInChain: Boolean,
     avatarDescends: Boolean = false,
-    motionDurationMs: Int = ChatMotion.DURATION_MS,
+    avatarDescentExtraPx: () -> Float = { 0f },
+    motionDurationMs: Int = ChatTiming.MOTION_DURATION_MS,
     showButtons: Boolean,
     sendMessage: (Msg) -> Unit,
 ) {
     // Состояние под ключом сообщения: LazyList переиспользует композицию
     // ушедшего элемента для нового.
+    // Линейное время, кривая применяется в слое — как у въезда ряда:
+    // спуск компенсирует движение ряда покадрово.
     val descent = remember(message.order) { Animatable(if (avatarDescends) 0f else 1f) }
     LaunchedEffect(message.order) {
         if (avatarDescends) {
             descent.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(motionDurationMs, easing = ChatMotion.EASING),
+                animationSpec = tween(motionDurationMs, easing = LinearEasing),
             )
         }
     }
@@ -78,9 +88,24 @@ fun SystemMessageWidget(
         ) {
             if (showAvatar) {
                 AvatarWidget(
-                    modifier = Modifier.graphicsLayer {
-                        translationY = -(rowHeightPx[0] + spacingPx) * (1f - descent.value)
-                    },
+                    // Спуск задаётся при размещении (placeWithLayer), как и въезд
+                    // ряда: размещение идёт после расчёта трекера в том же кадре,
+                    // первый кадр сразу с добавкой. Дальше перерисовка по прогрессу.
+                    modifier = Modifier
+                        .layout { measurable, constraints ->
+                            val placeable = measurable.measure(constraints)
+                            layout(placeable.width, placeable.height) {
+                                placeable.placeWithLayer(0, 0) {
+                                    // Та же кривая и та же дистанция, что у въезда ряда
+                                    // (добавка + высота ряда + зазор), со знаком минус:
+                                    // иконка на экране стоит на месте.
+                                    val remaining = 1f - ChatMotion.EASING.transform(descent.value)
+                                    translationY = -(avatarDescentExtraPx() + rowHeightPx[0] + spacingPx) * remaining
+                                }
+                            }
+                        }
+                        // Тег после слоя: тест видит иконку там, где она нарисована.
+                        .testTag(ChatTestTags.avatar(message.order)),
                     avatarRes = R.drawable.ic_logo_avatar,
                 )
             } else {
