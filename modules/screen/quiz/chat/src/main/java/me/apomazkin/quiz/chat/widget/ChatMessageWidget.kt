@@ -20,11 +20,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import me.apomazkin.quiz.chat.logic.ChatMessage
 import me.apomazkin.quiz.chat.logic.ChatMessageState
@@ -63,6 +64,7 @@ fun ChatMessageWidget(
     showUserActions: Boolean,
     showStartAction: Boolean,
     flight: FlightState,
+    imeGesture: Boolean = true,
     sendMessage: (Msg) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
@@ -115,8 +117,10 @@ fun ChatMessageWidget(
         // вытягивает IME за пальцем, движение вниз при видимой IME сначала
         // прячет её, потом крутит ленту. Ниже API 30 — no-op. Только на
         // ленте, чтобы внутренний скролл поля ввода клавиатурой не управлял.
+        // [imeGesture] = false — для тестов движения: анимация WindowInsets
+        // под тестовыми часами не завершается, ожидание idle зависает.
         modifier = modifier
-            .imeNestedScroll()
+            .then(if (imeGesture) Modifier.imeNestedScroll() else Modifier)
             .trackInsertShift(lazyListState, tracker, isLastMessageNew),
         state = lazyListState,
         contentPadding = PaddingValues(all = ChatMotion.LIST_PADDING),
@@ -137,10 +141,14 @@ fun ChatMessageWidget(
                 val entrance = remember(USER_ACTIONS_KEY) {
                     entranceFor(ChatItem.Actions, isNew = isLastMessageNew, flightOrder = null)
                 }
+                // testTag — последним: координаты семантики берутся от узла
+                // тега и включают только слои выше по цепочке; тег после
+                // слоя въезда видит элемент там, где он нарисован.
                 UserActionsWidget(
                     modifier = Modifier
                         .animateItem(fadeInSpec = null, placementSpec = placementSpec, fadeOutSpec = null)
-                        .slideInIf(entrance, USER_ACTIONS_KEY, tracker, slideSpec),
+                        .slideInIf(entrance, USER_ACTIONS_KEY, tracker, slideSpec)
+                        .testTag(ChatTestTags.ACTIONS),
                     sendMessage = sendMessage,
                 )
             }
@@ -180,11 +188,14 @@ fun ChatMessageWidget(
             // пузырь. Отступ при смене стороны — модификатором корня.
             // animateItem — первым в цепочке (анимируется узел элемента),
             // только placement: соседи едут той же кривой, что въезжает новый.
-            val topSpace = if (state.isPreviousHasSameType(index)) 0.dp else 8.dp
+            // testTag — последним (после отступа и слоя въезда): тест видит
+            // сам пузырь там, где он нарисован.
+            val topSpace = if (state.isPreviousHasSameType(index)) 0.dp else ChatMotion.SIDE_SWITCH_SPACING
             val bubbleModifier = Modifier
                 .animateItem(fadeInSpec = null, placementSpec = placementSpec, fadeOutSpec = null)
                 .padding(top = topSpace)
                 .slideInIf(entrance, itemKey, tracker, slideSpec)
+                .testTag(ChatTestTags.message(item.order))
 
             when {
                 item.isSystemMessage -> {
@@ -234,6 +245,12 @@ private const val START_ACTION_KEY = "start_action"
  * Проекция раскладки в трекер после измерения ленты (layoutInfo уже
  * свежий), до размещения элементов: трекер считает сдвиг и раздаёт
  * дистанции новым ключам этого прохода.
+ *
+ * `layoutInfo` читается без регистрации наблюдения: это snapshot-state,
+ * который LazyList пишет при каждом своём измерении. Наблюдаемое чтение в
+ * measure того же узла получало бы уведомление о записи после прохода и
+ * просило перемер снова — перемер ленты каждый кадр без конца (в тестах
+ * движения — «pending measure/layout» до таймаута).
  */
 private fun Modifier.trackInsertShift(
     lazyListState: LazyListState,
@@ -241,8 +258,9 @@ private fun Modifier.trackInsertShift(
     lastMessageIsNew: Boolean,
 ): Modifier = layout { measurable, constraints ->
     val placeable = measurable.measure(constraints)
+    val visible = Snapshot.withoutReadObservation { lazyListState.layoutInfo.visibleItemsInfo }
     tracker.onLaidOut(
-        items = lazyListState.layoutInfo.visibleItemsInfo.map { info ->
+        items = visible.map { info ->
             val isAction = info.key == USER_ACTIONS_KEY || info.key == START_ACTION_KEY
             LaidOutItem(
                 key = info.key,
@@ -275,10 +293,17 @@ private fun Modifier.slideInIf(
  * границей лежит отступ — без добавки верхняя полоса нового элемента (и
  * аватар у низа ряда) видна в первом кадре над полем ввода. Соседи
  * стыкуются с ним ([DockedPlacementSpec]): стоят, пока он проходит
- * добавку, потом едут вместе. Прогресс читается в graphicsLayer —
- * анимация перерисовывает, не перекомпонует. Всё состояние — под ключом
- * элемента: LazyList переиспользует композицию ушедшего элемента для
- * нового.
+ * добавку, потом едут вместе.
+ *
+ * Трансляция задаётся при размещении (`placeWithLayer`), не в
+ * `graphicsLayer {}`: блок слоя нового узла вычисляется при создании узла
+ * — внутри измерения ленты, до того как трекер выдал дистанцию, — и до
+ * смены прогресса не пересчитывается; элемент первый кадр рисовался бы не
+ * там (или прятался бы страховкой, оставляя кадр без аватара). Размещение
+ * же всегда идёт после расчёта трекера в том же кадре. Дальше кадры
+ * перерисовывает чтение прогресса в блоке слоя, без перекомпоновки. Всё
+ * состояние — под ключом элемента: LazyList переиспользует композицию
+ * ушедшего элемента для нового.
  */
 @Composable
 private fun Modifier.slideInWithColumn(
@@ -291,30 +316,18 @@ private fun Modifier.slideInWithColumn(
         progress.animateTo(targetValue = 1f, animationSpec = spec)
     }
     val extraPx = with(LocalDensity.current) { ChatMotion.LIST_PADDING.toPx() }
-    return graphicsLayer {
-        val d = tracker.distanceOf(key)
-        val p = progress.value
-        when {
-            d != null -> {
-                alpha = 1f
-                translationY = (tracker.slideExtra(key, extraPx) + d) * (1f - ChatMotion.EASING.transform(p))
-            }
-            // Слой может быть вычислен раньше раздачи дистанции: первые кадры
-            // без неё не рисуем, иначе элемент мелькнёт на своём месте и только
-            // потом уедет вниз на старт.
-            p < SLIDE_IN_HIDE_UNTIL -> alpha = 0f
-            // Страховка: дистанция так и не пришла — рисуем на месте, а не
-            // прячем сообщение навсегда.
-            else -> {
-                alpha = 1f
-                translationY = 0f
+    return layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        layout(placeable.width, placeable.height) {
+            placeable.placeWithLayer(0, 0) {
+                // Нет дистанции (подвоз из истории без взвода) — на месте.
+                val d = tracker.distanceOf(key) ?: 0f
+                translationY = (tracker.slideExtra(key, extraPx) + d) *
+                    (1f - ChatMotion.EASING.transform(progress.value))
             }
         }
     }
 }
-
-/** Доля прогресса въезда (1–2 кадра), в течение которой элемент без дистанции скрыт. */
-private const val SLIDE_IN_HIDE_UNTIL = 0.001f
 
 @PreviewWidget
 @Composable

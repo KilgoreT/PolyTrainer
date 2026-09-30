@@ -23,14 +23,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import me.apomazkin.quiz.chat.R
+import androidx.compose.ui.platform.testTag
 import me.apomazkin.quiz.chat.logic.ChatMessage
 import me.apomazkin.quiz.chat.logic.ChatTiming
+import me.apomazkin.quiz.chat.widget.ChatTestTags
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.widget.ChatMotion
 import me.apomazkin.theme.AppTheme
@@ -46,7 +48,7 @@ import me.apomazkin.ui.preview.PreviewWidget
  * одна иконка непрерывно съезжает вниз. [avatarDescentExtraPx] — добавка
  * к дистанции спуска, равная добавке въезда ряда (старт под полем
  * ввода): въезд и спуск компенсируют друг друга, иконка на экране стоит
- * на месте. Читается в фазе рисования.
+ * на месте. Читается при размещении и перерисовке.
  */
 @Composable
 fun SystemMessageWidget(
@@ -86,13 +88,24 @@ fun SystemMessageWidget(
         ) {
             if (showAvatar) {
                 AvatarWidget(
-                    modifier = Modifier.graphicsLayer {
-                        // Та же кривая и та же дистанция, что у въезда ряда
-                        // (добавка + высота ряда + зазор), со знаком минус:
-                        // иконка на экране стоит на месте.
-                        val remaining = 1f - ChatMotion.EASING.transform(descent.value)
-                        translationY = -(avatarDescentExtraPx() + rowHeightPx[0] + spacingPx) * remaining
-                    },
+                    // Спуск задаётся при размещении (placeWithLayer), как и въезд
+                    // ряда: размещение идёт после расчёта трекера в том же кадре,
+                    // первый кадр сразу с добавкой. Дальше перерисовка по прогрессу.
+                    modifier = Modifier
+                        .layout { measurable, constraints ->
+                            val placeable = measurable.measure(constraints)
+                            layout(placeable.width, placeable.height) {
+                                placeable.placeWithLayer(0, 0) {
+                                    // Та же кривая и та же дистанция, что у въезда ряда
+                                    // (добавка + высота ряда + зазор), со знаком минус:
+                                    // иконка на экране стоит на месте.
+                                    val remaining = 1f - ChatMotion.EASING.transform(descent.value)
+                                    translationY = -(avatarDescentExtraPx() + rowHeightPx[0] + spacingPx) * remaining
+                                }
+                            }
+                        }
+                        // Тег после слоя: тест видит иконку там, где она нарисована.
+                        .testTag(ChatTestTags.avatar(message.order)),
                     avatarRes = R.drawable.ic_logo_avatar,
                 )
             } else {
