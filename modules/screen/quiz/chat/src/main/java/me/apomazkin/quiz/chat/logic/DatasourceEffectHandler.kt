@@ -34,6 +34,17 @@ sealed interface DatasourceEffect : Effect {
     data object Summary : DatasourceEffect
 
     /**
+     * Капельная выдача пачки сообщений бота: по одному, каждое после паузы
+     * «бот думает». Несколько пузырей одним апдейтом вставали разом, и
+     * въезд по одному (чат-фикс 6) на них не работал. Хендлер выдерживает
+     * паузу и возвращает первое сообщение как [Msg.SystemMessageDelivered]
+     * с остатком очереди; редьюсер кладёт его в ленту и повторяет эффект
+     * для остатка, пока очередь не опустеет. Содержимое сообщений — в
+     * редьюсере, хендлер только задаёт темп.
+     */
+    data class DeliverSystemMessages(val messages: List<MessageContent>) : DatasourceEffect
+
+    /**
      * IS481 quiz picker. One-shot fetch на entry — availableTypes + restored
      * selectedRef → `Msg.QuizComponentTypesLoaded`. `dictionaryId` резолвится
      * в handler через `useCase.getCurrentDictionaryId()`.
@@ -141,6 +152,18 @@ class DatasourceEffectHandler(
                 delay(botPauseMs())
                 sendSummary()
             }
+            is DatasourceEffect.DeliverSystemMessages -> withContext(io) {
+                val first = effect.messages.firstOrNull()
+                if (first == null) {
+                    Msg.Empty
+                } else {
+                    delay(botPauseMs())
+                    Msg.SystemMessageDelivered(
+                        message = first,
+                        rest = effect.messages.drop(1),
+                    )
+                }
+            }
             is DatasourceEffect.LoadQuizComponentTypes -> withContext(io) {
                 val dictId = useCase.getCurrentDictionaryId()
                 if (dictId == null) {
@@ -189,12 +212,11 @@ class DatasourceEffectHandler(
     /**
      * Пауза «бот думает» перед сообщением. Нижняя граница — не короче
      * анимации въезда пузыря, чтобы пузыри шли по одному, а не
-     * накладывались анимациями (чат-фикс 6). Значения намеренно
-     * замедленные (решение юзера 2026-09-29, проверка анимаций на
-     * магазинной сборке); рабочие — 400–650 мс.
+     * накладывались анимациями (чат-фикс 6). Для разглядывания анимаций
+     * паузы временно поднимали до 2–7 с (2026-09-29).
      */
     private fun botPauseMs(): Long = Random.nextLong(BOT_PAUSE_MIN_MS, BOT_PAUSE_MAX_MS)
 }
 
-private const val BOT_PAUSE_MIN_MS = 7000L
-private const val BOT_PAUSE_MAX_MS = 7200L
+private const val BOT_PAUSE_MIN_MS = 400L
+private const val BOT_PAUSE_MAX_MS = 650L

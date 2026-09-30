@@ -1,6 +1,8 @@
 package me.apomazkin.quiz.chat.logic
 
 import io.mockk.mockk
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
@@ -189,5 +191,38 @@ class DatasourceEffectHandlerTest {
         assertEquals(Msg.Empty, msg)
         assertEquals(0, fake.setCallCount)
         assertNull(fake.setCallRef)
+    }
+
+    // ===== IS508 чат-фикс 8: капельная выдача пачки сообщений бота =====
+
+    /** Хендлер на тестовом диспатчере: паузы бота — виртуальное время runTest. */
+    private fun TestScope.makeVirtualTimeHandler() = DatasourceEffectHandler(
+        quizGame = quizGame,
+        prefsProvider = prefsProvider,
+        useCase = FakeUseCase(),
+        logger = logger,
+        io = StandardTestDispatcher(testScheduler),
+    )
+
+    @Test
+    fun `DeliverSystemMessages waits bot pause and emits first with the rest`() = runTest {
+        val handler = makeVirtualTimeHandler()
+        val a = MessageContent.create(text = "a")
+        val b = MessageContent.create(text = "b")
+
+        val msg = runEffect(handler, DatasourceEffect.DeliverSystemMessages(listOf(a, b)))
+
+        assertEquals(Msg.SystemMessageDelivered(message = a, rest = listOf(b)), msg)
+        assertTrue("пауза бота перед сообщением", testScheduler.currentTime > 0L)
+    }
+
+    @Test
+    fun `DeliverSystemMessages with empty queue emits Empty without pause`() = runTest {
+        val handler = makeVirtualTimeHandler()
+
+        val msg = runEffect(handler, DatasourceEffect.DeliverSystemMessages(emptyList()))
+
+        assertEquals(Msg.Empty, msg)
+        assertEquals(0L, testScheduler.currentTime)
     }
 }

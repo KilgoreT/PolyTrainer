@@ -76,6 +76,16 @@ sealed interface Msg {
     data class Summary(val value: List<MessageContent>) : Msg
 
     /**
+     * Очередное сообщение пачки бота, выданное хендлером после паузы
+     * (эффект `DatasourceEffect.DeliverSystemMessages`); [rest] — что ещё
+     * стоит в очереди, редьюсер повторяет эффект для него.
+     */
+    data class SystemMessageDelivered(
+            val message: MessageContent,
+            val rest: List<MessageContent>,
+    ) : Msg
+
+    /**
      * IS481 quiz picker. Click на radio-пункт. State напрямую не меняется —
      * обновление приходит через `QuizPickerFlowHandler` re-emit после write.
      */
