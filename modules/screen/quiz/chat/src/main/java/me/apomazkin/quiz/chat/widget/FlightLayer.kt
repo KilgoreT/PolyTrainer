@@ -112,8 +112,8 @@ fun FlightState.launch(
 /**
  * Слой поверх ленты и поля: рисует копию отправленного текста и ведёт её
  * из поля к пузырю. Буквы стартуют в стиле поля (масштаб 17/15 вокруг
- * базовой линии), фон пузыря и цвет текста проявляются со второй трети
- * окна ([ChatMotion.RECOLOR_START]); на t = 1 копия геометрически равна
+ * базовой линии), фон пузыря и цвет текста проявляются синхронно с
+ * [ChatMotion.FLIGHT_RECOLOR_START]; на t = 1 копия геометрически равна
  * пузырю — подмена на реальный не видна. Пока цель неизвестна (первый
  * кадр после апдейта), копия стоит в источнике: при t = 0 это её место.
  * Рисование читает состояние в фазе draw — кадры не перекомпонуют слой.
@@ -174,7 +174,7 @@ internal fun FlightLayer(
                 val target = flight.target
                 val t = if (target == null) 0f else flight.progress
                 val e = ChatMotion.EASING.transform(t)
-                val c = ChatMotion.window(t, ChatMotion.RECOLOR_START, 1f)
+                val c = ChatMotion.window(t, ChatMotion.FLIGHT_RECOLOR_START, 1f)
                 val s = lerp(fieldScale, 1f, e)
 
                 // Якорь — левый край и базовая линия первой строки текста:

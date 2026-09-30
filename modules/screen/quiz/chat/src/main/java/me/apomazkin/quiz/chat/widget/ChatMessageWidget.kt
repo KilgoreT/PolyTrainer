@@ -32,7 +32,6 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import me.apomazkin.quiz.chat.R
 import me.apomazkin.quiz.chat.logic.ChatMessage
@@ -61,9 +60,13 @@ fun ChatMessageWidget(
 ) {
     val lazyListState = rememberLazyListState()
     val durationMs = ChatMotion.DURATION_MS
-    // Одна кривая на сдвиг соседей и въезд новых элементов — колонка едет одним куском.
-    val slideSpec = remember { tween<Float>(durationMs, easing = ChatMotion.EASING) }
-    val placementSpecOn = remember { tween<IntOffset>(durationMs, easing = ChatMotion.EASING) }
+    val listPaddingPx = with(LocalDensity.current) { ChatMotion.LIST_PADDING.toPx() }
+    // Въезд «со стыковкой»: новый элемент едет из-под поля одной кривой на
+    // добавку + сдвиг соседей; соседи стоят, пока он проходит добавку, и
+    // дальше едут с ним как одно целое (DockedPlacementSpec). Прогресс
+    // въезда линейный — кривая применяется в слое вместе с дистанцией.
+    val slideSpec = remember { tween<Float>(durationMs, easing = LinearEasing) }
+    val placementSpecOn = remember { DockedPlacementSpec(durationMs, listPaddingPx) }
 
     val insertShift = remember { InsertShiftTracker() }
     // «Новый» — ключ, которого не было в предыдущей раскладке (см. tracker):
@@ -196,6 +199,7 @@ fun ChatMessageWidget(
                     // Новое сообщение продолжает цепочку — аватар не перескакивает,
                     // а съезжает с предыдущего пузыря на этот.
                     avatarDescends = isNew && isInChain,
+                    avatarDescentExtraPx = { insertShift.slideExtra(itemKey, listPaddingPx) },
                     motionDurationMs = durationMs,
                     showButtons = isLastMessage,
                     message = item,
@@ -358,6 +362,15 @@ private class InsertShiftTracker {
     var hasLaidOut: Boolean = false
 
     fun isNewKey(key: Any): Boolean = hasLaidOut && key !in knownKeys
+
+    /**
+     * Добавка к въезду по ключу: [extraPx] (нижний отступ ленты — старт
+     * целиком под полем ввода) только при реальном въезде (сдвиг > 0);
+     * при подвозе из истории и при оседании (сдвиг ≤ 0) — 0. Та же
+     * добавка компенсируется в спуске аватара.
+     */
+    fun slideExtra(key: Any, extraPx: Float): Float =
+        if ((distances[key] ?: 0f) > 0f) extraPx else 0f
 }
 
 /**
@@ -409,12 +422,17 @@ private fun Modifier.trackInsertShift(
 }
 
 /**
- * Въезд нового элемента снизу: стартует ниже своего места на дистанцию
- * сдвига соседей (её после измерения ленты раздаёт [trackInsertShift] по
- * ключу) и приходит на место той же кривой, что placement соседей.
- * Прогресс читается в graphicsLayer — анимация перерисовывает, не
- * перекомпонует. Всё состояние — под ключом элемента: LazyList
- * переиспользует композицию ушедшего элемента для нового.
+ * Въезд нового элемента снизу одной кривой [ChatMotion.EASING]. Старт —
+ * ниже места на дистанцию сдвига соседей (её после измерения ленты
+ * раздаёт [trackInsertShift] по ключу) плюс нижний contentPadding: лента
+ * режет содержимое по своей границе, а между низом последнего элемента и
+ * границей лежит отступ — без добавки верхняя полоса нового элемента (и
+ * аватар у низа ряда) видна в первом кадре над полем ввода. Соседи
+ * стыкуются с ним ([DockedPlacementSpec]): стоят, пока он проходит
+ * добавку, потом едут вместе. Прогресс читается в graphicsLayer —
+ * анимация перерисовывает, не перекомпонует. Всё состояние — под ключом
+ * элемента: LazyList переиспользует композицию ушедшего элемента для
+ * нового.
  */
 @Composable
 private fun Modifier.slideInWithColumn(
@@ -431,13 +449,14 @@ private fun Modifier.slideInWithColumn(
     LaunchedEffect(key) {
         progress.animateTo(targetValue = 1f, animationSpec = spec)
     }
+    val extraPx = with(LocalDensity.current) { ChatMotion.LIST_PADDING.toPx() }
     return graphicsLayer {
         val d = tracker.distances[key]
         val p = progress.value
         when {
             d != null -> {
                 alpha = 1f
-                translationY = d * (1f - p)
+                translationY = (tracker.slideExtra(key, extraPx) + d) * (1f - ChatMotion.EASING.transform(p))
             }
             // Слой может быть вычислен раньше раздачи дистанции: первые кадры
             // без неё не рисуем, иначе элемент мелькнёт на своём месте и только

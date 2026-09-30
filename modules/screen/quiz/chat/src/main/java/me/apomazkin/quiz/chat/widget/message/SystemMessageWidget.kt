@@ -1,6 +1,7 @@
 package me.apomazkin.quiz.chat.widget.message
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +42,10 @@ import me.apomazkin.ui.preview.PreviewWidget
  * стартует на месте аватара предыдущего пузыря (на высоту своего ряда +
  * зазор выше) и той же кривой, что движение ленты, опускается на своё
  * место; у предыдущего аватар в этот же кадр заменён пустым местом —
- * одна иконка непрерывно съезжает вниз.
+ * одна иконка непрерывно съезжает вниз. [avatarDescentExtraPx] — добавка
+ * к дистанции спуска, равная добавке въезда ряда (старт под полем
+ * ввода): въезд и спуск компенсируют друг друга, иконка на экране стоит
+ * на месте. Читается в фазе рисования.
  */
 @Composable
 fun SystemMessageWidget(
@@ -50,18 +54,21 @@ fun SystemMessageWidget(
     showAvatar: Boolean,
     isInChain: Boolean,
     avatarDescends: Boolean = false,
+    avatarDescentExtraPx: () -> Float = { 0f },
     motionDurationMs: Int = ChatMotion.DURATION_MS,
     showButtons: Boolean,
     sendMessage: (Msg) -> Unit,
 ) {
     // Состояние под ключом сообщения: LazyList переиспользует композицию
     // ушедшего элемента для нового.
+    // Линейное время, кривая применяется в слое — как у въезда ряда:
+    // спуск компенсирует движение ряда покадрово.
     val descent = remember(message.order) { Animatable(if (avatarDescends) 0f else 1f) }
     LaunchedEffect(message.order) {
         if (avatarDescends) {
             descent.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(motionDurationMs, easing = ChatMotion.EASING),
+                animationSpec = tween(motionDurationMs, easing = LinearEasing),
             )
         }
     }
@@ -79,7 +86,11 @@ fun SystemMessageWidget(
             if (showAvatar) {
                 AvatarWidget(
                     modifier = Modifier.graphicsLayer {
-                        translationY = -(rowHeightPx[0] + spacingPx) * (1f - descent.value)
+                        // Та же кривая и та же дистанция, что у въезда ряда
+                        // (добавка + высота ряда + зазор), со знаком минус:
+                        // иконка на экране стоит на месте.
+                        val remaining = 1f - ChatMotion.EASING.transform(descent.value)
+                        translationY = -(avatarDescentExtraPx() + rowHeightPx[0] + spacingPx) * remaining
                     },
                     avatarRes = R.drawable.ic_logo_avatar,
                 )
