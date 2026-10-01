@@ -35,10 +35,12 @@ import me.apomazkin.quiz.chat.logic.ChatTiming
 import me.apomazkin.quiz.chat.widget.ChatTestTags
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.quiz.chat.widget.ChatMotion
+import me.apomazkin.quiz.chat.quiz.QuizQuestion
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.ui.preview.BoolParam
 import me.apomazkin.ui.preview.PreviewWidget
+import me.apomazkin.ui.text.LexemeBadgeChip
 
 /**
  * [avatarDescends] — сообщение продолжает цепочку системных: аватар
@@ -124,12 +126,24 @@ fun SystemMessageWidget(
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
-                    Text(
-                        text = message.message.asText(),
-                        style = LexemeStyle.BodyM.copy(
-                            color = MaterialTheme.colorScheme.secondary
-                        ),
-                    )
+                    when (val value = message.message) {
+                        is ChatMessage.MessageValue.Plain,
+                        is ChatMessage.MessageValue.Rich,
+                        -> Text(
+                            text = value.asText(),
+                            style = LexemeStyle.BodyM.copy(
+                                color = MaterialTheme.colorScheme.secondary
+                            ),
+                        )
+                        // Вопрос — частями: имя ядра строкой, ниже метка и значение;
+                        // что стоит в слоте метки, тело вопроса не знает.
+                        is ChatMessage.MessageValue.Question -> QuestionBody(
+                            question = value.question,
+                            leading = value.question.badge?.let { badge ->
+                                { LexemeBadgeChip(text = badge) }
+                            },
+                        )
+                    }
                     if (showButtons) {
                         message.buttons.forEachIndexed { index, it ->
                             val offset = if (index == 0) 12 else 4
@@ -178,6 +192,35 @@ private fun Preview(
                 showAvatar = isLast,
                 isInChain = false,
                 showButtons = true,
+            ) {}
+        }
+    }
+}
+
+@PreviewWidget
+@Composable
+private fun QuestionPreview() {
+    AppTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = Color.Gray)
+        ) {
+            SystemMessageWidget(
+                message = ChatMessage(
+                    isSystemMessage = true,
+                    message = ChatMessage.MessageValue.Question(
+                        QuizQuestion(
+                            header = "Перевод",
+                            badge = "сущ.",
+                            value = "длинное значение ядра, которое не влезает в одну строку пузыря",
+                            debugHeader = null,
+                        ),
+                    ),
+                ),
+                showAvatar = true,
+                isInChain = false,
+                showButtons = false,
             ) {}
         }
     }

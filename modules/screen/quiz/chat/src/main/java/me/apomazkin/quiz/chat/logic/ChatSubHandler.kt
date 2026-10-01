@@ -48,8 +48,8 @@ class ChatSubHandler @Inject constructor(
                 prefsProvider.getStringFlowByRawKey(quizPickerPrefKey(dictId))
                     .map {
                         Msg.QuizComponentTypesLoaded(
-                            types = useCase.getAvailableTypes(dictId),
-                            restoredSelectedRef = useCase.getQuizPickerSelection(dictId),
+                            types = useCase.getQuizCoreTypes(dictId),
+                            restoredSelectedRefs = useCase.getQuizPickerSelection(dictId),
                         )
                     },
             )

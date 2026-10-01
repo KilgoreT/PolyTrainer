@@ -7,34 +7,48 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import me.apomazkin.theme.LexemeStyle
 
 /**
- * IS481 Tier 1 primitive — generic submenu wrapper над `DropdownMenuItem` для
- * radio-группы. Заголовок + trailing chevron + раскрывающаяся inner-Column
- * с radio-пунктами.
+ * Подменю внутри `DropdownMenu`: заголовок с шевроном, по клику
+ * раскрывает `content` inline-колонкой под собой (не отдельным меню).
  *
- * Pure presentational, без logic. Internal state `isExpanded`. При
- * `enabled=false` — header показан, клики игнорируются (degenerate case).
+ * Чисто презентационный, состояние раскрытия — локальное. При
+ * `enabled = false` заголовок показан, клики игнорируются.
  *
- * @param title raw-строка заголовка (caller вызывает `stringResource()`).
- * @param content radio-пункты, рендерятся в inline `Column` под header'ом
- *   когда `isExpanded`. Не отдельный `DropdownMenu` — раскрытие inline.
+ * @param title заголовок (caller уже вызвал `stringResource()`).
+ * @param subtitle мелкая подпись под заголовком (например, правило
+ *   набора «минимум одно»); `null` — без подписи.
+ * @param content пункты подменю (галки, radio и т.п.).
  */
 @Composable
 fun LexemeSubmenuMenuItem(
     title: String,
+    subtitle: String? = null,
     enabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     DropdownMenuItem(
-        text = { Text(text = title) },
+        text = {
+            Column {
+                Text(text = title)
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = LexemeStyle.BodyS,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
         trailingIcon = {
             Icon(
                 imageVector = if (isExpanded) {

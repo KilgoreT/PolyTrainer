@@ -8,6 +8,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.core_db_api.entity.ComponentOptionApiEntity
 import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
@@ -48,6 +49,12 @@ class QuizChatUseCaseImplTest {
         logger = logger,
     )
 
+    /** Включённые ядра раунда — для порции обязательны, содержание в этих тестах не важно. */
+    private val cores = listOf(10L)
+
+    private val translation = ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION)
+    private val definition = ComponentTypeRef.UserDefined("Definition")
+
     private fun stubPrefs(groupId: Long? = null) {
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns false
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns false
@@ -78,7 +85,9 @@ class QuizChatUseCaseImplTest {
     )
 
     private fun stubBucket(grade: Int, ids: List<Long>) {
-        coEvery { quizApi.getWriteQuizIds(grade = grade, dictionaryId = 1L) } returns ids
+        coEvery {
+            quizApi.getWriteQuizIds(grade = grade, dictionaryId = 1L, coreTypeIds = cores)
+        } returns ids
     }
 
     private fun stubGetByIds(gradeOf: (Long) -> Int = { 0 }, wordOf: (Long) -> Long = { it }) {
@@ -86,6 +95,13 @@ class QuizChatUseCaseImplTest {
             firstArg<List<Long>>().map { makeQuizEntity(it, grade = gradeOf(it), wordId = wordOf(it)) }
         }
     }
+
+    private suspend fun portion(limit: Int, maxGrade: Int) = useCase.getRandomWriteQuizList(
+        limit = limit,
+        maxGrade = maxGrade,
+        dictionaryId = 1L,
+        coreTypeIds = cores,
+    )
 
     private fun List<me.apomazkin.quiz.chat.entity.WriteQuiz>.lexemeIds(): List<Long> =
         map { it.lexeme.lexemeId.id }
@@ -100,7 +116,7 @@ class QuizChatUseCaseImplTest {
         stubBucket(grade = 2, ids = (21L..30L).toList())
         stubGetByIds(gradeOf = { ((it - 1) / 10).toInt() })
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 2, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 2)
 
         assertEquals(10, result.size)
         // корзина 0 → limit/2 = 5, корзина 1 → remaining/2 = 2, корзина 2 → 1;
@@ -119,7 +135,7 @@ class QuizChatUseCaseImplTest {
         stubBucket(grade = 2, ids = emptyList())
         stubGetByIds()
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 2, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 2)
 
         assertEquals(setOf(1L, 2L), result.lexemeIds().toSet())
     }
@@ -128,17 +144,19 @@ class QuizChatUseCaseImplTest {
     fun `normal - returns items within limit`() = runTest {
         stubPrefs()
         val ids = (1L..100L).toList()
-        coEvery { quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L) } returns ids
+        coEvery {
+            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, coreTypeIds = cores)
+        } returns ids
         coEvery { quizApi.getWriteQuizByIds(any()) } answers {
             val requestedIds = firstArg<List<Long>>()
             requestedIds.map { makeQuizEntity(it, grade = 0) }
         }
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 0)
 
         assertTrue("Result should not exceed limit", result.size <= 10)
         assertTrue("Result should not be empty", result.isNotEmpty())
-        coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L) }
+        coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L, coreTypeIds = cores) }
         coVerify { quizApi.getWriteQuizByIds(match { it.size <= 10 }) }
     }
 
@@ -146,13 +164,15 @@ class QuizChatUseCaseImplTest {
     fun `few items - returns all available`() = runTest {
         stubPrefs()
         val ids = listOf(1L, 2L, 3L)
-        coEvery { quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L) } returns ids
+        coEvery {
+            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, coreTypeIds = cores)
+        } returns ids
         coEvery { quizApi.getWriteQuizByIds(any()) } answers {
             val requestedIds = firstArg<List<Long>>()
             requestedIds.map { makeQuizEntity(it, grade = 0) }
         }
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 0)
 
         assertTrue("Result should have at most 3 items", result.size <= 3)
         assertTrue("Result should not be empty", result.isNotEmpty())
@@ -161,9 +181,11 @@ class QuizChatUseCaseImplTest {
     @Test
     fun `empty - returns empty list without calling getByIds`() = runTest {
         stubPrefs()
-        coEvery { quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L) } returns emptyList()
+        coEvery {
+            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, coreTypeIds = cores)
+        } returns emptyList()
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 0)
 
         assertEquals("Result should be empty", 0, result.size)
         coVerify(exactly = 0) { quizApi.getWriteQuizByIds(any()) }
@@ -175,11 +197,11 @@ class QuizChatUseCaseImplTest {
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns (earliest != null)
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns (errors != null)
         earliest?.let { ids ->
-            coEvery { quizApi.getEarliestWriteQuizList(any(), 1L, null) } returns
+            coEvery { quizApi.getEarliestWriteQuizList(any(), 1L, null, cores) } returns
                 ids.map { makeQuizEntity(it, grade = 0, wordId = wordOf(it)) }
         }
         errors?.let { ids ->
-            coEvery { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, null) } returns
+            coEvery { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, null, cores) } returns
                 ids.map { makeQuizEntity(it, grade = 0, wordId = wordOf(it)) }
         }
     }
@@ -192,7 +214,7 @@ class QuizChatUseCaseImplTest {
         stubGetByIds()
         stubAddons(earliest = listOf(1L, 4L, 5L), errors = listOf(1L, 5L, 6L))
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 0)
 
         val lexemeIds = result.lexemeIds()
         assertEquals(lexemeIds.size, lexemeIds.toSet().size)
@@ -206,7 +228,7 @@ class QuizChatUseCaseImplTest {
         stubGetByIds()
         stubAddons(earliest = listOf(4L, 5L, 6L, 7L))
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 0)
 
         val added = result.lexemeIds().toSet() - setOf(1L, 2L, 3L)
         assertEquals(5, result.size)
@@ -221,7 +243,7 @@ class QuizChatUseCaseImplTest {
         stubGetByIds()
         stubAddons(errors = listOf(1L, 3L, 4L))
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 0)
 
         assertEquals(setOf(1L, 2L, 3L, 4L), result.lexemeIds().toSet())
     }
@@ -233,7 +255,7 @@ class QuizChatUseCaseImplTest {
         stubGetByIds()
         stubAddons(earliest = listOf(1L, 2L))
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 0)
 
         assertEquals(setOf(1L, 2L), result.lexemeIds().toSet())
         assertEquals(2, result.size)
@@ -245,7 +267,7 @@ class QuizChatUseCaseImplTest {
         stubBucket(grade = 0, ids = listOf(1L, 2L))
         stubGetByIds(wordOf = { 1L })
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 0)
 
         assertEquals(setOf(1L, 2L), result.lexemeIds().toSet())
     }
@@ -262,7 +284,7 @@ class QuizChatUseCaseImplTest {
         stubBucket(grade = 1, ids = listOf(3L, 4L))
         stubGetByIds(gradeOf = { if (it <= 2L) 0 else 1 }, wordOf = { if (it <= 2L) 1L else it })
 
-        val result = useCase.getRandomWriteQuizList(limit = 3, maxGrade = 1, dictionaryId = 1L)
+        val result = portion(limit = 3, maxGrade = 1)
 
         val ids = result.lexemeIds().toSet()
         assertEquals(3, ids.size)
@@ -280,7 +302,7 @@ class QuizChatUseCaseImplTest {
         stubGetByIds()
         stubAddons(earliest = listOf(4L, 5L), wordOf = { if (it == 4L) 1L else it })
 
-        val result = useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        val result = portion(limit = 10, maxGrade = 0)
 
         assertEquals(setOf(1L, 4L, 5L), result.lexemeIds().toSet())
         assertEquals(2, result.map { it.word.id }.toSet().size)
@@ -294,23 +316,23 @@ class QuizChatUseCaseImplTest {
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns true
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns true
         coEvery {
-            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, groupId = 5L)
+            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, groupId = 5L, coreTypeIds = cores)
         } returns listOf(1L)
         coEvery { quizApi.getWriteQuizByIds(any()) } answers {
             firstArg<List<Long>>().map { makeQuizEntity(it, grade = 0) }
         }
         coEvery {
-            quizApi.getEarliestWriteQuizList(any(), 1L, 5L)
+            quizApi.getEarliestWriteQuizList(any(), 1L, 5L, cores)
         } returns emptyList()
         coEvery {
-            quizApi.getFrequentMistakesWriteQuizList(any(), 1L, 5L)
+            quizApi.getFrequentMistakesWriteQuizList(any(), 1L, 5L, cores)
         } returns emptyList()
 
-        useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L)
+        portion(limit = 10, maxGrade = 0)
 
-        coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L, groupId = 5L) }
-        coVerify { quizApi.getEarliestWriteQuizList(any(), 1L, 5L) }
-        coVerify { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, 5L) }
+        coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L, groupId = 5L, coreTypeIds = cores) }
+        coVerify { quizApi.getEarliestWriteQuizList(any(), 1L, 5L, cores) }
+        coVerify { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, 5L, cores) }
     }
 
     @Test
@@ -332,6 +354,44 @@ class QuizChatUseCaseImplTest {
         } returns null
 
         assertNull(useCase.getSelectedQuizGroupName(1L))
+    }
+
+    // ===== core filter =====
+
+    @Test
+    fun `core filter - core type ids passed to all three quiz queries`() = runTest {
+        stubPrefs()
+        val twoCores = listOf(10L, 11L)
+        coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns true
+        coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns true
+        coEvery {
+            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, coreTypeIds = twoCores)
+        } returns listOf(1L)
+        coEvery { quizApi.getWriteQuizByIds(any()) } answers {
+            firstArg<List<Long>>().map { makeQuizEntity(it, grade = 0) }
+        }
+        coEvery { quizApi.getEarliestWriteQuizList(any(), 1L, null, twoCores) } returns emptyList()
+        coEvery { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, null, twoCores) } returns emptyList()
+
+        useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L, coreTypeIds = twoCores)
+
+        coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L, coreTypeIds = twoCores) }
+        coVerify { quizApi.getEarliestWriteQuizList(any(), 1L, null, twoCores) }
+        coVerify { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, null, twoCores) }
+    }
+
+    @Test
+    fun `core filter - empty core list returns empty without queries`() = runTest {
+        val result = useCase.getRandomWriteQuizList(
+            limit = 10,
+            maxGrade = 2,
+            dictionaryId = 1L,
+            coreTypeIds = emptyList(),
+        )
+
+        assertTrue(result.isEmpty())
+        coVerify(exactly = 0) { quizApi.getWriteQuizIds(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { quizGroupSelectionStore.getValidatedSelection(any(), any()) }
     }
 
     // ===== IS481 getQuizConfig =====
@@ -377,28 +437,38 @@ class QuizChatUseCaseImplTest {
         assertNull(result)
     }
 
-    // ===== IS481 quiz picker (AGG-12) =====
+    // ===== quiz picker: кандидаты (ядра) =====
 
-    private fun ctApi(id: Long, systemKey: BuiltInComponent?, name: String?, position: Int) =
-        ComponentTypeApiEntity(
-            id = id,
-            systemKey = systemKey,
-            dictionaryId = if (systemKey == null) 1L else null,
-            name = name,
-            template = ComponentTemplate.TEXT,
-            position = position,
-            createdAt = Date(),
-            updatedAt = Date(),
-        )
+    private fun ctApi(
+        id: Long,
+        systemKey: BuiltInComponent?,
+        name: String?,
+        position: Int,
+        core: Boolean = true,
+        enabled: Boolean = true,
+        removedAt: Date? = null,
+    ) = ComponentTypeApiEntity(
+        id = id,
+        systemKey = systemKey,
+        dictionaryId = if (systemKey == null) 1L else null,
+        name = name,
+        template = ComponentTemplate.TEXT,
+        position = position,
+        core = core,
+        enabled = enabled,
+        createdAt = Date(),
+        updatedAt = Date(),
+        removedAt = removedAt,
+    )
 
     @Test
-    fun `getAvailableTypes proxies LexemeApi preserving order`() = runTest {
+    fun `getQuizCoreTypes keeps live enabled cores in position order`() = runTest {
         coEvery { lexemeApi.getComponentTypes(1L) } returns listOf(
-            ctApi(1L, BuiltInComponent.TRANSLATION, null, 0),
             ctApi(2L, null, "Definition", 1),
+            ctApi(1L, BuiltInComponent.TRANSLATION, null, 0),
         )
 
-        val result = useCase.getAvailableTypes(1L)
+        val result = useCase.getQuizCoreTypes(1L)
 
         assertEquals(2, result.size)
         assertEquals(BuiltInComponent.TRANSLATION, result[0].systemKey)
@@ -406,31 +476,42 @@ class QuizChatUseCaseImplTest {
     }
 
     @Test
-    fun `getAvailableTypes empty proxies to empty list`() = runTest {
+    fun `getQuizCoreTypes empty proxies to empty list`() = runTest {
         coEvery { lexemeApi.getComponentTypes(1L) } returns emptyList()
 
-        assertTrue(useCase.getAvailableTypes(1L).isEmpty())
+        assertTrue(useCase.getQuizCoreTypes(1L).isEmpty())
     }
 
-    // IS486: CHOICE в квизах v1 не участвует (spec §9.6) — пикер не предлагает.
     @Test
-    fun `getAvailableTypes filters choice template`() = runTest {
+    fun `getQuizCoreTypes filters non-core types`() = runTest {
         coEvery { lexemeApi.getComponentTypes(1L) } returns listOf(
             ctApi(1L, BuiltInComponent.TRANSLATION, null, 0),
-            ctApi(2L, BuiltInComponent.PART_OF_SPEECH, null, 1).copy(template = ComponentTemplate.CHOICE),
-            ctApi(3L, null, "Definition", 2),
+            ctApi(2L, null, "Комментарий", 1, core = false),
         )
 
-        val result = useCase.getAvailableTypes(1L)
+        val result = useCase.getQuizCoreTypes(1L)
 
-        assertEquals(2, result.size)
-        assertTrue(result.none { it.template == ComponentTemplate.CHOICE })
+        assertEquals(listOf(BuiltInComponent.TRANSLATION), result.map { it.systemKey })
     }
 
-    // IS491 (Д6/UC19): пикер — белый список TEXT; captioned (builtin «Пример» и
-    // кастомы) не участвуют, как и CHOICE/IMAGE.
     @Test
-    fun `getAvailableTypes whitelists only text template`() = runTest {
+    fun `getQuizCoreTypes filters disabled and removed cores`() = runTest {
+        coEvery { lexemeApi.getComponentTypes(1L) } returns listOf(
+            ctApi(1L, BuiltInComponent.TRANSLATION, null, 0),
+            ctApi(2L, null, "Выключено", 1, enabled = false),
+            ctApi(3L, null, "Удалено", 2, removedAt = Date()),
+        )
+
+        val result = useCase.getQuizCoreTypes(1L)
+
+        assertEquals(1, result.size)
+        assertEquals(BuiltInComponent.TRANSLATION, result.single().systemKey)
+    }
+
+    // Чип и подпись показать можно, а спросить — только TEXT: CHOICE и
+    // captioned (встроенный «Пример», кастомы) в кандидаты не попадают.
+    @Test
+    fun `getQuizCoreTypes whitelists only text template`() = runTest {
         coEvery { lexemeApi.getComponentTypes(1L) } returns listOf(
             ctApi(1L, BuiltInComponent.TRANSLATION, null, 0),
             ctApi(2L, BuiltInComponent.PART_OF_SPEECH, null, 1).copy(template = ComponentTemplate.CHOICE),
@@ -439,86 +520,114 @@ class QuizChatUseCaseImplTest {
             ctApi(5L, null, "Definition", 4),
         )
 
-        val result = useCase.getAvailableTypes(1L)
+        val result = useCase.getQuizCoreTypes(1L)
 
         assertEquals(2, result.size)
         assertTrue(result.all { it.template == ComponentTemplate.TEXT })
     }
 
-    @Test
-    fun `getQuizPickerSelection decodes builtin translation`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "builtin:translation"
+    // ===== quiz picker: набор в prefs =====
 
-        val result = useCase.getQuizPickerSelection(1L)
-
-        assertEquals(ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION), result)
+    private fun stubPicker(raw: String?) {
+        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns raw
     }
 
     @Test
-    fun `getQuizPickerSelection decodes user defined`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "user:Definition"
+    fun `getQuizPickerSelection decodes legacy single builtin value`() = runTest {
+        stubPicker("builtin:translation")
 
-        val result = useCase.getQuizPickerSelection(1L)
+        assertEquals(setOf(translation), useCase.getQuizPickerSelection(1L))
+    }
 
-        assertEquals(ComponentTypeRef.UserDefined("Definition"), result)
+    @Test
+    fun `getQuizPickerSelection decodes legacy single user defined value`() = runTest {
+        stubPicker("user:Definition")
+
+        assertEquals(setOf(definition), useCase.getQuizPickerSelection(1L))
+    }
+
+    @Test
+    fun `getQuizPickerSelection decodes set joined by unit separator`() = runTest {
+        stubPicker("builtin:translation\u001Fuser:Definition")
+
+        assertEquals(setOf(translation, definition), useCase.getQuizPickerSelection(1L))
+    }
+
+    @Test
+    fun `getQuizPickerSelection drops broken tokens keeps valid`() = runTest {
+        stubPicker("builtin:unknown_xyz\u001Fgarbage\u001Fuser:Definition\u001FUSER:x")
+
+        assertEquals(setOf(definition), useCase.getQuizPickerSelection(1L))
     }
 
     @Test
     fun `getQuizPickerSelection decodes user defined name with colon (substringAfter first colon)`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "user:My:Type"
+        stubPicker("user:My:Type")
 
-        val result = useCase.getQuizPickerSelection(1L)
-
-        assertEquals(ComponentTypeRef.UserDefined("My:Type"), result)
+        assertEquals(setOf(ComponentTypeRef.UserDefined("My:Type")), useCase.getQuizPickerSelection(1L))
     }
 
     @Test
-    fun `getQuizPickerSelection unknown builtin key returns null (future-proof)`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "builtin:unknown_xyz"
+    fun `getQuizPickerSelection unknown builtin key returns empty (future-proof)`() = runTest {
+        stubPicker("builtin:unknown_xyz")
 
-        assertNull(useCase.getQuizPickerSelection(1L))
+        assertTrue(useCase.getQuizPickerSelection(1L).isEmpty())
     }
 
     @Test
-    fun `getQuizPickerSelection corrupted format returns null`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "garbage"
+    fun `getQuizPickerSelection corrupted format returns empty`() = runTest {
+        stubPicker("garbage")
 
-        assertNull(useCase.getQuizPickerSelection(1L))
+        assertTrue(useCase.getQuizPickerSelection(1L).isEmpty())
     }
 
     @Test
-    fun `getQuizPickerSelection empty pref returns null`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns null
+    fun `getQuizPickerSelection missing pref returns empty`() = runTest {
+        stubPicker(null)
 
-        assertNull(useCase.getQuizPickerSelection(1L))
+        assertTrue(useCase.getQuizPickerSelection(1L).isEmpty())
     }
 
     @Test
-    fun `getQuizPickerSelection empty builtin key returns null`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "builtin:"
+    fun `getQuizPickerSelection empty string returns empty`() = runTest {
+        stubPicker("")
 
-        assertNull(useCase.getQuizPickerSelection(1L))
+        assertTrue(useCase.getQuizPickerSelection(1L).isEmpty())
+    }
+
+    @Test
+    fun `getQuizPickerSelection empty builtin key returns empty`() = runTest {
+        stubPicker("builtin:")
+
+        assertTrue(useCase.getQuizPickerSelection(1L).isEmpty())
     }
 
     @Test
     fun `getQuizPickerSelection prefix is case-sensitive`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "USER:Definition"
+        stubPicker("USER:Definition")
 
-        assertNull(useCase.getQuizPickerSelection(1L))
+        assertTrue(useCase.getQuizPickerSelection(1L).isEmpty())
     }
 
     @Test
-    fun `getQuizPickerSelection no colon returns null`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "user"
+    fun `getQuizPickerSelection no colon returns empty`() = runTest {
+        stubPicker("user")
 
-        assertNull(useCase.getQuizPickerSelection(1L))
+        assertTrue(useCase.getQuizPickerSelection(1L).isEmpty())
     }
 
     @Test
-    fun `setQuizPickerSelection encodes builtin`() = runTest {
+    fun `getQuizPickerSelection round-trip empty user defined name`() = runTest {
+        stubPicker("user:")
+
+        assertEquals(setOf(ComponentTypeRef.UserDefined("")), useCase.getQuizPickerSelection(1L))
+    }
+
+    @Test
+    fun `setQuizPickerSelection encodes single builtin`() = runTest {
         coEvery { prefsProvider.setStringByRawKey(any(), any()) } just Runs
 
-        useCase.setQuizPickerSelection(1L, ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION))
+        useCase.setQuizPickerSelection(1L, setOf(translation))
 
         coVerify {
             prefsProvider.setStringByRawKey("quiz_picker_dict_1", "builtin:translation")
@@ -526,13 +635,13 @@ class QuizChatUseCaseImplTest {
     }
 
     @Test
-    fun `setQuizPickerSelection encodes user defined`() = runTest {
+    fun `setQuizPickerSelection encodes set joined by unit separator`() = runTest {
         coEvery { prefsProvider.setStringByRawKey(any(), any()) } just Runs
 
-        useCase.setQuizPickerSelection(1L, ComponentTypeRef.UserDefined("Definition"))
+        useCase.setQuizPickerSelection(1L, linkedSetOf(translation, definition))
 
         coVerify {
-            prefsProvider.setStringByRawKey("quiz_picker_dict_1", "user:Definition")
+            prefsProvider.setStringByRawKey("quiz_picker_dict_1", "builtin:translation\u001Fuser:Definition")
         }
     }
 
@@ -540,7 +649,7 @@ class QuizChatUseCaseImplTest {
     fun `setQuizPickerSelection encodes empty user defined name`() = runTest {
         coEvery { prefsProvider.setStringByRawKey(any(), any()) } just Runs
 
-        useCase.setQuizPickerSelection(1L, ComponentTypeRef.UserDefined(""))
+        useCase.setQuizPickerSelection(1L, setOf(ComponentTypeRef.UserDefined("")))
 
         coVerify {
             prefsProvider.setStringByRawKey("quiz_picker_dict_1", "user:")
@@ -548,20 +657,11 @@ class QuizChatUseCaseImplTest {
     }
 
     @Test
-    fun `getQuizPickerSelection round-trip empty user defined name`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey("quiz_picker_dict_1") } returns "user:"
-
-        val result = useCase.getQuizPickerSelection(1L)
-
-        assertEquals(ComponentTypeRef.UserDefined(""), result)
-    }
-
-    @Test
     fun `per-dictionary keys isolated by id`() = runTest {
         coEvery { prefsProvider.setStringByRawKey(any(), any()) } just Runs
 
-        useCase.setQuizPickerSelection(7L, ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION))
-        useCase.setQuizPickerSelection(42L, ComponentTypeRef.UserDefined("Definition"))
+        useCase.setQuizPickerSelection(7L, setOf(translation))
+        useCase.setQuizPickerSelection(42L, setOf(definition))
 
         coVerify {
             prefsProvider.setStringByRawKey("quiz_picker_dict_7", "builtin:translation")
@@ -575,11 +675,42 @@ class QuizChatUseCaseImplTest {
     fun `overwrite on same dict key invokes set twice with same key`() = runTest {
         coEvery { prefsProvider.setStringByRawKey(any(), any()) } just Runs
 
-        useCase.setQuizPickerSelection(1L, ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION))
-        useCase.setQuizPickerSelection(1L, ComponentTypeRef.UserDefined("Definition"))
+        useCase.setQuizPickerSelection(1L, setOf(translation))
+        useCase.setQuizPickerSelection(1L, setOf(definition))
 
         coVerify(exactly = 2) {
             prefsProvider.setStringByRawKey(eq("quiz_picker_dict_1"), any())
         }
+    }
+
+    // ===== часть речи для чипа =====
+
+    @Test
+    fun `getPartOfSpeechOptions loads options of builtin part of speech type`() = runTest {
+        coEvery { lexemeApi.getComponentTypes(1L) } returns listOf(
+            ctApi(1L, BuiltInComponent.TRANSLATION, null, 0),
+            ctApi(2L, BuiltInComponent.PART_OF_SPEECH, null, 1, core = false)
+                .copy(template = ComponentTemplate.CHOICE),
+        )
+        coEvery { lexemeApi.getComponentOptions(2L) } returns listOf(
+            ComponentOptionApiEntity(id = 100L, componentTypeId = 2L, systemKey = "noun", label = null, position = 0),
+            ComponentOptionApiEntity(id = 101L, componentTypeId = 2L, systemKey = null, label = "междометие", position = 1),
+        )
+
+        val result = useCase.getPartOfSpeechOptions(1L)
+
+        assertEquals(listOf(100L, 101L), result.map { it.id })
+        assertEquals("noun", result[0].systemKey)
+        assertEquals("междометие", result[1].label)
+    }
+
+    @Test
+    fun `getPartOfSpeechOptions without type returns empty`() = runTest {
+        coEvery { lexemeApi.getComponentTypes(1L) } returns listOf(
+            ctApi(1L, BuiltInComponent.TRANSLATION, null, 0),
+        )
+
+        assertTrue(useCase.getPartOfSpeechOptions(1L).isEmpty())
+        coVerify(exactly = 0) { lexemeApi.getComponentOptions(any()) }
     }
 }

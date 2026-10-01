@@ -9,6 +9,7 @@ import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.quiz.chat.logic.ChatMessage.MessageValue.Plain
+import me.apomazkin.quiz.chat.quiz.QuizQuestion
 
 private const val DEFAULT_LOAD_DELAY = 0L
 
@@ -73,33 +74,30 @@ data class ItemsState(
     )
 
     /**
-     * IS481 quiz picker. `availableTypes` — компоненты текущего словаря из БД,
-     * отсортированы по `position`. `selectedRef` — radio-выбор, null до load
-     * (transient окно). После load всегда non-null если `availableTypes`
-     * непустой (reducer обеспечивает инвариант).
+     * Пикер ядер квиза. `availableTypes` — ядра текущего словаря, которыми
+     * квиз умеет спросить, по `position`. `selectedRefs` — включённые
+     * галки; до загрузки пусто (transient окно), после загрузки непусто,
+     * если `availableTypes` непуст (редьюсер держит инвариант).
      */
     data class QuizComponent(
             val availableTypes: List<ComponentType> = emptyList(),
-            val selectedRef: ComponentTypeRef? = null,
+            val selectedRefs: Set<ComponentTypeRef> = emptySet(),
     )
 }
 
-/**
- * Picker disabled при единственном типе: показывается checked, но клики
- * игнорируются. Скрыт полностью при пустом списке (UI guard).
- */
-val ItemsState.QuizComponent.isPickerEnabled: Boolean
+/** Подменю выбора есть только когда есть из чего выбирать: два ядра и больше. */
+val ItemsState.QuizComponent.isPickerVisible: Boolean
     get() = availableTypes.size > 1
 
 fun ChatScreenState.updateQuizComponent(
         types: List<ComponentType>,
-        selectedRef: ComponentTypeRef?,
+        selectedRefs: Set<ComponentTypeRef>,
 ): ChatScreenState = copy(
         appBarState = appBarState.copy(
                 itemsState = appBarState.itemsState.copy(
                         quizComponent = ItemsState.QuizComponent(
                                 availableTypes = types,
-                                selectedRef = selectedRef,
+                                selectedRefs = selectedRefs,
                         ),
                 ),
         ),
@@ -169,19 +167,33 @@ data class ChatMessage(
         val origin: UserMessageOrigin = UserMessageOrigin.INPUT,
 ) {
 
+    /**
+     * Содержимое пузыря. [Plain] и [Rich] — текст; [Question] — вопрос
+     * раунда частями, лента собирает его сама (заголовок, метка,
+     * значение), `asText()`/`asString()` для него — отчёт, логи, тесты.
+     */
     sealed class MessageValue {
         fun asString(): String = when (this) {
             is Plain -> value
             is Rich -> value.text
+            is Question -> question.header + ":\n" + question.value
         }
 
         fun asText(): AnnotatedString = when (this) {
             is Plain -> buildAnnotatedString { append(value) }
             is Rich -> value
+            is Question -> buildAnnotatedString {
+                question.debugHeader?.let {
+                    append(it)
+                    append("\n")
+                }
+                append(asString())
+            }
         }
 
         data class Plain(val value: String) : MessageValue()
         data class Rich(val value: AnnotatedString) : MessageValue()
+        data class Question(val question: QuizQuestion) : MessageValue()
     }
 
     data class ChatButton(
@@ -217,6 +229,17 @@ data class ChatMessage(
                 buttons = buttons,
         )
 
+        fun addSystemMessage(
+                message: MessageValue,
+                order: Int,
+                buttons: List<ChatButton> = listOf(),
+        ) = ChatMessage(
+                order = order,
+                isSystemMessage = true,
+                message = message,
+                buttons = buttons,
+        )
+
         fun addUserMessage(
                 message: MessageContent,
                 order: Int,
@@ -224,7 +247,7 @@ data class ChatMessage(
         ) = ChatMessage(
                 order = order,
                 isSystemMessage = false,
-                message = Plain(message.text.text),
+                message = Plain(message.value.asString()),
                 origin = origin,
         )
     }
@@ -330,7 +353,7 @@ fun ChatState.addSystemMessage(
 ) = copy(
         messagesState = messagesState.copy(
                 list = messagesState.list + ChatMessage.addSystemMessage(
-                        message = message.text,
+                        message = message.value,
                         order = nextOrder(),
                         buttons = message.buttons
                 )

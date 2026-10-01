@@ -10,6 +10,7 @@
 
 ## Общие
 
+- [Слово и лексема — доменная модель](word-model/spec.md) (термины и правила без кода: слово, лексема, ядро, атрибуты, что можно спросить в тренировке)
 - [Доменная модель — Lexeme](lexeme-domain/spec.md) (entity, Room, API контракты)
 - [Навигация](navigation/spec.md)
 - [DI — принципы графа](dagger-di-principles/spec.md)
@@ -35,6 +36,7 @@
   - [UI-логика](wordcard/ui.md)
   - [Сценарии редьюсера](wordcard/user-scenarios.md)
 - Квиз-чат (QuizChat)
+  - [Поток, вопрос, меню, строки](quiz-chat/spec.md)
 
 ## Фичи без экрана / общие
 
@@ -50,7 +52,7 @@
 
 ## Известные пробелы
 
-Спеки для DictionaryTab/VocabularyTab и QuizChat пока не написаны. Часть инвариантов, относящихся к этим модулям, временно зафиксирована в `dictionary-list/spec.md`:
+Спека для DictionaryTab/VocabularyTab пока не написана (QuizChat — написана при IS511, `quiz-chat/spec.md`). Часть инвариантов, относящихся к этим модулям, временно зафиксирована в `dictionary-list/spec.md`:
 
 - раздел «Инварианты pref'а текущего словаря» — общий контракт для всех читателей `CURRENT_DICTIONARY_ID_LONG` (включая DictionaryTab и QuizChat);
 - раздел «Системное ограничение: QuizChat» — поведение `getCurrentDictionaryId()` и `QuizGameImpl` при отсутствии словарей.

@@ -281,6 +281,12 @@ interface WordDao {
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateWriteQuiz(writeQuizDb: List<WriteQuizDb>): Int
 
+    /**
+     * `coreTypeIds` — включённые ядра словаря: в выборку попадает только
+     * лексема с живым значением хотя бы в одном из них. Фильтр в WHERE,
+     * до ORDER BY/LIMIT, как и групповой; непустой список гарантирует
+     * вызывающий (пустой `IN ()` — ноль строк).
+     */
     @Query(
         """
         SELECT id from write_quiz
@@ -292,12 +298,18 @@ interface WordDao {
                     AND dg.removed_at IS NULL
                 WHERE l.id = write_quiz.lexeme_id
                     AND wg.group_id = :groupId))
+            AND EXISTS (
+                SELECT 1 FROM component_values cv
+                WHERE cv.lexeme_id = write_quiz.lexeme_id
+                    AND cv.removed_at IS NULL
+                    AND cv.component_type_id IN (:coreTypeIds))
     """
     )
     suspend fun getWriteQuizIds(
         grade: Int,
         langId: Long,
         groupId: Long?,
+        coreTypeIds: List<Long>,
     ): List<Long>
 
     @Transaction
@@ -318,6 +330,11 @@ interface WordDao {
                     AND dg.removed_at IS NULL
                 WHERE l.id = write_quiz.lexeme_id
                     AND wg.group_id = :groupId))
+            AND EXISTS (
+                SELECT 1 FROM component_values cv
+                WHERE cv.lexeme_id = write_quiz.lexeme_id
+                    AND cv.removed_at IS NULL
+                    AND cv.component_type_id IN (:coreTypeIds))
         ORDER BY last_select_date ASC
         LIMIT :limit
     """
@@ -326,6 +343,7 @@ interface WordDao {
         limit: Int,
         langId: Long,
         groupId: Long?,
+        coreTypeIds: List<Long>,
     ): List<WriteQuizDbEntity>
 
     @Transaction
@@ -341,6 +359,11 @@ interface WordDao {
                     AND dg.removed_at IS NULL
                 WHERE l.id = write_quiz.lexeme_id
                     AND wg.group_id = :groupId))
+            AND EXISTS (
+                SELECT 1 FROM component_values cv
+                WHERE cv.lexeme_id = write_quiz.lexeme_id
+                    AND cv.removed_at IS NULL
+                    AND cv.component_type_id IN (:coreTypeIds))
         ORDER BY error_count DESC
         LIMIT :limit
     """
@@ -349,6 +372,7 @@ interface WordDao {
         limit: Int,
         langId: Long,
         groupId: Long?,
+        coreTypeIds: List<Long>,
     ): List<WriteQuizDbEntity>
 
     /**

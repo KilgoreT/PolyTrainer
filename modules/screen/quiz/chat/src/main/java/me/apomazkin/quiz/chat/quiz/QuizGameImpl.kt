@@ -9,9 +9,14 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.ChoiceValues
+import me.apomazkin.lexeme.ComponentOption
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentValue
+import me.apomazkin.lexeme.PartOfSpeechOption
 import me.apomazkin.lexeme.TextValues
+import me.apomazkin.lexeme.toRef
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.R
@@ -27,13 +32,35 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.max
+import kotlin.random.Random
 
-class QuizGameImpl @javax.inject.Inject constructor(
+/**
+ * [random] — источник случайности для выбора ядра вопроса; в тестах
+ * подменяется стабом с заданным индексом.
+ */
+class QuizGameImpl(
         private val quizChatUseCase: QuizChatUseCase,
         private val resourceManager: ResourceManager,
         private val prefsProvider: PrefsProvider,
         private val logger: LexemeLogger,
+        private val random: Random,
 ) : QuizGame {
+
+    /** Dagger не видит Kotlin-дефолтов: прод получает [Random.Default] отсюда. */
+    @javax.inject.Inject
+    constructor(
+            quizChatUseCase: QuizChatUseCase,
+            resourceManager: ResourceManager,
+            prefsProvider: PrefsProvider,
+            logger: LexemeLogger,
+    ) : this(
+            quizChatUseCase = quizChatUseCase,
+            resourceManager = resourceManager,
+            prefsProvider = prefsProvider,
+            logger = logger,
+            random = Random.Default,
+    )
+
         private val maxStepInSession: Int = 10
         private val maxGrade: Int = 3
         private val maxScoreInGrade: Int = 5
@@ -59,8 +86,8 @@ class QuizGameImpl @javax.inject.Inject constructor(
         return hasNextStep()
     }
 
-    override fun nextQuestion(): AnnotatedString {
-        return getNextQuestion()
+    override fun nextQuestion(): QuizQuestion {
+        return getQuiz(currentStep).question
     }
 
     override fun skip() {
@@ -180,24 +207,22 @@ class QuizGameImpl @javax.inject.Inject constructor(
             logger.w(tag = LogTags.CHAT, message = "fetchData: no current dictionary (null id)")
             return emptyList()
         }
-        // IS481 (AGG-5, F5 — no N+1): pre-fetch QuizConfig один раз на session.
-        val quizConfig = quizChatUseCase.getQuizConfig(dictionaryId, "write")
-        if (quizConfig == null) {
-            logger.w(
-                tag = LogTags.CHAT,
-                message = "fetchData: no quiz config for dictionary $dictionaryId, mode=write",
-            )
+        // Чем спрашивать: кандидаты словаря ∩ выбор в меню, пусто → все
+        // кандидаты (одно правило на меню и порцию — resolveQuizCores).
+        val candidates = quizChatUseCase.getQuizCoreTypes(dictionaryId)
+        if (candidates.isEmpty()) {
+            logger.w(tag = LogTags.CHAT, message = "fetchData: no quiz cores for dictionary $dictionaryId")
             return emptyList()
         }
-        // IS481 (AGG-12) picker: override filter — non-null selectedRef → single-element
-        // refs list; null → fallback на quizConfig.componentRefs (preserves семантика
-        // до первого выбора).
-        val selectedRef = quizChatUseCase.getQuizPickerSelection(dictionaryId)
-        val effectiveRefs = selectedRef?.let { listOf(it) } ?: quizConfig.componentRefs
+        val selected = quizChatUseCase.getQuizPickerSelection(dictionaryId)
+        val cores = resolveQuizCores(candidates, selected)
+        val posOptions = quizChatUseCase.getPartOfSpeechOptions(dictionaryId).associateBy { it.id }
+        val isDebugOn = prefsProvider.getBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN) ?: false
         return quizChatUseCase.getRandomWriteQuizList(
                 dictionaryId = dictionaryId,
                 limit = maxStepInSession,
-                maxGrade = maxGrade
+                maxGrade = maxGrade,
+                coreTypeIds = cores.map { core -> core.id.id },
         ).also {
             val stat = buildAnnotatedString {
                 withStyle(
@@ -221,19 +246,16 @@ class QuizGameImpl @javax.inject.Inject constructor(
                     append("#######################")
                 }
             }
-            allStat = if (prefsProvider.getBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN) == true) stat
-            else null
+            allStat = if (isDebugOn) stat else null
         }.mapNotNull {
             it.toQuizItem(
-                    componentRefs = effectiveRefs,
+                    coreRefs = cores.map { core -> core.toRef() },
+                    posOptions = posOptions,
+                    random = random,
                     resourceManager = resourceManager,
-                    isDebugOn = prefsProvider.getBoolean(PrefKey.CHAT_DEBUG_STATUS_BOOLEAN) ?: false,
+                    isDebugOn = isDebugOn,
             )
         }
-    }
-
-    private fun getNextQuestion(): AnnotatedString {
-        return getQuiz(currentStep).fullQuestion
     }
 
     private fun isAnswerCorrect(answer: String): Boolean {
@@ -269,7 +291,7 @@ class QuizGameImpl @javax.inject.Inject constructor(
                         append("\n")
                         val icon = if (entry.value is Answer.Correct) "✅" else "❌"
                         append(
-                                "$icon ${getQuiz(entry.key).question} - ${
+                                "$icon ${getQuiz(entry.key).question.value} - ${
                                     getUserAnswer(entry.key)?.toSummaryString()
                                 }"
                         )
@@ -424,10 +446,13 @@ class QuizGameImpl @javax.inject.Inject constructor(
     }
 }
 
+/**
+ * [answer] — слово; [question] — чем и о чём спрашиваем; [info] — запись
+ * квиза для апсерта после раунда (презентации там нет).
+ */
 data class QuizItem(
         val answer: String,
-        val fullQuestion: AnnotatedString,
-        val question: AnnotatedString,
+        val question: QuizQuestion,
         val info: QuizInfo,
 ) {
     data class QuizInfo(
@@ -443,46 +468,44 @@ data class QuizItem(
 }
 
 /**
- * IS481 (AGG-5, F4 — order priority, F2 — graceful skip).
+ * Собирает вопрос по лексеме.
  *
- * Резолвит `componentRefs` в порядке config'а в первый matched ComponentValue
- * лексемы и собирает `QuizItem`. Если ни один ref не резолвится — null
- * (graceful skip, заменяет удалённый `throw IllegalArgumentException`).
+ * Ядро показа — случайное (через [random]) из [coreRefs], у которых у
+ * лексемы есть текстовое значение; порция уже отфильтрована в SQL, здесь
+ * страховка: ни одного — null, слово пропускается. Имя ядра — заголовок
+ * вопроса; метка части речи — по значению встроенного CHOICE через
+ * [posOptions] (id опции → опция): нет значения или опции — без метки.
  */
 fun WriteQuiz.toQuizItem(
-        componentRefs: List<ComponentTypeRef>,
+        coreRefs: List<ComponentTypeRef>,
+        posOptions: Map<Long, ComponentOption>,
+        random: Random,
         resourceManager: ResourceManager,
         isDebugOn: Boolean,
 ): QuizItem? {
-    val last = if (lastCorrectAnswerDate != null) {
-        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        formatter.format(lastCorrectAnswerDate)
-    } else {
-        "none"
+    val present: List<Pair<ComponentTypeRef, ComponentValue>> = coreRefs.mapNotNull { ref ->
+        lexeme.components
+            .firstOrNull { it.matchesRef(ref) && it.data is TextValues }
+            ?.let { ref to it }
     }
+    if (present.isEmpty()) return null
+    val (ref, source) = present.random(random)
+    val text = (source.data as TextValues).value.value
 
-    // F4: первый match по порядку config — определяет приоритет рендеринга.
-    val resolved: Pair<ComponentTypeRef, ComponentValue>? = componentRefs
-        .firstNotNullOfOrNull { ref ->
-            lexeme.components.firstOrNull { it.matchesRef(ref) }?.let { ref to it }
+    val badge = lexeme.components
+        .firstOrNull { it.type.systemKey == BuiltInComponent.PART_OF_SPEECH }
+        ?.let { (it.data as? ChoiceValues)?.optionId }
+        ?.let { optionId -> posOptions[optionId] }
+        ?.let { option -> resourceManager.partOfSpeechBadge(option) }
+
+    val debugHeader = if (isDebugOn) {
+        val last = if (lastCorrectAnswerDate != null) {
+            val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            formatter.format(lastCorrectAnswerDate)
+        } else {
+            "none"
         }
-    resolved ?: return null  // F2: graceful skip.
-
-    val (ref, source) = resolved
-    // M13: LongTextValue упразднён (template-key consolidation `long_text → text`, F046).
-    val text = (source.data as? TextValues)?.value?.value
-        ?: return null
-
-    // Header для built-in TRANSLATION → resource translation header;
-    // для user-defined Definition / прочих → definition header (legacy).
-    // Future (backlog): per-component header в ComponentType / quiz config.
-    val headerResId = when (ref) {
-        is ComponentTypeRef.BuiltIn -> R.string.chat_quiz_ask_translation_header
-        is ComponentTypeRef.UserDefined -> R.string.chat_quiz_ask_definition_header
-    }
-
-    val fullQuestion = buildAnnotatedString {
-        if (isDebugOn) {
+        buildAnnotatedString {
             withStyle(
                 style = LexemeStyle.BodySBold.copy(
                     color = Color.Gray
@@ -497,20 +520,20 @@ fun WriteQuiz.toQuizItem(
                     append("\n")
                 }
                 append("#############################")
-                append("\n")
             }
         }
-        append(resourceManager.stringByResId(headerResId))
-        append("\n")
-        withStyle(style = LexemeStyle.BodyMBold.toSpanStyle()) {
-            append(text)
-        }
+    } else {
+        null
     }
 
     return QuizItem(
         answer = word.value,
-        fullQuestion = fullQuestion,
-        question = buildAnnotatedString { append(text) },
+        question = QuizQuestion(
+            header = resourceManager.coreTitle(ref),
+            badge = badge,
+            value = text,
+            debugHeader = debugHeader,
+        ),
         info = QuizItem.QuizInfo(
             id = id,
             dictionaryId = dictionaryId,
@@ -527,6 +550,43 @@ fun WriteQuiz.toQuizItem(
 private fun ComponentValue.matchesRef(ref: ComponentTypeRef): Boolean = when (ref) {
     is ComponentTypeRef.BuiltIn -> type.systemKey == ref.key
     is ComponentTypeRef.UserDefined -> type.systemKey == null && type.name == ref.name
+}
+
+/**
+ * Имя ядра для заголовка вопроса: встроенное — из того же ресурса, что
+ * подпись галки в меню (имена обязаны совпадать); пользовательское — как есть.
+ */
+private fun ResourceManager.coreTitle(ref: ComponentTypeRef): String = when (ref) {
+    is ComponentTypeRef.UserDefined -> ref.name
+    is ComponentTypeRef.BuiltIn -> when (ref.key) {
+        BuiltInComponent.TRANSLATION -> stringByResId(R.string.chat_menu_item_component_translation)
+        BuiltInComponent.PART_OF_SPEECH -> stringByResId(
+            me.apomazkin.core_resources.R.string.builtin_component_part_of_speech,
+        )
+        BuiltInComponent.EXAMPLE -> stringByResId(
+            me.apomazkin.core_resources.R.string.builtin_component_example,
+        )
+    }
+}
+
+/**
+ * Текст метки части речи: встроенная опция — сокращение из ресурсов,
+ * пользовательская — её подпись; ни того ни другого — метки нет.
+ */
+private fun ResourceManager.partOfSpeechBadge(option: ComponentOption): String? {
+    val builtIn = option.systemKey?.let { key ->
+        PartOfSpeechOption.entries.firstOrNull { it.key == key }
+    }
+    if (builtIn == null) return option.label
+    val resId = when (builtIn) {
+        PartOfSpeechOption.NOUN -> R.string.chat_quiz_pos_noun
+        PartOfSpeechOption.VERB -> R.string.chat_quiz_pos_verb
+        PartOfSpeechOption.ADJECTIVE -> R.string.chat_quiz_pos_adjective
+        PartOfSpeechOption.ADVERB -> R.string.chat_quiz_pos_adverb
+        PartOfSpeechOption.PREPOSITION -> R.string.chat_quiz_pos_preposition
+        PartOfSpeechOption.PHRASE -> R.string.chat_quiz_pos_phrase
+    }
+    return stringByResId(resId)
 }
 
 

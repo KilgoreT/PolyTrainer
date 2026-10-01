@@ -3,6 +3,7 @@ package me.apomazkin.quiz.chat.logic
 import androidx.compose.ui.text.AnnotatedString
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.quiz.chat.quiz.QuizQuestion
 
 
 sealed interface Msg {
@@ -78,70 +79,89 @@ sealed interface Msg {
     /**
      * Очередное сообщение пачки бота, выданное хендлером после паузы
      * (эффект `DatasourceEffect.DeliverSystemMessages`); [rest] — что ещё
-     * стоит в очереди, редьюсер повторяет эффект для него.
+     * стоит в очереди, редьюсер повторяет эффект для него; [then] — что
+     * запустить, когда очередь опустеет (пробрасывается из эффекта).
      */
     data class SystemMessageDelivered(
             val message: MessageContent,
             val rest: List<MessageContent>,
+            val then: DatasourceEffect? = null,
     ) : Msg
 
     /**
-     * IS481 quiz picker. Click на radio-пункт. State напрямую не меняется —
-     * обновление приходит через `QuizPickerFlowHandler` re-emit после write.
+     * Клик по галке ядра в меню: [checked] — новое положение галки.
+     * Снятие последней включённой — no-op (инвариант «минимум одно»).
      */
-    data class SelectQuizComponent(val ref: ComponentTypeRef) : Msg
+    data class ToggleQuizComponent(
+            val ref: ComponentTypeRef,
+            val checked: Boolean,
+    ) : Msg
 
     /**
-     * IS481 quiz picker. Bulk-load: availableTypes из БД + restored selectedRef
-     * из prefs. Emit из `LoadQuizComponentTypes` effect (initial) и из
-     * `QuizPickerFlowHandler` (on persist).
+     * Загрузка пикера: ядра словаря из БД + сохранённый набор из prefs
+     * (пусто — не сохранено). Шлют `LoadQuizComponentTypes` (на входе) и
+     * подписка `ChatSub.QuizPicker` (после каждой записи prefs).
      */
     data class QuizComponentTypesLoaded(
             val types: List<ComponentType>,
-            val restoredSelectedRef: ComponentTypeRef?,
+            val restoredSelectedRefs: Set<ComponentTypeRef>,
     ) : Msg
 
     data object Empty : Msg
 }
 
+/**
+ * Содержимое сообщения, которое редьюсер кладёт в ленту: [value] — текст
+ * или структурный вопрос, [buttons] — кнопки под системным сообщением.
+ */
 data class MessageContent(
-    val text: AnnotatedString,
+    val value: ChatMessage.MessageValue,
     val buttons: List<ChatMessage.ChatButton> = listOf(),
 ) {
     companion object {
-        
+
         fun create(
             text: String
         ): MessageContent {
             return MessageContent(
-                text = AnnotatedString(text = text),
+                value = ChatMessage.MessageValue.Plain(text),
             )
         }
-        
+
         fun create(
             text: AnnotatedString
         ): MessageContent {
             return MessageContent(
-                text = text,
+                value = ChatMessage.MessageValue.Rich(text),
             )
         }
-        
+
         fun create(
             text: String,
             buttons: List<ChatMessage.ChatButton>
         ): MessageContent {
             return MessageContent(
-                text = AnnotatedString(text = text),
+                value = ChatMessage.MessageValue.Plain(text),
                 buttons = buttons,
             )
         }
-        
+
         fun create(
             text: AnnotatedString,
             buttons: List<ChatMessage.ChatButton>
         ): MessageContent {
             return MessageContent(
-                text = text,
+                value = ChatMessage.MessageValue.Rich(text),
+                buttons = buttons,
+            )
+        }
+
+        fun question(
+            question: QuizQuestion,
+            buttons: List<ChatMessage.ChatButton> = listOf(),
+        ): MessageContent {
+            return MessageContent(
+                value = ChatMessage.MessageValue.Question(question),
                 buttons = buttons,
             )
         }

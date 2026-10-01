@@ -5,8 +5,9 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.lexeme.BuiltInComponent
-import me.apomazkin.lexeme.ComponentTypeRef
-import me.apomazkin.lexeme.QuizConfig
+import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.ComponentType
+import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.chat.LogTags
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
@@ -15,6 +16,7 @@ import me.apomazkin.ui.resource.ResourceManager
 import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
+import java.util.Date
 
 /**
  * IS461: QuizGameImpl crash на пустом quizList.
@@ -33,6 +35,18 @@ class QuizGameImplEmptyListTest {
     private lateinit var logger: LexemeLogger
     private lateinit var quizGame: QuizGameImpl
 
+    private val translationType = ComponentType(
+        id = ComponentTypeId(1L),
+        systemKey = BuiltInComponent.TRANSLATION,
+        dictionaryId = null,
+        name = null,
+        template = ComponentTemplate.TEXT,
+        position = 0,
+        core = true,
+        createdAt = Date(0L),
+        updatedAt = Date(0L),
+    )
+
     @Before
     fun setUp() {
         quizChatUseCase = mockk()
@@ -41,20 +55,29 @@ class QuizGameImplEmptyListTest {
         logger = mockk(relaxed = true)
 
         coEvery { quizChatUseCase.getCurrentDictionaryId() } returns 1L
-        coEvery { quizChatUseCase.getQuizConfig(any(), any()) } returns QuizConfig(
-            dictionaryId = 1L,
-            quizMode = "write",
-            componentRefs = listOf(ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION)),
-        )
-        coEvery { quizChatUseCase.getQuizPickerSelection(any()) } returns null
+        coEvery { quizChatUseCase.getQuizCoreTypes(any()) } returns listOf(translationType)
+        coEvery { quizChatUseCase.getQuizPickerSelection(any()) } returns emptySet()
+        coEvery { quizChatUseCase.getPartOfSpeechOptions(any()) } returns emptyList()
         coEvery { prefsProvider.getBoolean(any()) } returns false
 
+        // Прод-конструктор: источник случайности по умолчанию.
         quizGame = QuizGameImpl(
             quizChatUseCase = quizChatUseCase,
             resourceManager = resourceManager,
             prefsProvider = prefsProvider,
             logger = logger,
         )
+    }
+
+    private fun stubEmptyPortion() {
+        coEvery {
+            quizChatUseCase.getRandomWriteQuizList(
+                dictionaryId = any(),
+                limit = any(),
+                maxGrade = any(),
+                coreTypeIds = any(),
+            )
+        } returns emptyList()
     }
 
     /**
@@ -66,13 +89,7 @@ class QuizGameImplEmptyListTest {
     @Test
     fun `hasNextQuestion returns false when quizList is empty after loadData`() = runTest {
         // Given: fetchData возвращает пустой список
-        coEvery {
-            quizChatUseCase.getRandomWriteQuizList(
-                dictionaryId = any(),
-                limit = any(),
-                maxGrade = any()
-            )
-        } returns emptyList()
+        stubEmptyPortion()
 
         // When: загружаем данные
         quizGame.loadData()
@@ -90,13 +107,7 @@ class QuizGameImplEmptyListTest {
     @Test
     fun `loadData logs warning when fetchData returns empty list`() = runTest {
         // Given
-        coEvery {
-            quizChatUseCase.getRandomWriteQuizList(
-                dictionaryId = any(),
-                limit = any(),
-                maxGrade = any()
-            )
-        } returns emptyList()
+        stubEmptyPortion()
 
         // When
         quizGame.loadData()
@@ -117,13 +128,7 @@ class QuizGameImplEmptyListTest {
     @Test
     fun `hasNextQuestion returns false on reload with empty list`() = runTest {
         // Given: первая загрузка — пустая
-        coEvery {
-            quizChatUseCase.getRandomWriteQuizList(
-                dictionaryId = any(),
-                limit = any(),
-                maxGrade = any()
-            )
-        } returns emptyList()
+        stubEmptyPortion()
 
         quizGame.loadData()
 

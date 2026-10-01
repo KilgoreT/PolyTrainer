@@ -1,5 +1,6 @@
 package me.apomazkin.quiz.chat.logic
 
+import androidx.compose.ui.text.AnnotatedString
 import io.mockk.every
 import io.mockk.mockk
 import me.apomazkin.lexeme.BuiltInComponent
@@ -12,17 +13,22 @@ import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.quiz.chat.R
+import me.apomazkin.quiz.chat.quiz.QuizQuestion
 import me.apomazkin.ui.resource.ResourceManager
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Date
 
 /**
- * Unit tests для IS481 quiz picker branches в `ChatReducer`:
- * - `Msg.PrepareToStart` extended → emit `LoadQuizComponentTypes`.
- * - `Msg.SelectQuizComponent(ref)` → emit `SaveQuizPickerSelection`, state unchanged.
- * - `Msg.QuizComponentTypesLoaded(types, restored)` → updateQuizComponent с resolveSelection.
+ * Ветки `ChatReducer`:
+ * - пикер ядер: загрузка (`QuizComponentTypesLoaded`), галки
+ *   (`ToggleQuizComponent`, последнюю снять нельзя), видимость подменю;
+ * - раунды: `Start`/`CONTINUE` → `LoadQuiz(reload)`, правило игры один
+ *   раз после «Начать» капельно, «Продолжить квиз» без правила;
+ * - капельная выдача с продолжением (`then`), структурный вопрос.
  */
 class ChatReducerTest {
 
@@ -30,6 +36,9 @@ class ChatReducerTest {
     private val resourceManager = mockk<ResourceManager>().apply {
         every { stringByResId(any()) } returns "Welcome"
         every { stringByResId(any(), any()) } returns "Welcome"
+        every { stringByResId(R.string.chat_quiz_msg_system_rule) } returns "Rule"
+        every { stringByResId(R.string.chat_quiz_msg_user_start) } returns "Start"
+        every { stringByResId(R.string.chat_quiz_msg_user_continue) } returns "Continue"
     }
     private val reducer = ChatReducer(logger = logger, resourceManager = resourceManager)
 
@@ -40,6 +49,7 @@ class ChatReducerTest {
         name = null,
         template = ComponentTemplate.TEXT,
         position = 0,
+        core = true,
         createdAt = Date(0L),
         updatedAt = Date(0L),
     )
@@ -51,6 +61,7 @@ class ChatReducerTest {
         name = "Definition",
         template = ComponentTemplate.TEXT,
         position = 1,
+        core = true,
         createdAt = Date(0L),
         updatedAt = Date(0L),
     )
@@ -59,6 +70,10 @@ class ChatReducerTest {
     private val userDefinition = ComponentTypeRef.UserDefined("Definition")
 
     private val initialState = ChatScreenState()
+
+    private fun ChatScreenState.picker() = appBarState.itemsState.quizComponent
+    private fun ChatScreenState.messages() = chat.messagesState.list
+    private fun ChatScreenState.messageCount(): Int = messages().size
 
     // ===== PrepareToStart =====
 
@@ -72,140 +87,251 @@ class ChatReducerTest {
         )
     }
 
-    // ===== SelectQuizComponent =====
-
-    @Test
-    fun `SelectQuizComponent emits SaveQuizPickerSelection, state unchanged`() {
-        val result = reducer.testReduce(
-            initialState,
-            Msg.SelectQuizComponent(userDefinition),
-        )
-
-        assertEquals(initialState, result.state())
-        assertEquals(
-            setOf(DatasourceEffect.SaveQuizPickerSelection(userDefinition)),
-            result.effects(),
-        )
-    }
-
-    @Test
-    fun `SelectQuizComponent without guard emits Save effect even when ref not in availableTypes`() {
-        // F8 — intentional: eventual consistency через restore fallback в reducer.
-        val stateWithTypes = initialState.updateQuizComponent(
-            types = listOf(translationType(), definitionType()),
-            selectedRef = builtInTranslation,
-        )
-        val notInList = ComponentTypeRef.UserDefined("Removed")
-
-        val result = reducer.testReduce(stateWithTypes, Msg.SelectQuizComponent(notInList))
-
-        assertEquals(stateWithTypes, result.state())
-        assertEquals(
-            setOf(DatasourceEffect.SaveQuizPickerSelection(notInList)),
-            result.effects(),
-        )
-    }
-
     // ===== QuizComponentTypesLoaded =====
 
     @Test
-    fun `QuizComponentTypesLoaded with empty types sets empty state, null selectedRef`() {
+    fun `QuizComponentTypesLoaded with empty types sets empty state`() {
         val result = reducer.testReduce(
             initialState,
-            Msg.QuizComponentTypesLoaded(types = emptyList(), restoredSelectedRef = builtInTranslation),
+            Msg.QuizComponentTypesLoaded(types = emptyList(), restoredSelectedRefs = setOf(builtInTranslation)),
         )
 
-        val qc = result.state().appBarState.itemsState.quizComponent
+        val qc = result.state().picker()
         assertTrue(qc.availableTypes.isEmpty())
-        assertEquals(null, qc.selectedRef)
+        assertTrue(qc.selectedRefs.isEmpty())
+        assertFalse(qc.isPickerVisible)
         result.assertNoEffects()
     }
 
     @Test
-    fun `QuizComponentTypesLoaded restored valid - selectedRef preserved`() {
+    fun `QuizComponentTypesLoaded restored subset preserved`() {
         val result = reducer.testReduce(
             initialState,
             Msg.QuizComponentTypesLoaded(
                 types = listOf(translationType(), definitionType()),
-                restoredSelectedRef = userDefinition,
+                restoredSelectedRefs = setOf(userDefinition),
             ),
         )
 
-        val qc = result.state().appBarState.itemsState.quizComponent
-        assertEquals(userDefinition, qc.selectedRef)
+        assertEquals(setOf(userDefinition), result.state().picker().selectedRefs)
     }
 
     @Test
-    fun `QuizComponentTypesLoaded restored translation only resolves to translation`() {
+    fun `QuizComponentTypesLoaded restored with stale ref keeps only available`() {
+        val result = reducer.testReduce(
+            initialState,
+            Msg.QuizComponentTypesLoaded(
+                types = listOf(translationType(), definitionType()),
+                restoredSelectedRefs = setOf(userDefinition, ComponentTypeRef.UserDefined("Removed")),
+            ),
+        )
+
+        assertEquals(setOf(userDefinition), result.state().picker().selectedRefs)
+    }
+
+    @Test
+    fun `QuizComponentTypesLoaded restored all stale - all available`() {
+        val result = reducer.testReduce(
+            initialState,
+            Msg.QuizComponentTypesLoaded(
+                types = listOf(translationType(), definitionType()),
+                restoredSelectedRefs = setOf(ComponentTypeRef.UserDefined("Removed")),
+            ),
+        )
+
+        assertEquals(setOf(builtInTranslation, userDefinition), result.state().picker().selectedRefs)
+    }
+
+    @Test
+    fun `QuizComponentTypesLoaded restored empty - all available`() {
+        val result = reducer.testReduce(
+            initialState,
+            Msg.QuizComponentTypesLoaded(
+                types = listOf(translationType(), definitionType()),
+                restoredSelectedRefs = emptySet(),
+            ),
+        )
+
+        assertEquals(setOf(builtInTranslation, userDefinition), result.state().picker().selectedRefs)
+        assertTrue(result.state().picker().isPickerVisible)
+    }
+
+    @Test
+    fun `QuizComponentTypesLoaded single type - selected, picker hidden`() {
         val result = reducer.testReduce(
             initialState,
             Msg.QuizComponentTypesLoaded(
                 types = listOf(translationType()),
-                restoredSelectedRef = builtInTranslation,
+                restoredSelectedRefs = setOf(ComponentTypeRef.UserDefined("Removed")),
             ),
         )
 
-        val qc = result.state().appBarState.itemsState.quizComponent
-        assertEquals(builtInTranslation, qc.selectedRef)
-    }
-
-    @Test
-    fun `QuizComponentTypesLoaded restored invalid - fallback to first by position`() {
-        val result = reducer.testReduce(
-            initialState,
-            Msg.QuizComponentTypesLoaded(
-                types = listOf(translationType(), definitionType()),
-                restoredSelectedRef = ComponentTypeRef.UserDefined("Removed"),
-            ),
-        )
-
-        val qc = result.state().appBarState.itemsState.quizComponent
-        assertEquals(builtInTranslation, qc.selectedRef)
-    }
-
-    @Test
-    fun `QuizComponentTypesLoaded restored invalid single-type - fallback to only available`() {
-        // F3 — single-type fallback.
-        val result = reducer.testReduce(
-            initialState,
-            Msg.QuizComponentTypesLoaded(
-                types = listOf(translationType()),
-                restoredSelectedRef = ComponentTypeRef.UserDefined("Removed"),
-            ),
-        )
-
-        val qc = result.state().appBarState.itemsState.quizComponent
-        assertEquals(builtInTranslation, qc.selectedRef)
-        assertEquals(false, qc.isPickerEnabled)
-    }
-
-    @Test
-    fun `QuizComponentTypesLoaded restored null - default first`() {
-        val result = reducer.testReduce(
-            initialState,
-            Msg.QuizComponentTypesLoaded(
-                types = listOf(translationType(), definitionType()),
-                restoredSelectedRef = null,
-            ),
-        )
-
-        val qc = result.state().appBarState.itemsState.quizComponent
-        assertEquals(builtInTranslation, qc.selectedRef)
+        val qc = result.state().picker()
+        assertEquals(setOf(builtInTranslation), qc.selectedRefs)
+        assertFalse(qc.isPickerVisible)
     }
 
     @Test
     fun `QuizComponentTypesLoaded double-emit idempotent`() {
-        // F7 — initial load и initial emit подписки QuizPicker могут прийти подряд;
-        // apply дважды → state stable.
+        // Начальная загрузка и первая эмиссия подписки могут прийти подряд.
         val msg = Msg.QuizComponentTypesLoaded(
             types = listOf(translationType(), definitionType()),
-            restoredSelectedRef = builtInTranslation,
+            restoredSelectedRefs = setOf(builtInTranslation),
         )
 
         val r1 = reducer.testReduce(initialState, msg)
         val r2 = reducer.testReduce(r1.state(), msg)
 
         assertEquals(r1.state(), r2.state())
+    }
+
+    // ===== ToggleQuizComponent =====
+
+    private fun twoCoresState(selected: Set<ComponentTypeRef>) = initialState.updateQuizComponent(
+        types = listOf(translationType(), definitionType()),
+        selectedRefs = selected,
+    )
+
+    @Test
+    fun `ToggleQuizComponent check adds ref and saves set`() {
+        val state = twoCoresState(selected = setOf(builtInTranslation))
+
+        val result = reducer.testReduce(state, Msg.ToggleQuizComponent(userDefinition, checked = true))
+
+        assertEquals(setOf(builtInTranslation, userDefinition), result.state().picker().selectedRefs)
+        assertEquals(
+            setOf(DatasourceEffect.SaveQuizPickerSelection(setOf(builtInTranslation, userDefinition))),
+            result.effects(),
+        )
+    }
+
+    @Test
+    fun `ToggleQuizComponent uncheck removes ref and saves set`() {
+        val state = twoCoresState(selected = setOf(builtInTranslation, userDefinition))
+
+        val result = reducer.testReduce(state, Msg.ToggleQuizComponent(builtInTranslation, checked = false))
+
+        assertEquals(setOf(userDefinition), result.state().picker().selectedRefs)
+        assertEquals(
+            setOf(DatasourceEffect.SaveQuizPickerSelection(setOf(userDefinition))),
+            result.effects(),
+        )
+    }
+
+    @Test
+    fun `ToggleQuizComponent uncheck last is no-op`() {
+        val state = twoCoresState(selected = setOf(builtInTranslation))
+
+        val result = reducer.testReduce(state, Msg.ToggleQuizComponent(builtInTranslation, checked = false))
+
+        assertEquals(state, result.state())
+        result.assertNoEffects()
+    }
+
+    // ===== раунды и правило игры =====
+
+    @Test
+    fun `Start loads first round`() {
+        val result = reducer.testReduce(initialState, Msg.Start)
+
+        assertEquals(setOf(DatasourceEffect.LoadQuiz(reload = false)), result.effects())
+    }
+
+    @Test
+    fun `Continue reloads round`() {
+        val result = reducer.testReduce(initialState, Msg.UserAction(ChatMessage.Companion.UserAction.CONTINUE))
+
+        assertEquals(setOf(DatasourceEffect.LoadQuiz(reload = true)), result.effects())
+    }
+
+    @Test
+    fun `QuizLoaded puts Start bubble and drips rule before first question`() {
+        val result = reducer.testReduce(initialState, Msg.QuizLoaded(content = null))
+        val state = result.state()
+
+        assertTrue(state.chat.readyToStart)
+        assertEquals(initialState.messageCount() + 1, state.messageCount())
+        val last = state.messages().last()
+        assertFalse(last.isSystemMessage)
+        assertEquals("Start", last.message.asString())
+        assertEquals(UserMessageOrigin.START_BUTTON, last.origin)
+
+        val effect = result.effects().single() as DatasourceEffect.DeliverSystemMessages
+        assertEquals(listOf("Rule"), effect.messages.map { it.value.asString() })
+        assertEquals(DatasourceEffect.NextQuestion, effect.then)
+    }
+
+    @Test
+    fun `QuizLoaded with debug stat drips rule then stat`() {
+        val result = reducer.testReduce(initialState, Msg.QuizLoaded(content = AnnotatedString("stat")))
+
+        val effect = result.effects().single() as DatasourceEffect.DeliverSystemMessages
+        assertEquals(listOf("Rule", "stat"), effect.messages.map { it.value.asString() })
+        assertEquals(DatasourceEffect.NextQuestion, effect.then)
+    }
+
+    @Test
+    fun `QuizReLoaded puts Continue bubble and asks next question without rule`() {
+        val result = reducer.testReduce(initialState, Msg.QuizReLoaded(content = null))
+        val state = result.state()
+
+        val last = state.messages().last()
+        assertFalse(last.isSystemMessage)
+        assertEquals("Continue", last.message.asString())
+        assertEquals(setOf(DatasourceEffect.NextQuestion), result.effects())
+    }
+
+    @Test
+    fun `QuizReLoaded with debug stat drips stat only`() {
+        val result = reducer.testReduce(initialState, Msg.QuizReLoaded(content = AnnotatedString("stat")))
+
+        val effect = result.effects().single() as DatasourceEffect.DeliverSystemMessages
+        assertEquals(listOf("stat"), effect.messages.map { it.value.asString() })
+        assertEquals(DatasourceEffect.NextQuestion, effect.then)
+    }
+
+    @Test
+    fun `SystemMessageDelivered last in queue runs then`() {
+        val rule = MessageContent.create(text = "rule")
+
+        val result = reducer.testReduce(
+            initialState,
+            Msg.SystemMessageDelivered(message = rule, rest = emptyList(), then = DatasourceEffect.NextQuestion),
+        )
+
+        assertEquals(initialState.messageCount() + 1, result.state().messageCount())
+        assertEquals(setOf(DatasourceEffect.NextQuestion), result.effects())
+    }
+
+    @Test
+    fun `SystemMessageDelivered with rest carries then forward`() {
+        val a = MessageContent.create(text = "a")
+        val b = MessageContent.create(text = "b")
+
+        val result = reducer.testReduce(
+            initialState,
+            Msg.SystemMessageDelivered(message = a, rest = listOf(b), then = DatasourceEffect.NextQuestion),
+        )
+
+        assertEquals(
+            setOf(DatasourceEffect.DeliverSystemMessages(listOf(b), then = DatasourceEffect.NextQuestion)),
+            result.effects(),
+        )
+    }
+
+    // ===== структурный вопрос =====
+
+    @Test
+    fun `NextQuestion with structured question keeps it structured in the feed`() {
+        val question = QuizQuestion(header = "Перевод", badge = "сущ.", value = "яблоко", debugHeader = null)
+
+        val result = reducer.testReduce(initialState, Msg.NextQuestion(MessageContent.question(question)))
+
+        val last = result.state().messages().last()
+        assertTrue(last.isSystemMessage)
+        assertEquals(ChatMessage.MessageValue.Question(question), last.message)
+        assertEquals("Перевод:\nяблоко", last.message.asString())
+        assertEquals("Перевод:\nяблоко", last.message.asText().text)
     }
 
     // ===== IS508 чат-фикс 2: кнопки действий — элемент ленты =====
@@ -218,7 +344,7 @@ class ChatReducerTest {
     @Test
     fun `NextQuestion raises showUserActions, question is last system message without buttons`() {
         val state = questionState()
-        val last = state.chat.messagesState.list.last()
+        val last = state.messages().last()
 
         assertTrue(state.chat.showUserActions)
         assertTrue(last.isSystemMessage)
@@ -237,8 +363,6 @@ class ChatReducerTest {
 
     // ===== IS508 чат-фикс 8: пачки сообщений бота — по одному =====
 
-    private fun ChatScreenState.messageCount(): Int = chat.messagesState.list.size
-
     @Test
     fun `SessionOver adds summary now and queues options via DeliverSystemMessages`() {
         val state = questionState()
@@ -246,11 +370,12 @@ class ChatReducerTest {
         val newState = result.state()
 
         assertEquals(state.messageCount() + 1, newState.messageCount())
-        assertTrue(newState.chat.messagesState.list.last().isSystemMessage)
-        assertTrue(newState.chat.messagesState.list.last().buttons.isEmpty())
+        assertTrue(newState.messages().last().isSystemMessage)
+        assertTrue(newState.messages().last().buttons.isEmpty())
         val effect = result.effects().single() as DatasourceEffect.DeliverSystemMessages
         assertEquals(1, effect.messages.size)
         assertEquals(3, effect.messages.single().buttons.size)
+        assertEquals(null, effect.then)
     }
 
     @Test
