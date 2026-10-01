@@ -5,7 +5,9 @@ import androidx.compose.ui.text.AnnotatedString
 interface QuizGame {
     suspend fun loadData()
     fun hasNextQuestion(): Boolean
-    fun nextQuestion(): AnnotatedString
+
+    /** Текущий вопрос; вызывать только после `hasNextQuestion() == true`. */
+    fun nextQuestion(): QuizQuestion
     fun skip()
     fun skipAndGetAnswer(): AnnotatedString
     fun makeAssessment(userAttempt: String): AnnotatedString

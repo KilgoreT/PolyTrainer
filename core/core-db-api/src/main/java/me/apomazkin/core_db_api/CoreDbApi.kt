@@ -444,11 +444,16 @@ interface CoreDbApi {
          * IS500: `groupId != null` сужает выборку до слов живой группы
          * (через лексему квиз-записи); null — весь словарь. Фильтр
          * применяется в WHERE самого запроса — до ORDER BY/LIMIT.
+         *
+         * `coreTypeIds` — включённые ядра словаря: лексема без живого
+         * значения хотя бы в одном из них в выборку не попадает (тот же
+         * WHERE). Непустой список гарантирует вызывающий.
          */
         suspend fun getWriteQuizIds(
             grade: Int,
             dictionaryId: Long,
             groupId: Long? = null,
+            coreTypeIds: List<Long>,
         ): List<Long>
 
         suspend fun getWriteQuizByIds(
@@ -459,12 +464,14 @@ interface CoreDbApi {
             limit: Int,
             dictionaryId: Long,
             groupId: Long? = null,
+            coreTypeIds: List<Long>,
         ): List<WriteQuizComplexEntity>
 
         suspend fun getFrequentMistakesWriteQuizList(
             limit: Int,
             dictionaryId: Long,
             groupId: Long? = null,
+            coreTypeIds: List<Long>,
         ): List<WriteQuizComplexEntity>
 
         /**

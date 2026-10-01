@@ -2,9 +2,8 @@ package me.apomazkin.quiz.chat.logic
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
-import me.apomazkin.lexeme.ComponentType
-import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.toRef
+import me.apomazkin.quiz.chat.quiz.resolveQuizCores
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateReducer
 import io.github.kilgoret.mate.NavigationEffect
@@ -53,43 +52,37 @@ internal class ChatReducer(
                             isDebugOn = message.isDebugOn
                     ) to setOf()
 
-            is Msg.Start -> state to setOf(DatasourceEffect.LoadQuiz)
+            is Msg.Start -> state to setOf(DatasourceEffect.LoadQuiz(reload = false))
 
             is Msg.QuizGroupNameLoaded -> state
                     .updateQuizGroupName(message.name) to setOf()
 
-            is Msg.QuizLoaded -> {
-                val newState = state
-                        .startQuiz()
-                        .userMessage(
-                                message = startUserMessage()
-                                        .toMessageContent(),
-                                origin = UserMessageOrigin.START_BUTTON,
-                        )
-                val newNewState = if (message.content != null) {
-                    newState.systemMessage(
-                            message = MessageContent.create(text = message.content)
+            // Первый раунд сессии: «Начать» морфится в пузырь на месте, а
+            // правило игры (и debug-стат) въезжают по одному после паузы —
+            // в апдейте с морфом вставок быть не должно (контракт ленты).
+            is Msg.QuizLoaded -> state
+                    .startQuiz()
+                    .userMessage(
+                            message = startUserMessage()
+                                    .toMessageContent(),
+                            origin = UserMessageOrigin.START_BUTTON,
+                    ) to botMessagesThenQuestion(
+                    messages = listOfNotNull(
+                            ruleMessage().toMessageContent(),
+                            message.content?.let { MessageContent.create(text = it) },
                     )
-                } else newState
+            )
 
-
-                return newNewState to setOf(DatasourceEffect.NextQuestion)
-            }
-
-            is Msg.QuizReLoaded -> {
-                val newState = state
-                        .userMessage(
-                                message = continueUserMessage()
-                                        .toMessageContent()
-                        )
-                val newNewState = if (message.content != null) {
-                    newState.systemMessage(
-                            message = MessageContent.create(text = message.content)
+            // Следующий раунд той же сессии: правило уже было.
+            is Msg.QuizReLoaded -> state
+                    .userMessage(
+                            message = continueUserMessage()
+                                    .toMessageContent()
+                    ) to botMessagesThenQuestion(
+                    messages = listOfNotNull(
+                            message.content?.let { MessageContent.create(text = it) },
                     )
-                } else newState
-
-                return newNewState to setOf(DatasourceEffect.NextQuestion)
-            }
+            )
 
             is Msg.NextQuestion -> state
                     .systemMessage(message = message.content)
@@ -150,14 +143,14 @@ internal class ChatReducer(
             is Msg.SystemMessageDelivered -> state
                     .systemMessage(message = message.message) to
                     if (message.rest.isEmpty()) {
-                        emptySet()
+                        setOfNotNull(message.then)
                     } else {
-                        setOf(DatasourceEffect.DeliverSystemMessages(message.rest))
+                        setOf(DatasourceEffect.DeliverSystemMessages(message.rest, message.then))
                     }
 
             is Msg.UserAction -> {
                 val effects: Set<Effect> = when (message.action) {
-                    UserAction.CONTINUE -> setOf(DatasourceEffect.LoadQuiz)
+                    UserAction.CONTINUE -> setOf(DatasourceEffect.LoadQuiz(reload = true))
                     UserAction.SUMMARY -> setOf(DatasourceEffect.Summary)
                     UserAction.EXIT -> setOf(NavigationEffect.Back)
                 }
@@ -191,12 +184,30 @@ internal class ChatReducer(
                         .disableUserInput() to setOf(DatasourceEffect.DeliverSystemMessages(queue))
             }
 
-            is Msg.SelectQuizComponent -> state to
-                    setOf(DatasourceEffect.SaveQuizPickerSelection(message.ref))
+            // Галка меню: состояние меняется сразу (оптимистично), подписка
+            // после записи переиздаст то же. Снять последнюю нельзя — no-op.
+            is Msg.ToggleQuizComponent -> {
+                val picker = state.appBarState.itemsState.quizComponent
+                val next = if (message.checked) {
+                    picker.selectedRefs + message.ref
+                } else {
+                    picker.selectedRefs - message.ref
+                }
+                if (next.isEmpty()) {
+                    state to emptySet()
+                } else {
+                    state.updateQuizComponent(
+                            types = picker.availableTypes,
+                            selectedRefs = next,
+                    ) to setOf(DatasourceEffect.SaveQuizPickerSelection(next))
+                }
+            }
 
             is Msg.QuizComponentTypesLoaded -> state.updateQuizComponent(
                     types = message.types,
-                    selectedRef = resolveSelection(message.types, message.restoredSelectedRef),
+                    selectedRefs = resolveQuizCores(message.types, message.restoredSelectedRefs)
+                            .map { it.toRef() }
+                            .toSet(),
             ) to setOf()
 
             is Msg.Empty -> state to emptySet()
@@ -209,23 +220,28 @@ internal class ChatReducer(
     }
 
     /**
-     * IS481 quiz picker. Membership check restored ref в available.
-     * - types пуст → null.
-     * - restored ∈ types.map { it.toRef() } → restored.
-     * - иначе fallback на первый по `position` (types preserve порядок из БД).
+     * Сообщения бота перед вопросом: пусто — сразу вопрос, иначе капельно
+     * по одному, и только после последнего — вопрос.
      */
-    private fun resolveSelection(
-            types: List<ComponentType>,
-            restored: ComponentTypeRef?,
-    ): ComponentTypeRef? {
-        if (types.isEmpty()) return null
-        val available = types.map { it.toRef() }
-        if (restored != null && restored in available) return restored
-        return available.first()
-    }
+    private fun botMessagesThenQuestion(messages: List<MessageContent>): Set<Effect> =
+            if (messages.isEmpty()) {
+                setOf(DatasourceEffect.NextQuestion)
+            } else {
+                setOf(
+                        DatasourceEffect.DeliverSystemMessages(
+                                messages = messages,
+                                then = DatasourceEffect.NextQuestion,
+                        )
+                )
+            }
 
     private fun welcomeMessage(): String {
         return resourceManager.stringByResId(R.string.chat_quiz_msg_system_welcome)
+    }
+
+    /** Правило игры — один раз за сессию, после «Начать». */
+    private fun ruleMessage(): String {
+        return resourceManager.stringByResId(R.string.chat_quiz_msg_system_rule)
     }
 
     private fun startUserMessage(): String {

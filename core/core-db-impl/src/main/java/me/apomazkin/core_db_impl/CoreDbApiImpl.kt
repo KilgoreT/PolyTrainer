@@ -1568,11 +1568,13 @@ class CoreDbApiImpl @Inject constructor(
             grade: Int,
             dictionaryId: Long,
             groupId: Long?,
+            coreTypeIds: List<Long>,
         ): List<Long> {
             return wordDao.getWriteQuizIds(
                 grade = grade,
                 langId = dictionaryId,
                 groupId = groupId,
+                coreTypeIds = coreTypeIds,
             )
         }
 
@@ -1589,11 +1591,13 @@ class CoreDbApiImpl @Inject constructor(
             limit: Int,
             dictionaryId: Long,
             groupId: Long?,
+            coreTypeIds: List<Long>,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getEarliest(
                 langId = dictionaryId,
                 limit = limit,
                 groupId = groupId,
+                coreTypeIds = coreTypeIds,
             ).map { it.toApiEntity(logger) }
         }
 
@@ -1601,11 +1605,13 @@ class CoreDbApiImpl @Inject constructor(
             limit: Int,
             dictionaryId: Long,
             groupId: Long?,
+            coreTypeIds: List<Long>,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getFrequentMistakes(
                 langId = dictionaryId,
                 limit = limit,
                 groupId = groupId,
+                coreTypeIds = coreTypeIds,
             ).map { it.toApiEntity(logger) }
         }
 

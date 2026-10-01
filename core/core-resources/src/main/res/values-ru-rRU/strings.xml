@@ -158,6 +158,7 @@
     <string name="chat_menu_item_mistakes">Частые ошибки</string>
     <string name="chat_menu_item_earliest_reviewed">Самые давние</string>
     <string name="chat_menu_item_quiz_component">Компонент квиза</string>
+    <string name="chat_menu_quiz_component_hint">минимум одно</string>
     <string name="chat_menu_item_component_translation">Перевод</string>
     <string name="chat_quiz_bg_image_content_description">Фоновое изображение</string>
     <string name="chat_quiz_start_button_title">Начать</string>
@@ -170,9 +171,14 @@
 
     <string name="chat_quiz_msg_user_start">Начать</string>
     <string name="chat_quiz_msg_user_continue">Продолжить квиз</string>
+    <string name="chat_quiz_msg_system_rule">Я даю подсказку — ты пишешь слово.</string>
 
-    <string name="chat_quiz_ask_translation_header">Переведи следующее слово:</string>
-    <string name="chat_quiz_ask_definition_header">Какое слово связано с этим определением:</string>
+    <string name="chat_quiz_pos_noun">сущ.</string>
+    <string name="chat_quiz_pos_verb">гл.</string>
+    <string name="chat_quiz_pos_adjective">прил.</string>
+    <string name="chat_quiz_pos_adverb">нареч.</string>
+    <string name="chat_quiz_pos_preposition">предл.</string>
+    <string name="chat_quiz_pos_phrase">фраз.</string>
 
     <string name="chat_quiz_system_btn_continue">Продолжить квиз</string>
     <string name="chat_quiz_system_btn_result">Посмотреть отчет</string>
@@ -185,7 +191,7 @@
 
     <string name="chat_quiz_summary_total">📈 Всего слов: %s</string>
     <string name="chat_quiz_summary_correct">✅ Правильных ответов: %s</string>
-    <string name="chat_quiz_summary_skipped">➖ Пропущено:: %s</string>
+    <string name="chat_quiz_summary_skipped">➖ Пропущено: %s</string>
     <string name="chat_quiz_summary_incorrect">❌ Ошибок: %s</string>
 
     <string name="chat_quiz_summary_detail_title">Список ответов:</string>

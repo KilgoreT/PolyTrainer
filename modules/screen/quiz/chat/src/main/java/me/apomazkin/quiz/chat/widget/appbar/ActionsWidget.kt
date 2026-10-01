@@ -38,7 +38,7 @@ fun ActionsWidget(
         )
         QuizComponentMenuItem(
                 state = state.quizComponent,
-                onSelect = { ref -> sendMessage(Msg.SelectQuizComponent(ref)) },
+                onToggle = { ref, checked -> sendMessage(Msg.ToggleQuizComponent(ref, checked)) },
         )
         if (BuildConfig.DEBUG) {
             DividerMenuItem()

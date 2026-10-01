@@ -26,7 +26,11 @@ sealed interface DatasourceEffect : Effect {
     data object FrequentMistakesOff : DatasourceEffect
     data object DebugOn : DatasourceEffect
     data object DebugOff : DatasourceEffect
-    data object LoadQuiz : DatasourceEffect
+    /**
+     * Загрузка раунда. [reload] — раунд продолжает сессию («Продолжить
+     * квиз»): хендлер отвечает [Msg.QuizReLoaded], иначе — [Msg.QuizLoaded].
+     */
+    data class LoadQuiz(val reload: Boolean) : DatasourceEffect
     data object NextQuestion : DatasourceEffect
     data object Skip : DatasourceEffect
     data object GetAnswer : DatasourceEffect
@@ -39,23 +43,27 @@ sealed interface DatasourceEffect : Effect {
      * въезд по одному на них не работал. Хендлер выдерживает паузу и
      * возвращает первое сообщение как [Msg.SystemMessageDelivered] с
      * остатком очереди; редьюсер кладёт его в ленту и повторяет эффект
-     * для остатка, пока очередь не опустеет. Содержимое сообщений — в
-     * редьюсере, хендлер только задаёт темп.
+     * для остатка, пока очередь не опустеет, а затем запускает [then]
+     * (например, следующий вопрос после правила игры). Содержимое
+     * сообщений — в редьюсере, хендлер только задаёт темп.
      */
-    data class DeliverSystemMessages(val messages: List<MessageContent>) : DatasourceEffect
+    data class DeliverSystemMessages(
+        val messages: List<MessageContent>,
+        val then: DatasourceEffect? = null,
+    ) : DatasourceEffect
 
     /**
-     * IS481 quiz picker. One-shot fetch на entry — availableTypes + restored
-     * selectedRef → `Msg.QuizComponentTypesLoaded`. `dictionaryId` резолвится
-     * в handler через `useCase.getCurrentDictionaryId()`.
+     * Загрузка пикера на входе: ядра словаря + сохранённый набор →
+     * `Msg.QuizComponentTypesLoaded`. `dictionaryId` резолвится в хендлере
+     * через `useCase.getCurrentDictionaryId()`.
      */
     data object LoadQuizComponentTypes : DatasourceEffect
 
     /**
-     * IS481 quiz picker. Persist write. Flow подхватит write и emit
-     * `Msg.QuizComponentTypesLoaded` для UI update.
+     * Запись набора ядер в prefs. Подписка `ChatSub.QuizPicker` подхватит
+     * запись и переиздаст `Msg.QuizComponentTypesLoaded`.
      */
-    data class SaveQuizPickerSelection(val ref: ComponentTypeRef) : DatasourceEffect
+    data class SaveQuizPickerSelection(val refs: Set<ComponentTypeRef>) : DatasourceEffect
 
     /**
      * IS500. Имя группы тренировки для сабтайтла аппбара — на входе
@@ -113,7 +121,11 @@ class DatasourceEffectHandler(
                 // IS500: имя группы сессии обновляется и на старте
                 // сессии (страховка «Продолжить» после смены данных).
                 consumer(loadQuizGroupName())
-                Msg.QuizLoaded(content = quizGame.getStat())
+                if (effect.reload) {
+                    Msg.QuizReLoaded(content = quizGame.getStat())
+                } else {
+                    Msg.QuizLoaded(content = quizGame.getStat())
+                }
             }
             is DatasourceEffect.LoadQuizGroupName -> withContext(io) {
                 loadQuizGroupName()
@@ -122,7 +134,7 @@ class DatasourceEffectHandler(
                 if (quizGame.hasNextQuestion()) {
                     val quiz = quizGame.nextQuestion()
                     delay(botPauseMs())
-                    Msg.NextQuestion(content = MessageContent.create(text = quiz))
+                    Msg.NextQuestion(content = MessageContent.question(quiz))
                 } else {
                     async { quizGame.saveSession() }.await()
                     // Финал — тоже сообщение бота: пауза, чтобы оценка последнего
@@ -161,6 +173,7 @@ class DatasourceEffectHandler(
                     Msg.SystemMessageDelivered(
                         message = first,
                         rest = effect.messages.drop(1),
+                        then = effect.then,
                     )
                 }
             }
@@ -170,15 +183,15 @@ class DatasourceEffectHandler(
                     Msg.Empty
                 } else {
                     Msg.QuizComponentTypesLoaded(
-                        types = useCase.getAvailableTypes(dictId),
-                        restoredSelectedRef = useCase.getQuizPickerSelection(dictId),
+                        types = useCase.getQuizCoreTypes(dictId),
+                        restoredSelectedRefs = useCase.getQuizPickerSelection(dictId),
                     )
                 }
             }
             is DatasourceEffect.SaveQuizPickerSelection -> withContext(io) {
                 val dictId = useCase.getCurrentDictionaryId()
                 if (dictId != null) {
-                    useCase.setQuizPickerSelection(dictId, effect.ref)
+                    useCase.setQuizPickerSelection(dictId, effect.refs)
                 }
                 Msg.Empty
             }

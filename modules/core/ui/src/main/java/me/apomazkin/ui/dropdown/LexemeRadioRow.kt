@@ -20,9 +20,9 @@ import androidx.compose.ui.unit.dp
 /**
  * IS481 (F162): primitive — radio-row для radio-group в формах/диалогах.
  *
- * Отличается от [LexemeRadioMenuItem] (DropdownMenuItem) тем, что используется как
- * inline-row в Column/LazyColumn, а не как пункт меню. Поддерживает full-row click area
- * через `Modifier.selectable(... role = Role.RadioButton)`.
+ * Используется как inline-row в Column/LazyColumn, а не как пункт меню.
+ * Поддерживает full-row click area через
+ * `Modifier.selectable(... role = Role.RadioButton)`.
  *
  * @param textRes label string resource.
  * @param selected текущий radio-state.

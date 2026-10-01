@@ -41,14 +41,21 @@ sealed interface MenuItem {
                 onClick = onClick
         )
 
+        /**
+         * @param enabled `false` — галка и строка задизейблены, клики
+         *   игнорируются (например, последняя включённая в наборе
+         *   «минимум одно»).
+         */
         @Composable
         fun withCheckbox(
                 isChecked: Boolean,
                 title: StringSource,
+                enabled: Boolean = true,
                 onCheckedChange: (Boolean) -> Unit,
         ) = MenuItemWithCheckbox(
                 isChecked = isChecked,
                 title = title,
+                enabled = enabled,
                 onCheckedChange = onCheckedChange,
         )
     }
@@ -85,6 +92,7 @@ data class MenuItemTextOnly(
 data class MenuItemWithCheckbox(
         val isChecked: Boolean,
         override val title: StringSource,
+        val enabled: Boolean = true,
         val onCheckedChange: (Boolean) -> Unit,
 ) : MenuItem {
 
@@ -92,6 +100,7 @@ data class MenuItemWithCheckbox(
     override fun Widget() = MenuItem(
             isChecked = isChecked,
             title = title,
+            enabled = enabled,
             onCheckedChange = onCheckedChange,
     )
 }
@@ -126,6 +135,7 @@ internal fun MenuItem(
 internal fun MenuItem(
         isChecked: Boolean,
         title: StringSource,
+        enabled: Boolean = true,
         onCheckedChange: (Boolean) -> Unit,
 ) {
     DropdownMenuItem(
@@ -133,7 +143,7 @@ internal fun MenuItem(
                 Checkbox(
                         checked = isChecked,
                         onCheckedChange = onCheckedChange,
-                        enabled = true,
+                        enabled = enabled,
                         colors = CheckboxDefaults.colors(
                                 checkedColor = MaterialTheme.colorScheme.primary,
                                 uncheckedColor = MaterialTheme.colorScheme.onSurface
@@ -147,6 +157,7 @@ internal fun MenuItem(
                         color = title.color ?: Color.Unspecified,
                 )
             },
+            enabled = enabled,
             onClick = { onCheckedChange.invoke(!isChecked) },
     )
 }
@@ -177,6 +188,12 @@ private fun Preview() {
             MenuItem.withCheckbox(
                     isChecked = true,
                     title = StringSource.fromRaw("Проверить"),
+                    onCheckedChange = {}
+            ).Widget()
+            MenuItem.withCheckbox(
+                    isChecked = true,
+                    title = StringSource.fromRaw("Последняя, снять нельзя"),
+                    enabled = false,
                     onCheckedChange = {}
             ).Widget()
         }

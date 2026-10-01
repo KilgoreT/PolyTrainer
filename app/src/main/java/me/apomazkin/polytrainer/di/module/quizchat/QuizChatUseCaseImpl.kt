@@ -6,7 +6,7 @@ import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
 import me.apomazkin.lexeme.BuiltInComponent
-import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.ComponentOption
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.LexemeId
@@ -19,6 +19,7 @@ import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.prefs.quizPickerPrefKey
 import me.apomazkin.quiz.QuizTypes
 import me.apomazkin.quiz.chat.LogTags
+import me.apomazkin.quiz.chat.deps.QUIZ_RENDERABLE_TEMPLATES
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.entity.QuizType
 import me.apomazkin.quiz.chat.entity.Word
@@ -62,8 +63,15 @@ class QuizChatUseCaseImpl @Inject constructor(
     override suspend fun getRandomWriteQuizList(
         limit: Int,
         maxGrade: Int,
-        dictionaryId: Long
+        dictionaryId: Long,
+        coreTypeIds: List<Long>,
     ): List<WriteQuiz> {
+        // Без включённых ядер спрашивать нечем: порция пустая, в БД не ходим
+        // (пустой IN () у Room всё равно дал бы ноль строк).
+        if (coreTypeIds.isEmpty()) {
+            logger.w(tag = LogTags.CHAT, message = "getRandomWriteQuizList: no core types")
+            return emptyList()
+        }
         // IS500: групповой фильтр резолвится ЗДЕСЬ (Д6 — в код квиза не
         // зашивается); прецедент внутренних чтений prefs — isEarliestOn
         // ниже. null = «Все», поведение до фичи.
@@ -73,7 +81,7 @@ class QuizChatUseCaseImpl @Inject constructor(
         )
         logger.d(
             tag = LogTags.CHAT,
-            message = "getRandomWriteQuizList: groupFilter=${groupId ?: "all"}",
+            message = "getRandomWriteQuizList: groupFilter=${groupId ?: "all"} cores=$coreTypeIds",
         )
 
         val allByGrades: Map<Int, List<WriteQuiz>> = (0..maxGrade)
@@ -82,6 +90,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                     grade = grade,
                     dictionaryId = dictionaryId,
                     groupId = groupId,
+                    coreTypeIds = coreTypeIds,
                 )
                 val randomIds = ids.shuffled().take(limit)
                 if (randomIds.isEmpty()) return@associateWith emptyList()
@@ -132,7 +141,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                 ?: false
         if (isEarliestOn) {
             val candidates = quizApi
-                    .getEarliestWriteQuizList(limit, dictionaryId, groupId)
+                    .getEarliestWriteQuizList(limit, dictionaryId, groupId, coreTypeIds)
                     .toDomainEntity(type = QuizType.EARLIEST)
             earliestCandidates = candidates.size
             earliestAdded = pick(candidates.shuffled(), ADDON_SIZE).size
@@ -143,7 +152,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                 ?: false
         if (isFrequentMistakesOn) {
             val candidates = quizApi
-                .getFrequentMistakesWriteQuizList(limit, dictionaryId, groupId)
+                .getFrequentMistakesWriteQuizList(limit, dictionaryId, groupId, coreTypeIds)
                 .toDomainEntity(type = QuizType.ERRORS)
             errorsCandidates = candidates.size
             errorsAdded = pick(candidates.shuffled(), ADDON_SIZE).size
@@ -171,29 +180,38 @@ class QuizChatUseCaseImpl @Inject constructor(
         null
     }
 
-    // ===== IS481 quiz picker (AGG-12) =====
+    // ===== quiz picker: ядра =====
 
-    override suspend fun getAvailableTypes(dictionaryId: Long): List<ComponentType> {
-        // IS491 (Д6): белый список — тренируются только TEXT-компоненты; CHOICE (IS486),
-        // captioned_text и будущие шаблоны в пикер не попадают по умолчанию.
-        val available = lexemeApi.getComponentTypes(dictionaryId)
+    override suspend fun getQuizCoreTypes(dictionaryId: Long): List<ComponentType> {
+        // Спросить лексему можно только ядром (word-model §2.6): живым,
+        // включённым и с шаблоном, который квиз умеет показать.
+        val cores = lexemeApi.getComponentTypes(dictionaryId)
             .map { it.toDomain() }
-            .filter { it.template == ComponentTemplate.TEXT }
+            .filter { it.core && it.enabled && it.removedAt == null }
+            .filter { it.template in QUIZ_RENDERABLE_TEMPLATES }
+            .sortedBy { it.position }
         logger.d(
-            tag = me.apomazkin.logger.LogTags.CAPTIONED_TEXT,
-            message = "quizPicker: available=[" +
-                available.joinToString { it.name ?: it.systemKey?.key.orEmpty() } + "]",
+            tag = LogTags.CHAT,
+            message = "quizPicker: cores=[" +
+                cores.joinToString { it.name ?: it.systemKey?.key.orEmpty() } + "]",
         )
-        return available
+        return cores
     }
 
-    override suspend fun getQuizPickerSelection(dictionaryId: Long): ComponentTypeRef? {
-        val raw = prefsProvider.getStringByRawKey(quizPickerPrefKey(dictionaryId)) ?: return null
-        return decodeRef(raw)
+    override suspend fun getQuizPickerSelection(dictionaryId: Long): Set<ComponentTypeRef> {
+        val raw = prefsProvider.getStringByRawKey(quizPickerPrefKey(dictionaryId)) ?: return emptySet()
+        return decodeRefs(raw)
     }
 
-    override suspend fun setQuizPickerSelection(dictionaryId: Long, ref: ComponentTypeRef) {
-        prefsProvider.setStringByRawKey(quizPickerPrefKey(dictionaryId), encodeRef(ref))
+    override suspend fun setQuizPickerSelection(dictionaryId: Long, refs: Set<ComponentTypeRef>) {
+        prefsProvider.setStringByRawKey(quizPickerPrefKey(dictionaryId), encodeRefs(refs))
+    }
+
+    override suspend fun getPartOfSpeechOptions(dictionaryId: Long): List<ComponentOption> {
+        val posType = lexemeApi.getComponentTypes(dictionaryId)
+            .firstOrNull { it.systemKey == BuiltInComponent.PART_OF_SPEECH && it.removedAt == null }
+            ?: return emptyList()
+        return lexemeApi.getComponentOptions(posType.id).map { it.toDomain() }
     }
 
     // ===== IS500 quiz group =====
@@ -216,10 +234,21 @@ private const val ADDON_SIZE = 2
 private const val PREFIX_BUILTIN = "builtin:"
 private const val PREFIX_USER = "user:"
 
+/**
+ * Разделитель токенов набора в prefs: unit separator не встречается в
+ * именах (с клавиатуры его не ввести), в отличие от запятой и перевода
+ * строки. Одиночное значение без разделителя читается как набор из
+ * одного — миграция старых prefs не нужна.
+ */
+private const val REF_SEPARATOR = "\u001F"
+
 private fun encodeRef(ref: ComponentTypeRef): String = when (ref) {
     is ComponentTypeRef.BuiltIn -> "$PREFIX_BUILTIN${ref.key.key}"
     is ComponentTypeRef.UserDefined -> "$PREFIX_USER${ref.name}"
 }
+
+private fun encodeRefs(refs: Set<ComponentTypeRef>): String =
+    refs.joinToString(REF_SEPARATOR) { encodeRef(it) }
 
 /**
  * Decode `builtin:<key>` / `user:<name>`. Anything else → null.
@@ -236,6 +265,12 @@ private fun decodeRef(raw: String): ComponentTypeRef? = when {
     raw.startsWith(PREFIX_USER) -> ComponentTypeRef.UserDefined(raw.substringAfter(':'))
     else -> null
 }
+
+/** Битые токены отбрасываются; пустая строка → пустой набор. */
+private fun decodeRefs(raw: String): Set<ComponentTypeRef> =
+    raw.split(REF_SEPARATOR)
+        .mapNotNull { decodeRef(it) }
+        .toSet()
 
 fun WordApiEntity.toDomainEntity() = Word(
     id = id,

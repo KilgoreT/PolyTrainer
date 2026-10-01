@@ -87,8 +87,8 @@ class ChatSubHandlerTest {
         val prefFlow = MutableSharedFlow<String?>(replay = 1)
         prefFlow.tryEmit(null)
         coEvery { useCase.getCurrentDictionaryId() } returns 1L
-        coEvery { useCase.getAvailableTypes(1L) } returns listOf(translationType)
-        coEvery { useCase.getQuizPickerSelection(1L) } returns null
+        coEvery { useCase.getQuizCoreTypes(1L) } returns listOf(translationType)
+        coEvery { useCase.getQuizPickerSelection(1L) } returns emptySet()
         coEvery { prefsProvider.getStringFlowByRawKey("quiz_picker_dict_1") } returns prefFlow
 
         val emissions = mutableListOf<Msg>()
@@ -99,7 +99,7 @@ class ChatSubHandlerTest {
         assertEquals(1, emissions.size)
         val loaded = emissions.first() as Msg.QuizComponentTypesLoaded
         assertEquals(listOf(translationType), loaded.types)
-        assertEquals(null, loaded.restoredSelectedRef)
+        assertTrue(loaded.restoredSelectedRefs.isEmpty())
     }
 
     @Test
@@ -107,10 +107,10 @@ class ChatSubHandlerTest {
         val prefFlow = MutableSharedFlow<String?>(replay = 1)
         prefFlow.tryEmit(null)
         coEvery { useCase.getCurrentDictionaryId() } returns 1L
-        coEvery { useCase.getAvailableTypes(1L) } returns listOf(translationType)
+        coEvery { useCase.getQuizCoreTypes(1L) } returns listOf(translationType)
         coEvery { useCase.getQuizPickerSelection(1L) } returnsMany listOf(
-            null,
-            ComponentTypeRef.UserDefined("Definition"),
+            emptySet(),
+            setOf(ComponentTypeRef.UserDefined("Definition")),
         )
         coEvery { prefsProvider.getStringFlowByRawKey("quiz_picker_dict_1") } returns prefFlow
 
@@ -123,7 +123,7 @@ class ChatSubHandlerTest {
 
         assertEquals(2, emissions.size)
         val second = emissions[1] as Msg.QuizComponentTypesLoaded
-        assertEquals(ComponentTypeRef.UserDefined("Definition"), second.restoredSelectedRef)
+        assertEquals(setOf(ComponentTypeRef.UserDefined("Definition")), second.restoredSelectedRefs)
     }
 
     @Test
@@ -142,8 +142,8 @@ class ChatSubHandlerTest {
         val prefFlow = MutableSharedFlow<String?>(replay = 1)
         prefFlow.tryEmit(null)
         coEvery { useCase.getCurrentDictionaryId() } returns 1L
-        coEvery { useCase.getAvailableTypes(1L) } returns listOf(translationType)
-        coEvery { useCase.getQuizPickerSelection(1L) } returns null
+        coEvery { useCase.getQuizCoreTypes(1L) } returns listOf(translationType)
+        coEvery { useCase.getQuizPickerSelection(1L) } returns emptySet()
         coEvery { prefsProvider.getStringFlowByRawKey("quiz_picker_dict_1") } returns prefFlow
 
         val job = launch { handler.flow(ChatSub.QuizPicker).collect { /* ignore */ } }
@@ -152,7 +152,7 @@ class ChatSubHandlerTest {
         advanceUntilIdle()
         job.cancel()
 
-        coVerify(atLeast = 2) { useCase.getAvailableTypes(1L) }
+        coVerify(atLeast = 2) { useCase.getQuizCoreTypes(1L) }
     }
 
     // ===== subscriptions() =====

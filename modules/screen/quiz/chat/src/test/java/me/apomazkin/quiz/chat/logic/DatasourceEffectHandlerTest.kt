@@ -7,6 +7,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.ComponentOption
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
@@ -18,6 +19,7 @@ import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.entity.WriteQuiz
 import me.apomazkin.quiz.chat.entity.WriteQuizUpsertEntity
 import me.apomazkin.quiz.chat.quiz.QuizGame
+import me.apomazkin.quiz.chat.quiz.QuizQuestion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -25,43 +27,45 @@ import org.junit.Test
 import java.util.Date
 
 /**
- * IS481 unit tests для новых веток `DatasourceEffectHandler`:
- * - `LoadQuizComponentTypes` → emit `Msg.QuizComponentTypesLoaded` (либо Empty при null dict).
- * - `SaveQuizPickerSelection(ref)` → useCase.setQuizPickerSelection, emit `Msg.Empty`.
+ * Ветки `DatasourceEffectHandler`:
+ * - `LoadQuizComponentTypes` → `Msg.QuizComponentTypesLoaded` (либо Empty при null dict);
+ * - `SaveQuizPickerSelection(refs)` → useCase.setQuizPickerSelection, emit `Msg.Empty`;
+ * - `LoadQuiz(reload)` → `QuizLoaded` / `QuizReLoaded`;
+ * - капельная выдача: пауза бота, `then` пробрасывается.
  *
- * Используем `FakeUseCase` вместо mockk, чтобы избежать проблем mockk с
- * `@JvmInline value class ComponentTypeRef` (mockk не умеет распаковывать
- * value-class при `any()` / capture — fails с "null packRef").
+ * `FakeUseCase` вместо mockk: mockk не умеет распаковывать
+ * `@JvmInline value class ComponentTypeRef` при `any()` / capture.
  */
 class DatasourceEffectHandlerTest {
 
     private class FakeUseCase(
         var currentDictId: Long? = 1L,
-        var availableTypes: List<ComponentType> = emptyList(),
-        var pickerSelection: ComponentTypeRef? = null,
+        var coreTypes: List<ComponentType> = emptyList(),
+        var pickerSelection: Set<ComponentTypeRef> = emptySet(),
     ) : QuizChatUseCase {
         var setCallCount: Int = 0
             private set
         var setCallDictId: Long? = null
             private set
-        var setCallRef: ComponentTypeRef? = null
+        var setCallRefs: Set<ComponentTypeRef>? = null
             private set
 
         override suspend fun getCurrentDictionaryId(): Long? = currentDictId
         override suspend fun updateWriteQuiz(entity: List<WriteQuizUpsertEntity>): Int = 0
         override suspend fun getRandomWriteQuizList(
-            limit: Int, maxGrade: Int, dictionaryId: Long
+            limit: Int, maxGrade: Int, dictionaryId: Long, coreTypeIds: List<Long>,
         ): List<WriteQuiz> = emptyList()
         override suspend fun getQuizConfig(dictionaryId: Long, quizMode: String): QuizConfig? = null
-        override suspend fun getAvailableTypes(dictionaryId: Long): List<ComponentType> =
-            availableTypes
-        override suspend fun getQuizPickerSelection(dictionaryId: Long): ComponentTypeRef? =
+        override suspend fun getQuizCoreTypes(dictionaryId: Long): List<ComponentType> = coreTypes
+        override suspend fun getQuizPickerSelection(dictionaryId: Long): Set<ComponentTypeRef> =
             pickerSelection
-        override suspend fun setQuizPickerSelection(dictionaryId: Long, ref: ComponentTypeRef) {
+        override suspend fun setQuizPickerSelection(dictionaryId: Long, refs: Set<ComponentTypeRef>) {
             setCallCount++
             setCallDictId = dictionaryId
-            setCallRef = ref
+            setCallRefs = refs
         }
+        override suspend fun getPartOfSpeechOptions(dictionaryId: Long): List<ComponentOption> =
+            emptyList()
         override suspend fun getSelectedQuizGroupName(dictionaryId: Long): String? =
             quizGroupName
 
@@ -73,6 +77,7 @@ class DatasourceEffectHandlerTest {
     private val logger = mockk<LexemeLogger>(relaxed = true)
 
     private val builtInTranslation = ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION)
+    private val userDefinition = ComponentTypeRef.UserDefined("Definition")
 
     private val translationType = ComponentType(
         id = ComponentTypeId(1L),
@@ -81,6 +86,7 @@ class DatasourceEffectHandlerTest {
         name = null,
         template = ComponentTemplate.TEXT,
         position = 0,
+        core = true,
         createdAt = Date(0L),
         updatedAt = Date(0L),
     )
@@ -107,8 +113,8 @@ class DatasourceEffectHandlerTest {
     fun `LoadQuizComponentTypes resolves dictId and emits Loaded`() = runTest {
         val fake = FakeUseCase(
             currentDictId = 1L,
-            availableTypes = listOf(translationType),
-            pickerSelection = builtInTranslation,
+            coreTypes = listOf(translationType),
+            pickerSelection = setOf(builtInTranslation),
         )
         val handler = makeHandler(fake)
 
@@ -117,7 +123,7 @@ class DatasourceEffectHandlerTest {
         assertTrue("emit QuizComponentTypesLoaded", msg is Msg.QuizComponentTypesLoaded)
         val loaded = msg as Msg.QuizComponentTypesLoaded
         assertEquals(listOf(translationType), loaded.types)
-        assertEquals(builtInTranslation, loaded.restoredSelectedRef)
+        assertEquals(setOf(builtInTranslation), loaded.restoredSelectedRefs)
     }
 
     @Test
@@ -128,6 +134,28 @@ class DatasourceEffectHandlerTest {
         val msg = runEffect(handler, DatasourceEffect.LoadQuizComponentTypes)
 
         assertEquals(Msg.Empty, msg)
+    }
+
+    // ===== LoadQuiz: первый раунд и продолжение =====
+
+    @Test
+    fun `LoadQuiz first round emits QuizLoaded`() = runTest {
+        every { quizGame.getStat() } returns null
+        val handler = makeHandler(FakeUseCase(currentDictId = 1L))
+
+        val msg = runEffect(handler, DatasourceEffect.LoadQuiz(reload = false))
+
+        assertEquals(Msg.QuizLoaded(content = null), msg)
+    }
+
+    @Test
+    fun `LoadQuiz reload emits QuizReLoaded`() = runTest {
+        every { quizGame.getStat() } returns null
+        val handler = makeHandler(FakeUseCase(currentDictId = 1L))
+
+        val msg = runEffect(handler, DatasourceEffect.LoadQuiz(reload = true))
+
+        assertEquals(Msg.QuizReLoaded(content = null), msg)
     }
 
     // ===== IS500 LoadQuizGroupName =====
@@ -171,13 +199,13 @@ class DatasourceEffectHandlerTest {
 
         val msg = runEffect(
             handler,
-            DatasourceEffect.SaveQuizPickerSelection(builtInTranslation),
+            DatasourceEffect.SaveQuizPickerSelection(setOf(builtInTranslation, userDefinition)),
         )
 
         assertEquals(Msg.Empty, msg)
         assertEquals(1, fake.setCallCount)
         assertEquals(1L, fake.setCallDictId)
-        assertEquals(builtInTranslation, fake.setCallRef)
+        assertEquals(setOf(builtInTranslation, userDefinition), fake.setCallRefs)
     }
 
     @Test
@@ -187,12 +215,12 @@ class DatasourceEffectHandlerTest {
 
         val msg = runEffect(
             handler,
-            DatasourceEffect.SaveQuizPickerSelection(builtInTranslation),
+            DatasourceEffect.SaveQuizPickerSelection(setOf(builtInTranslation)),
         )
 
         assertEquals(Msg.Empty, msg)
         assertEquals(0, fake.setCallCount)
-        assertNull(fake.setCallRef)
+        assertNull(fake.setCallRefs)
     }
 
     // ===== IS508 чат-фикс 8: капельная выдача пачки сообщений бота =====
@@ -222,9 +250,30 @@ class DatasourceEffectHandlerTest {
     }
 
     @Test
+    fun `DeliverSystemMessages carries then into the delivered message`() = runTest {
+        val handler = makeVirtualTimeHandler()
+        val rule = MessageContent.create(text = "rule")
+
+        val msg = runEffect(
+            handler,
+            DatasourceEffect.DeliverSystemMessages(listOf(rule), then = DatasourceEffect.NextQuestion),
+        )
+
+        assertEquals(
+            Msg.SystemMessageDelivered(message = rule, rest = emptyList(), then = DatasourceEffect.NextQuestion),
+            msg,
+        )
+    }
+
+    @Test
     fun `bot messages wait at least the minimal pause`() = runTest {
         every { quizGame.hasNextQuestion() } returns true
-        every { quizGame.nextQuestion() } returns AnnotatedString("q")
+        every { quizGame.nextQuestion() } returns QuizQuestion(
+            header = "h",
+            badge = null,
+            value = "q",
+            debugHeader = null,
+        )
         every { quizGame.makeAssessment(any()) } returns AnnotatedString("ok")
         every { quizGame.skipAndGetAnswer() } returns AnnotatedString("answer")
         val handler = makeVirtualTimeHandler()
@@ -241,6 +290,18 @@ class DatasourceEffectHandlerTest {
                 testScheduler.currentTime - before >= ChatTiming.BOT_PAUSE_MIN_MS,
             )
         }
+    }
+
+    @Test
+    fun `NextQuestion emits structured question`() = runTest {
+        val question = QuizQuestion(header = "Перевод", badge = "сущ.", value = "яблоко", debugHeader = null)
+        every { quizGame.hasNextQuestion() } returns true
+        every { quizGame.nextQuestion() } returns question
+        val handler = makeVirtualTimeHandler()
+
+        val msg = runEffect(handler, DatasourceEffect.NextQuestion)
+
+        assertEquals(Msg.NextQuestion(MessageContent.question(question)), msg)
     }
 
     @Test
