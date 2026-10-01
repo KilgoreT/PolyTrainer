@@ -8,6 +8,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.mate.EMPTY_STRING
+import me.apomazkin.quiz.QuizGroupLabel
 import me.apomazkin.quiz.chat.logic.ChatMessage.MessageValue.Plain
 import me.apomazkin.quiz.chat.quiz.QuizQuestion
 
@@ -26,20 +27,20 @@ data class ChatScreenState(
 )
 
 /**
- * IS500: [quizGroupName] — имя группы тренировки сабтайтлом аппбара;
- * null — «Все» (сабтайтл показывается ВСЕГДА, для null UI берёт
- * ресурс `group_all_title`).
+ * [quizGroupLabel] — подпись набора групп тренировки сабтайтлом
+ * аппбара («Быт +2»); null — «Все» (сабтайтл показывается ВСЕГДА, для
+ * null UI берёт ресурс `group_all_title`).
  */
 @Immutable
 data class AppBarState(
         val isActionMenuOpen: Boolean = false,
         val itemsState: ItemsState = ItemsState(),
-        val quizGroupName: String? = null,
+        val quizGroupLabel: QuizGroupLabel? = null,
 )
 
-fun ChatScreenState.updateQuizGroupName(name: String?) = copy(
+fun ChatScreenState.updateQuizGroupLabel(label: QuizGroupLabel?) = copy(
         appBarState = appBarState.copy(
-                quizGroupName = name
+                quizGroupLabel = label
         )
 )
 

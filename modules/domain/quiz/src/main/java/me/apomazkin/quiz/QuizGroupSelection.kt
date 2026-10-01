@@ -49,11 +49,12 @@ data class QuizGroupOptions(
 
 /**
  * Результат воронки [resolveQuizGroupState]: пункты пикера + уже
- * валидированный выбор (`null` = «Все»).
+ * валидированный набор выбранных групп (пусто = «Все» — весь словарь,
+ * включая слова без группы).
  */
 data class QuizGroupState(
     val options: QuizGroupOptions,
-    val selectedGroupId: Long?,
+    val selectedGroupIds: Set<Long>,
 )
 
 /** Вход воронки: живая группа со счётчиком уровня 1 (снапшот data-слоя). */
@@ -64,21 +65,24 @@ data class QuizGroupCount(
 )
 
 /**
- * Единственная точка валидации выбора группы: и selection-store
+ * Единственная точка валидации выбора групп: и selection-store
  * (снапшот для квиза), и подписка плашки строят состояние ТОЛЬКО этой
  * функцией — два пути не могут разойтись.
  *
- * Резолв персиста — молчаливый фолбэк на «Все»: [persistedGroupId],
- * не входящий в пригодное множество (удалённая, усохшая ниже порога
- * или чужая группа), даёт `null`. Фолбэк ЗАКРЕПЛЯЕТСЯ вызывающей
- * стороной (плашка стирает невалидный pref эффектом) — «Все» остаётся
- * выбором и после исцеления группы, воскрешений нет (решение прогона
- * 2026-09-26).
+ * Резолв персиста — поэлементный молчаливый фолбэк: из
+ * [persistedGroupIds] остаются только пригодные группы; удалённые,
+ * усохшие ниже порога и чужие выпадают. Не осталось ни одной — пусто,
+ * то есть «Все». Очищенный набор ЗАКРЕПЛЯЕТСЯ вызывающей стороной
+ * (плашка пишет его в pref эффектом) — выпавшая группа не возвращается
+ * сама и после исцеления.
+ *
+ * Порядок групп — порядок [groupCounts]: сортирует вызывающая сторона
+ * (locale-aware Collator), домен порядок не навязывает.
  */
 fun resolveQuizGroupState(
     groupCounts: List<QuizGroupCount>,
     dictionaryWordCount: Int,
-    persistedGroupId: Long?,
+    persistedGroupIds: Set<Long>,
     threshold: Int = MIN_QUIZ_WORDS,
 ): QuizGroupState {
     val groups = groupCounts.map {
@@ -94,11 +98,39 @@ fun resolveQuizGroupState(
         allWordCount = dictionaryWordCount,
         groups = groups,
     )
-    val selectedGroupId = persistedGroupId?.takeIf { id ->
-        groups.any { it.id == id && it.isEligible }
-    }
+    val eligibleIds = groups
+        .filter { it.isEligible }
+        .map { it.id }
+        .toSet()
     return QuizGroupState(
         options = options,
-        selectedGroupId = selectedGroupId,
+        selectedGroupIds = persistedGroupIds intersect eligibleIds,
+    )
+}
+
+/**
+ * Подпись выбора групп: [first] — имя первой выбранной группы в порядке
+ * списка, [more] — сколько выбрано ещё («Быт +2»). Одна для карточки
+ * квиза и сабтайтла чата.
+ */
+data class QuizGroupLabel(
+    val first: String,
+    val more: Int,
+)
+
+/**
+ * Подпись набора [selectedIds] по порядку [groups] (уже отсортированы
+ * вызывающей стороной). Ни одна выбранная не найдена в списке — `null`,
+ * то есть «Все». Имена групп не уникальны, поэтому сопоставление по id.
+ */
+fun quizGroupLabel(
+    groups: List<QuizGroup>,
+    selectedIds: Set<Long>,
+): QuizGroupLabel? {
+    val selected = groups.filter { it.id in selectedIds }
+    val first = selected.firstOrNull() ?: return null
+    return QuizGroupLabel(
+        first = first.name,
+        more = selected.size - 1,
     )
 }

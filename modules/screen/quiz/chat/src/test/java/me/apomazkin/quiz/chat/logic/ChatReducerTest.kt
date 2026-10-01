@@ -13,6 +13,7 @@ import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
+import me.apomazkin.quiz.QuizGroupLabel
 import me.apomazkin.quiz.chat.R
 import me.apomazkin.quiz.chat.quiz.QuizQuestion
 import me.apomazkin.ui.resource.ResourceManager
@@ -317,6 +318,29 @@ class ChatReducerTest {
             setOf(DatasourceEffect.DeliverSystemMessages(listOf(b), then = DatasourceEffect.NextQuestion)),
             result.effects(),
         )
+    }
+
+    // ===== сабтайтл: подпись набора групп =====
+
+    @Test
+    fun `QuizGroupLabelLoaded stores label for app bar subtitle`() {
+        val label = QuizGroupLabel(first = "Быт", more = 2)
+
+        val result = reducer.testReduce(initialState, Msg.QuizGroupLabelLoaded(label))
+
+        assertEquals(label, result.state().appBarState.quizGroupLabel)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `QuizGroupLabelLoaded null means All`() {
+        val withLabel = reducer
+            .testReduce(initialState, Msg.QuizGroupLabelLoaded(QuizGroupLabel(first = "Быт", more = 0)))
+            .state()
+
+        val result = reducer.testReduce(withLabel, Msg.QuizGroupLabelLoaded(null))
+
+        assertEquals(null, result.state().appBarState.quizGroupLabel)
     }
 
     // ===== структурный вопрос =====

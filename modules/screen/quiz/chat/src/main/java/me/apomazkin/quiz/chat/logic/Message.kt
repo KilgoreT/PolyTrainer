@@ -3,6 +3,7 @@ package me.apomazkin.quiz.chat.logic
 import androidx.compose.ui.text.AnnotatedString
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeRef
+import me.apomazkin.quiz.QuizGroupLabel
 import me.apomazkin.quiz.chat.quiz.QuizQuestion
 
 
@@ -34,10 +35,11 @@ sealed interface Msg {
     data class QuizLoaded(val content: AnnotatedString?) : Msg
 
     /**
-     * IS500: имя группы, по которой собрана сессия (сабтайтл аппбара);
-     * null — «Все», сабтайтла нет. Шлёт handler вместе с загрузкой квиза.
+     * Подпись набора групп, по которому собрана сессия (сабтайтл
+     * аппбара); null — «Все». Шлёт handler на входе и вместе с загрузкой
+     * квиза.
      */
-    data class QuizGroupNameLoaded(val name: String?) : Msg
+    data class QuizGroupLabelLoaded(val label: QuizGroupLabel?) : Msg
     data class QuizReLoaded(val content: AnnotatedString?) : Msg
     
     /**

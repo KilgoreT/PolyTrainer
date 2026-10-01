@@ -5,6 +5,7 @@ import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.QuizConfig
+import me.apomazkin.quiz.QuizGroupLabel
 import me.apomazkin.quiz.chat.entity.WriteQuiz
 import me.apomazkin.quiz.chat.entity.WriteQuizUpsertEntity
 
@@ -63,9 +64,10 @@ interface QuizChatUseCase {
     suspend fun getPartOfSpeechOptions(dictionaryId: Long): List<ComponentOption>
 
     /**
-     * IS500. Имя группы, по которой пойдёт квиз (валидированный выбор
-     * selection-store); null — «Все». Групповой фильтр самой выборки
-     * применяется внутри [getRandomWriteQuizList] — квиз о нём не знает.
+     * Подпись набора групп, по которому пойдёт квиз (валидированный выбор
+     * selection-store): первая по алфавиту и сколько ещё; null — «Все».
+     * Групповой фильтр самой выборки применяется внутри
+     * [getRandomWriteQuizList] — квиз о нём не знает.
      */
-    suspend fun getSelectedQuizGroupName(dictionaryId: Long): String?
+    suspend fun getSelectedQuizGroupLabel(dictionaryId: Long): QuizGroupLabel?
 }

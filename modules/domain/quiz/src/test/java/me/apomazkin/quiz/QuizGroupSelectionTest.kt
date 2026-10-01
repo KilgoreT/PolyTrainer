@@ -7,9 +7,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * IS500 | Воронка resolveQuizGroupState: порог (границы, действие на
- * «Все»), пометка eligible, резолв персиста с молчаливым фолбэком,
- * кликабельность карточки.
+ * Воронка resolveQuizGroupState: порог (границы, действие на «Все»),
+ * пометка eligible, поэлементный резолв набора с молчаливым фолбэком,
+ * кликабельность карточки; подпись набора quizGroupLabel.
  */
 class QuizGroupSelectionTest {
 
@@ -25,7 +25,7 @@ class QuizGroupSelectionTest {
         val state = resolveQuizGroupState(
             groupCounts = counts(1L to MIN_QUIZ_WORDS, 2L to MIN_QUIZ_WORDS - 1),
             dictionaryWordCount = 10,
-            persistedGroupId = null,
+            persistedGroupIds = emptySet(),
         )
 
         val byId = state.options.groups.associateBy { it.id }
@@ -38,7 +38,7 @@ class QuizGroupSelectionTest {
         val state = resolveQuizGroupState(
             groupCounts = counts(1L to 0, 2L to 2),
             dictionaryWordCount = 10,
-            persistedGroupId = null,
+            persistedGroupIds = emptySet(),
         )
 
         assertEquals(listOf(1L, 2L), state.options.groups.map { it.id })
@@ -49,7 +49,7 @@ class QuizGroupSelectionTest {
         val state = resolveQuizGroupState(
             groupCounts = emptyList(),
             dictionaryWordCount = MIN_QUIZ_WORDS - 1,
-            persistedGroupId = null,
+            persistedGroupIds = emptySet(),
         )
 
         assertFalse(state.options.isAllEligible)
@@ -61,7 +61,7 @@ class QuizGroupSelectionTest {
         val state = resolveQuizGroupState(
             groupCounts = counts(1L to 3),
             dictionaryWordCount = 3,
-            persistedGroupId = null,
+            persistedGroupIds = emptySet(),
             threshold = 5,
         )
 
@@ -69,50 +69,61 @@ class QuizGroupSelectionTest {
         assertFalse(state.options.groups.single().isEligible)
     }
 
-    // === Резолв персиста ===
+    // === Резолв набора ===
 
     @Test
-    fun `persisted eligible group - kept`() {
+    fun `persisted eligible groups - kept`() {
         val state = resolveQuizGroupState(
-            groupCounts = counts(1L to 5),
-            dictionaryWordCount = 5,
-            persistedGroupId = 1L,
+            groupCounts = counts(1L to 5, 2L to 4),
+            dictionaryWordCount = 9,
+            persistedGroupIds = setOf(1L, 2L),
         )
 
-        assertEquals(1L, state.selectedGroupId)
+        assertEquals(setOf(1L, 2L), state.selectedGroupIds)
     }
 
     @Test
-    fun `persisted null - All`() {
+    fun `persisted empty - All`() {
         val state = resolveQuizGroupState(
             groupCounts = counts(1L to 5),
             dictionaryWordCount = 5,
-            persistedGroupId = null,
+            persistedGroupIds = emptySet(),
         )
 
-        assertNull(state.selectedGroupId)
+        assertTrue(state.selectedGroupIds.isEmpty())
     }
 
     @Test
-    fun `persisted dead group - silent fallback to All`() {
+    fun `dead group drops out, live ones stay`() {
         val state = resolveQuizGroupState(
             groupCounts = counts(1L to 5),
             dictionaryWordCount = 5,
-            persistedGroupId = 99L,
+            persistedGroupIds = setOf(1L, 99L),
         )
 
-        assertNull(state.selectedGroupId)
+        assertEquals(setOf(1L), state.selectedGroupIds)
     }
 
     @Test
-    fun `persisted shrunken group - silent fallback to All`() {
+    fun `shrunken group drops out, live ones stay`() {
+        val state = resolveQuizGroupState(
+            groupCounts = counts(1L to MIN_QUIZ_WORDS - 1, 2L to 5),
+            dictionaryWordCount = 7,
+            persistedGroupIds = setOf(1L, 2L),
+        )
+
+        assertEquals(setOf(2L), state.selectedGroupIds)
+    }
+
+    @Test
+    fun `all persisted dropped - All`() {
         val state = resolveQuizGroupState(
             groupCounts = counts(1L to MIN_QUIZ_WORDS - 1),
             dictionaryWordCount = 5,
-            persistedGroupId = 1L,
+            persistedGroupIds = setOf(1L, 99L),
         )
 
-        assertNull(state.selectedGroupId)
+        assertTrue(state.selectedGroupIds.isEmpty())
     }
 
     // === Кликабельность карточки ===
@@ -122,7 +133,7 @@ class QuizGroupSelectionTest {
         val state = resolveQuizGroupState(
             groupCounts = counts(1L to 1),
             dictionaryWordCount = 2,
-            persistedGroupId = null,
+            persistedGroupIds = emptySet(),
         )
 
         assertFalse(state.options.hasEligibleOption)
@@ -133,9 +144,49 @@ class QuizGroupSelectionTest {
         val state = resolveQuizGroupState(
             groupCounts = emptyList(),
             dictionaryWordCount = 3,
-            persistedGroupId = null,
+            persistedGroupIds = emptySet(),
         )
 
         assertTrue(state.options.hasEligibleOption)
+    }
+
+    // === Подпись ===
+
+    private fun groups(vararg names: Pair<Long, String>) =
+        names.map { (id, name) -> QuizGroup(id = id, name = name, wordCount = 5, isEligible = true) }
+
+    @Test
+    fun `label - nothing selected is All`() {
+        assertNull(quizGroupLabel(groups(1L to "Быт"), emptySet()))
+    }
+
+    @Test
+    fun `label - single group has no more`() {
+        assertEquals(
+            QuizGroupLabel(first = "Быт", more = 0),
+            quizGroupLabel(groups(1L to "Быт", 2L to "Дом"), setOf(1L)),
+        )
+    }
+
+    @Test
+    fun `label - first by list order, rest counted`() {
+        val list = groups(3L to "Быт", 1L to "Дом", 2L to "Еда")
+
+        assertEquals(
+            QuizGroupLabel(first = "Быт", more = 2),
+            quizGroupLabel(list, setOf(2L, 1L, 3L)),
+        )
+    }
+
+    @Test
+    fun `label - same names matched by id`() {
+        val list = groups(1L to "Слова", 2L to "Слова")
+
+        assertEquals(QuizGroupLabel(first = "Слова", more = 0), quizGroupLabel(list, setOf(2L)))
+    }
+
+    @Test
+    fun `label - selected ids missing from list is All`() {
+        assertNull(quizGroupLabel(groups(1L to "Быт"), setOf(99L)))
     }
 }

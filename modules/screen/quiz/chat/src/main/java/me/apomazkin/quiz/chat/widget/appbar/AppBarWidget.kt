@@ -3,13 +3,18 @@
 package me.apomazkin.quiz.chat.widget.appbar
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import me.apomazkin.core_resources.R
+import me.apomazkin.quiz.QuizGroupLabel
 import me.apomazkin.quiz.chat.logic.AppBarState
 import me.apomazkin.quiz.chat.logic.Msg
 import me.apomazkin.theme.LexemeStyle
@@ -35,20 +40,34 @@ internal fun AppBarWidget(
                 )
             },
             title = {
-                // IS500: сабтайтл с охватом тренировки — ВСЕГДА
-                // (решение прогона 2026-09-26): имя группы либо «Все».
+                // Сабтайтл с охватом тренировки — ВСЕГДА: «Все», имя
+                // группы либо «Быт +2». Обрезается только имя, «+N» видно
+                // всегда — иначе набор неотличим от одной группы.
                 Column {
                     Text(
                             text = stringResource(id = R.string.chat_quiz_app_bar_title),
                             style = LexemeStyle.H5,
                     )
-                    Text(
-                            text = state.quizGroupName
-                                    ?: stringResource(id = R.string.group_all_title),
-                            style = LexemeStyle.BodyS.copy(color = grayTextColor),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                    )
+                    val subtitleStyle = LexemeStyle.BodyS.copy(color = grayTextColor)
+                    val label = state.quizGroupLabel
+                    Row {
+                        Text(
+                                modifier = Modifier.weight(1f, fill = false),
+                                text = label?.first
+                                        ?: stringResource(id = R.string.group_all_title),
+                                style = subtitleStyle,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                        )
+                        if (label != null && label.more > 0) {
+                            Text(
+                                    modifier = Modifier.padding(start = 4.dp),
+                                    text = stringResource(id = R.string.quiz_group_label_more, label.more),
+                                    style = subtitleStyle,
+                                    maxLines = 1,
+                            )
+                        }
+                    }
                 }
             },
             actions = {
@@ -66,6 +85,21 @@ internal fun AppBarWidget(
 fun AppBarWidgetPreview() {
     AppBarWidget(
             state = AppBarState(),
+            onBackPress = {},
+            sendMessage = {},
+    )
+}
+
+@PreviewWidget
+@Composable
+fun AppBarWidgetGroupsPreview() {
+    AppBarWidget(
+            state = AppBarState(
+                    quizGroupLabel = QuizGroupLabel(
+                            first = "Очень длинное название группы слов",
+                            more = 2,
+                    ),
+            ),
             onBackPress = {},
             sendMessage = {},
     )

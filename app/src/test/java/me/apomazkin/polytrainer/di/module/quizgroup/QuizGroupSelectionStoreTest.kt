@@ -14,15 +14,17 @@ import me.apomazkin.core_db_api.entity.QuizGroupCountApiEntity
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.quiz.MIN_QUIZ_WORDS
+import me.apomazkin.quiz.PersistedQuizGroups
 import me.apomazkin.quiz.QuizTypes
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * IS500 | Selection-store: валидация при чтении (Д3 — мусор, мёртвая,
- * усохшая группа → молча «Все»), запись/стирание ключа, изоляция
- * ключей по (тип × словарь), сырой поток.
+ * Selection-store набора групп: валидация при чтении (мусор, мёртвая,
+ * усохшая группа выпадают поэлементно, остальные остаются), сортировка
+ * групп, запись/стирание ключа, изоляция ключей по (тип × словарь),
+ * сырой поток с пометкой мусора.
  */
 class QuizGroupSelectionStoreTest {
 
@@ -36,22 +38,22 @@ class QuizGroupSelectionStoreTest {
         logger = logger,
     )
 
-    private val key = "quiz_group_chat_dict_1"
+    private val key = "quiz_groups_chat_dict_1"
 
     private fun stubCounts(vararg counts: QuizGroupCountApiEntity, allCount: Int = 10) {
         every { quizApi.flowQuizGroupCounts(1L) } returns flowOf(counts.toList())
         every { quizApi.flowDictionaryQuizWordCount(1L) } returns flowOf(allCount)
     }
 
-    private fun living(id: Long, count: Int = MIN_QUIZ_WORDS) =
-        QuizGroupCountApiEntity(groupId = id, name = "g$id", wordCount = count)
+    private fun living(id: Long, count: Int = MIN_QUIZ_WORDS, name: String = "g$id") =
+        QuizGroupCountApiEntity(groupId = id, name = name, wordCount = count)
 
     @Test
-    fun `valid persisted group - returned`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey(key) } returns "5"
-        stubCounts(living(5L))
+    fun `valid persisted groups - returned`() = runTest {
+        coEvery { prefsProvider.getStringByRawKey(key) } returns "5,7"
+        stubCounts(living(5L), living(7L))
 
-        assertEquals(5L, store.getValidatedSelection(QuizTypes.CHAT, 1L))
+        assertEquals(setOf(5L, 7L), store.getValidatedSelection(QuizTypes.CHAT, 1L))
     }
 
     @Test
@@ -59,47 +61,75 @@ class QuizGroupSelectionStoreTest {
         coEvery { prefsProvider.getStringByRawKey(key) } returns null
         stubCounts(living(5L))
 
-        assertNull(store.getValidatedSelection(QuizTypes.CHAT, 1L))
+        assertTrue(store.getValidatedSelection(QuizTypes.CHAT, 1L).isEmpty())
     }
 
     @Test
-    fun `garbage pref - silent All`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey(key) } returns "not-a-number"
+    fun `garbage token - dropped, valid kept`() = runTest {
+        coEvery { prefsProvider.getStringByRawKey(key) } returns "5,abc"
         stubCounts(living(5L))
 
-        assertNull(store.getValidatedSelection(QuizTypes.CHAT, 1L))
+        assertEquals(setOf(5L), store.getValidatedSelection(QuizTypes.CHAT, 1L))
     }
 
     @Test
-    fun `dead group - silent All`() = runTest {
+    fun `dead group - dropped, live kept`() = runTest {
+        coEvery { prefsProvider.getStringByRawKey(key) } returns "5,99"
+        stubCounts(living(5L))
+
+        assertEquals(setOf(5L), store.getValidatedSelection(QuizTypes.CHAT, 1L))
+    }
+
+    @Test
+    fun `shrunken group - dropped, live kept`() = runTest {
+        coEvery { prefsProvider.getStringByRawKey(key) } returns "5,7"
+        stubCounts(living(5L, count = MIN_QUIZ_WORDS - 1), living(7L))
+
+        assertEquals(setOf(7L), store.getValidatedSelection(QuizTypes.CHAT, 1L))
+    }
+
+    @Test
+    fun `all dropped - All`() = runTest {
         coEvery { prefsProvider.getStringByRawKey(key) } returns "99"
         stubCounts(living(5L))
 
-        assertNull(store.getValidatedSelection(QuizTypes.CHAT, 1L))
+        assertTrue(store.getValidatedSelection(QuizTypes.CHAT, 1L).isEmpty())
     }
 
     @Test
-    fun `shrunken group - silent All`() = runTest {
-        coEvery { prefsProvider.getStringByRawKey(key) } returns "5"
-        stubCounts(living(5L, count = MIN_QUIZ_WORDS - 1))
+    fun `legacy single-group key is not read`() = runTest {
+        coEvery { prefsProvider.getStringByRawKey(key) } returns null
+        stubCounts(living(5L))
 
-        assertNull(store.getValidatedSelection(QuizTypes.CHAT, 1L))
+        store.getValidatedSelection(QuizTypes.CHAT, 1L)
+
+        coVerify(exactly = 0) { prefsProvider.getStringByRawKey("quiz_group_chat_dict_1") }
     }
 
     @Test
-    fun `set selection - group id written as string`() = runTest {
+    fun `validated state - groups sorted by name`() = runTest {
+        coEvery { prefsProvider.getStringByRawKey(key) } returns null
+        stubCounts(living(1L, name = "Дом"), living(2L, name = "Быт"))
+
+        val state = store.getValidatedState(QuizTypes.CHAT, 1L)
+
+        assertEquals(listOf("Быт", "Дом"), state.options.groups.map { it.name })
+    }
+
+    @Test
+    fun `set selection - ids sorted, comma separated`() = runTest {
         coEvery { prefsProvider.setStringByRawKey(any(), any()) } just Runs
 
-        store.setSelection(QuizTypes.CHAT, 1L, 5L)
+        store.setSelection(QuizTypes.CHAT, 1L, setOf(7L, 5L))
 
-        coVerify { prefsProvider.setStringByRawKey(key, "5") }
+        coVerify { prefsProvider.setStringByRawKey(key, "5,7") }
     }
 
     @Test
     fun `set All - key erased`() = runTest {
         coEvery { prefsProvider.setStringByRawKey(any(), any()) } just Runs
 
-        store.setSelection(QuizTypes.CHAT, 1L, null)
+        store.setSelection(QuizTypes.CHAT, 1L, emptySet())
 
         coVerify { prefsProvider.setStringByRawKey(key, null) }
     }
@@ -108,21 +138,21 @@ class QuizGroupSelectionStoreTest {
     fun `keys isolated by quiz type and dictionary`() = runTest {
         coEvery { prefsProvider.setStringByRawKey(any(), any()) } just Runs
 
-        store.setSelection(QuizTypes.CHAT, 1L, 5L)
-        store.setSelection("flip_cards", 1L, 6L)
-        store.setSelection(QuizTypes.CHAT, 2L, 7L)
+        store.setSelection(QuizTypes.CHAT, 1L, setOf(5L))
+        store.setSelection("flip_cards", 1L, setOf(6L))
+        store.setSelection(QuizTypes.CHAT, 2L, setOf(7L))
 
-        coVerify { prefsProvider.setStringByRawKey("quiz_group_chat_dict_1", "5") }
-        coVerify { prefsProvider.setStringByRawKey("quiz_group_flip_cards_dict_1", "6") }
-        coVerify { prefsProvider.setStringByRawKey("quiz_group_chat_dict_2", "7") }
+        coVerify { prefsProvider.setStringByRawKey("quiz_groups_chat_dict_1", "5") }
+        coVerify { prefsProvider.setStringByRawKey("quiz_groups_flip_cards_dict_1", "6") }
+        coVerify { prefsProvider.setStringByRawKey("quiz_groups_chat_dict_2", "7") }
     }
 
     @Test
-    fun `raw selection flow - parses long, garbage becomes All`() = runTest {
-        every { prefsProvider.getStringFlowByRawKey(key) } returns flowOf("5")
-        assertEquals(5L, store.flowSelection(QuizTypes.CHAT, 1L).first())
+    fun `raw selection flow - parses set, flags garbage`() = runTest {
+        every { prefsProvider.getStringFlowByRawKey(key) } returns flowOf("5,7")
+        assertEquals(PersistedQuizGroups(setOf(5L, 7L), hasGarbage = false), store.flowSelection(QuizTypes.CHAT, 1L).first())
 
-        every { prefsProvider.getStringFlowByRawKey(key) } returns flowOf("garbage")
-        assertNull(store.flowSelection(QuizTypes.CHAT, 1L).first())
+        every { prefsProvider.getStringFlowByRawKey(key) } returns flowOf("5,garbage")
+        assertEquals(PersistedQuizGroups(setOf(5L), hasGarbage = true), store.flowSelection(QuizTypes.CHAT, 1L).first())
     }
 }

@@ -13,10 +13,11 @@
 
 ## 1. Концепция
 
-Пользователь ограничивает тренировку одной группой слов
-([группы](../dictionary-groups/spec.md)): карточка квиза несёт пикер
-(«Все» + группы словаря), выбранная группа сужает выборку сессии до
-её слов. Таб «Квизы» спроектирован под НАБОР карточек-квизов (chat
+Пользователь ограничивает тренировку одной или несколькими группами
+слов ([группы](../dictionary-groups/spec.md)): карточка квиза несёт
+пикер («Все» + группы словаря, галками), выбранные группы сужают
+выборку сессии до слов любой из них (IS513, 2026-10-01; до него —
+одна группа). Таб «Квизы» спроектирован под НАБОР карточек-квизов (chat
 сейчас, следующие типы подключаются к тем же трём кускам общего слоя);
 в код конкретного квиза фильтр не зашивается.
 
@@ -24,7 +25,7 @@
 
 1. **домен** (`modules/domain/quiz`, pure-JVM zero-deps) — порог,
    типы пунктов, единая воронка валидации;
-2. **персист** — pref `quiz_group_<тип>_dict_<id>` +
+2. **персист** — pref `quiz_groups_<тип>_dict_<id>` +
    `QuizGroupSelectionStore` (app);
 3. **UI** — виджет пикера (`quiztab/widget/QuizGroupPickerWidget`,
    живёт в quiztab: будущие карточки — на этом же табе).
@@ -35,9 +36,10 @@
   (`CHAT = "chat"`). НЕ путать с quiz config mode (`"write"`,
   [component-constructor](../component-constructor/spec.md) §9.6):
   mode описывает, ЧТО спрашивать, тип квиза — КАКАЯ карточка таба.
-- **«Все»** — виртуальный пункт (null groupId, не строка БД — инвариант
-  групп §4.6): весь словарь, имя — ресурс `group_all_title`; никаких
-  действий, кроме выбора фильтра.
+- **«Все»** — виртуальный пункт (пустой набор групп, не строка БД —
+  инвариант групп §4.6): весь словарь, включая слова без группы (НЕ
+  сумма групп), имя — ресурс `group_all_title`; никаких действий, кроме
+  выбора фильтра. «Все» и группы взаимоисключают (§9).
 - **Счётчик уровня 1** — число слов, имеющих хотя бы одну лексему.
 - **Пригодный пункт** — счётчик ≥ порога `MIN_QUIZ_WORDS`.
 
@@ -82,59 +84,85 @@
 
 - `QuizGroup(id, name, wordCount, isEligible)`,
   `QuizGroupOptions(isAllEligible, allWordCount, groups)`
-  (+ `hasEligibleOption`), `QuizGroupState(options, selectedGroupId)`,
-  вход — `QuizGroupCount(id, name, wordCount)`.
+  (+ `hasEligibleOption`), `QuizGroupState(options, selectedGroupIds:
+  Set<Long>)` (пусто = «Все»), вход — `QuizGroupCount(id, name,
+  wordCount)`.
 - **Единая воронка** `resolveQuizGroupState(groupCounts,
-  dictionaryWordCount, persistedGroupId, threshold = MIN_QUIZ_WORDS)` —
+  dictionaryWordCount, persistedGroupIds, threshold = MIN_QUIZ_WORDS)` —
   И selection-store (снапшот для квиза), И подписка плашки строят
   состояние ТОЛЬКО ею: пометка eligible + резолв персиста.
-- Резолв: `persistedGroupId` вне пригодного множества (удалённая,
-  усохшая, чужая группа) → `null` («Все»), молча — без снекбаров (Д3).
+- Резолв поэлементный: из `persistedGroupIds` остаются только пригодные
+  группы; удалённая, усохшая, чужая — выпадает молча, без снекбаров;
+  не осталось ни одной — пусто («Все»). Порог — на каждую группу
+  отдельно, объединение мелких групп не делается (IS513 Д3).
+- **Подпись набора** `quizGroupLabel(groups, selectedIds):
+  QuizGroupLabel(first, more)?` — первая выбранная в порядке списка и
+  сколько ещё («Быт +2»); null — «Все». Одна функция для карточки и
+  сабтайтла чата; сопоставление по id (имена групп не уникальны).
+- **Кодек pref** `encodeQuizGroupIds` / `decodeQuizGroupIds` → 
+  `PersistedQuizGroups(ids, hasGarbage)`: id по возрастанию через
+  запятую; мусорные токены отбрасываются и помечаются.
 - Сортировка групп — locale-aware Collator вызывающей стороны
   (подписка плашки; групповая спека §5), домен порядок не навязывает.
 
 ## 6. Персист
 
-- Ключ: `quizGroupPrefKey(quizType, dictionaryId)` =
-  `quiz_group_<тип>_dict_<id>` (`modules/datasource/prefs`, рядом с
-  прецедентом quiz picker'а). Значение — `groupId` строкой; отсутствие
-  ключа = «Все»; `setSelection(null)` стирает ключ.
+- Ключ: `quizGroupsPrefKey(quizType, dictionaryId)` =
+  `quiz_groups_<тип>_dict_<id>` (`modules/datasource/prefs`, рядом с
+  прецедентом quiz picker'а). Значение — id групп через запятую по
+  возрастанию; отсутствие ключа = «Все»; `setSelection(emptySet())`
+  стирает ключ. Прежний ключ одиночной группы `quiz_group_<тип>_dict_<id>`
+  (IS500) не читается: при переходе на набор выбор у всех сбросился на
+  «Все» (IS513 Д7), старые ключи остаются мусором в prefs — принято.
+- Записи сериализованы (`Mutex` в store): в открытом меню отмечают
+  несколько групп подряд, порядок записей = порядок кликов.
 - Изоляция по обеим осям: каждый словарь и каждый тип квиза помнят
   свой выбор; смена словаря выбор НЕ трогает.
 - **Валидация при чтении** (`QuizGroupSelectionStore`): pref → снапшот
-  счётчиков → воронка §5; мусор в pref'е (`fallback=garbage`), мёртвая
-  (`dead`) и усохшая (`below_threshold`) группа → «Все». Store читает
-  БЕЗ побочек; `dictionaryId` — только параметром (self-read pref'а
-  словаря запрещён: пара «словарь-группа» фиксируется вызывающим на
-  старте сессии).
-- **Фолбэк ЗАКРЕПЛЯЕТСЯ** (решение прогона 2026-09-26): подписка
-  плашки, увидев невалидный персист (`selectionInvalidated`), стирает
-  pref reducer-эффектом — «Все» остаётся выбором и после исцеления
-  группы, воскрешений нет. Store-фолбэк остаётся страховкой гонки.
+  счётчиков → воронка §5; мусорные токены, мёртвые (`dead`) и усохшие
+  (`below`) группы выпадают поэлементно. Store читает БЕЗ побочек;
+  `dictionaryId` — только параметром (self-read pref'а словаря
+  запрещён: пара «словарь-группы» фиксируется вызывающим на старте
+  сессии). `getValidatedState` отдаёт и набор, и отсортированные
+  Collator'ом группы одним снапшотом (для подписи в чате).
+- **Очищенный набор ЗАКРЕПЛЯЕТСЯ** (решение прогона IS500 2026-09-26,
+  поэлементно с IS513): подписка плашки, увидев расхождение сохранённого
+  и валидированного набора или мусор (`selectionInvalidated`), пишет
+  очищенный набор reducer-эффектом — выпавшая группа не возвращается
+  сама и после исцеления; не осталось ни одной — ключ стирается. Эхо
+  записи даёт равенство — цикла записей нет.
 - Стратегия — «валидация-при-чтении», НЕ активная чистка prefs при
   удалении группы (осознанный контраст с prefs-cleanup прецедентом
   component-constructor §9.3: проще и покрывает все причины
   невалидности разом). Утечка ключей при удалении словаря — принята
   (паритет с quiz picker).
-- Гонка быстрых перевыборов (два persist параллельно) — принята:
-  запись pref быстрая, эхо pref-подписки выравнивает state.
+- Быстрые клики по галкам: записи сериализованы store'ом (выше), эхо
+  pref-подписки приходит по порядку и выравнивает state.
 
 ## 7. Групповой фильтр выборки
 
-- `CoreDbApi.QuizApi`: `groupId: Long? = null` в `getWriteQuizIds` /
-  `getEarliestWriteQuizList` / `getFrequentMistakesWriteQuizList`;
-  null — весь словарь (поведение до фичи).
+- `CoreDbApi.QuizApi`: `groupIds: List<Long> = emptyList()` в
+  `getWriteQuizIds` / `getEarliestWriteQuizList` /
+  `getFrequentMistakesWriteQuizList`; пусто — весь словарь.
 - SQL — в WHERE самих запросов, ДО `ORDER BY`/`LIMIT` (топы earliest/
-  mistakes считаются ИЗ группы, Kotlin-постфильтр запрещён):
+  mistakes считаются ИЗ объединения групп, Kotlin-постфильтр запрещён).
+  Room не умеет `:list IS NULL`, поэтому «весь словарь» — отдельный
+  флаг `allGroups = groupIds.isEmpty()` (вычисляет `CoreDbApiImpl`;
+  пустой `IN ()` при флаге не читается):
 
   ```sql
-  AND (:groupId IS NULL OR EXISTS (
+  AND (:allGroups OR EXISTS (
       SELECT 1 FROM lexemes l
       JOIN word_groups wg ON wg.word_id = l.word_id
       JOIN dictionary_groups dg ON dg.id = wg.group_id
           AND dg.removed_at IS NULL
-      WHERE l.id = write_quiz.lexeme_id AND wg.group_id = :groupId))
+      WHERE l.id = write_quiz.lexeme_id AND wg.group_id IN (:groupIds)))
   ```
+
+  Слово в нескольких выбранных группах — одна строка (`EXISTS`).
+  Членство прямое (`word_groups`): вложенных групп в продукте пока нет;
+  если появятся, «родитель тянет подгруппы» = раскрыть набор id до
+  запроса, без смены SQL и pref.
 
   Liveness-JOIN — буква инварианта групп §4.4 («все read'ы word_groups
   JOIN'ят живые группы»); семантически он избыточен (membership
@@ -207,52 +235,68 @@
 
 ## 9. Плашка (quiztab)
 
-- **State**: `dictionaryId`, `groupOptions: List<QuizGroup>`,
-  `isAllEligible`, `allWordCount`, `selectedGroupId` (null = «Все»),
-  `isChatCardEnabled`. Имя выбранной группы НЕ дублируется —
-  производное (id + options + ресурс). **Дефолт — рабочее состояние**:
+- **State**: `dictionaryId`, `groupOptions: List<QuizGroup>` (по
+  Collator), `isAllEligible`, `allWordCount`, `selectedGroupIds:
+  Set<Long>` (пусто = «Все»), `selectionLabel: QuizGroupLabel?` (явное
+  поле подписи, атом `applySelectionLabel` после каждого изменения
+  набора/опций), `isChatCardEnabled`. **Дефолт — рабочее состояние**:
   карточка enabled, пикер «Все» без пунктов (до первой эмиссии не
   мигает disabled; тап в окно гонки безопасен — квиз сам читает
   валидированный выбор).
 - **Подписка** `QuizTabSub.GroupOptions` (безусловная, одна):
   текущий словарь (`CurrentDictionaryProvider`) → `flatMapLatest` →
-  `combine(счётчики групп, счётчик «Все», pref выбора)` → воронка §5
-  на КАЖДОМ эмите (транзиент «новые счётчики + мёртвый выбор»
-  резолвится без кадра невалидного пункта) → `GroupOptionsLoaded`.
+  `combine(счётчики групп, счётчик «Все», pref набора)` → воронка §5
+  на КАЖДОМ эмите (транзиент «новые счётчики + мёртвая группа в
+  наборе» резолвится без кадра невалидного пункта) →
+  `GroupOptionsLoaded(selectedGroupIds, selectionInvalidated)`.
   `catch → GroupOptionsFailed` (state не трогается, дефолт рабочий);
   `distinctUntilChanged` на источниках. null-словарь → пустые опции,
   карточка disabled.
 - **Msg/Effect несут `quizType`** — контракт готов ко второй карточке
-  (state пока single-card). `PickGroup`: guard'ы — чужой тип, нет
-  словаря, same selection → no-op; иначе оптимистичный state + эффект
-  `PersistGroupSelection` (`RecoverableEffect`, `onFail → Msg.Empty` —
-  провал записи некритичен, стектрейс в ErrorLoggingObserver).
-- **Пикер** (UI): контрол «<имя> ▾» прижат к правому краю; зона клика —
-  вся строка карточки (min 48dp), тап по пикеру НЕ открывает чат;
-  меню — от правого края, ширина по самому длинному пункту, но ≤90%
-  карточки, maxHeight 400dp, «Все» первым, счётчики у всех пунктов,
-  выбранный — жирным, непригодные — серые некликабельные; фон меню —
-  явный `surface` (не M3-дефолт).
+  (state пока single-card). `ToggleGroup(groupId, checked)`: отметка
+  добавляет группу (снимая «Все»), снятие убирает, снятие последней
+  возвращает «Все»; `PickAll` снимает все группы. Guard'ы — чужой тип,
+  нет словаря, тот же набор → no-op; отметить непригодную / отсутствующую
+  в опциях группу — no-op (reducer не доверяет UI). Иначе
+  оптимистичный state + подпись + эффект `PersistGroupSelection(groupIds)`
+  (`RecoverableEffect`, `onFail → Msg.Empty` — провал записи
+  некритичен, стектрейс в ErrorLoggingObserver).
+- **Пикер** (UI): контрол «<имя> +N ▾» прижат к правому краю; зона
+  клика — вся строка карточки (min 48dp), тап по пикеру НЕ открывает
+  чат; обрезается многоточием только имя — «+N» и шеврон видны всегда.
+  Меню — от правого края, ширина по самому длинному пункту, но ≤90%
+  карточки, maxHeight 400dp (прокрутка), «Все» первым, счётчики у всех
+  пунктов. У каждого пункта, включая «Все», галка-индикатор (клик
+  обрабатывает только строка); галка «Все» стоит при пустом наборе.
+  Клик по группе переключает её и оставляет меню открытым; клик по
+  «Все» выбирает весь словарь и закрывает меню; закрыть после выбора
+  нескольких — тап вне меню / «назад». Непригодные — серые, галка и
+  строка disabled; фон меню — явный `surface` (не M3-дефолт).
 
 ## 10. Чат
 
-- Сабтайтл аппбара — охват тренировки, ВСЕГДА: имя группы либо «Все»
-  (решение прогона 2026-09-26). Загружается init-эффектом
-  `LoadQuizGroupName` на входе в экран (до «Начать») и обновляется на
-  старте сессии; `QuizChatUseCase.getSelectedQuizGroupName(dictionaryId)`
-  — имя валидированного выбора, null = «Все».
+- Сабтайтл аппбара — охват тренировки, ВСЕГДА: «Все», имя группы либо
+  «Быт +2» (решение прогона IS500 2026-09-26, набор — IS513); «+N» —
+  отдельным текстом вне обрезки имени. Загружается init-эффектом
+  `LoadQuizGroupLabel` на входе в экран (до «Начать») и обновляется на
+  старте сессии; `QuizChatUseCase.getSelectedQuizGroupLabel(dictionaryId)`
+  — подпись валидированного набора (`quizGroupLabel` §5 по группам из
+  того же снапшота store), null = «Все».
 - Механика вопросов/оценок не изменена.
 
 ## 11. Логи
 
 Теги: `###QUIZ###` (плашка + store), `###CHAT###` (чат). Ключевой
-маркер — `quizGroupStore: read … resolved=<id|all>
-fallback=<none|garbage|dead|below_threshold>` (причина фолбэка всегда
-названа); подписка — `groupOptions: dict=… groups=… eligible=…
-allCount=… selected=…`; выборка — `getRandomWriteQuizList:
-groupFilter=<id|all>`; сабтайтл — `subtitle: group=<name|all>`.
+маркер — `quizGroupStore: read … raw=<строка|none> resolved=<ids|all>
+dropped=<id:dead|id:below,…|none> garbage=<true|false>` (причина
+выпадения каждой группы названа); запись — `quizGroupStore: write …
+groups=<ids|all>`, `persistGroupSelection: … groups=<ids|all>`;
+подписка — `groupOptions: dict=… groups=… eligible=… allCount=…
+selected=<ids|all> garbage=…`; выборка — `getRandomWriteQuizList:
+groupFilter=<ids|all>`; сабтайтл — `subtitle: group=<first+N|all>`.
 Словарь маркеров и ручники —
-`docs/features/IS500_quiz_group_filter/manual_test.md`.
+`docs/features/IS500_quiz_group_filter/manual_test.md` (одиночная
+группа), `docs/features/IS513_quiz_multi_group/manual_test.md` (набор).
 
 IS508 — состав порции: `getRandomWriteQuizList: portion grades=<n>
 earliest=+<a>/<cand> errors=+<b>/<cand> total=<t> words=<w>` —
@@ -263,14 +307,15 @@ earliest=+<a>/<cand> errors=+<b>/<cand> total=<t> words=<w>` —
 
 ## 12. Вне скоупа v1
 
-- Мультивыбор групп; фильтр по набору компонентов (задел — параметры
-  воронки/выборки); пункт «Без группы»; per-тип порог (задел —
-  параметр `threshold`); вторая карточка квиза (контракт готов).
+- Пункт «Без группы»; per-тип порог (задел — параметр `threshold`);
+  вторая карточка квиза (контракт готов); объединение мелких групп
+  ниже порога; «родитель тянет подгруппы» (вложенных групп пока нет).
+  Мультивыбор групп — сделан в IS513, фильтр по ядрам — в IS511.
 
 ## 13. Ссылки
 
-- Код: `modules/domain/quiz`, `modules/datasource/prefs`
-  (`QuizGroupPrefKey`), `app/.../di/module/quizgroup/QuizGroupSelectionStore`,
+- Код: `modules/domain/quiz` (`QuizGroupSelection`, `QuizGroupsCodec`),
+  `modules/datasource/prefs` (`QuizGroupPrefKey`), `app/.../di/module/quizgroup/QuizGroupSelectionStore`,
   `app/.../di/module/dictionary/CurrentDictionaryProvider`,
   `modules/screen/quiztab` (Subs/SubHandler/Reducer/StateAtoms/widget),
   `core/core-db-impl` (`WordDao` квиз-секция),

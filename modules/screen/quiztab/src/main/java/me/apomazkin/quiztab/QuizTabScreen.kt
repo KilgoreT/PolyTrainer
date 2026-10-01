@@ -71,9 +71,6 @@ internal fun QuizTabScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val allTitle = stringResource(R.string.group_all_title)
-            val selectedTitle = state.selectedGroupId
-                ?.let { id -> state.groupOptions.find { it.id == id }?.name }
-                ?: allTitle
             QuizItemWidget(
                 imageRes = R.drawable.ic_quiz_write,
                 titleRes = R.string.quiz_item_title_write,
@@ -89,8 +86,9 @@ internal fun QuizTabScreen(
                 enabled = state.isChatCardEnabled,
                 pickerContent = {
                     QuizGroupPickerWidget(
-                        selectedTitle = selectedTitle,
-                        selectedGroupId = state.selectedGroupId,
+                        selectedName = state.selectionLabel?.first ?: allTitle,
+                        moreCount = state.selectionLabel?.more ?: 0,
+                        selectedGroupIds = state.selectedGroupIds,
                         items = buildList {
                             add(
                                 QuizGroupPickerItem(
@@ -112,11 +110,15 @@ internal fun QuizTabScreen(
                             }
                         },
                         enabled = state.isChatCardEnabled,
-                        onPick = { groupId ->
+                        onPickAll = {
+                            sendMessage(Msg.PickAll(quizType = QuizTypes.CHAT))
+                        },
+                        onToggle = { groupId, checked ->
                             sendMessage(
-                                Msg.PickGroup(
+                                Msg.ToggleGroup(
                                     quizType = QuizTypes.CHAT,
                                     groupId = groupId,
+                                    checked = checked,
                                 ),
                             )
                         },

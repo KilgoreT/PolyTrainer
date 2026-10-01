@@ -1,6 +1,5 @@
 package me.apomazkin.polytrainer.di.module.quizchat
 
-import kotlinx.coroutines.flow.first
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
@@ -17,7 +16,9 @@ import me.apomazkin.polytrainer.mapper.toDomain
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.prefs.quizPickerPrefKey
+import me.apomazkin.quiz.QuizGroupLabel
 import me.apomazkin.quiz.QuizTypes
+import me.apomazkin.quiz.quizGroupLabel
 import me.apomazkin.quiz.chat.LogTags
 import me.apomazkin.quiz.chat.deps.QUIZ_RENDERABLE_TEMPLATES
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
@@ -72,16 +73,19 @@ class QuizChatUseCaseImpl @Inject constructor(
             logger.w(tag = LogTags.CHAT, message = "getRandomWriteQuizList: no core types")
             return emptyList()
         }
-        // IS500: групповой фильтр резолвится ЗДЕСЬ (Д6 — в код квиза не
-        // зашивается); прецедент внутренних чтений prefs — isEarliestOn
-        // ниже. null = «Все», поведение до фичи.
-        val groupId = quizGroupSelectionStore.getValidatedSelection(
-            quizType = QuizTypes.CHAT,
-            dictionaryId = dictionaryId,
-        )
+        // Групповой фильтр резолвится ЗДЕСЬ — в код квиза не зашивается;
+        // прецедент внутренних чтений prefs — isEarliestOn ниже. Пустой
+        // набор = «Все». Порядок id фиксирован — стабильный лог и запросы.
+        val groupIds = quizGroupSelectionStore
+            .getValidatedSelection(
+                quizType = QuizTypes.CHAT,
+                dictionaryId = dictionaryId,
+            )
+            .sorted()
+        val groupFilter = if (groupIds.isEmpty()) "all" else groupIds.joinToString(",")
         logger.d(
             tag = LogTags.CHAT,
-            message = "getRandomWriteQuizList: groupFilter=${groupId ?: "all"} cores=$coreTypeIds",
+            message = "getRandomWriteQuizList: groupFilter=$groupFilter cores=$coreTypeIds",
         )
 
         val allByGrades: Map<Int, List<WriteQuiz>> = (0..maxGrade)
@@ -89,7 +93,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                 val ids = quizApi.getWriteQuizIds(
                     grade = grade,
                     dictionaryId = dictionaryId,
-                    groupId = groupId,
+                    groupIds = groupIds,
                     coreTypeIds = coreTypeIds,
                 )
                 val randomIds = ids.shuffled().take(limit)
@@ -141,7 +145,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                 ?: false
         if (isEarliestOn) {
             val candidates = quizApi
-                    .getEarliestWriteQuizList(limit, dictionaryId, groupId, coreTypeIds)
+                    .getEarliestWriteQuizList(limit, dictionaryId, groupIds, coreTypeIds)
                     .toDomainEntity(type = QuizType.EARLIEST)
             earliestCandidates = candidates.size
             earliestAdded = pick(candidates.shuffled(), ADDON_SIZE).size
@@ -152,7 +156,7 @@ class QuizChatUseCaseImpl @Inject constructor(
                 ?: false
         if (isFrequentMistakesOn) {
             val candidates = quizApi
-                .getFrequentMistakesWriteQuizList(limit, dictionaryId, groupId, coreTypeIds)
+                .getFrequentMistakesWriteQuizList(limit, dictionaryId, groupIds, coreTypeIds)
                 .toDomainEntity(type = QuizType.ERRORS)
             errorsCandidates = candidates.size
             errorsAdded = pick(candidates.shuffled(), ADDON_SIZE).size
@@ -214,17 +218,15 @@ class QuizChatUseCaseImpl @Inject constructor(
         return lexemeApi.getComponentOptions(posType.id).map { it.toDomain() }
     }
 
-    // ===== IS500 quiz group =====
+    // ===== группы тренировки =====
 
-    override suspend fun getSelectedQuizGroupName(dictionaryId: Long): String? {
-        val groupId = quizGroupSelectionStore.getValidatedSelection(
+    override suspend fun getSelectedQuizGroupLabel(dictionaryId: Long): QuizGroupLabel? {
+        // Один снапшот: набор и отсортированные группы — из одного чтения store.
+        val state = quizGroupSelectionStore.getValidatedState(
             quizType = QuizTypes.CHAT,
             dictionaryId = dictionaryId,
-        ) ?: return null
-        return quizApi.flowQuizGroupCounts(dictionaryId)
-            .first()
-            .find { it.groupId == groupId }
-            ?.name
+        )
+        return quizGroupLabel(state.options.groups, state.selectedGroupIds)
     }
 }
 

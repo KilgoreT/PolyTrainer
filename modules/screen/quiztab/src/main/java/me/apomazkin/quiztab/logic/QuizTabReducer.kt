@@ -30,29 +30,32 @@ internal class QuizTabReducer(
                     state.noOp("card disabled")
                 }
 
-            is Msg.PickGroup -> reducePickGroup(state, message)
-
             is Msg.GroupOptionsLoaded ->
                 state
                     .applyGroupOptions(
                         dictionaryId = message.dictionaryId,
                         options = message.options,
                     )
-                    .resolveSelection(message.selectedGroupId)
+                    .resolveSelection(message.selectedGroupIds)
+                    .applySelectionLabel()
                     .setCardEnabled(message.options.hasEligibleOption) to
-                    // Фолбэк закрепляется: невалидный персист стирается,
-                    // «Все» остаётся выбором и после исцеления группы.
+                    // Закрепление: очищенный набор пишется в pref, выпавшая
+                    // группа сама не вернётся и после исцеления.
                     if (message.selectionInvalidated && message.dictionaryId != null) {
                         setOf(
                             QuizTabDatasourceEffect.PersistGroupSelection(
                                 quizType = message.quizType,
                                 dictionaryId = message.dictionaryId,
-                                groupId = null,
+                                groupIds = message.selectedGroupIds,
                             ),
                         )
                     } else {
                         emptySet()
                     }
+
+            is Msg.ToggleGroup -> reduceToggleGroup(state, message)
+
+            is Msg.PickAll -> reducePickAll(state, message)
 
             is Msg.GroupOptionsFailed -> state.noOp("options failed")
 
@@ -60,19 +63,46 @@ internal class QuizTabReducer(
         }
     }
 
-    private fun reducePickGroup(
+    private fun reduceToggleGroup(
         state: QuizTabState,
-        message: Msg.PickGroup,
+        message: Msg.ToggleGroup,
     ): ReducerResult<QuizTabState, Effect> {
         // Единственная карточка v1 — chat; чужой тип = гонка/ошибка UI.
         if (message.quizType != QuizTypes.CHAT) return state.noOp("unknown quiz type")
         val dictionaryId = state.dictionaryId ?: return state.noOp("no dictionary")
-        if (message.groupId == state.selectedGroupId) return state.noOp("same selection")
-        return state.pickGroup(message.groupId) to setOf(
+        // Reducer не доверяет UI: отметить можно только пригодную группу
+        // текущих опций (устаревший тап после эмиссии — no-op).
+        val isEligible = state.groupOptions.any { it.id == message.groupId && it.isEligible }
+        if (message.checked && !isEligible) return state.noOp("ineligible group")
+        val next = if (message.checked) {
+            state.selectedGroupIds + message.groupId
+        } else {
+            state.selectedGroupIds - message.groupId
+        }
+        return state.persistGroups(message.quizType, dictionaryId, next)
+    }
+
+    private fun reducePickAll(
+        state: QuizTabState,
+        message: Msg.PickAll,
+    ): ReducerResult<QuizTabState, Effect> {
+        if (message.quizType != QuizTypes.CHAT) return state.noOp("unknown quiz type")
+        val dictionaryId = state.dictionaryId ?: return state.noOp("no dictionary")
+        return state.persistGroups(message.quizType, dictionaryId, emptySet())
+    }
+
+    /** Тот же набор — no-op; иначе оптимистичный state + персист. */
+    private fun QuizTabState.persistGroups(
+        quizType: String,
+        dictionaryId: Long,
+        next: Set<Long>,
+    ): ReducerResult<QuizTabState, Effect> {
+        if (next == selectedGroupIds) return noOp("same selection")
+        return pickGroups(next).applySelectionLabel() to setOf(
             QuizTabDatasourceEffect.PersistGroupSelection(
-                quizType = message.quizType,
+                quizType = quizType,
                 dictionaryId = dictionaryId,
-                groupId = message.groupId,
+                groupIds = next,
             ),
         )
     }

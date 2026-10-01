@@ -66,10 +66,10 @@ sealed interface DatasourceEffect : Effect {
     data class SaveQuizPickerSelection(val refs: Set<ComponentTypeRef>) : DatasourceEffect
 
     /**
-     * IS500. Имя группы тренировки для сабтайтла аппбара — на входе
+     * Подпись набора групп тренировки для сабтайтла аппбара — на входе
      * в экран (init-эффект), до старта сессии.
      */
-    data object LoadQuizGroupName : DatasourceEffect
+    data object LoadQuizGroupLabel : DatasourceEffect
 }
 
 /**
@@ -118,17 +118,17 @@ class DatasourceEffectHandler(
             }
             is DatasourceEffect.LoadQuiz -> withContext(io) {
                 async { quizGame.loadData() }.await()
-                // IS500: имя группы сессии обновляется и на старте
-                // сессии (страховка «Продолжить» после смены данных).
-                consumer(loadQuizGroupName())
+                // Подпись набора групп обновляется и на старте сессии
+                // (страховка «Продолжить» после смены данных).
+                consumer(loadQuizGroupLabel())
                 if (effect.reload) {
                     Msg.QuizReLoaded(content = quizGame.getStat())
                 } else {
                     Msg.QuizLoaded(content = quizGame.getStat())
                 }
             }
-            is DatasourceEffect.LoadQuizGroupName -> withContext(io) {
-                loadQuizGroupName()
+            is DatasourceEffect.LoadQuizGroupLabel -> withContext(io) {
+                loadQuizGroupLabel()
             }
             is DatasourceEffect.NextQuestion -> withContext(io) {
                 if (quizGame.hasNextQuestion()) {
@@ -200,17 +200,18 @@ class DatasourceEffectHandler(
     }
 
     /**
-     * IS500: валидированное имя группы тренировки (null = «Все») для
+     * Валидированная подпись набора групп тренировки (null = «Все») для
      * сабтайтла аппбара.
      */
-    private suspend fun loadQuizGroupName(): Msg.QuizGroupNameLoaded {
-        val groupName = useCase.getCurrentDictionaryId()
-            ?.let { useCase.getSelectedQuizGroupName(it) }
+    private suspend fun loadQuizGroupLabel(): Msg.QuizGroupLabelLoaded {
+        val label = useCase.getCurrentDictionaryId()
+            ?.let { useCase.getSelectedQuizGroupLabel(it) }
+        val described = label?.let { "${it.first}+${it.more}" } ?: "all"
         logger.d(
             tag = me.apomazkin.quiz.chat.LogTags.CHAT,
-            message = "subtitle: group=${groupName ?: "all"}",
+            message = "subtitle: group=$described",
         )
-        return Msg.QuizGroupNameLoaded(name = groupName)
+        return Msg.QuizGroupLabelLoaded(label = label)
     }
 
     private fun sendSummary(): Msg.Summary {

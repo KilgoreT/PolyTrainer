@@ -24,9 +24,9 @@ import javax.inject.Inject
  *
  * GroupOptions: текущий словарь → `flatMapLatest` (смена словаря сама
  * гасит старый combine) → combine(счётчики групп, счётчик «Все»,
- * pref выбора) → воронка `resolveQuizGroupState` на КАЖДОМ эмите:
- * транзиент «новые счётчики + мёртвый выбор» резолвится в «Все» без
- * кадра невалидного пункта. Ошибки потока перехватываются на месте
+ * pref набора) → воронка `resolveQuizGroupState` на КАЖДОМ эмите:
+ * транзиент «новые счётчики + мёртвая группа в наборе» резолвится без
+ * кадра невалидного пункта (группа просто выпадает). Ошибки потока перехватываются на месте
  * (`catch` → fail-Msg): упавший источник не роняет раннер, карточка
  * остаётся на рабочем дефолте.
  */
@@ -62,7 +62,7 @@ class QuizTabSubHandler @Inject constructor(
                                     allWordCount = 0,
                                     groups = emptyList(),
                                 ),
-                                selectedGroupId = null,
+                                selectedGroupIds = emptySet(),
                                 selectionInvalidated = false,
                             ) as Msg,
                         )
@@ -77,25 +77,33 @@ class QuizTabSubHandler @Inject constructor(
                                     compareBy(collator) { it.name },
                                 ),
                                 dictionaryWordCount = allCount,
-                                persistedGroupId = persisted,
+                                persistedGroupIds = persisted.ids,
                             )
+                            val selected = resolved.selectedGroupIds
+                            val selectedText = if (selected.isEmpty()) {
+                                "all"
+                            } else {
+                                selected.sorted().joinToString(",")
+                            }
                             logger.d(
                                 tag = LogTags.QUIZ,
                                 message = "groupOptions: dict=$dictId " +
                                     "groups=${resolved.options.groups.size} " +
                                     "eligible=${resolved.options.groups.count { it.isEligible }} " +
                                     "allCount=$allCount " +
-                                    "selected=${resolved.selectedGroupId ?: "all"}",
+                                    "selected=$selectedText " +
+                                    "garbage=${persisted.hasGarbage}",
                             )
                             Msg.GroupOptionsLoaded(
                                 quizType = QuizTypes.CHAT,
                                 dictionaryId = dictId,
                                 options = resolved.options,
-                                selectedGroupId = resolved.selectedGroupId,
-                                // Персист был, но воронка его отвергла —
-                                // reducer закрепит фолбэк стиранием pref.
-                                selectionInvalidated = persisted != null &&
-                                    resolved.selectedGroupId == null,
+                                selectedGroupIds = selected,
+                                // Воронка выкинула группу или в pref мусор —
+                                // reducer закрепит очищенный набор записью.
+                                // Эхо записи даёт равенство: цикла нет.
+                                selectionInvalidated = persisted.hasGarbage ||
+                                    persisted.ids != selected,
                             ) as Msg
                         }
                     }

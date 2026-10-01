@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.polytrainer.di.module.dictionary.CurrentDictionaryProvider
 import me.apomazkin.polytrainer.di.module.quizgroup.QuizGroupSelectionStore
+import me.apomazkin.quiz.PersistedQuizGroups
 import me.apomazkin.quiz.QuizGroupCount
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 import javax.inject.Inject
@@ -39,14 +40,14 @@ class QuizTabUseCaseImpl @Inject constructor(
     override fun flowDictionaryQuizWordCount(dictionaryId: Long): Flow<Int> =
         quizApi.flowDictionaryQuizWordCount(dictionaryId)
 
-    override fun flowGroupSelection(quizType: String, dictionaryId: Long): Flow<Long?> =
+    override fun flowGroupSelection(quizType: String, dictionaryId: Long): Flow<PersistedQuizGroups> =
         quizGroupSelectionStore.flowSelection(quizType = quizType, dictionaryId = dictionaryId)
 
-    override suspend fun setGroupSelection(quizType: String, dictionaryId: Long, groupId: Long?) {
+    override suspend fun setGroupSelection(quizType: String, dictionaryId: Long, groupIds: Set<Long>) {
         quizGroupSelectionStore.setSelection(
             quizType = quizType,
             dictionaryId = dictionaryId,
-            groupId = groupId,
+            groupIds = groupIds,
         )
     }
 }
