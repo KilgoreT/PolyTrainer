@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +36,7 @@ import me.apomazkin.theme.grayTextColor
 import me.apomazkin.ui.preview.PreviewWidget
 
 /**
- * IS500. Пункт пикера группы; `groupId == null` — «Все».
+ * Пункт пикера групп; `groupId == null` — «Все».
  * Непригодные пункты видимы, но некликабельны — порог самообъясняющий.
  */
 data class QuizGroupPickerItem(
@@ -48,24 +50,36 @@ private const val MENU_MAX_WIDTH_FRACTION = 0.9f
 private const val DROPDOWN_MAX_HEIGHT = 400
 
 /**
- * IS500. Пикер группы карточки квиза: контрол «<имя> ▾» прижат к
- * правому краю, зона клика — вся строка на полную ширину, минимум
- * 48dp (промах мимо текста не улетает в открытие чата). Выпадающий
- * список раскрывается от правого края, ширина — по самому длинному
- * пункту, но не больше 90% ширины карточки.
+ * Пикер набора групп карточки квиза: контрол «<имя> +N ▾» прижат к
+ * правому краю, зона клика — вся строка на полную ширину, минимум 48dp
+ * (промах мимо текста не улетает в открытие чата). Обрезается только
+ * имя: «+N» и шеврон видны всегда.
+ *
+ * Меню — от правого края, ширина по самому длинному пункту, но не
+ * больше 90% карточки. У каждого пункта, включая «Все», галка-индикатор
+ * (клик обрабатывает только строка). Клик по группе переключает её и
+ * оставляет меню открытым — можно отметить несколько; клик по «Все»
+ * выбирает весь словарь и закрывает меню.
+ *
+ * @param selectedName имя первой выбранной группы либо «Все».
+ * @param moreCount сколько групп выбрано кроме первой; 0 — «+N» нет.
+ * @param selectedGroupIds выбранные группы; пусто — отмечено «Все».
  */
 @Composable
 fun QuizGroupPickerWidget(
     modifier: Modifier = Modifier,
-    selectedTitle: String,
-    selectedGroupId: Long?,
+    selectedName: String,
+    moreCount: Int,
+    selectedGroupIds: Set<Long>,
     items: List<QuizGroupPickerItem>,
     enabled: Boolean,
-    onPick: (Long?) -> Unit,
+    onPickAll: () -> Unit,
+    onToggle: (groupId: Long, checked: Boolean) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val pickerCd = stringResource(R.string.quiz_group_picker_cd)
     val controlColor = if (enabled) MaterialTheme.colorScheme.secondary else grayTextColor
+    val controlStyle = LexemeStyle.BodyM.copy(color = controlColor)
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val menuMaxWidth = maxWidth * MENU_MAX_WIDTH_FRACTION
         Row(
@@ -79,17 +93,25 @@ fun QuizGroupPickerWidget(
         ) {
             Text(
                 modifier = Modifier.weight(weight = 1f, fill = false),
-                text = selectedTitle,
-                style = LexemeStyle.BodyM.copy(color = controlColor),
+                text = selectedName,
+                style = controlStyle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            // Шеврон вне ellipsis-текста: индикатор раскрытия не
-            // уезжает за край при длинном имени группы.
+            // «+N» и шеврон — вне ellipsis-текста: при длинном имени
+            // набор не выглядит одной группой, индикатор не уезжает.
+            if (moreCount > 0) {
+                Text(
+                    modifier = Modifier.padding(start = 4.dp),
+                    text = stringResource(R.string.quiz_group_label_more, moreCount),
+                    style = controlStyle,
+                    maxLines = 1,
+                )
+            }
             Text(
                 modifier = Modifier.padding(start = 4.dp),
                 text = "▾",
-                style = LexemeStyle.BodyM.copy(color = controlColor),
+                style = controlStyle,
             )
         }
         // Нулевой якорь у правого края: меню раскрывается от него и
@@ -106,9 +128,27 @@ fun QuizGroupPickerWidget(
                 onDismissRequest = { isExpanded = false },
             ) {
                 items.forEach { item ->
-                    val isSelected = item.groupId == selectedGroupId
+                    val groupId = item.groupId
+                    val isChecked = if (groupId == null) {
+                        selectedGroupIds.isEmpty()
+                    } else {
+                        groupId in selectedGroupIds
+                    }
                     DropdownMenuItem(
                         enabled = item.isEligible,
+                        leadingIcon = {
+                            // Индикатор: клик ловит строка, у галки своего
+                            // обработчика нет — одна цель касания.
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = null,
+                                enabled = item.isEligible,
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.primary,
+                                    uncheckedColor = MaterialTheme.colorScheme.onSurface,
+                                ),
+                            )
+                        },
                         text = {
                             Text(
                                 text = stringResource(
@@ -116,26 +156,24 @@ fun QuizGroupPickerWidget(
                                     item.title,
                                     item.wordCount,
                                 ),
-                                style = if (isSelected) {
-                                    LexemeStyle.BodyMBold.copy(
-                                        color = MaterialTheme.colorScheme.secondary,
-                                    )
-                                } else {
-                                    LexemeStyle.BodyM.copy(
-                                        color = if (item.isEligible) {
-                                            MaterialTheme.colorScheme.secondary
-                                        } else {
-                                            grayTextColor
-                                        },
-                                    )
-                                },
+                                style = LexemeStyle.BodyM.copy(
+                                    color = if (item.isEligible) {
+                                        MaterialTheme.colorScheme.secondary
+                                    } else {
+                                        grayTextColor
+                                    },
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         },
                         onClick = {
-                            isExpanded = false
-                            onPick(item.groupId)
+                            if (groupId == null) {
+                                isExpanded = false
+                                onPickAll()
+                            } else {
+                                onToggle(groupId, !isChecked)
+                            }
                         },
                     )
                 }
@@ -149,15 +187,17 @@ fun QuizGroupPickerWidget(
 private fun Preview() = AppTheme {
     Column(modifier = Modifier.padding(16.dp)) {
         QuizGroupPickerWidget(
-            selectedTitle = "Все",
-            selectedGroupId = null,
+            selectedName = "Очень длинное название группы",
+            moreCount = 2,
+            selectedGroupIds = setOf(1L, 3L, 4L),
             items = listOf(
                 QuizGroupPickerItem(groupId = null, title = "Все", wordCount = 47, isEligible = true),
                 QuizGroupPickerItem(groupId = 1L, title = "Быт", wordCount = 12, isEligible = true),
                 QuizGroupPickerItem(groupId = 2L, title = "Кухня", wordCount = 2, isEligible = false),
             ),
             enabled = true,
-            onPick = {},
+            onPickAll = {},
+            onToggle = { _, _ -> },
         )
     }
 }
@@ -167,11 +207,13 @@ private fun Preview() = AppTheme {
 private fun PreviewDisabled() = AppTheme {
     Column(modifier = Modifier.padding(16.dp)) {
         QuizGroupPickerWidget(
-            selectedTitle = "Все",
-            selectedGroupId = null,
+            selectedName = "Все",
+            moreCount = 0,
+            selectedGroupIds = emptySet(),
             items = emptyList(),
             enabled = false,
-            onPick = {},
+            onPickAll = {},
+            onToggle = { _, _ -> },
         )
     }
 }

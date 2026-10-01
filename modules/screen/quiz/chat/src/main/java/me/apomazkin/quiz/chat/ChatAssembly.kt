@@ -45,11 +45,11 @@ object ChatAssembly {
         observers: List<MateObserver<Any?, Any?, Effect>> = emptyList(),
     ): Mate<ChatScreenState, Msg, Effect> = Mate(
         initState = ChatScreenState(),
-        // IS500: имя группы для сабтайтла — сразу на входе в экран,
+        // Подпись набора групп для сабтайтла — сразу на входе в экран,
         // до старта сессии.
         initEffects = setOf(
             DatasourceEffect.PrepareToStart,
-            DatasourceEffect.LoadQuizGroupName,
+            DatasourceEffect.LoadQuizGroupLabel,
         ),
         coroutineScope = coroutineScope,
         reducer = ChatReducer(

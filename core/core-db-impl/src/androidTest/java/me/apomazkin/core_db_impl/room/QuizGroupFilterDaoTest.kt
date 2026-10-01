@@ -172,13 +172,19 @@ class QuizGroupFilterDaoTest {
         return wordId
     }
 
+    /**
+     * Хелперы повторяют прод-путь `CoreDbApiImpl`: пустой набор групп —
+     * `allGroups = true` и пустой `IN ()` (не читается); иначе — набор.
+     */
     private suspend fun quizIds(
         groupId: Long?,
         cores: List<Long> = listOf(translationType),
+        groups: List<Long> = listOfNotNull(groupId),
     ): List<Long> = db.wordDao().getWriteQuizIds(
         grade = 0,
         langId = dictId,
-        groupId = groupId,
+        allGroups = groups.isEmpty(),
+        groupIds = groups,
         coreTypeIds = cores,
     )
 
@@ -186,10 +192,12 @@ class QuizGroupFilterDaoTest {
         limit: Int,
         groupId: Long?,
         cores: List<Long> = listOf(translationType),
+        groups: List<Long> = listOfNotNull(groupId),
     ) = db.wordDao().getEarliest(
         limit = limit,
         langId = dictId,
-        groupId = groupId,
+        allGroups = groups.isEmpty(),
+        groupIds = groups,
         coreTypeIds = cores,
     )
 
@@ -197,10 +205,12 @@ class QuizGroupFilterDaoTest {
         limit: Int,
         groupId: Long?,
         cores: List<Long> = listOf(translationType),
+        groups: List<Long> = listOfNotNull(groupId),
     ) = db.wordDao().getFrequentMistakes(
         limit = limit,
         langId = dictId,
-        groupId = groupId,
+        allGroups = groups.isEmpty(),
+        groupIds = groups,
         coreTypeIds = cores,
     )
 
@@ -247,6 +257,65 @@ class QuizGroupFilterDaoTest {
         assertTrue(quizIds(groupA).isEmpty())
         // Словарь целиком группу не потерял.
         assertEquals(1, quizIds(groupId = null).size)
+    }
+
+    // === getWriteQuizIds: набор групп ===
+
+    @Test
+    fun groupSet_union_ofSelectedGroups() = runBlocking {
+        addQuizWord("cat", groupA)
+        addQuizWord("dog", groupB)
+        addQuizWord("fox") // вне групп — в объединение не входит
+
+        assertEquals(2, quizIds(groupId = null, groups = listOf(groupA, groupB)).size)
+    }
+
+    @Test
+    fun groupSet_wordInBothGroups_singleRow() = runBlocking {
+        addQuizWord("cat", groupA, groupB)
+
+        assertEquals(1, quizIds(groupId = null, groups = listOf(groupA, groupB)).size)
+    }
+
+    @Test
+    fun groupSet_emptyMeansWholeDictionary() = runBlocking {
+        addQuizWord("cat", groupA)
+        addQuizWord("fox") // вне групп
+
+        assertEquals(2, quizIds(groupId = null, groups = emptyList()).size)
+    }
+
+    @Test
+    fun groupSet_deadGroupInSet_ignored() = runBlocking {
+        addQuizWord("cat", groupA)
+        addQuizWord("dog", groupB)
+        groupApi.deleteGroup(groupB)
+
+        assertEquals(1, quizIds(groupId = null, groups = listOf(groupA, groupB)).size)
+    }
+
+    @Test
+    fun groupSet_earliestTopFromUnion_notGlobalTop() = runBlocking {
+        // Глобально самая ранняя — вне набора.
+        addQuizWordCustom("global-oldest", lastSelect = Date(1_000L), errorCount = 0)
+        val inB = addQuizWordCustom("b-word", lastSelect = Date(2_000L), errorCount = 0, groupB)
+        addQuizWordCustom("a-word", lastSelect = Date(3_000L), errorCount = 0, groupA)
+
+        val result = earliest(limit = 1, groupId = null, groups = listOf(groupA, groupB))
+
+        assertEquals(listOf(inB), result.map { it.lexemeDbWithWordDbRelation.wordDb.id })
+    }
+
+    @Test
+    fun groupSet_mistakesTopFromUnion_notGlobalTop() = runBlocking {
+        // Глобальный чемпион ошибок — вне набора.
+        addQuizWordCustom("global-mistakes", lastSelect = null, errorCount = 9)
+        val inA = addQuizWordCustom("a-word", lastSelect = null, errorCount = 3, groupA)
+        addQuizWordCustom("b-word", lastSelect = null, errorCount = 1, groupB)
+
+        val result = frequentMistakes(limit = 1, groupId = null, groups = listOf(groupA, groupB))
+
+        assertEquals(listOf(inA), result.map { it.lexemeDbWithWordDbRelation.wordDb.id })
     }
 
     // === getWriteQuizIds: фильтр по ядрам ===

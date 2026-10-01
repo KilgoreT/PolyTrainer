@@ -9,7 +9,8 @@ import me.apomazkin.quiztab.LogTags
 import me.apomazkin.quiztab.deps.QuizTabUseCase
 
 /**
- * IS500. Разовые datasource-намерения таба: персист выбора группы.
+ * Разовые datasource-намерения таба: персист набора групп. Порядок
+ * записей держит store (записи сериализованы).
  * Ошибок не ловит — провал уходит раннеру, маппинг объявлен в эффекте
  * (RecoverableEffect), стектрейс — ErrorLoggingObserver.
  *
@@ -30,15 +31,20 @@ class DatasourceEffectHandler(
     ) {
         when (effect) {
             is QuizTabDatasourceEffect.PersistGroupSelection -> withContext(io) {
+                val groups = if (effect.groupIds.isEmpty()) {
+                    "all"
+                } else {
+                    effect.groupIds.sorted().joinToString(",")
+                }
                 logger.d(
                     tag = LogTags.QUIZ,
                     message = "persistGroupSelection: type=${effect.quizType} " +
-                        "dict=${effect.dictionaryId} group=${effect.groupId ?: "all"}",
+                        "dict=${effect.dictionaryId} groups=$groups",
                 )
                 useCase.setGroupSelection(
                     quizType = effect.quizType,
                     dictionaryId = effect.dictionaryId,
-                    groupId = effect.groupId,
+                    groupIds = effect.groupIds,
                 )
             }
         }

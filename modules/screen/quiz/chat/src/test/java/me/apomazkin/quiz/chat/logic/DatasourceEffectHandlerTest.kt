@@ -15,6 +15,7 @@ import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.QuizConfig
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.prefs.PrefsProvider
+import me.apomazkin.quiz.QuizGroupLabel
 import me.apomazkin.quiz.chat.deps.QuizChatUseCase
 import me.apomazkin.quiz.chat.entity.WriteQuiz
 import me.apomazkin.quiz.chat.entity.WriteQuizUpsertEntity
@@ -66,10 +67,10 @@ class DatasourceEffectHandlerTest {
         }
         override suspend fun getPartOfSpeechOptions(dictionaryId: Long): List<ComponentOption> =
             emptyList()
-        override suspend fun getSelectedQuizGroupName(dictionaryId: Long): String? =
-            quizGroupName
+        override suspend fun getSelectedQuizGroupLabel(dictionaryId: Long): QuizGroupLabel? =
+            quizGroupLabel
 
-        var quizGroupName: String? = null
+        var quizGroupLabel: QuizGroupLabel? = null
     }
 
     private val quizGame = mockk<QuizGame>(relaxed = true)
@@ -158,36 +159,39 @@ class DatasourceEffectHandlerTest {
         assertEquals(Msg.QuizReLoaded(content = null), msg)
     }
 
-    // ===== IS500 LoadQuizGroupName =====
+    // ===== LoadQuizGroupLabel =====
 
     @Test
-    fun `LoadQuizGroupName emits validated group name`() = runTest {
-        val fake = FakeUseCase(currentDictId = 1L).apply { quizGroupName = "Быт" }
+    fun `LoadQuizGroupLabel emits validated group label`() = runTest {
+        val label = QuizGroupLabel(first = "Быт", more = 2)
+        val fake = FakeUseCase(currentDictId = 1L).apply { quizGroupLabel = label }
         val handler = makeHandler(fake)
 
-        val msg = runEffect(handler, DatasourceEffect.LoadQuizGroupName)
+        val msg = runEffect(handler, DatasourceEffect.LoadQuizGroupLabel)
 
-        assertEquals(Msg.QuizGroupNameLoaded(name = "Быт"), msg)
+        assertEquals(Msg.QuizGroupLabelLoaded(label = label), msg)
     }
 
     @Test
-    fun `LoadQuizGroupName with All selection emits null name`() = runTest {
+    fun `LoadQuizGroupLabel with All selection emits null label`() = runTest {
         val fake = FakeUseCase(currentDictId = 1L)
         val handler = makeHandler(fake)
 
-        val msg = runEffect(handler, DatasourceEffect.LoadQuizGroupName)
+        val msg = runEffect(handler, DatasourceEffect.LoadQuizGroupLabel)
 
-        assertEquals(Msg.QuizGroupNameLoaded(name = null), msg)
+        assertEquals(Msg.QuizGroupLabelLoaded(label = null), msg)
     }
 
     @Test
-    fun `LoadQuizGroupName with null dict emits null name`() = runTest {
-        val fake = FakeUseCase(currentDictId = null).apply { quizGroupName = "Быт" }
+    fun `LoadQuizGroupLabel with null dict emits null label`() = runTest {
+        val fake = FakeUseCase(currentDictId = null).apply {
+            quizGroupLabel = QuizGroupLabel(first = "Быт", more = 0)
+        }
         val handler = makeHandler(fake)
 
-        val msg = runEffect(handler, DatasourceEffect.LoadQuizGroupName)
+        val msg = runEffect(handler, DatasourceEffect.LoadQuizGroupLabel)
 
-        assertEquals(Msg.QuizGroupNameLoaded(name = null), msg)
+        assertEquals(Msg.QuizGroupLabelLoaded(label = null), msg)
     }
 
     // ===== SaveQuizPickerSelection =====

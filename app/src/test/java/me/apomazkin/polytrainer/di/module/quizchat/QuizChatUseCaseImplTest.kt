@@ -5,14 +5,12 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.ComponentOptionApiEntity
 import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.QuizConfigApiEntity
-import me.apomazkin.core_db_api.entity.QuizGroupCountApiEntity
 import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
@@ -23,6 +21,10 @@ import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.polytrainer.di.module.quizgroup.QuizGroupSelectionStore
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
+import me.apomazkin.quiz.QuizGroup
+import me.apomazkin.quiz.QuizGroupLabel
+import me.apomazkin.quiz.QuizGroupOptions
+import me.apomazkin.quiz.QuizGroupState
 import me.apomazkin.quiz.QuizTypes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -55,12 +57,12 @@ class QuizChatUseCaseImplTest {
     private val translation = ComponentTypeRef.BuiltIn(BuiltInComponent.TRANSLATION)
     private val definition = ComponentTypeRef.UserDefined("Definition")
 
-    private fun stubPrefs(groupId: Long? = null) {
+    private fun stubPrefs(groupIds: Set<Long> = emptySet()) {
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns false
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns false
         coEvery {
             quizGroupSelectionStore.getValidatedSelection(any(), any())
-        } returns groupId
+        } returns groupIds
     }
 
     /**
@@ -197,11 +199,11 @@ class QuizChatUseCaseImplTest {
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns (earliest != null)
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns (errors != null)
         earliest?.let { ids ->
-            coEvery { quizApi.getEarliestWriteQuizList(any(), 1L, null, cores) } returns
+            coEvery { quizApi.getEarliestWriteQuizList(any(), 1L, emptyList(), cores) } returns
                 ids.map { makeQuizEntity(it, grade = 0, wordId = wordOf(it)) }
         }
         errors?.let { ids ->
-            coEvery { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, null, cores) } returns
+            coEvery { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, emptyList(), cores) } returns
                 ids.map { makeQuizEntity(it, grade = 0, wordId = wordOf(it)) }
         }
     }
@@ -308,52 +310,64 @@ class QuizChatUseCaseImplTest {
         assertEquals(2, result.map { it.word.id }.toSet().size)
     }
 
-    // ===== IS500 quiz group filter =====
+    // ===== групповой фильтр: набор групп =====
 
     @Test
-    fun `group filter - validated selection passed to all three quiz queries`() = runTest {
-        stubPrefs(groupId = 5L)
+    fun `group filter - validated set passed sorted to all three quiz queries`() = runTest {
+        stubPrefs(groupIds = setOf(7L, 5L))
+        val sorted = listOf(5L, 7L)
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_EARLIEST_REVIEWED_STATUS_BOOLEAN) } returns true
         coEvery { prefsProvider.getBoolean(PrefKey.CHAT_FREQUENT_MISTAKES_STATUS_BOOLEAN) } returns true
         coEvery {
-            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, groupId = 5L, coreTypeIds = cores)
+            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, groupIds = sorted, coreTypeIds = cores)
         } returns listOf(1L)
         coEvery { quizApi.getWriteQuizByIds(any()) } answers {
             firstArg<List<Long>>().map { makeQuizEntity(it, grade = 0) }
         }
-        coEvery {
-            quizApi.getEarliestWriteQuizList(any(), 1L, 5L, cores)
-        } returns emptyList()
-        coEvery {
-            quizApi.getFrequentMistakesWriteQuizList(any(), 1L, 5L, cores)
-        } returns emptyList()
+        coEvery { quizApi.getEarliestWriteQuizList(any(), 1L, sorted, cores) } returns emptyList()
+        coEvery { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, sorted, cores) } returns emptyList()
 
         portion(limit = 10, maxGrade = 0)
 
-        coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L, groupId = 5L, coreTypeIds = cores) }
-        coVerify { quizApi.getEarliestWriteQuizList(any(), 1L, 5L, cores) }
-        coVerify { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, 5L, cores) }
+        coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L, groupIds = sorted, coreTypeIds = cores) }
+        coVerify { quizApi.getEarliestWriteQuizList(any(), 1L, sorted, cores) }
+        coVerify { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, sorted, cores) }
     }
 
     @Test
-    fun `getSelectedQuizGroupName - resolves name of validated group`() = runTest {
+    fun `group filter - empty set means whole dictionary`() = runTest {
+        stubPrefs(groupIds = emptySet())
         coEvery {
-            quizGroupSelectionStore.getValidatedSelection(QuizTypes.CHAT, 1L)
-        } returns 5L
-        coEvery { quizApi.flowQuizGroupCounts(1L) } returns flowOf(
-            listOf(QuizGroupCountApiEntity(groupId = 5L, name = "Быт", wordCount = 4)),
+            quizApi.getWriteQuizIds(grade = any(), dictionaryId = 1L, groupIds = emptyList(), coreTypeIds = cores)
+        } returns listOf(1L)
+        stubGetByIds()
+
+        portion(limit = 10, maxGrade = 0)
+
+        coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L, groupIds = emptyList(), coreTypeIds = cores) }
+    }
+
+    private fun group(id: Long, name: String) = QuizGroup(id = id, name = name, wordCount = 5, isEligible = true)
+
+    private fun stubGroupState(groups: List<QuizGroup>, selected: Set<Long>) {
+        coEvery { quizGroupSelectionStore.getValidatedState(QuizTypes.CHAT, 1L) } returns QuizGroupState(
+            options = QuizGroupOptions(isAllEligible = true, allWordCount = 20, groups = groups),
+            selectedGroupIds = selected,
         )
-
-        assertEquals("Быт", useCase.getSelectedQuizGroupName(1L))
     }
 
     @Test
-    fun `getSelectedQuizGroupName - null selection means All`() = runTest {
-        coEvery {
-            quizGroupSelectionStore.getValidatedSelection(QuizTypes.CHAT, 1L)
-        } returns null
+    fun `getSelectedQuizGroupLabel - first in store order plus the rest`() = runTest {
+        stubGroupState(groups = listOf(group(3L, "Быт"), group(1L, "Дом"), group(2L, "Еда")), selected = setOf(1L, 3L))
 
-        assertNull(useCase.getSelectedQuizGroupName(1L))
+        assertEquals(QuizGroupLabel(first = "Быт", more = 1), useCase.getSelectedQuizGroupLabel(1L))
+    }
+
+    @Test
+    fun `getSelectedQuizGroupLabel - empty selection means All`() = runTest {
+        stubGroupState(groups = listOf(group(1L, "Быт")), selected = emptySet())
+
+        assertNull(useCase.getSelectedQuizGroupLabel(1L))
     }
 
     // ===== core filter =====
@@ -370,14 +384,14 @@ class QuizChatUseCaseImplTest {
         coEvery { quizApi.getWriteQuizByIds(any()) } answers {
             firstArg<List<Long>>().map { makeQuizEntity(it, grade = 0) }
         }
-        coEvery { quizApi.getEarliestWriteQuizList(any(), 1L, null, twoCores) } returns emptyList()
-        coEvery { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, null, twoCores) } returns emptyList()
+        coEvery { quizApi.getEarliestWriteQuizList(any(), 1L, emptyList(), twoCores) } returns emptyList()
+        coEvery { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, emptyList(), twoCores) } returns emptyList()
 
         useCase.getRandomWriteQuizList(limit = 10, maxGrade = 0, dictionaryId = 1L, coreTypeIds = twoCores)
 
         coVerify { quizApi.getWriteQuizIds(grade = 0, dictionaryId = 1L, coreTypeIds = twoCores) }
-        coVerify { quizApi.getEarliestWriteQuizList(any(), 1L, null, twoCores) }
-        coVerify { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, null, twoCores) }
+        coVerify { quizApi.getEarliestWriteQuizList(any(), 1L, emptyList(), twoCores) }
+        coVerify { quizApi.getFrequentMistakesWriteQuizList(any(), 1L, emptyList(), twoCores) }
     }
 
     @Test

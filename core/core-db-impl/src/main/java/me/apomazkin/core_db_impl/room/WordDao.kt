@@ -282,22 +282,25 @@ interface WordDao {
     fun updateWriteQuiz(writeQuizDb: List<WriteQuizDb>): Int
 
     /**
-     * `coreTypeIds` — включённые ядра словаря: в выборку попадает только
-     * лексема с живым значением хотя бы в одном из них. Фильтр в WHERE,
-     * до ORDER BY/LIMIT, как и групповой; непустой список гарантирует
-     * вызывающий (пустой `IN ()` — ноль строк).
+     * Групповой фильтр: `allGroups = true` — весь словарь (`groupIds`
+     * не читается, может быть пустым); иначе — слова, состоящие хотя бы
+     * в одной живой группе из `groupIds` (слово в нескольких — одна
+     * строка). `coreTypeIds` — включённые ядра словаря: в выборку
+     * попадает только лексема с живым значением хотя бы в одном из них.
+     * Оба фильтра — в WHERE, до ORDER BY/LIMIT; непустой `coreTypeIds`
+     * гарантирует вызывающий (пустой `IN ()` — ноль строк).
      */
     @Query(
         """
         SELECT id from write_quiz
         WHERE grade = :grade AND dictionary_id = :langId
-            AND (:groupId IS NULL OR EXISTS (
+            AND (:allGroups OR EXISTS (
                 SELECT 1 FROM lexemes l
                 JOIN word_groups wg ON wg.word_id = l.word_id
                 JOIN dictionary_groups dg ON dg.id = wg.group_id
                     AND dg.removed_at IS NULL
                 WHERE l.id = write_quiz.lexeme_id
-                    AND wg.group_id = :groupId))
+                    AND wg.group_id IN (:groupIds)))
             AND EXISTS (
                 SELECT 1 FROM component_values cv
                 WHERE cv.lexeme_id = write_quiz.lexeme_id
@@ -308,7 +311,8 @@ interface WordDao {
     suspend fun getWriteQuizIds(
         grade: Int,
         langId: Long,
-        groupId: Long?,
+        allGroups: Boolean,
+        groupIds: List<Long>,
         coreTypeIds: List<Long>,
     ): List<Long>
 
@@ -323,13 +327,13 @@ interface WordDao {
         """
         SELECT * FROM write_quiz
         WHERE dictionary_id = :langId
-            AND (:groupId IS NULL OR EXISTS (
+            AND (:allGroups OR EXISTS (
                 SELECT 1 FROM lexemes l
                 JOIN word_groups wg ON wg.word_id = l.word_id
                 JOIN dictionary_groups dg ON dg.id = wg.group_id
                     AND dg.removed_at IS NULL
                 WHERE l.id = write_quiz.lexeme_id
-                    AND wg.group_id = :groupId))
+                    AND wg.group_id IN (:groupIds)))
             AND EXISTS (
                 SELECT 1 FROM component_values cv
                 WHERE cv.lexeme_id = write_quiz.lexeme_id
@@ -342,7 +346,8 @@ interface WordDao {
     suspend fun getEarliest(
         limit: Int,
         langId: Long,
-        groupId: Long?,
+        allGroups: Boolean,
+        groupIds: List<Long>,
         coreTypeIds: List<Long>,
     ): List<WriteQuizDbEntity>
 
@@ -352,13 +357,13 @@ interface WordDao {
         SELECT * FROM write_quiz
         WHERE dictionary_id = :langId
             AND error_count > 0
-            AND (:groupId IS NULL OR EXISTS (
+            AND (:allGroups OR EXISTS (
                 SELECT 1 FROM lexemes l
                 JOIN word_groups wg ON wg.word_id = l.word_id
                 JOIN dictionary_groups dg ON dg.id = wg.group_id
                     AND dg.removed_at IS NULL
                 WHERE l.id = write_quiz.lexeme_id
-                    AND wg.group_id = :groupId))
+                    AND wg.group_id IN (:groupIds)))
             AND EXISTS (
                 SELECT 1 FROM component_values cv
                 WHERE cv.lexeme_id = write_quiz.lexeme_id
@@ -371,7 +376,8 @@ interface WordDao {
     suspend fun getFrequentMistakes(
         limit: Int,
         langId: Long,
-        groupId: Long?,
+        allGroups: Boolean,
+        groupIds: List<Long>,
         coreTypeIds: List<Long>,
     ): List<WriteQuizDbEntity>
 

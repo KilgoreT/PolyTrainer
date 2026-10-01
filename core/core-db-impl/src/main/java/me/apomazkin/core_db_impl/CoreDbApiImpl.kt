@@ -1567,13 +1567,14 @@ class CoreDbApiImpl @Inject constructor(
         override suspend fun getWriteQuizIds(
             grade: Int,
             dictionaryId: Long,
-            groupId: Long?,
+            groupIds: List<Long>,
             coreTypeIds: List<Long>,
         ): List<Long> {
             return wordDao.getWriteQuizIds(
                 grade = grade,
                 langId = dictionaryId,
-                groupId = groupId,
+                allGroups = groupIds.isEmpty(),
+                groupIds = groupIds,
                 coreTypeIds = coreTypeIds,
             )
         }
@@ -1590,13 +1591,14 @@ class CoreDbApiImpl @Inject constructor(
         override suspend fun getEarliestWriteQuizList(
             limit: Int,
             dictionaryId: Long,
-            groupId: Long?,
+            groupIds: List<Long>,
             coreTypeIds: List<Long>,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getEarliest(
                 langId = dictionaryId,
                 limit = limit,
-                groupId = groupId,
+                allGroups = groupIds.isEmpty(),
+                groupIds = groupIds,
                 coreTypeIds = coreTypeIds,
             ).map { it.toApiEntity(logger) }
         }
@@ -1604,13 +1606,14 @@ class CoreDbApiImpl @Inject constructor(
         override suspend fun getFrequentMistakesWriteQuizList(
             limit: Int,
             dictionaryId: Long,
-            groupId: Long?,
+            groupIds: List<Long>,
             coreTypeIds: List<Long>,
         ): List<WriteQuizComplexEntity> {
             return wordDao.getFrequentMistakes(
                 langId = dictionaryId,
                 limit = limit,
-                groupId = groupId,
+                allGroups = groupIds.isEmpty(),
+                groupIds = groupIds,
                 coreTypeIds = coreTypeIds,
             ).map { it.toApiEntity(logger) }
         }

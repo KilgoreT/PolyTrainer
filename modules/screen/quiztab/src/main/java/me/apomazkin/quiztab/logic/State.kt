@@ -3,18 +3,19 @@ package me.apomazkin.quiztab.logic
 import androidx.compose.runtime.Immutable
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.quiz.QuizGroup
+import me.apomazkin.quiz.QuizGroupLabel
 
 /**
  * State
  *
- * IS500: карточка chat-квиза несёт пикер группы. Дефолты — рабочее
+ * Карточка chat-квиза несёт пикер набора групп. Дефолты — рабочее
  * состояние до первой эмиссии подписки: карточка кликабельна, пикер —
- * «Все» без пунктов (сохраняет поведение таба до фичи, disabled не
- * мигает; тап в это окно безопасен — квиз сам читает валидированный
- * выбор на старте сессии).
+ * «Все» без пунктов (disabled не мигает; тап в это окно безопасен —
+ * квиз сам читает валидированный выбор на старте сессии).
  *
- * Имя выбранной группы в state не дублируется — оно производное от
- * [selectedGroupId] + [groupOptions] (null = «Все», ресурс UI).
+ * [selectedGroupIds] — выбранные группы, пусто = «Все» (весь словарь).
+ * [selectionLabel] — подпись выбора («Быт +2»), явное поле: считается
+ * атомом при каждом изменении набора или опций; null = «Все».
  */
 @Immutable
 data class QuizTabState(
@@ -23,7 +24,8 @@ data class QuizTabState(
     val groupOptions: List<QuizGroup> = emptyList(),
     val isAllEligible: Boolean = true,
     val allWordCount: Int = 0,
-    val selectedGroupId: Long? = null,
+    val selectedGroupIds: Set<Long> = emptySet(),
+    val selectionLabel: QuizGroupLabel? = null,
     val isChatCardEnabled: Boolean = true,
 )
 

@@ -3,6 +3,7 @@ package me.apomazkin.quiztab.logic
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.mate.ReducerLogging
 import me.apomazkin.quiz.QuizGroupOptions
+import me.apomazkin.quiz.quizGroupLabel
 import me.apomazkin.quiztab.LogTags
 
 /**
@@ -36,25 +37,41 @@ internal abstract class QuizTabStateAtoms(
         )
     }
 
-    /** Применить валидированный выбор подписки (null = «Все»). */
-    fun QuizTabState.resolveSelection(selectedGroupId: Long?): QuizTabState {
+    /** Применить валидированный набор подписки (пусто = «Все»). */
+    fun QuizTabState.resolveSelection(selectedGroupIds: Set<Long>): QuizTabState {
         logStep(
             "resolveSelection",
-            "selected" to (selectedGroupId ?: "all"),
-            "fallback" to (selectedGroupId == null && this.selectedGroupId != null),
+            "selected" to selectedGroupIds.describe(),
+            "dropped" to (this.selectedGroupIds - selectedGroupIds).describe(),
         )
-        return copy(selectedGroupId = selectedGroupId)
+        return copy(selectedGroupIds = selectedGroupIds)
     }
 
-    /** Явный флаг кликабельности карточки (Д2). */
+    /** Явный флаг кликабельности карточки. */
     fun QuizTabState.setCardEnabled(enabled: Boolean): QuizTabState {
         logStep("setCardEnabled", "enabled" to enabled)
         return copy(isChatCardEnabled = enabled)
     }
 
     /** Оптимистичный выбор юзера в пикере (персист — эффектом). */
-    fun QuizTabState.pickGroup(groupId: Long?): QuizTabState {
-        logStep("pickGroup", "group" to (groupId ?: "all"))
-        return copy(selectedGroupId = groupId)
+    fun QuizTabState.pickGroups(groupIds: Set<Long>): QuizTabState {
+        logStep("pickGroups", "groups" to groupIds.describe())
+        return copy(selectedGroupIds = groupIds)
     }
+
+    /**
+     * Подпись выбора по текущим набору и опциям (порядок опций уже по
+     * алфавиту). Звать после любого изменения набора или опций.
+     */
+    fun QuizTabState.applySelectionLabel(): QuizTabState {
+        val label = quizGroupLabel(groupOptions, selectedGroupIds)
+        logStep(
+            "applySelectionLabel",
+            "label" to (label?.let { "${it.first}+${it.more}" } ?: "all"),
+        )
+        return copy(selectionLabel = label)
+    }
+
+    private fun Set<Long>.describe(): String =
+        if (isEmpty()) "all" else sorted().joinToString(",")
 }

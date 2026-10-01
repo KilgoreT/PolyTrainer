@@ -54,8 +54,8 @@ internal class ChatReducer(
 
             is Msg.Start -> state to setOf(DatasourceEffect.LoadQuiz(reload = false))
 
-            is Msg.QuizGroupNameLoaded -> state
-                    .updateQuizGroupName(message.name) to setOf()
+            is Msg.QuizGroupLabelLoaded -> state
+                    .updateQuizGroupLabel(message.label) to setOf()
 
             // Первый раунд сессии: «Начать» морфится в пузырь на месте, а
             // правило игры (и debug-стат) въезжают по одному после паузы —

@@ -55,6 +55,7 @@ dependencies {
     implementation(project("path" to ":modules:core:ui"))
     implementation(project("path" to ":modules:datasource:prefs"))
     implementation(project("path" to ":modules:domain:lexeme"))
+    implementation(project("path" to ":modules:domain:quiz"))
     implementation(project("path" to ":modules:widget:iconDropDowned"))
 
 

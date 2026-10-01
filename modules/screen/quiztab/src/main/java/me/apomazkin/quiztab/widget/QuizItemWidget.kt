@@ -108,11 +108,13 @@ private fun Preview() = AppTheme {
             subTitle = stringResource(R.string.quiz_item_subtitle_write),
             pickerContent = {
                 QuizGroupPickerWidget(
-                    selectedTitle = "Все",
-                    selectedGroupId = null,
+                    selectedName = "Быт",
+                    moreCount = 2,
+                    selectedGroupIds = setOf(1L, 2L, 3L),
                     items = emptyList(),
                     enabled = true,
-                    onPick = {},
+                    onPickAll = {},
+                    onToggle = { _, _ -> },
                 )
             },
         ) {}
@@ -134,11 +136,13 @@ private fun PreviewDisabled() = AppTheme {
             enabled = false,
             pickerContent = {
                 QuizGroupPickerWidget(
-                    selectedTitle = "Все",
-                    selectedGroupId = null,
+                    selectedName = "Все",
+                    moreCount = 0,
+                    selectedGroupIds = emptySet(),
                     items = emptyList(),
                     enabled = false,
-                    onPick = {},
+                    onPickAll = {},
+                    onToggle = { _, _ -> },
                 )
             },
         ) {}
