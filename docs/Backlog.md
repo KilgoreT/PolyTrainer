@@ -12,13 +12,9 @@
   Открытые вопросы для брифа: порядок подсказок; влияет ли подсказка на оценку (верный ответ после подсказки — полный балл, частичный или как ошибка); как блюрить слово в примере, если оно стоит в другой форме (went при слове go) — точное совпадение, по основе или пометка вручную; вид подсказки в ленте (пузырь бота) и как она стыкуется с анимациями IS508; попадает ли в отчёт.
 
 - **[IS511 follow-up: настраиваемый набор атрибутов в вопросе квиз-чата].**
+  **Зависит от (юзер, 2026-10-02):** сначала юзер строит иерархию параметров-чипов (признаков лексемы); этот пункт — после неё, на её модели.
   Решение Д6 брифа IS511 (2026-09-30): в вопросе рядом со значением ядра показывается только часть речи (встроенный CHOICE), чипом слева от значения. Другие атрибуты лексемы (пользовательские CHOICE, подписи) в вопрос не выводятся.
   Нужно: отдельной задачей — выбор атрибутов для показа в вопросе (несколько чипов, пользовательские CHOICE), настройка пословарная. Слот под метку в `QuestionBody` уже общий — тело вопроса не знает, что в нём стоит.
-
-- **[УСТАРЕЛО — IS515, 2026-10-01] [Встроенный атрибут «Тип единицы»: слово / коллокация / фразеологизм / фразовый глагол].**
-  Решение IS515: типы многословных единиц (фразовый глагол, коллокация, идиома) добавлены опциями в ту же встроенную «Часть речи», как в учебных словарях; отдельный признак не делаем. Исходный текст сохранён для истории.
-  Идея юзера на ручнике IS511 (2026-10-01): пометка «коллокация». Коллокация — не часть речи (у главного слова сочетания своя часть речи), поэтому не в `PartOfSpeechOption`, а отдельный встроенный CHOICE рядом с ней; туда же переезжает «фраза» из частей речи. Словарные пометки: колл./coll., фразеол./idiom, фраз. гл./phr. v.
-  Нужно: бриф — новый builtin CHOICE + seed-миграция в существующие словари (см. «seed-реконсиляция builtin в onOpen»), судьба опции `phrase` в части речи, показ вторым чипом в вопросе (follow-up выше).
 
 - **[IS511 follow-up: отдельное сообщение бота для пустого раунда].**
   Решение триажа IS511 (2026-10-01, «пока оставить»): если под фильтр включённых ядер не попала ни одна лексема (например, включено только «Определение», а определений нет), чат показывает правило, затем «Сессия завершена! Всего слов: 0» и кнопки.
@@ -32,11 +28,8 @@
   живой список под открытым пикером уже работает (подписка dictGroups).
   План был в rollout_stages.md Э7.
 
-- **[IS491 follow-up: миграция legacy `samples`/`hints` → значения builtin «Пример»].**
-  Решение Д5 брифа IS491 (2026-08-02): builtin «Пример» (`captioned_text`) дублирует по смыслу legacy-таблицу `samples`; в скоуп IS491 миграция данных не входит.
-  Нужно: отдельной задачей — маппинг строк `samples` в значения компонента «Пример» (text = sample, caption = пусто), решить судьбу `hints`, снести legacy-таблицы и их UI-остатки. Учитывать пересечение со скоупом бэкапа (#488, группа Legacy).
-
 - **IS481 phase 2: feature-scoped tag `###ComponentConstructor###` + логи в Migration_012_to_013 и DAO cascade.**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — тег есть и используется в UseCase и каскаде (ComponentsManagerUseCaseImpl, CoreDbApiImpl); не сделано: тег не в капсе (LogTags.kt), Migration_012_to_013 ничего не логирует.
   `checklist.md § Примечание о логах` декларирует tag `###ComponentConstructor###` для adb logcat фильтрации фича-событий. Реальность: используются module-scoped tags `ComponentsManager` / `PerDictComponents`. Migration_012_to_013 молчит полностью (счётчики rewrite text/image rows, drop индексов, backfill timestamps — не пишутся). DAO cascade (`QuizConfigDao.updateComponentRefs`, prefs reset) тоже молчит.
   
   Impact: manual smoke verify через logcat усложнён; при багах миграции (например `long_text` rows не консолидировались) узнать получится только по результату (пустые компоненты у юзера / crash в parser), не по logs.
@@ -44,31 +37,6 @@
   Что сделать: добавить `LogTags.COMPONENT_CONSTRUCTOR = "###ComponentConstructor###"` в shared logger, использовать в UseCase impls + Migration_012_to_013 (счётчики per step) + DAO cascade методах. Решить — оставить ли параллельно module-scoped tags или снести.
 
   Уточнение (2026-08-02, из IS491): конвенция тегов — ТОЛЬКО КАПС (`###APP###`, `###WORDCARD###`, `###DICT_COMPONENTS###`…). Существующий `LogTags.COMPONENT_CONSTRUCTOR = "###ComponentConstructor###"` (`modules/core/logger/LogTags.kt`) — единственное исключение, нарушает конвенцию. При выполнении этого пункта тег переименовать в `###COMPONENT_CONSTRUCTOR###` (декларации в исторических доках IS481 не трогать — история).
-
-- **IS481 phase 2: `RenameOutcome.BuiltInProtected` conflation для soft-deleted типов.**
-  `renameComponent(typeId)` для **soft-deleted** типа возвращает `RenameOutcome.BuiltInProtected` — misleading: тип не built-in, он удалён. UI показывает «нельзя переименовывать встроенный» вместо «компонент удалён».
-  
-  Что сделать: добавить variant `RenameOutcome.NotFound` (либо `Removed`) в sealed. UseCase impl различает: `type.systemKey != null → BuiltInProtected`, `type.removedAt != null → NotFound`. Аналогично проверить `DeleteOutcome` / `softDeleteComponent` — там может быть та же проблема.
-
-- **[УСТАРЕЛО — IS511, 2026-10-01] [Quiz config UX: UI редактор `quiz_configs.component_refs`].**
-  Актуализация: пикер ядер в меню квиз-чата (галки, пословарный набор в prefs) закрыл потребность; квиз `quiz_configs` больше не читает — см. Tech Debt «удалить `QuizConfig`». Исходный текст сохранён ниже для истории.
-
-  **Контекст.** После IS481 quiz_configs schema + runtime wire уже есть (auto-INSERT default `[translation]` для новых словарей; миграция existing наполняет по факту имеющихся типов). Пользователь не может **менять** конфиг — нужен UI.
-
-  **Проблема.** В IS481 default `[translation]` для нового словаря зафиксирован, пока без UI пользователь не может включить definition (или другой user-defined компонент) в квиз для нового словаря. Для existing словарей с definition после миграции работает автоматически (миграция включила).
-
-  **Что решить в фиче:**
-  - Экран/диалог редактирования `quiz_configs` для словаря — список доступных `component_types` словаря + чекбоксы какие включить в квиз для каждого `quiz_mode`.
-  - Multiplicity quiz_mode — один глобальный выбор на словарь или per-mode.
-  - Auto-select когда в словаре единственный component type (тупо показывать UI с одним вариантом не надо).
-  - Создать `modules/domain/quiz` (новый domain модуль) — вынести `QuizConfig` / `ComponentTypeRef` (sealed) из `modules/domain/lexeme` (см. TODO-комменты на типах из IS481, см. AGG-10).
-  - DAO `deleteComponentType` атомарно cleanup'ит `quiz_configs.component_refs` (одна транзакция: SELECT configs с ref на тип → UPDATE через `json_remove` → DELETE component_type). Реализовать F6 invariant (см. `_alignment_decisions.md` MIN-11).
-  - **Rename component_type** — атомарная операция: UPDATE `component_types.name` + UPDATE всех `quiz_configs.component_refs` (заменить old name → new name через `json_replace` либо собрать новый JSON в Kotlin). Без cleanup ссылок rename → UX-регрессия: graceful skip в квизе, definition исчезает после переименования. До implementing rename UI — rename операция не поддерживается (component_types в IS481 immutable после миграции).
-  - **F1 invariant maintenance:** при добавлении нового `quiz_mode` (`card`, `recall`, ...) — миграция обязана INSERT default config row для **всех existing dictionaries** (`INSERT INTO quiz_configs SELECT id, '<new_mode>', '<default_refs>' FROM dictionaries`). Без этого новый mode получит пустую quiz session для существующих словарей. F1 — процедурный invariant, DDL `UNIQUE(dictionary_id, quiz_mode)` его не покрывает (см. 07.md § Invariants F1).
-
-  **Зависит:** IS481 merged.
-
----
 
 ## Срочное
 
@@ -103,6 +71,7 @@
   Заменить узкое правило `-keep class androidx.sqlite.** { native <methods>; }` (`app/proguard-rules.pro:21`) на канонический широкий keep: `-keepclasseswithmembernames class * { native <methods>; }`. Текущее правило сохраняет native методы только внутри уже-сохранённых классов в `androidx.sqlite.**`; если в `androidx.sqlite.db.**` или других пакетах добавятся native — под угрозой обфускации. Стандартная рекомендация Android docs для native libs. Источник: IS481 vPrepared global code review (Bugs B6).
 
 - **[DATABASE_NAME: вынести в Database companion + sync с androidTest Schema].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — половина про синхронизацию с androidTest Schema неактуальна (Schema.kt удалён в IS481, тесты миграций держат свои DB_NAME); осталось: `RoomModule.DATABASE_NAME = "name"` и TODO про имя БД.
   Production `RoomModule.kt:95` имеет `private const val DATABASE_NAME = "name"` (плюс TODO с 2021 «поправить имя базы»), androidTest `Schema.kt:16` хардкодит `"TestDatabaseName"`. Нет общей точки — рассинхрон возможен при будущем integration теста на full bootstrap. Решение: вынести `DATABASE_NAME` в `Database` companion object как `internal` (доступен androidTest source set). Источник: IS481 vPrepared global code review (Architecture A4).
 
 - **[Централизованная система ошибок и снекбаров].**
@@ -132,6 +101,7 @@
   Объём: большой (refactor data-API контракта + 3 UseCaseImpl).
 
 - **[Wordcard mate refactor: generic компоненты в Msg / State / Reducer (после IS481)].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — mate карточки на generic `components`, обёртки в CoreDbApi удалены (IS486); остались шимы `Lexeme.translation/definition` и value-классы Translation/Definition, читаются в wordrow/LexemeWidget.
   После IS481 в `CoreDbApi` / `UseCase` появляются generic-методы для компонентов (`addLexemeWithBuiltInComponent` etc.), а старые специфичные методы (`addLexemeWithTranslation` / `addLexemeWithDefinition`) остаются как `@Deprecated` обёртки. Mate-слой wordcard (`LexemeState.translation/definition` поля, `Msg.CreateTranslation/CreateDefinition` и зеркальные 20+ Msg, `DatasourceEffect.UpdateLexemeTranslation/Definition`) продолжает работать через эти обёртки.
   Нужно: переписать wordcard mate на generic — `LexemeState.components: List<ComponentValueState>`, generic `Msg.CreateComponent(typeId)` / `Msg.UpdateComponentInput(componentId, value)` etc. Объём ~400+ строк + ~10 reducer-тестов с нуля. Тот же refactor — в quiz/chat и dictionaryTab. После — выпиливаем `@Deprecated` обёртки.
   **Триггеры на выпиливание shim после рефактора:**
@@ -142,45 +112,6 @@
   - `@Deprecated` обёртки в `WordCardUseCase` (`deleteLexemeTranslation/Definition`) — удаляются.
 
   Триггер на старт фичи: появление UI для user-defined компонентов (тогда mate всё равно надо рефакторить, заодно выпиливаем shim).
-
-- **[Snackbar queue: undo первого snackbar теряется при быстром втором].**
-
-  **Контекст.** В IS479 (wordcard inline lexeme editing) реализован snackbar+undo для удалений (translation/definition/lexeme/cascade). Канон через `UiHost`/`UiEffect.ShowSnackbarWithUndo`:
-  ```
-  Msg.TranslationDeleted/DefinitionDeleted/LexemeRemoved/LexemeCascadeRemovedWithUndo
-    → reducer эмитит UiEffect.ShowSnackbarWithUndo(messageRes, actionLabelRes, undoMsg)
-    → UiEffectHandler делает uiHost.showSnackbarWithAction(...)
-    → если пользователь нажал Action → consumer(undoMsg) → reducer обработает undo
-  ```
-  Реализация `UiHostImpl.showSnackbarWithAction` использует `snackbarHostState.showSnackbar(message, actionLabel, duration = SnackbarDuration.Short)`.
-
-  **Проблема.** Material 3 `SnackbarHostState.showSnackbar` использует `MutatorMutex` — **новый вызов отменяет coroutine текущего snackbar'а**. Отменённая coroutine получает `CancellationException`, suspend возвращается **не** с `SnackbarResult.ActionPerformed` → `showSnackbarWithAction` возвращает `false` → `undoMsg` первого удаления **никогда не отправляется**.
-
-  **Сценарий воспроизведения:**
-  1. Пользователь удалил translation у lexeme A → snackbar "Перевод удалён (Отменить)".
-  2. До таймаута первого snackbar'а удалил translation у lexeme B → второй snackbar того же типа.
-  3. Mutator отменил первый. Первый undoMsg потерян. Пользователь больше **не может отменить** первое удаление, оно стало необратимым после короткого окна.
-
-  **Файлы:**
-  - `modules/screen/wordcard/src/main/java/me/apomazkin/wordcard/widget/internal/UiHostImpl.kt` — `showSnackbarWithAction` (строки 22-34).
-  - `modules/screen/wordcard/src/main/java/me/apomazkin/wordcard/mate/UiEffectHandler.kt` — обработка `UiEffect.ShowSnackbarWithUndo` (строки 19-29).
-  - `modules/screen/wordcard/src/main/java/me/apomazkin/wordcard/deps/UiHost.kt` — interface.
-
-  **Возможные подходы:**
-
-  - **Вариант A — queue в UiEffectHandler.** Внутри handler'а держать `Channel<UiEffect>` или `Mutex` — pop'ать следующий snackbar только после завершения предыдущего. Минусы: пользователь ждёт пока пройдут все накопленные snackbar'ы; при таймауте 4с × N — долго. Очередь нужно ограничивать и/или сливать однотипные сообщения.
-
-  - **Вариант B — auto-apply pending action при cancellation.** Если первый snackbar отменён mutator'ом (а не пользовательским Dismiss / Timeout), всё равно эмитить undoMsg первого. Минусы: меняет UX — пользователь явно не нажал отмену, но undo сработал. Нелогично.
-
-  - **Вариант C — отличать CancellationException от Dismissed.** Сейчас `showSnackbarWithAction` возвращает Boolean (`ActionPerformed`/`Dismissed`). Расширить API: вернуть sealed `SnackbarOutcome { ActionPerformed, Dismissed, Cancelled }`. Над `Cancelled` — выбрать стратегию (по умолчанию игнорировать как сейчас, но логировать).
-
-  - **Вариант D — UX-дизайн: блокировать второе удаление пока активен snackbar первого.** Радикально, но защищает инвариант "одно удаление с undo за раз". Минусы: лишний фрустрейт пользователя.
-
-  **Рекомендация:** Вариант A (queue) с лимитом 3-5 и dedup однотипных сообщений. Это canonical Material design pattern для "transient action".
-
-  **Дополнительный риск.** Та же проблема для будущих error-snackbar'ов после миграции IS479 ошибок на UiHost (см. соседнюю backlog-задачу про legacy snackbar). Решение queue должно покрывать оба пути (snackbar с action и без).
-
-  **Тестируемость.** Юнит-тест: эмулятор `SnackbarHostState`/`UiHost` с быстрой последовательностью `showSnackbarWithAction` → проверить что undoMsg обоих доставляются. Возможно потребуется обёртка над `SnackbarHostState` для контроля времени.
 
 - **[Прогнать trim текстовых полей по остальным UseCaseImpl].**
   В IS479 правило зафиксировано в `docs/handbook/guides/data-layer.md` (раздел "Нормализация текстового ввода (trim)") и применено в `WordCardUseCaseImpl` (4 точки: updateWord, addLexemeTranslation, addLexemeDefinition, restoreLexeme).
@@ -193,6 +124,7 @@
   Предварительно затронуты: dictionary, dictionarytab, quiztab, settingstab, main, splash, stattab + всё в `modules/widget/`.
 
 - **[Разобраться в слоях entity].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — появились domain-модули (lexeme, group, quiz) и конвенция трёх слоёв в data-layer.md; суффиксы UI-моделей по-прежнему разнобойные (`TranslationUiEntity`).
   Нет доменного слоя. ApiEntity (core-db-api) де-факто выполняет роль доменной сущности. UI модели (UiItem, CountryFlagItem) содержат и бизнес-поля и UI-поля. Суффиксы непоследовательны (ApiEntity, UiItem, UiEntity, Item, Info).
   Нужно: определить конвенцию слоёв entity, решить нужен ли отдельный domain layer или ApiEntity = доменная (с переименованием). Описать в гайде.
 
@@ -229,11 +161,13 @@
   Нужно: перевести все API методы на Long для dictionaryId.
 
 - **[Извлечь бизнес-логику из Reducer'ов в UseCase].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — критерий записан (reducer-patterns.md R-RP-010), в домене есть *Outcome; сквозного прохода по редьюсерам не было.
   Концепт: Reducer должен отражать преимущественно UI-логику (что показать, как реагировать на тап), а бизнес-правила (валидации, инварианты домена, последовательности операций) — жить в UseCase.
   Сейчас Reducer часто содержит и то, и другое — границы размыты.
   Нужно: проанализировать все Reducer'ы (dictionaryTab, dictionaryappbar, dictionary/form, quiz/chat, wordcard, settingstab, splash, stattab, quiztab), выделить куски бизнес-логики, вынести в соответствующие UseCase. Описать критерий «UI-логика vs бизнес-логика» в гайде `mate-framework.md` / `reducer-patterns.md`.
 
 - **[UiEffect: убрать круг Effect → Msg → State, показывать snackbar/toast напрямую через UiHost].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — UiHost сделан только в wordcard; quiztab, quiz/chat, components_manager, per_dictionary_components — snackbar по-прежнему через State.
 
   **Текущее состояние.** `UiEffect` (например `ShowNotification`) обрабатывается через раунд:
   ```
@@ -334,22 +268,9 @@
 ## State Management
 
 - **[Snackbar pattern fragile].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — пара show+title осталась в quiztab и quiz/chat; в components_manager и per_dictionary_components — одно nullable-поле `SnackbarState(text)`.
   `show: Boolean` + `title: String` — temporal coupling. Может показаться старый title.
   Нужно: sealed class `SnackbarState { Hidden, Showing(id, message) }`.
-
-- **[TextValueState vs EditableTextState — дублирование].**
-  Два идентичных паттерна с разными именами (`origin/edited` vs `text/editedText`).
-  Нужно: унифицировать в один тип, использовать во всех модулях.
-
-- **[TextValueState.edited зависит от origin].**
-  `val edited: String = origin` — default parameter зависит от другого. Неочевидное поведение при copy().
-  Нужно: сделать `edited: String = ""` явно.
-
-- **[TextValueState — атомарные extension'ы enableEdit / disableEdit].**
-  В IS479 reducer'ы делали ручной `state.copy(translation = translation.copy(edited = origin, isEdit = true))` — забыли копировать в одной ветке (`enableLexemeTranslationEdit` баг). Нужно: добавить extension `TextValueState.enableEdit()` (атомарно `copy(edited = origin, isEdit = true)`) и `disableEdit()`. Reducer'ы вызывают только их, ручной `copy()` запрещён (R-RP-003 в `reducer-patterns.md`). Файл: `modules/screen/wordcard/src/main/java/me/apomazkin/wordcard/mate/State.kt`.
-
-- **[SampleDb / HintDb columns — миграция на snake_case].**
-  Сейчас `samples.lexemeId` и `hints.lexemeId` — camelCase (нет `@ColumnInfo`, Room взял Kotlin-имя). `write_quiz.lexeme_id` — snake_case. Из-за этого в `LexemeDbEntity` `@Relation` смешивает `entityColumn = "lexemeId"` (samples) и `entityColumn = "lexeme_id"` (для будущих component_values). Нужно: добавить `@ColumnInfo(name = "lexeme_id")` в SampleDb / HintDb + миграция переименования колонок (в SQLite < 3.25 RENAME COLUMN не работает → recreate-таблицы). Правило R-N-002 в `docs/handbook/guides/naming.md`. Отдельная фича — не объединять с IS481.
 
 - **[Некосистентные аннотации @Stable/@Immutable].**
   WordCard — `@Stable`, Chat — `@Immutable`, CreateDictionary — без аннотаций. 9 классов без маркировки.
@@ -360,6 +281,7 @@
   Нужно: ограничить размер map или очищать при смене паттерна.
 
 - **[Дефолтный логгер-observer Mate во всех модулях].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — есть только ErrorLoggingObserver (ошибки, без diff), подключён в 5 из 14 Assembly; нет в splash, chat, stattab, settingstab, dictionary, vocabulary, wordstab, dictionaryappbar.
   Механизм наблюдения готов (mate v0.1.x: `MateObserver` видит Msg → State → Set<Effect>, см. docs/mate_manual/08_observability.md), но подключается точечно. Нужно: готовый logging-observer (через `LexemeLogger`, diff состояния вместо полного дампа) и подключение по дефолту во всех Assembly с фильтрацией по модулю.
 
 ---
@@ -367,47 +289,25 @@
 ## Тестирование — конвенция
 
 - **[Конвенция тестов extension-функций].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — гайд testing-extensions.md есть (`*ExtTest.kt`, doc-список кейсов); файл на группу функций, а не на функцию; правила про UI/бизнес-комментарии нет.
   Один тест-файл = одна extension-функция (`<FunctionName>ExtTest.kt`).
   Doc-комментарий класса: полный список тест-кейсов.
   Каждая тестовая функция: комментарий UI-логики, бизнес-логики (если есть), конкретного тест-кейса.
 
-## Тестирование — каркас миграций
-
-- **[`getFromDatabase()` — копипаста на каждый Schemable].**
-  50-80 строк boilerplate на версию. Нужно: generic cursor→map парсер.
-
-- **[`checkMatcher` — нет exhaustiveness].**
-  Новое поле — компилятор молчит. Нужно: assertEquals на entity или генерировать matcher.
-
-- **[Schemable.data() использует актуальные entity].**
-  При переименовании полей ломаются старые Schemable. Нужно: отдельный data class на каждую версию.
-
-- **[Дублирование интерфейсов в Schemable.kt и Schema.kt].**
-  Два набора одинаковых интерфейсов. Нужно: убрать дубли.
-
-- **[Schema.kt — god object, 400+ строк].**
-  Часть вынесена в schemable/, часть нет. Нужно: вынести всё.
-
-- **[afterCreateCheck дублирует afterMigrationCheck].**
-  Нужно: извлечь helper verifySchemable().
-
-- **[Нет теста на удаление данных].**
-  Нужно: негативные проверки — дропнутая колонка не существует.
-
-- **[Date — хак с погрешностью 1000ms].**
-  isEqualTo() с погрешностью, даты закомментированы в checkMatcher. Нужно: починить.
-
 ## Тестирование
 
 - **[18+ модулей без тестов].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — тесты есть в 10 из 13 экранных модулей и в domain/*; без тестов: screen/splash, stattab, main, core/*, большинство widget/*.
   Только placeholder `ExampleUnitTest.kt`. Реальные тесты есть у VocabularyTab и DB-миграций.
   Нужно: покрыть reducer'ы всех TEA-модулей (минимум 8 screen-модулей).
 
 - **[Ноль тестов на эффект-хендлеры].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — DatasourceEffectHandlerTest у wordcard, quiz/chat, components_manager, per_dictionary_components; нет у groupstab, wordstab, settingstab, quiztab, dictionaryappbar и трёх хендлеров dictionary.
   8+ реализаций DatasourceEffectHandler полностью не покрыты.
   Нужно: тесты с моками UseCase для каждого хендлера.
 
 - **[Ноль Compose UI тестов].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — есть только в quiz/chat (ChatMessageMotionTest, QuestionBubbleTest; с IS517 гоняются в CI на эмуляторе); на остальных экранах нет.
   При тяжёлом использовании Compose — ни одного ComposeTestRule теста.
   Нужно: добавить smoke-тесты хотя бы для критических экранов.
 
@@ -474,26 +374,25 @@
   Нужно: шаг 1 — AGP 8.13.x (макс. API 36.1, мин. Gradle 8.13; правка одной строки `aGPVersion` в `deps/project.versions.toml`); шаг 2 — AGP 9.4 отдельной миграцией через AGP Upgrade Assistant: встроенный Kotlin (плагин `org.jetbrains.kotlin.android` в 33 модулях не нужен или opt-out), KGP поднимется до 2.2.10, новый DSL/Variant API обязателен к AGP 10.
 
 - **[Сборка: мёртвые `build-settings/` и заглушка `build-logic`].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — плагин в app закомментирован; каталоги на месте, `includeBuild("build-logic")` активен, «Hello from MyPlugin!» в AppPlugin.kt.
   IS506: версии сборки теперь только в `deps/*.versions.toml`. Остались два хвоста: каталог `build-settings/` (не подключён, `includeBuild` закомментирован; convention-плагины с устаревшими `gradle:8.7.3`/`kotlin-gradle-plugin:2.0.20`) и `build-logic` — пустой плагин `app.plugin111` («Hello from MyPlugin!»), применён в `app`.
   Нужно: решить — довести convention-плагины (убрали бы SDK/JVM-настройки из 32 модулей) или удалить оба каталога.
 
-- **[40 TODO в кодовой базе].**
+- **[44 TODO в кодовой базе (было 40)].**
   Включая баг с именем БД (данные теряются), неработающий convention plugin, неоптимальная загрузка Flow (#377).
   Нужно: разобрать каждый TODO — или починить, или создать задачу, или удалить.
 
 - **[@Deprecated("Outdated") код всё ещё используется].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — WriteQuizStep удалён; @Deprecated-цвета в theme/Color.kt остались, `clr1F001F24` используется в ui/unused/WordEditorWidget.kt.
   `WriteQuizStep`, цвета в theme.
   Нужно: заменить или удалить deprecated код.
-
-- **[@SuppressLint("CheckResult") на 6+ классах].**
-  RxJava observable errors молча игнорируются в legacy feature-модулях.
-  Нужно: добавить error handling или удалить legacy код (если feature/ мёртв — просто удалить).
 
 - **[java.util.Date вместо java.time].**
   Deprecated API по всей кодовой базе.
   Нужно: мигрировать на `java.time.LocalDate` / `Instant` (minSdk 26+ или desugaring).
 
 - **[Миграция существующих спек в `docs/handbook/specs/` под новый формат contract_spec].**
+  **Аудит 2026-10-02:** ОТКРЫТ — пути устарели: спеки теперь `docs/handbook/specs/<feature>/spec.md`; пример старого формата — dictionary-list/spec.md.
 
   **Контекст.** В рамках декомпозиции шага `contract` Business sub-flow (см. `docs/features/FORGEFLOW_contract_design.md`) выход контрактного блока теперь = спека в `docs/handbook/specs/<feature>.md`. Структура новой спеки:
   ```
@@ -589,18 +488,8 @@
   Почему не сделано сейчас: out-of-scope IS486 — трогает формат хранения quiz_configs и cascade rename, отдельная миграция.
   Нужно: единая функция резолва name→ComponentType при сборке квиза (в рамках IS486), затем отдельным брифом — миграция refs на id.
 
-- **[УСТАРЕЛО — проверено в IS491, 2026-08-02] [IS481: seed built-in типов не выполняется на destructive-fallback пути].**
-  Актуализация: seed давно перенесён из `Callback.onCreate` в транзакцию `addDictionary` (`seedBuiltInsForDictionary`) — после destructive-пересоздания словарей ноль, сеять нечего; при создании словаря seed отработает со всеми builtin. Остаточный долг — лживый комментарий в `RoomModule.onDestructiveMigration` («seed отработает в onCreate»); закрывается пунктом «seed-реконсиляция builtin в onOpen» (выше). Исходный текст сохранён ниже для истории.
-  Расследование BUG-1 (docs/features/IS481_bugs/bugs.md) показало: seed `translation` висит только на `Callback.onCreate`, а Room после destructive-пересоздания зовёт `onDestructiveMigration`+`onOpen`, но НЕ `onCreate` (Room 2.8.4, `RoomConnectionManager.onMigrate`) → после fallback приложение остаётся без built-in типа навсегда.
-  Почему не сделано сейчас: путь недостижим в проде (v13 существовала только на dev-девайсе; fallback рассчитан на pre-0.1.0 internal сборки) — решение юзера: не баг, чинится переустановкой.
-  Нужно: перенести seed в `Callback.onOpen` (идемпотентный `INSERT OR IGNORE`, UNIQUE на `system_key` есть) — самовосстановление на любом пути открытия БД; починить лживый комментарий в `RoomModule.onDestructiveMigration`.
-
-- **[IS481 wordcard_components: resubscribe-гонка emit в AvailableComponentTypesFlowHandler].**
-  Ревью-агент указал: `runEffect` делает `job?.cancel()` без `join` перед relaunch → старый flow (Room) может эмитнуть устаревший `ComponentTypesLoaded` уже после нового. Для одного `dictionaryId` безвредно (идемпотентный set в reducer); при смене dictId старые типы могут на миг перетереть новые.
-  Почему не сделано сейчас: dictionaryId на карточке стабилен → реально не воспроизводится; правка требует suspend-cancel-join в runEffect.
-  Нужно: при подтверждённой потребности — `job?.cancelAndJoin()` (сделать runEffect честно ждущим отмены) или фильтровать эмиссии по актуальному dictId.
-
 - **[IS481 wordcard_components: пробелы тест-покрытия (reducer-ветки без тестов)].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — есть RestoreLexemeFailed (UndoDeleteTest), CreateComponentValue NOT_IN_DB (ComponentValueLifecycleTest); нет S-trap-1/4, S16, позитивных Open/CloseDeleteLexemeDialog.
   Ревью-агент (тест-аудит) указал на непокрытые ветки/сценарии: `RestoreLexemeFailed` (теперь retry-снек — поведение изменено фиксом, нужен reducer-тест), S-trap-1 (chained сбой промоута NOT_IN_DB), S-trap-4, S16 (независимость лексем при таргетном Msg), позитив `OpenDeleteLexemeDialog`/`CloseDeleteLexemeDialog`, `CreateComponentValue(lexemeId=NOT_IN_DB)` (баг был пойман только ревью, не тестом).
   Почему не сделано сейчас: существующие тесты — неизменяемый контракт; дописывание новых — отдельная задача.
   Нужно: добавить недостающие reducer/scenario-тесты (новые, не трогая существующие) на перечисленные ветки.
@@ -609,17 +498,6 @@
   Оркестратор (итоговое ревью) указал: сброс `isExiting` завязан только на приход `OperationFailed`/успешный refresh. Если DB-операция зависнет или Msg потеряется — пользователь заперт под блокирующим спиннером, даже «назад» не выйдет.
   Почему не сделано сейчас: out-of-scope — отдельный механизм надёжности.
   Нужно: watchdog-таймаут на flush (N сек → принудительный `OperationFailed`/выход), либо escape-жест из loader-оверлея.
-
-- **[IS481 wordcard_components: гонка `isCommitting` (B1 двойное создание / B3 потеря ввода) — ПРОВЕРЕНО ТРЕЙСОМ (2026-06-29): не воспроизводится, correlation-id не нужен].**
-
-  Изначально adversarial-ревью предлагало correlation-id против двух гонок в окне сохранения. Трейс по **финальному** коду показал, что оба бага уже закрыты реализацией:
-
-  - **B3 (потеря ввода соседа) — недостижим.** Открыть на правку существующее поле = `EnterComponentValueEditMode`, guarded при `isPendingDbOp` (09 A20) → пока A летит, B не открыть. Новое поле = pristine; `reduceRefreshLexemeComponents` закрывает edit **только** у `isCommitting` и сохраняет pristine в `pristineTail` → `edited` соседа цел.
-  - **B1 (двойное создание лексемы) — недостижим.** `commitDraftLexeme` первой строкой `if (any { isCommitting }) return lexeme` → повторный `CreateComponentValue` во время летящего `CreateLexeme` второй create не эмитит; anchor всегда первый `Update`.
-
-  **Остаточный нюанс (F4, осознанно оставлен):** `OperationFailed` снимает `isCommitting` у **всех** при batch-реэмите survivor'ов (`LexemeDraftPromoted` → несколько параллельных `AddValue`). Данные НЕ теряются (возвраты матчатся по `componentValueId`/`pristineKey` независимо от маркера), страдает лишь точность flush-трекинга при batch-ошибке (выход отменяется — что при ошибке и нужно).
-
-  **Correlation-id НЕ нужен.** Единственный оставшийся триггер — «несколько одновременно открытых редакторов» — исключён продуктом (однозначно не будет; инвариант «один активный редактор» через `commitAndCloseAllEdits`). **Реанимировать только если этот инвариант изменится** (появится мульти-редактор) — тогда correlation-id + guard обязательны как фундамент.
 
 - **[Глобально: проверить ВСЕ кнопки и нажатия на «дятлинг» (быстрые повторные тапы / double-tap).**
 
@@ -641,6 +519,7 @@
   Нужно: в `onFocusLost` проверять `value.isBlank()` вместо `isEmpty()` → один маршрут (`onRemove`), `commitDecision` остаётся defense-in-depth.
 
 - **[IS481 phase 2: template-immutability gate в UseCase].**
+  **Аудит 2026-10-02:** ОТКРЫТ + спека врёт — component-constructor/spec.md (~§990) утверждает, что UseCase проверяет TemplateImmutable до API; в ComponentsManagerUseCaseImpl проверки нет.
   В фиче phase 2 редактирование компонента — проверка «нельзя менять шаблон существующего типа» живёт только в БД (`CoreDbApiImpl.editComponentType:582`). По концепту F017 + business contract — должна быть на UseCase уровне (быстрый отказ без обращения к data API) + страховка в БД (defense-in-depth). Сейчас один уровень вместо двух — каждый changed-template submit делает лишний DB round-trip.
   Нужно: добавить в `ComponentsManagerUseCaseImpl.editComponent` lookup current type (через новый `LexemeApi.getComponentTypeById` либо через `flowAllUserDefined` snapshot), сравнить `template != current.template` → вернуть `EditOutcome.TemplateImmutable` без вызова data API. Парный test `whenSubmitEditWithChangedTemplate_thenTemplateImmutable_andDataApiNotCalled` (verify-no-interactions on lexemeApi.editComponentType).
 
@@ -652,11 +531,8 @@
   Концепт пункта 4 brief'а — разделить «удалённый» и «встроенный» как отдельные состояния и обрабатывать одинаково во всех CRUD-операциях над компонентом (rename / edit / softDelete). По факту edit-метод даёт другой ответ чем rename/softDelete на одинаковую ситуацию (см. предыдущий пункт). Юзер увидит «Built-in» при попытке edit и «Removed» при попытке rename того же типа — разные snackbar'ы на одну реальность нарушают concept промиса единообразия.
   Нужно: после фикса предыдущего пункта — добавить контракт-тест который для каждой пары `(state ∈ {built-in, removed, normal}) × (operation ∈ {rename, edit, softDelete})` проверяет ожидаемый outcome. Парный тест-кейс выявит будущие регрессии sibling non-uniform.
 
-- **[IS481 phase 2: логи миграции M12→M13 — заглушки «ok» вместо реальных counters].**
-  Brief пункт 5 явно требует логи per-step миграции с количеством affected rows (`renameComponentTypesRemoveDate: N rows`, `rewriteTextJson: N rows updated`, и т.д.) — чтобы при manual smoke было видно что именно отработало в каждом из 9 шагов. По факту все 9 шагов (`Migration_012_to_013.kt:55-91`) пишут одну и ту же заглушку `"M12→M13 step N <name>: ok"`. Если миграция сломается или отработает частично — невозможно понять на каком шаге сколько строк прошло. Diagnostic value лога = ноль.
-  Нужно: вытаскивать `affected_rows` через `SELECT changes()` после каждого UPDATE/DELETE-шага и подставлять в Log.d. Для DDL-шагов (CREATE INDEX / DROP INDEX / ADD COLUMN) логировать факт выполнения без count'а — но не одинаковым «ok».
-
 - **[IS481 phase 2: добавить TODO/комментарии для 4 dead-code мест под будущие фичи].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — (1) шимы удалены, (2) generic-методы теперь в проде; остались (3)–(4): Field.kt, PrimitiveType.kt, Primitive.kt (Color) без TODO.
   4 куска зарезервированного "на будущее" кода без production-callers: (1) `LexemeApiImpl.addLexemeWithTranslation` + `updateLexemeTranslation` deprecated shims; (2) `WordCardUseCase.addComponentValue`/`updateComponentValue`/`deleteComponentValue` generic methods; (3) `modules/domain/lexeme/Field.kt` + `PrimitiveType.kt` + `ComponentTemplate.fields` под композитные шаблоны; (4) `Primitive.Color` вариант под "цвет как компонент". Не удалять — оставляем под будущие фичи. Нужно добавить ко всем 4 точкам понятные `// TODO(reserved, IS-XXX): used by <планируемая фича> — composite templates / color components / generic write-path` комментарии чтобы будущие разработчики понимали зачем эти типы здесь и не удаляли по YAGNI.
 
 - **[IS481 phase 2: гонка в `editComponentType` — cardinality downgrade SELECT вне `withTransaction`].**
@@ -686,32 +562,16 @@
   Brief пункт 5 — double-tag pattern (module-tag для debug + feature-tag для smoke) реализован только в `prefs reset` и в каскадах `cascadeRename`/`cascadeSoftDelete`. Public UseCase методы `createUserDefinedComponent` / `renameComponent` / `editComponent` / `softDeleteComponent` в `ComponentsManagerUseCaseImpl` логируют успех только под `LogTags.COMPONENTS_MANAGER` (module-tag). Через `adb logcat | grep '###ComponentConstructor###'` юзер при smoke НЕ увидит главные user-actions фичи — только их побочные эффекты (prefs reset, cascade). Это убивает основной use-case feature-тега.
   Нужно: в каждом success-пути этих 4 методов добавить параллельный `logger.d(FeatureLogTags.COMPONENT_CONSTRUCTOR, ...)` с тем же message. Аналогично в `PerDictionaryComponentsUseCaseImpl` для его методов.
 
-- **[Room RANDOM + @Relation].**
-  После обновления Room с 2.6.1 до 2.8.4 — проверить запросы с RANDOM() + LIMIT + @Relation.
-  Ранее Room 2.7.1 давал IllegalStateException (https://issuetracker.google.com/issues/413924560).
-  Нужно: прогнать квиз-выборку и убедиться что рандомные запросы работают корректно.
-
 - **[ForgeFlow base: защита от зацикливания в reviewer-механике `reviews:` + `trigger_step_rerun`].**
   В новой reviewer-механике (`reviews: <target_step>` + `changes_requested` → `trigger_step_rerun`) защиты от бесконечного rerun нет. Старый `execute_repeat` имел `max` параметр; `trigger_step_rerun` просто сбрасывает шаг в `pending` без счётчика. Теоретически пара «контракт ↔ reviewer» может крутиться неограниченно если reviewer стабильно ставит `changes_requested`.
   Нужно: добавить в `step.feedback_iteration` верхний лимит (например `max_feedback_iterations: 7` в frontmatter промпта или дефолт в runner), при превышении — `escalate` к пользователю. Затрагивает `~/dev/forgeflow/spec/runner.md → trigger_step_rerun`.
-
-- **[WordCard F074: data-loss `NOT_IN_DB`-буфера при `RemoveLexeme` через menu другой лексемы].**
-  Пользователь создал NOT_IN_DB лексему, ввёл text в `translation.edited`, не закоммитил. Открыл menu другой реальной лексемы → Delete. После `RemoveLexemeEffect → RefreshLexemeList` merge выкидывает `NOT_IN_DB` целиком вместе с typed text без подтверждения.
-  Нужно: добавить guard «`isCreatingLexeme=true ⇒ блокировать RemoveLexeme других лексем» или ConfirmDialog при `RemoveLexeme(NOT_IN_DB)`. UX-тикет.
-
-- **[WordCard F054: undefined ordering Room `@Relation`].**
-  `termApi.getTermById(wordId).lexemeList` возвращает лексемы через Room `@Relation` без `ORDER BY` — порядок Room-determined, нестабилен. После `RemoveLexeme` оставшиеся лексемы могут визуально переупорядочиться.
-  Нужно: добавить явный `@Query getLexemesByTermId ORDER BY addDate ASC` в `LexemeDao` либо в API. Data-слой, отдельный тикет.
 
 - **[WordCard F049: diagnostic-бедность snackbar при failure операциях].**
   `Msg.ShowNotification(text)` несёт только локализованный текст («Не удалось сохранить перевод» / «Не удалось создать лексему»), без structured reason — `IllegalStateException("Dictionary not found")` и реальный БД-сбой неразличимы. UI не может предложить retry с правильной семантикой.
   Нужно: переработать `ShowNotification` в sealed result с reason-полем + UX-обогащение (retry, copy stack trace). Отдельная error-handling фича.
 
-- **[WordCard: lens-extract Translation/Definition reducer-веток].**
-  10 пар почти зеркальных функций (`CommitTranslationEdit`/`CommitDefinitionEdit`, `RefreshTranslation`/`RefreshDefinition`, `CreateTranslation`/`CreateDefinition`, `EnterTranslationEditMode`/`EnterDefinitionEditMode`, `CancelTranslationEdit`/`CancelDefinitionEdit`, `RemoveTranslation`/`RemoveDefinition`). Различаются только полем `LexemeState.translation` vs `LexemeState.definition`. Зеркальный код дублирован ~50 LOC на пару.
-  Нужно: lens-pattern `LexemeLens<TextValueState?>` либо переименовать Msg в `UpsertLexeme*(lexemeId, kind: SubentityKind, ...)`. Большой архитектурный refactor контракта Msg, отдельный тикет.
-
 - **[WordCard UI: cancel-trigger для word edit отсутствует].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — мёртвый ExitWordEditMode удалён; кнопки отмены нет (WordFieldWidget: `onFocusLost = { onCommit() }`).
   `Msg.ExitWordEditMode` в контракте жив (UX «тап Отмена / back-кнопка внутри edit-mode»), но `LexemeEditableText` имеет только `onCloseEditMode` → `CommitWordChanges`. Cancel-кнопки нет, back закрывает экран целиком.
   Нужно: добавить cancel-control в `LexemeEditableText` либо обоснованно зафиксировать отсутствие cancel UX. Точечный UX-тикет.
 
@@ -758,21 +618,6 @@
   **Триггер:** при следующем заходе в `core-db-impl` (next data feature / bugfix), либо если регрессия проявится в проде.
 
   **Источник:** IS481 global_code_review.md § Major #1.
-
-- **[IS481 followup: `updateComponentValue` / `deleteComponentValue` honest return через DAO lookup].**
-
-  **Контекст.** В `app/.../WordCardUseCaseImpl.kt` методы `updateComponentValue(componentValueId, data): Lexeme?` и `deleteComponentValue(componentValueId): RemoveComponentResult?` на success path **возвращают null** — потому что нет DAO метода `getLexemeIdByComponentValueId(componentValueId)`, а без `lexemeId` загрузить `Lexeme` обратно невозможно. Foot-gun для будущих callers: signature обещает `Lexeme?`, на самом деле null = «успех или провал — не понять».
-
-  **Что сделать:**
-  - Добавить в `ComponentValueDao` метод `@Query("SELECT lexeme_id FROM component_values WHERE id = :id") suspend fun getLexemeIdByComponentValueId(id: Long): Long?`.
-  - Прокинуть через `LexemeApi`: `suspend fun getLexemeIdByComponentValueId(id: ComponentValueId): Long?`.
-  - В `WordCardUseCaseImpl.updateComponentValue` / `deleteComponentValue` после успешного DAO call — lookup `lexemeId` → `lexemeApi.getLexemeById(lexemeId)?.toDomain()` → вернуть честный `Lexeme?` / `RemoveComponentResult.ComponentRemoved`.
-
-  **Сейчас не баг** — никто эти 2 метода не вызывает в IS481 (definition flow через lexemeId-based path, translation через shim).
-
-  **Триггер:** когда появится UI configurator для component values (backlog «Quiz config UX» либо direct component editing) — callers нужны будут honest return для UI feedback (snackbar success/error).
-
-  **Источник:** IS481 global_code_review.md § Major #2.
 
 - **[Migrate `modules/widget/iconDropDowned/` → `modules/core/ui/dropdown/` с `Lexeme*` префиксом (design-system unification)].**
 
@@ -821,6 +666,7 @@
   **Источник:** IS481 quiz_component_picker senior review § F2.
 
 - **[`BuiltInComponent.titleResId` + `quizHeaderResId` — display resources на enum-entries].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — тихий баг квиза закрыт (exhaustive when в QuizGameImpl); единого отображения на enum нет: три копии — ComponentChoiceItem, QuizGameImpl, BuiltInDisplay (строковая, с тихим else).
 
   **Контекст.** Сейчас UI'i решают как отрендерить built-in component:
   - `modules/screen/quiz/chat/.../widget/appbar/menu/ComponentChoiceItem.kt` — `when (ref.key) { TRANSLATION -> stringResource(...) }` exhaustive. Compile-fail при новом built-in (loud).
@@ -852,20 +698,6 @@
   **Триггер:** при следующем заходе в quiz/chat module либо «пора убрать дубль».
 
   **Источник:** IS481 quiz_component_picker senior review § F4.
-
-- **[Per-dictionary disable built-in компонентов].**
-
-  **Контекст.** В IS481 component_constructor built-in компоненты (сейчас `translation`, в будущем — `transcription`/`pronunciation`/etc) — **read-only глобально** и присутствуют в каждом словаре. Юзер не может их «отключить» для конкретного словаря. Сценарий: словарь идиом / афоризмов где нужны только `definition` + `source`, но `translation` всё равно появляется в quiz picker и редакторе лексемы.
-
-  **Что сделать:**
-  - Новая таблица `dictionary_builtin_disabled(dictionary_id, built_in_key, disabled_at)` либо колонка / extension таблицы `component_types` для built-in row'ов.
-  - DAO фильтр: при запросе available components для словаря — исключать built-in перечисленные в disable-list.
-  - UI: в настройках словаря (либо в per-dictionary view конструктора) — список built-in компонентов с toggle «использовать в этом словаре».
-  - Side effect для quiz_configs: при отключении built-in — убрать его из `quiz_configs.component_refs` соответствующего словаря.
-
-  **Зависит:** IS481 component_constructor merged. Не блокирует другие фичи (read-only built-in — рабочее поведение по умолчанию).
-
-  **Триггер:** когда юзер захочет словарь без определённого built-in (или появится второй built-in компонент кроме translation).
 
 - **[Recovery UI + background TTL hard-delete для soft-deleted записей].**
 
@@ -920,6 +752,7 @@
   **Триггер:** когда захочется применить convention repository-wide. Не блокирует другие фичи (legacy имена работают через старые `@Query`).
 
 - **[Component constructor: autocomplete уникальных значений поля компонента].**
+  **Аудит 2026-10-02:** ЧАСТИЧНО — сделано только для caption у captioned_text (ComponentValueDao, IS491); общего для любого Text-поля нет.
 
   **Контекст.** После реализации конструктора компонентов (`docs/features/IS481_component_constructor/`) пользователь может создавать composite-templates типа `quote_with_source` с полем `source: Text`. Реальный кейс: пользователь хранит несколько цитат из одного источника (учебник, статья, видео) — каждый раз вбивать имя источника заново неудобно и приводит к опечаткам / дубликатам.
 
@@ -949,26 +782,6 @@
   **Триггер:** когда появится второй submenu в `core/ui/dropdown/` (накопится критическая масса nested menus), либо UX-полировка перед публикацией.
 
   **Источник:** IS481 quiz_component_picker manual smoke 2026-06-11 — user expectation mismatch (accordion vs cascaded popup).
-
-- **[Tooling: `cc-src.sh` — автоматический lookup library исходников по FQN class name].**
-
-  **Контекст.** F11 из IS481 FlowBacklog: sub-agent делает предположения про library API (Compose, Room, DataStore, Material) без чтения исходника. Лечится правилом «любое решение про library API подтверждается ссылкой на конкретный файл», но без автоматизации = постоянный manual поиск sources.jar в `~/.gradle/caches/`.
-
-  **Что сделать (минимум):** скрипт `./scripts/cc-src.sh <fully.qualified.ClassName>` который:
-  - Находит matching `*-sources.jar` в `~/.gradle/caches/modules-2/files-2.1/`.
-  - Извлекает `.kt` / `.java` файл по path (`<package>/<Class>.{kt,java}`) в `/tmp/cc-src/<artifact>/`.
-  - Печатает абсолютный путь к распакованному файлу (один или несколько кандидатов если есть).
-  - EXIT=0 если найдено хотя бы одно, EXIT=1 если не найдено.
-
-  **Что сделать (расширение, позже):**
-  - Кэширование: распаковывать sources jar один раз, переиспользовать.
-  - Резолв по короткому имени (`DropdownMenu` без package) через индекс.
-  - Поддержка transitive deps (не только direct project deps).
-  - Интеграция с `./gradlew dependencies` для понимания какой artifact owner класса.
-
-  **Триггер:** когда снова случится F11-ситуация в flow (sub-agent сделал предположение про library API → пользователь поправил). Тогда обкатать тулинг прямо в боевой фиче.
-
-  **Зачем:** даёт sub-agent'у автономный путь «не угадывать API, посмотреть». Без вопросов к пользователю «можно ли распаковать jar».
 
 - **[СДЕЛАНО — IS517, 2026-10-02] [CI: androidTest (миграции, DAO) не гоняется — добавить emulator-job].**
   Сделано: `.github/workflows/on_pull_request.yml` — эмулятор API 34 на PR в master, `core-db-impl` + Compose-тесты квиз-чата; ruleset «master protect» требует PR и зелёные Lint / Unit Tests / Build Artifact / Android Tests (emulator), без исключений для админов. Исходный текст ниже — для истории.

@@ -10,7 +10,7 @@ fun NavGraphBuilder.settings(
     navController: NavHostController,
     compositionRoot: CompositionRoot,
 ) {
-    composable(TabPoint.SETTINGS.route) {
+    tabComposable(TabPoint.SETTINGS) {
         compositionRoot.SettingsTabScreenDep()
     }
 
