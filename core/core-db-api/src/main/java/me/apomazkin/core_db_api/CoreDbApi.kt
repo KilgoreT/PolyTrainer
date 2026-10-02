@@ -188,7 +188,7 @@ interface CoreDbApi {
     }
 
     interface WordApi {
-        fun addWordSuspend(value: String, dictionaryId: Int): Long
+        suspend fun addWordSuspend(value: String, dictionaryId: Int): Long
         suspend fun deleteWordSuspend(id: Long): Int
         suspend fun updateWordSuspend(id: Long, value: String): Boolean
     }

@@ -82,11 +82,13 @@ interface WordDao {
     /**
      * WORD
      */
+    // IS521: suspend обязателен — вызываются из главного потока (раннер
+    // эффектов карточки), блокирующий Room-метод там падает.
     @Insert
-    fun addWordSuspend(wordDb: WordDb): Long
+    suspend fun addWordSuspend(wordDb: WordDb): Long
 
     @Update
-    fun updateWorldSuspend(wordDb: WordDb): Int
+    suspend fun updateWordSuspend(wordDb: WordDb): Int
 
     @Query("DELETE FROM words WHERE id = :id")
     suspend fun removeWordSuspend(id: Long): Int
