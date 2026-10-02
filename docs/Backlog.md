@@ -970,7 +970,8 @@
 
   **Зачем:** даёт sub-agent'у автономный путь «не угадывать API, посмотреть». Без вопросов к пользователю «можно ли распаковать jar».
 
-- **[CI: androidTest (миграции, DAO) не гоняется — добавить emulator-job].**
+- **[СДЕЛАНО — IS517, 2026-10-02] [CI: androidTest (миграции, DAO) не гоняется — добавить emulator-job].**
+  Сделано: `.github/workflows/on_pull_request.yml` — эмулятор API 34 на PR в master, `core-db-impl` + Compose-тесты квиз-чата; ruleset «master protect» требует PR и зелёные Lint / Unit Tests / Build Artifact / Android Tests (emulator), без исключений для админов. Исходный текст ниже — для истории.
   Ревью-агент тестов (IS493/Э2, T-1) указал: `.github/workflows/on_feature_push.yml` гоняет только lint + unit + assemble; `connectedAndroidTest` отсутствует во всех workflow. Все миграционные и DAO-тесты (`MigrationFrom11to12`, будущий `MigrationFrom12to13`, Is486DataLayerTest и др.) исполняются только вручную на девайсе и молча гниют между фичами.
   Почему не сделано сейчас: out-of-scope IS493 — CI-инфраструктура (эмулятор на runner'е: reactivecircus/android-emulator-runner или Gradle Managed Devices, кеширование AVD, время джобы) — отдельный бриф.
   Нужно: CI-job `connectedDebugAndroidTest` для `core-db-impl` (минимум — на push в master и релизные ветки); до тех пор — дисциплина «androidTest руками перед merge» в чек-листах фич.
