@@ -13,6 +13,8 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -57,9 +59,17 @@ sealed class Tabs(
     )
 }
 
+/**
+ * @param tabScreenOffsets горизонтальная позиция экрана каждого таба
+ *   (route → x в px): панель едет вместе с экраном своего таба.
+ * @param onBarMeasured высота панели в px — для отступа экранов табов.
+ */
 @Composable
 fun BottomBarWidget(
-    navController: NavHostController
+    navController: NavHostController,
+    modifier: Modifier = Modifier,
+    tabScreenOffsets: Map<String, Float> = emptyMap(),
+    onBarMeasured: (Int) -> Unit = {},
 ) {
 
     val tabs: List<Tabs> = remember {
@@ -89,25 +99,57 @@ fun BottomBarWidget(
     val destination by remember(navBackStackEntry?.destination) {
         derivedStateOf { navBackStackEntry?.destination }
     }
-    destination?.let { navDest ->
-        if (navDest.route in tabs.map { it.point.route }) {
-            NavigationBar(
-                containerColor = Color.Transparent,
-            ) {
-                tabs.forEach { tab ->
-                    key(tab.point.route) {
-                        BottomBarItem(
-                            titleRes = tab.titleRes,
-                            iconRes = tab.iconRes,
-                            isSelected = destination?.route == tab.point.route
-                        ) {
-                            tabNavigator.openTab(tab.point)
-                        }
-                    }
+    val currentRoute = destination?.route
+    val tabRoutes = remember(tabs) { tabs.map { it.point.route } }
+    val isTab = currentRoute != null && currentRoute in tabRoutes
+    // Память маршрутов — обычные поля, не State: панель и так
+    // перекомпонуется при смене маршрута, а запись State во время
+    // композиции дала бы лишний проход.
+    val routes = remember { RouteMemory() }
+    // Последний открытый таб: панель принадлежит его экрану — едет вместе
+    // с ним на вложенный экран и обратно, выделение остаётся на нём.
+    if (isTab) routes.lastTab = currentRoute
+    val lastTabRoute = routes.lastTab
+    // Между табами панель общая и стоит на месте; на остальных переходах
+    // (таб ↔ вложенный, вложенный ↔ вложенный) следует за экраном таба.
+    val followTabScreen = remember(currentRoute) {
+        val fromTab = routes.previous in tabRoutes
+        routes.previous = currentRoute
+        !(fromTab && isTab)
+    }
+
+    NavigationBar(
+        modifier = modifier
+            .onSizeChanged { onBarMeasured(it.height) }
+            // Сдвиг читается в фазе отрисовки: панель едет кадр в кадр с
+            // экраном, без перекомпозиции.
+            .graphicsLayer {
+                translationX = if (followTabScreen) {
+                    lastTabRoute?.let { tabScreenOffsets[it] } ?: 0f
+                } else {
+                    0f
+                }
+            },
+        containerColor = Color.Transparent,
+    ) {
+        tabs.forEach { tab ->
+            key(tab.point.route) {
+                BottomBarItem(
+                    titleRes = tab.titleRes,
+                    iconRes = tab.iconRes,
+                    isSelected = lastTabRoute == tab.point.route
+                ) {
+                    tabNavigator.openTab(tab.point)
                 }
             }
         }
     }
+}
+
+/** Маршруты, которые панель помнит между переходами. */
+private class RouteMemory {
+    var lastTab: String? = null
+    var previous: String? = null
 }
 
 @Composable

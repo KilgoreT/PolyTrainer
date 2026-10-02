@@ -61,7 +61,11 @@ fun RootRouter(
 
     NavHost(
         navController = navController,
-        startDestination = RootRouter.START_DESTINATION.route
+        startDestination = RootRouter.START_DESTINATION.route,
+        enterTransition = { RootTransitions.enter(this) },
+        exitTransition = { RootTransitions.exit(this) },
+        popEnterTransition = { RootTransitions.enter(this) },
+        popExitTransition = { RootTransitions.exit(this) },
     ) {
         composable(RootPoint.SPLASH.route) {
             SplashScreen(

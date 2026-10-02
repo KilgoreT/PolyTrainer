@@ -9,7 +9,7 @@ private const val WORD_ID_ARG = "wordId"
 private const val PER_DICT_COMPONENTS_DICT_ID_ARG = "dictionaryId"
 
 fun NavGraphBuilder.vocabulary(compositionRoot: CompositionRoot) {
-    composable(TabPoint.VOCABULARY.route) {
+    tabComposable(TabPoint.VOCABULARY) {
         compositionRoot.VocabularyHostDep()
     }
 

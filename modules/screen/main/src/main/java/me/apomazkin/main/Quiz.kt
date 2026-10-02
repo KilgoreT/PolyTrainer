@@ -8,7 +8,7 @@ import androidx.navigation.navArgument
 private const val QUIZ_ROUTE_ARG = "quizType"
 
 fun NavGraphBuilder.quiz(compositionRoot: CompositionRoot) {
-    composable(TabPoint.QUIZ.route) {
+    tabComposable(TabPoint.QUIZ) {
         compositionRoot.QuizTabScreenDep()
     }
 
