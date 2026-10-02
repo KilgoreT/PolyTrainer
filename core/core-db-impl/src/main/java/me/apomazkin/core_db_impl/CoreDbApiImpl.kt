@@ -525,7 +525,7 @@ class CoreDbApiImpl @Inject constructor(
     class WordApiImpl @Inject constructor(
         private val wordDao: WordDao,
     ) : CoreDbApi.WordApi {
-        override fun addWordSuspend(value: String, dictionaryId: Int): Long {
+        override suspend fun addWordSuspend(value: String, dictionaryId: Int): Long {
             val currentDate = Date(System.currentTimeMillis())
             return wordDao.addWordSuspend(
                 WordDb(
@@ -550,7 +550,7 @@ class CoreDbApiImpl @Inject constructor(
         override suspend fun updateWordSuspend(id: Long, value: String): Boolean {
             val wordRel = wordDao.getWordSuspend(id)
             val wordDb = wordRel.wordDb.copy(value = value)
-            return wordDao.updateWorldSuspend(wordDb) == 1
+            return wordDao.updateWordSuspend(wordDb) == 1
         }
 
     }
