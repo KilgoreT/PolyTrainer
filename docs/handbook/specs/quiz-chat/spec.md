@@ -92,7 +92,7 @@
   длинный текст метки режется многоточием.
 - **Чип части речи:** если у лексемы заполнена часть речи — он и есть
   метка слева от значения. Мелкий чип (11–12sp, фон `secondaryContainer`,
-  скруглённый). Текст: для встроенных опций — сокращения `chat_quiz_pos_*`
+  скруглённый). Текст: для встроенных опций — сокращения `part_of_speech_short_*`
   (§5), для пользовательской опции — её текст. Нет значения — метки нет,
   значение начинается от края. Другие атрибуты в вопрос не выводятся
   (настраиваемый набор — Backlog).
@@ -168,12 +168,18 @@
 |---|---|---|
 | `chat_quiz_msg_system_rule` | Я даю подсказку — ты пишешь слово. | I give a hint — you write the word. |
 | `chat_menu_quiz_component_hint` | минимум одно | at least one |
-| `chat_quiz_pos_noun` | сущ. | n. |
-| `chat_quiz_pos_verb` | гл. | v. |
-| `chat_quiz_pos_adjective` | прил. | adj. |
-| `chat_quiz_pos_adverb` | нареч. | adv. |
-| `chat_quiz_pos_preposition` | предл. | prep. |
-| `chat_quiz_pos_phrase` | фраз. | phr. |
+| `part_of_speech_short_noun` | сущ. | n. |
+| `part_of_speech_short_verb` | гл. | v. |
+| `part_of_speech_short_adjective` | прил. | adj. |
+| `part_of_speech_short_adverb` | нареч. | adv. |
+| `part_of_speech_short_preposition` | предл. | prep. |
+| `part_of_speech_short_phrase` | фраз. | phr. |
+| `part_of_speech_short_pronoun` (IS515) | местоим. | pron. |
+| `part_of_speech_short_numeral` (IS515) | числ. | num. |
+| `part_of_speech_short_interjection` (IS515) | межд. | interj. |
+| `part_of_speech_short_phrasal_verb` (IS515) | фраз. гл. | phr. v. |
+| `part_of_speech_short_collocation` (IS515) | колл. | coll. |
+| `part_of_speech_short_idiom` (IS515) | идиом. | idiom |
 
 Сокращения — словарные пометки: русские как в толковых словарях
 (Ожегов, Ушаков), английские как в Oxford/Collins.

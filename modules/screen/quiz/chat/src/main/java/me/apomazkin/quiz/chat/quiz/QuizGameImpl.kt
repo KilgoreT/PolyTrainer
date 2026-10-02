@@ -579,12 +579,18 @@ private fun ResourceManager.partOfSpeechBadge(option: ComponentOption): String? 
     }
     if (builtIn == null) return option.label
     val resId = when (builtIn) {
-        PartOfSpeechOption.NOUN -> R.string.chat_quiz_pos_noun
-        PartOfSpeechOption.VERB -> R.string.chat_quiz_pos_verb
-        PartOfSpeechOption.ADJECTIVE -> R.string.chat_quiz_pos_adjective
-        PartOfSpeechOption.ADVERB -> R.string.chat_quiz_pos_adverb
-        PartOfSpeechOption.PREPOSITION -> R.string.chat_quiz_pos_preposition
-        PartOfSpeechOption.PHRASE -> R.string.chat_quiz_pos_phrase
+        PartOfSpeechOption.NOUN -> R.string.part_of_speech_short_noun
+        PartOfSpeechOption.VERB -> R.string.part_of_speech_short_verb
+        PartOfSpeechOption.ADJECTIVE -> R.string.part_of_speech_short_adjective
+        PartOfSpeechOption.ADVERB -> R.string.part_of_speech_short_adverb
+        PartOfSpeechOption.PRONOUN -> R.string.part_of_speech_short_pronoun
+        PartOfSpeechOption.NUMERAL -> R.string.part_of_speech_short_numeral
+        PartOfSpeechOption.PREPOSITION -> R.string.part_of_speech_short_preposition
+        PartOfSpeechOption.INTERJECTION -> R.string.part_of_speech_short_interjection
+        PartOfSpeechOption.PHRASAL_VERB -> R.string.part_of_speech_short_phrasal_verb
+        PartOfSpeechOption.COLLOCATION -> R.string.part_of_speech_short_collocation
+        PartOfSpeechOption.IDIOM -> R.string.part_of_speech_short_idiom
+        PartOfSpeechOption.PHRASE -> R.string.part_of_speech_short_phrase
     }
     return stringByResId(resId)
 }

@@ -174,12 +174,18 @@
     <string name="chat_quiz_msg_user_continue">Продолжить квиз</string>
     <string name="chat_quiz_msg_system_rule">Я даю подсказку — ты пишешь слово.</string>
 
-    <string name="chat_quiz_pos_noun">сущ.</string>
-    <string name="chat_quiz_pos_verb">гл.</string>
-    <string name="chat_quiz_pos_adjective">прил.</string>
-    <string name="chat_quiz_pos_adverb">нареч.</string>
-    <string name="chat_quiz_pos_preposition">предл.</string>
-    <string name="chat_quiz_pos_phrase">фраз.</string>
+    <string name="part_of_speech_short_noun">сущ.</string>
+    <string name="part_of_speech_short_verb">гл.</string>
+    <string name="part_of_speech_short_adjective">прил.</string>
+    <string name="part_of_speech_short_adverb">нареч.</string>
+    <string name="part_of_speech_short_preposition">предл.</string>
+    <string name="part_of_speech_short_phrase">фраз.</string>
+    <string name="part_of_speech_short_pronoun">местоим.</string>
+    <string name="part_of_speech_short_numeral">числ.</string>
+    <string name="part_of_speech_short_interjection">межд.</string>
+    <string name="part_of_speech_short_phrasal_verb">фраз. гл.</string>
+    <string name="part_of_speech_short_collocation">колл.</string>
+    <string name="part_of_speech_short_idiom">идиом.</string>
 
     <string name="chat_quiz_system_btn_continue">Продолжить квиз</string>
     <string name="chat_quiz_system_btn_result">Посмотреть отчет</string>
@@ -312,6 +318,12 @@
     <string name="part_of_speech_option_adverb">Наречие</string>
     <string name="part_of_speech_option_preposition">Предлог</string>
     <string name="part_of_speech_option_phrase">Фраза</string>
+    <string name="part_of_speech_option_pronoun">Местоимение</string>
+    <string name="part_of_speech_option_numeral">Числительное</string>
+    <string name="part_of_speech_option_interjection">Междометие</string>
+    <string name="part_of_speech_option_phrasal_verb">Фразовый глагол</string>
+    <string name="part_of_speech_option_collocation">Коллокация</string>
+    <string name="part_of_speech_option_idiom">Идиома</string>
 
     <!-- Button labels -->
     <string name="components_button_create">Создать</string>

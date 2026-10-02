@@ -186,12 +186,18 @@
     <string name="chat_quiz_msg_user_continue">Continue quiz</string>
     <string name="chat_quiz_msg_system_rule">I give a hint — you write the word.</string>
 
-    <string name="chat_quiz_pos_noun">n.</string>
-    <string name="chat_quiz_pos_verb">v.</string>
-    <string name="chat_quiz_pos_adjective">adj.</string>
-    <string name="chat_quiz_pos_adverb">adv.</string>
-    <string name="chat_quiz_pos_preposition">prep.</string>
-    <string name="chat_quiz_pos_phrase">phr.</string>
+    <string name="part_of_speech_short_noun">n.</string>
+    <string name="part_of_speech_short_verb">v.</string>
+    <string name="part_of_speech_short_adjective">adj.</string>
+    <string name="part_of_speech_short_adverb">adv.</string>
+    <string name="part_of_speech_short_preposition">prep.</string>
+    <string name="part_of_speech_short_phrase">phr.</string>
+    <string name="part_of_speech_short_pronoun">pron.</string>
+    <string name="part_of_speech_short_numeral">num.</string>
+    <string name="part_of_speech_short_interjection">interj.</string>
+    <string name="part_of_speech_short_phrasal_verb">phr. v.</string>
+    <string name="part_of_speech_short_collocation">coll.</string>
+    <string name="part_of_speech_short_idiom">idiom</string>
 
     <string name="chat_quiz_system_btn_continue">Continue quiz</string>
     <string name="chat_quiz_system_btn_result">Show result</string>
@@ -325,6 +331,12 @@
     <string name="part_of_speech_option_adverb">Adverb</string>
     <string name="part_of_speech_option_preposition">Preposition</string>
     <string name="part_of_speech_option_phrase">Phrase</string>
+    <string name="part_of_speech_option_pronoun">Pronoun</string>
+    <string name="part_of_speech_option_numeral">Numeral</string>
+    <string name="part_of_speech_option_interjection">Interjection</string>
+    <string name="part_of_speech_option_phrasal_verb">Phrasal verb</string>
+    <string name="part_of_speech_option_collocation">Collocation</string>
+    <string name="part_of_speech_option_idiom">Idiom</string>
 
     <!-- Button labels -->
     <string name="components_button_create">Create</string>

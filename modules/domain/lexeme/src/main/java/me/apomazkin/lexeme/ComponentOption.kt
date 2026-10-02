@@ -26,15 +26,26 @@ data class ComponentOption(
 )
 
 /**
- * IS486: стартовый состав опций builtin «Часть речи» (решение 2026-07-17/19:
- * состав builtin-набора — знание домена; сеются ключи, лейблы локализуются
- * ресурсами на UI).
+ * Состав опций builtin «Часть речи»: состав builtin-набора — знание
+ * домена; сеются ключи, лейблы локализуются ресурсами на UI.
+ *
+ * Кроме частей речи в том же слоте — типы многословных единиц (фразовый
+ * глагол, коллокация, идиома), как в учебных словарях. Порядок элементов —
+ * порядок в списке выбора: `ordinal` = `position` при засеве нового
+ * словаря (существующие словари переставляет миграция 14→15). Ключи
+ * неизменны — на них ссылаются миграции.
  */
 enum class PartOfSpeechOption(val key: String) {
     NOUN("noun"),
     VERB("verb"),
     ADJECTIVE("adjective"),
     ADVERB("adverb"),
+    PRONOUN("pronoun"),
+    NUMERAL("numeral"),
     PREPOSITION("preposition"),
+    INTERJECTION("interjection"),
+    PHRASAL_VERB("phrasal_verb"),
+    COLLOCATION("collocation"),
+    IDIOM("idiom"),
     PHRASE("phrase"),
 }

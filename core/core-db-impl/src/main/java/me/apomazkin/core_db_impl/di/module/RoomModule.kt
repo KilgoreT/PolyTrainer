@@ -19,11 +19,12 @@ import me.apomazkin.core_db_impl.room.dao.QuizConfigDao
 import me.apomazkin.core_db_impl.room.migrations.Migration_011_to_012
 import me.apomazkin.core_db_impl.room.migrations.Migration_012_to_013
 import me.apomazkin.core_db_impl.room.migrations.Migration_013_to_014
+import me.apomazkin.core_db_impl.room.migrations.Migration_014_to_015
 import me.apomazkin.logger.LexemeLogger
 import javax.inject.Singleton
 
 /**
- * Текущая схема — v13 (IS493). Миграции:
+ * Текущая схема — v15. Миграции:
  * - M11→M12 (`Migration_011_to_012.kt`) — component_types / component_values /
  *   component_options / quiz_configs сразу в финальной форме (иерархия
  *   компонентов IS486: core / enabled / depends-ссылки; пословарные builtin
@@ -36,6 +37,9 @@ import javax.inject.Singleton
  *   в одной миграции.
  * - M13→M14 (`Migration_013_to_014.kt`) — IS508: unique-индекс
  *   write_quiz.lexeme_id (схлопывание дублей + DROP/CREATE индекса).
+ * - M14→M15 (`Migration_014_to_015.kt`) — IS515: 6 новых builtin-опций
+ *   «Части речи» + перестановка позиций; схема не меняется, только данные.
+ *   Регистрация ОБЯЗАТЕЛЬНА: без неё fallback ниже молча сотрёт БД.
  *
  * **Fallback на destructive migration**: если когда-то встретится install с БД
  * `user_version < 11` (pre-0.1.0 internal сборка) и без зарегистрированной миграции —
@@ -62,14 +66,19 @@ class RoomModule {
         )
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
-            .addMigrations(Migration_011_to_012, Migration_012_to_013, Migration_013_to_014)
+            .addMigrations(
+                Migration_011_to_012,
+                Migration_012_to_013,
+                Migration_013_to_014,
+                Migration_014_to_015,
+            )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onDestructiveMigration(connection: SQLiteConnection) {
                     logger.e(
                         tag = LogTags.DB,
                         message = "Destructive migration: detected DB with user_version < 11 without registered migration path. " +
-                                "All tables dropped and recreated from current schema (v12). User data lost. " +
+                                "All tables dropped and recreated from current schema (v15). User data lost. " +
                                 "Likely cause — install from pre-0.1.0 internal build."
                     )
                     // После destructive recreate Room вызывает onCreate — seed
