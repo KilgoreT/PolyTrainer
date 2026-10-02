@@ -98,7 +98,7 @@ class Is486DataLayerTest {
             assertEquals(false, pos.core)
 
             val options = db.componentOptionDao().getForType(pos.id)
-            assertEquals(6, options.size)
+            assertEquals(PartOfSpeechOption.entries.size, options.size)
             assertEquals(
                 PartOfSpeechOption.entries.map { it.key },
                 options.map { it.systemKey },
@@ -221,7 +221,7 @@ class Is486DataLayerTest {
         assertNull(db.componentTypeDao().getBySystemKeyForDictionary("part_of_speech", d1))
         val posD2 = db.componentTypeDao().getBySystemKeyForDictionary("part_of_speech", d2)
         assertNotNull(posD2)
-        assertEquals(6, db.componentOptionDao().getForType(posD2!!.id).size)
+        assertEquals(PartOfSpeechOption.entries.size, db.componentOptionDao().getForType(posD2!!.id).size)
     }
 
     // === C5b — идемпотентность seed: повторов не бывает даже при гипотетическом дубле вызова ===
@@ -232,7 +232,7 @@ class Is486DataLayerTest {
         dictionaryApi.addDictionary("ES", null)
 
         val pos = db.componentTypeDao().getBySystemKeyForDictionary("part_of_speech", d1)!!
-        assertEquals(6, db.componentOptionDao().getForType(pos.id).size)
+        assertEquals(PartOfSpeechOption.entries.size, db.componentOptionDao().getForType(pos.id).size)
         val allForD1 = db.componentTypeDao().getTypesForDictionary(d1)
         assertEquals(
             "ровно три builtin-строки у словаря (IS491: + example)",

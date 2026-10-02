@@ -48,7 +48,8 @@ class QuizGameImplTest {
         every { resourceManager.stringByResId(any()) } returns "Header"
         every { resourceManager.stringByResId(any(), any()) } returns "Header"
         every { resourceManager.stringByResId(R.string.chat_menu_item_component_translation) } returns "Перевод"
-        every { resourceManager.stringByResId(R.string.chat_quiz_pos_noun) } returns "сущ."
+        every { resourceManager.stringByResId(R.string.part_of_speech_short_noun) } returns "сущ."
+        every { resourceManager.stringByResId(R.string.part_of_speech_short_collocation) } returns "колл."
     }
 
     /** Детерминированный «случайный» выбор: всегда заданный индекс. */
@@ -86,7 +87,14 @@ class QuizGameImplTest {
         position = 1,
     )
 
-    private val posOptions = listOf(nounOption, customOption).associateBy { it.id }
+    private val collocationOption = ComponentOption(
+        id = 102L,
+        componentTypeId = ComponentTypeId(3L),
+        systemKey = "collocation",
+        position = 9,
+    )
+
+    private val posOptions = listOf(nounOption, customOption, collocationOption).associateBy { it.id }
 
     private fun translationCv(text: String = "hola") = ComponentValue(
         id = ComponentValueId(10L),
@@ -230,6 +238,13 @@ class QuizGameImplTest {
         val q = quizWith(lexemeWith(listOf(translationCv(), posCv(optionId = 100L))))
 
         assertEquals("сущ.", q.item(listOf(translationRef))!!.question.badge)
+    }
+
+    @Test
+    fun `multiword unit option gives its abbreviation badge`() {
+        val q = quizWith(lexemeWith(listOf(translationCv(), posCv(optionId = 102L))))
+
+        assertEquals("колл.", q.item(listOf(translationRef))!!.question.badge)
     }
 
     @Test

@@ -57,7 +57,7 @@ internal fun LexemeComponentsBlock(
                 val selectedOptionLabel = cv.selectedOptionId?.let { optionId ->
                     optionsByType[cv.componentTypeId]
                         ?.firstOrNull { it.id == optionId }
-                        ?.let { optionDisplayLabel(it) }
+                        ?.let { optionShortLabel(it) }
                 }
                 ComponentValueField(
                     state = cv,

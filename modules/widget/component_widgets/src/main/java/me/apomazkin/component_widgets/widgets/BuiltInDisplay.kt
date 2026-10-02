@@ -30,7 +30,13 @@ fun optionDisplayLabel(systemKey: String?, label: String?): String {
         "verb" -> R.string.part_of_speech_option_verb
         "adjective" -> R.string.part_of_speech_option_adjective
         "adverb" -> R.string.part_of_speech_option_adverb
+        "pronoun" -> R.string.part_of_speech_option_pronoun
+        "numeral" -> R.string.part_of_speech_option_numeral
         "preposition" -> R.string.part_of_speech_option_preposition
+        "interjection" -> R.string.part_of_speech_option_interjection
+        "phrasal_verb" -> R.string.part_of_speech_option_phrasal_verb
+        "collocation" -> R.string.part_of_speech_option_collocation
+        "idiom" -> R.string.part_of_speech_option_idiom
         "phrase" -> R.string.part_of_speech_option_phrase
         else -> null
     }

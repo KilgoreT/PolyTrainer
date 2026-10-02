@@ -17,6 +17,7 @@ import me.apomazkin.core_db_impl.entity.ComponentValueDb
 import me.apomazkin.core_db_impl.entity.LexemeDb
 import me.apomazkin.core_db_impl.entity.WordDb
 import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.PartOfSpeechOption
 import me.apomazkin.lexeme.Scope
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -477,7 +478,7 @@ class Phase3ConstructorDataTest {
         val after = db.componentOptionDao().getById(noun.id)!!
         assertNull(after.removedAt)
         assertNull(after.label)
-        assertEquals(6, db.componentOptionDao().getForType(posTypeId).size)
+        assertEquals(PartOfSpeechOption.entries.size, db.componentOptionDao().getForType(posTypeId).size)
     }
 
     // ============================================================
