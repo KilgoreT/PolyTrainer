@@ -54,7 +54,7 @@ class CaptionSuggestionsDaoTest {
                 componentOptionDao = db.componentOptionDao(),
                 logger = logger,
             )
-            dictId = dictionaryApi.addDictionary("ES", null)
+            dictId = dictionaryApi.addDictionary("ES", null, "es", "ru")
             val now = Date(0L)
             val wordId = db.wordDao().addWordSuspend(
                 WordDb(dictionaryId = dictId, value = "gato", addDate = now),

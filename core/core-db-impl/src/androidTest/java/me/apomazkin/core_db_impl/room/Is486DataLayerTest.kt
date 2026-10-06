@@ -81,8 +81,8 @@ class Is486DataLayerTest {
     // === C5 — seed builtin в транзакции addDictionary ===
     @Test
     fun c5_addDictionarySeedsPerDictBuiltIns() = runBlocking {
-        val d1 = dictionaryApi.addDictionary("ES", null)
-        val d2 = dictionaryApi.addDictionary("EN", null)
+        val d1 = dictionaryApi.addDictionary("ES", null, "es", "ru")
+        val d2 = dictionaryApi.addDictionary("EN", null, "es", "ru")
 
         listOf(d1, d2).forEach { dictId ->
             val translation = db.componentTypeDao().getBySystemKeyForDictionary("translation", dictId)
@@ -121,8 +121,8 @@ class Is486DataLayerTest {
     // === C1 — пословарный lookup builtin ===
     @Test
     fun c1_getBySystemKeyScopedToDictionary() = runBlocking {
-        val d1 = dictionaryApi.addDictionary("ES", null)
-        val d2 = dictionaryApi.addDictionary("EN", null)
+        val d1 = dictionaryApi.addDictionary("ES", null, "es", "ru")
+        val d2 = dictionaryApi.addDictionary("EN", null, "es", "ru")
 
         val t1 = db.componentTypeDao().getBySystemKeyForDictionary("translation", d1)
         val t2 = db.componentTypeDao().getBySystemKeyForDictionary("translation", d2)
@@ -136,8 +136,8 @@ class Is486DataLayerTest {
     // === C2 — создание лексемы с переводом цепляется к типу своего словаря ===
     @Test
     fun c2_addLexemeWithBuiltInBindsToOwnDictionary() = runBlocking {
-        val d1 = dictionaryApi.addDictionary("ES", null)
-        val d2 = dictionaryApi.addDictionary("EN", null)
+        val d1 = dictionaryApi.addDictionary("ES", null, "es", "ru")
+        val d2 = dictionaryApi.addDictionary("EN", null, "es", "ru")
         val w1 = newWord(d1, "gato")
         val w2 = newWord(d2, "cat")
 
@@ -163,8 +163,8 @@ class Is486DataLayerTest {
     // === C3 — restore-эквивалент: addLexemeWithComponents с BuiltIn-ref ===
     @Test
     fun c3_addLexemeWithComponentsResolvesBuiltInPerDictionary() = runBlocking {
-        val d1 = dictionaryApi.addDictionary("ES", null)
-        val d2 = dictionaryApi.addDictionary("EN", null)
+        val d1 = dictionaryApi.addDictionary("ES", null, "es", "ru")
+        val d2 = dictionaryApi.addDictionary("EN", null, "es", "ru")
         val w1 = newWord(d1, "gato")
         val w2 = newWord(d2, "cat")
 
@@ -192,7 +192,7 @@ class Is486DataLayerTest {
     // === C6 — legacy-create дефолты: цель-лексема + core=true ===
     @Test
     fun c6_legacyCreateDefaultsToLexemeCore() = runBlocking {
-        val d1 = dictionaryApi.addDictionary("ES", null)
+        val d1 = dictionaryApi.addDictionary("ES", null, "es", "ru")
 
         lexemeApi.createUserDefinedComponent(
             name = "Definition",
@@ -212,8 +212,8 @@ class Is486DataLayerTest {
     // === C7 — удаление словаря: CASCADE уносит типы и опции, второй словарь цел ===
     @Test
     fun c7_dictionaryDeleteCascadesTypesAndOptions() = runBlocking {
-        val d1 = dictionaryApi.addDictionary("ES", null)
-        val d2 = dictionaryApi.addDictionary("EN", null)
+        val d1 = dictionaryApi.addDictionary("ES", null, "es", "ru")
+        val d2 = dictionaryApi.addDictionary("EN", null, "es", "ru")
 
         dictionaryApi.deleteDictionary(d1)
 
@@ -227,9 +227,9 @@ class Is486DataLayerTest {
     // === C5b — идемпотентность seed: повторов не бывает даже при гипотетическом дубле вызова ===
     @Test
     fun c5b_seedIdempotentPerDictionary() = runBlocking {
-        val d1 = dictionaryApi.addDictionary("ES", null)
+        val d1 = dictionaryApi.addDictionary("ES", null, "es", "ru")
         // Повторный addDictionary создаёт ДРУГОЙ словарь — а у d1 builtin не дублируются.
-        dictionaryApi.addDictionary("ES", null)
+        dictionaryApi.addDictionary("ES", null, "es", "ru")
 
         val pos = db.componentTypeDao().getBySystemKeyForDictionary("part_of_speech", d1)!!
         assertEquals(PartOfSpeechOption.entries.size, db.componentOptionDao().getForType(pos.id).size)

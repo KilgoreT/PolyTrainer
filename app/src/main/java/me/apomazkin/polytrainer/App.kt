@@ -11,11 +11,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import me.apomazkin.core_db.di.CoreDbComponent
 import me.apomazkin.core_db_api.entity.ReservedGroupNames
+import me.apomazkin.flags.CountryProviderImpl
 import me.apomazkin.polytrainer.di.AppComponent
 import me.apomazkin.polytrainer.di.DaggerAppComponent
 import me.apomazkin.polytrainer.di.DaggerAppComponent_CoreDbDependenciesComponent
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.polytrainer.di.LoggerComponent
+import me.apomazkin.polytrainer.di.module.dictionary.DictionaryLanguageRules
 import java.util.Locale
 
 class App : Application() {
@@ -33,7 +35,16 @@ class App : Application() {
                 coreDbProvider = DaggerAppComponent_CoreDbDependenciesComponent
                     //TODO kilg 13.05.2020 06:39 заменить билдер на фабрику
                     .builder()
-                    .coreDbProvider(CoreDbComponent.init(this, logger, reservedGroupNames()))
+                    .coreDbProvider(
+                        CoreDbComponent.init(
+                            context = this,
+                            logger = logger,
+                            reservedGroupNames = reservedGroupNames(),
+                            dictionaryLanguageDefaults = DictionaryLanguageRules(
+                                countryProvider = lazy { CountryProviderImpl(this) },
+                            ),
+                        ),
+                    )
                     .build(),
             )
         initRemoteReporting(logger)

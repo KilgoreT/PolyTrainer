@@ -4,18 +4,24 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
+import me.apomazkin.flags.CountryInfo
+import me.apomazkin.flags.CountryLanguage
 import me.apomazkin.flags.CountryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.text.Collator
 import java.util.Date
+import java.util.Locale
 
 /**
  * Test cases for DictionaryUseCaseImpl:
@@ -43,6 +49,14 @@ import java.util.Date
  * === setCurrentDictionary ===
  * 13. Standard: writes id to prefs via setLong
  *
+ * === IS525: языки ===
+ * 14. getDictionary отдаёт коды языков
+ * 15. languageDefaults — английский и язык телефона
+ * 16. флаг несёт языки страны, основной первым
+ * 17. allLanguages — не пуст, канонические коды, без дублей, по алфавиту
+ * 18. findFlag находит страну вне списка словаря (Ф3)
+ * 19. getDictionary: код, которого Android не знает, — название из библиотеки
+ *
  * (getAvailableLanguages and getCountriesForLanguage removed — language binding removed)
  */
 class DictionaryUseCaseImplTest {
@@ -53,13 +67,19 @@ class DictionaryUseCaseImplTest {
     private lateinit var useCase: DictionaryUseCaseImpl
 
     private val now = Date()
+    private val mexico = CountryInfo(numericCode = 484, name = "Mexico", alpha2 = "MX")
+    private val antarctica = CountryInfo(numericCode = 10, name = "Antarctica", alpha2 = "AQ")
 
     @Before
     fun setUp() {
         dictionaryApi = mockk(relaxed = true)
         countryProvider = mockk(relaxed = true)
         prefsProvider = mockk(relaxed = true)
-        useCase = DictionaryUseCaseImpl(dictionaryApi, countryProvider, prefsProvider)
+        val rules = DictionaryLanguageRules(
+            countryProvider = lazyOf(countryProvider),
+            deviceLocale = { Locale("ru", "RU") },
+        )
+        useCase = DictionaryUseCaseImpl(dictionaryApi, countryProvider, prefsProvider, rules)
     }
 
     // === getDictionaryList ===
@@ -130,9 +150,9 @@ class DictionaryUseCaseImplTest {
     @Test
     fun `should delegate to API and return id`() = runTest {
         // Test case 5
-        coEvery { dictionaryApi.addDictionary("English", 826) } returns 42L
+        coEvery { dictionaryApi.addDictionary("English", 826, "en-GB", "ru") } returns 42L
 
-        val result = useCase.addDictionary("English", 826)
+        val result = useCase.addDictionary("English", 826, "en-GB", "ru")
 
         assertEquals(42L, result)
     }
@@ -140,9 +160,9 @@ class DictionaryUseCaseImplTest {
     @Test
     fun `should set current dictionary on add`() = runTest {
         // Test case 6
-        coEvery { dictionaryApi.addDictionary("English", 826) } returns 42L
+        coEvery { dictionaryApi.addDictionary("English", 826, "en-GB", "ru") } returns 42L
 
-        useCase.addDictionary("English", 826)
+        useCase.addDictionary("English", 826, "en-GB", "ru")
 
         coVerify { prefsProvider.setLong(PrefKey.CURRENT_DICTIONARY_ID_LONG, 42L) }
     }
@@ -150,12 +170,12 @@ class DictionaryUseCaseImplTest {
     @Test
     fun `should pass null numericCode when no flag`() = runTest {
         // Test case 7
-        coEvery { dictionaryApi.addDictionary("Bio", null) } returns 10L
+        coEvery { dictionaryApi.addDictionary("Bio", null, "en", "ru") } returns 10L
 
-        val result = useCase.addDictionary("Bio", null)
+        val result = useCase.addDictionary("Bio", null, "en", "ru")
 
         assertEquals(10L, result)
-        coVerify { dictionaryApi.addDictionary("Bio", null) }
+        coVerify { dictionaryApi.addDictionary("Bio", null, "en", "ru") }
     }
 
     // === updateDictionary ===
@@ -163,9 +183,93 @@ class DictionaryUseCaseImplTest {
     @Test
     fun `should delegate update to API`() = runTest {
         // Test case 8
-        useCase.updateDictionary(5L, "Updated", 724)
+        useCase.updateDictionary(5L, "Updated", 724, "es-ES", "ru")
 
-        coVerify { dictionaryApi.updateDictionary(5L, "Updated", 724) }
+        coVerify { dictionaryApi.updateDictionary(5L, "Updated", 724, "es-ES", "ru") }
+    }
+
+    // === IS525: языки ===
+
+    @Test
+    fun `getDictionary maps language tags`() = runTest {
+        // Test case 14
+        coEvery { dictionaryApi.getDictionaryById(7L) } returns DictionaryApiEntity(
+            id = 7, numericCode = 484, name = "MX", addDate = now,
+            learningLanguage = "es-MX", translationLanguage = "ru",
+        )
+
+        val item = useCase.getDictionary(7L)
+
+        assertEquals("es-MX", item.learningLanguage.tag)
+        assertEquals("ru", item.translationLanguage.tag)
+    }
+
+    @Test
+    fun `languageDefaults are english and device language`() {
+        // Test case 15
+        val defaults = useCase.languageDefaults()
+
+        assertEquals("en", defaults.noFlag.tag)
+        assertEquals("ru", defaults.translation.tag)
+    }
+
+    @Test
+    fun `flags carry country languages with main first`() = runTest {
+        // Test case 16
+        every { countryProvider.getDictionaryCountries() } returns listOf(mexico)
+        every { countryProvider.getCountryLanguages(484) } returns listOf(
+            CountryLanguage("es-MX", "Spanish"),
+            CountryLanguage("yua", "Yucateco"),
+        )
+
+        val flags = useCase.flagsFlow().first()
+        val flag = flags.single()
+
+        assertEquals(listOf("es-MX", "yua"), flag.languageItems.map { it.tag })
+    }
+
+    @Test
+    fun `allLanguages is not empty, canonical and sorted by name`() {
+        // Test case 17
+        val all = useCase.allLanguages()
+        val collator = Collator.getInstance(Locale.getDefault())
+        val names = all.map { it.name }
+
+        assertTrue(all.size > 100)
+        assertEquals(names, names.sortedWith(collator))
+        assertTrue(all.all { Locale.forLanguageTag(it.tag).toLanguageTag() == it.tag })
+        assertEquals(all.size, all.map { it.tag }.toSet().size)
+    }
+
+    @Test
+    fun `findFlag returns flag of a country excluded from dictionary list`() {
+        // Test case 18: Антарктида (010) вне getDictionaryCountries, но в getAllCountries
+        every { countryProvider.getDictionaryCountries() } returns listOf(mexico)
+        every { countryProvider.getAllCountries() } returns listOf(mexico, antarctica)
+        every { countryProvider.getCountryLanguages(10) } returns emptyList()
+
+        val flag = useCase.findFlag(10)
+
+        assertEquals(10, flag?.numericCode)
+        assertTrue(flag?.languageItems.isNullOrEmpty())
+    }
+
+    @Test
+    fun `getDictionary uses library english name for a code unknown to Android`() = runTest {
+        // Test case 19: Сингапур — основной язык cmn; Android имени может не знать
+        coEvery { dictionaryApi.getDictionaryById(9L) } returns DictionaryApiEntity(
+            id = 9, numericCode = 702, name = "SG", addDate = now,
+            learningLanguage = "cmn", translationLanguage = "ru",
+        )
+        every { countryProvider.getCountryLanguages(702) } returns listOf(
+            CountryLanguage("cmn", "Mandarin Chinese"),
+        )
+
+        val item = useCase.getDictionary(9L)
+
+        assertEquals("cmn", item.learningLanguage.tag)
+        // Название либо от Android (если знает), либо английское из библиотеки — но не голый код.
+        assertNotEquals("cmn", item.learningLanguage.name)
     }
 
     // === deleteDictionary ===

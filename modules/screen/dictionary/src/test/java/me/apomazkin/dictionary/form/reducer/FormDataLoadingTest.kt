@@ -6,6 +6,7 @@ import me.apomazkin.dictionary.form.DictionaryFormMsg
 import me.apomazkin.dictionary.form.DictionaryFormReducer
 import me.apomazkin.dictionary.form.DictionaryFormScreenState
 import me.apomazkin.dictionary.model.CountryFlagItem
+import me.apomazkin.dictionary.model.LanguageItem
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.assertSingleEffect
@@ -27,18 +28,28 @@ import org.junit.Test
  * 7. Standard: DictionaryLoaded preserves other fields
  * 8. Standard: DictionarySaved emits Close
  * 9. Standard: DictionarySaved preserves state
+ *
+ * IS525, языки:
+ * 10. LanguagesLoaded наполняет список окна выбора
+ * 11. DictionaryLoaded подставляет языки и признак «вручную»
  */
 class FormDataLoadingTest {
 
     private val reducer = DictionaryFormReducer()
 
+    private val spanish = LanguageItem(tag = "es-ES", name = "Spanish (Spain)")
+    private val mexican = LanguageItem(tag = "es-MX", name = "Spanish (Mexico)")
+    private val english = LanguageItem(tag = "en", name = "English")
+    private val russian = LanguageItem(tag = "ru", name = "Russian")
     private val spainFlag = CountryFlagItem(
         numericCode = 724, countryName = "Spain", flagRes = 100,
         languages = listOf("Spanish", "Catalan"),
+        languageItems = listOf(spanish, LanguageItem(tag = "ca", name = "Catalan")),
     )
     private val mexicoFlag = CountryFlagItem(
         numericCode = 484, countryName = "Mexico", flagRes = 101,
         languages = listOf("Spanish"),
+        languageItems = listOf(mexican),
     )
     private val flags = listOf(spainFlag, mexicoFlag)
 
@@ -86,7 +97,7 @@ class FormDataLoadingTest {
         val initial = DictionaryFormScreenState(editingDictionaryId = 5)
         val result = reducer.testReduce(
             initial,
-            DictionaryFormMsg.DictionaryLoaded("English", spainFlag),
+            DictionaryFormMsg.DictionaryLoaded("English", spainFlag, spanish, russian),
         )
 
         assertEquals("name should be English", "English", result.state().name)
@@ -100,7 +111,7 @@ class FormDataLoadingTest {
         val initial = DictionaryFormScreenState(editingDictionaryId = 5)
         val result = reducer.testReduce(
             initial,
-            DictionaryFormMsg.DictionaryLoaded("English", null),
+            DictionaryFormMsg.DictionaryLoaded("English", null, english, russian),
         )
 
         assertEquals("name should be English", "English", result.state().name)
@@ -114,7 +125,7 @@ class FormDataLoadingTest {
         val initial = DictionaryFormScreenState(editingDictionaryId = 5)
         val result = reducer.testReduce(
             initial,
-            DictionaryFormMsg.DictionaryLoaded("", null),
+            DictionaryFormMsg.DictionaryLoaded("", null, english, russian),
         )
 
         assertEquals("name should be empty", "", result.state().name)
@@ -130,7 +141,7 @@ class FormDataLoadingTest {
         )
         val result = reducer.testReduce(
             initial,
-            DictionaryFormMsg.DictionaryLoaded("English", spainFlag),
+            DictionaryFormMsg.DictionaryLoaded("English", spainFlag, spanish, russian),
         )
 
         assertEquals("flagFilter should not change", "spa", result.state().flagFilter)
@@ -160,5 +171,32 @@ class FormDataLoadingTest {
         assertEquals("name should not change", "Eng", result.state().name)
         assertEquals("selectedFlag should not change", spainFlag, result.state().selectedFlag)
         result.assertSingleEffect<NavigationEffect.Back>()
+    }
+
+    // === IS525: языки ===
+
+    @Test
+    fun `LanguagesLoaded fills picker list`() {
+        val result = reducer.testReduce(
+            DictionaryFormScreenState(),
+            DictionaryFormMsg.LanguagesLoaded(listOf(spanish, mexican)),
+        )
+
+        assertEquals(2, result.state().languagePicker.allLanguages.size)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `DictionaryLoaded prefills languages and manual flag`() {
+        val initial = DictionaryFormScreenState(editingDictionaryId = 5, noFlagLanguage = english)
+        val result = reducer.testReduce(
+            initial,
+            DictionaryFormMsg.DictionaryLoaded("MX", mexicoFlag, russian, russian),
+        )
+
+        assertEquals(russian, result.state().learningLanguage)
+        assertEquals(russian, result.state().translationLanguage)
+        assertTrue(result.state().isLearningLanguageManual)
+        result.assertNoEffects()
     }
 }

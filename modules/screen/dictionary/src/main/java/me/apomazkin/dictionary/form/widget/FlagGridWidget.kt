@@ -24,8 +24,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,9 +75,16 @@ private fun AsyncFlagImage(
 ) {
     val context = LocalContext.current
     val heightPx = with(LocalDensity.current) { FLAG_SIZE.roundToPx() }
-    val bitmap by produceState(FlagBitmapCache.get(flagRes, heightPx), flagRes, heightPx) {
-        if (value == null) {
-            value = withContext(Dispatchers.Default) {
+    // Состояние привязано к флагу: `produceState` держит старое значение при
+    // смене ключей, и переиспользованная ячейка сетки (фильтр 250 → 1)
+    // показывала чужой флаг (IS525, найдено ручником: «Мексика» с флагом
+    // Афганистана).
+    var bitmap by remember(flagRes, heightPx) {
+        mutableStateOf(FlagBitmapCache.get(flagRes, heightPx))
+    }
+    LaunchedEffect(flagRes, heightPx) {
+        if (bitmap == null) {
+            bitmap = withContext(Dispatchers.Default) {
                 FlagBitmapCache.rasterize(context, flagRes, heightPx)
             }
         }
@@ -151,7 +161,7 @@ internal fun FlagGridWidget(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(flags) { flag ->
+        items(flags, key = { it.numericCode }) { flag ->
             val isSelected = selectedFlag?.numericCode == flag.numericCode
             FlagGridItem(
                 flag = flag,

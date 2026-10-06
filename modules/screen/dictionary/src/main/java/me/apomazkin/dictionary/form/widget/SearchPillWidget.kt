@@ -1,5 +1,6 @@
 package me.apomazkin.dictionary.form.widget
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +39,7 @@ internal fun SearchPillWidget(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    @StringRes hintRes: Int = R.string.dictionary_filter_flags_hint,
 ) {
     Surface(
         modifier = modifier
@@ -63,7 +65,7 @@ internal fun SearchPillWidget(
             ) {
                 if (value.isEmpty()) {
                     Text(
-                        text = stringResource(id = R.string.dictionary_filter_flags_hint),
+                        text = stringResource(id = hintRes),
                         style = LexemeStyle.BodyM,
                         color = formTextHint,
                     )

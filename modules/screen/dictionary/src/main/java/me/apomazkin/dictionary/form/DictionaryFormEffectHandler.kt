@@ -9,11 +9,20 @@ import io.github.kilgoret.mate.MateEffectHandler
 
 sealed interface DictionaryFormEffect : Effect {
     data class LoadDictionary(val id: Long) : DictionaryFormEffect
-    data class SaveDictionary(val name: String, val numericCode: Int?) : DictionaryFormEffect
+    /** IS525: полный список языков для окна выбора. */
+    data object LoadLanguages : DictionaryFormEffect
+    data class SaveDictionary(
+        val name: String,
+        val numericCode: Int?,
+        val learningLanguage: String,
+        val translationLanguage: String,
+    ) : DictionaryFormEffect
     data class UpdateDictionary(
         val id: Long,
         val name: String,
         val numericCode: Int?,
+        val learningLanguage: String,
+        val translationLanguage: String,
     ) : DictionaryFormEffect
 }
 
@@ -35,19 +44,40 @@ class DictionaryFormEffectHandler(
                     dictionaryUseCase.getDictionary(effect.id)
                 }
                 val flag = item.numericCode?.let { dictionaryUseCase.findFlag(it) }
-                DictionaryFormMsg.DictionaryLoaded(item.name, flag)
+                DictionaryFormMsg.DictionaryLoaded(
+                    name = item.name,
+                    flag = flag,
+                    learningLanguage = item.learningLanguage,
+                    translationLanguage = item.translationLanguage,
+                )
+            }
+
+            is DictionaryFormEffect.LoadLanguages -> {
+                val all = withContext(io) { dictionaryUseCase.allLanguages() }
+                DictionaryFormMsg.LanguagesLoaded(all)
             }
 
             is DictionaryFormEffect.SaveDictionary -> {
                 withContext(io) {
-                    dictionaryUseCase.addDictionary(effect.name, effect.numericCode)
+                    dictionaryUseCase.addDictionary(
+                        name = effect.name,
+                        numericCode = effect.numericCode,
+                        learningLanguage = effect.learningLanguage,
+                        translationLanguage = effect.translationLanguage,
+                    )
                 }
                 DictionaryFormMsg.DictionarySaved
             }
 
             is DictionaryFormEffect.UpdateDictionary -> {
                 withContext(io) {
-                    dictionaryUseCase.updateDictionary(effect.id, effect.name, effect.numericCode)
+                    dictionaryUseCase.updateDictionary(
+                        id = effect.id,
+                        name = effect.name,
+                        numericCode = effect.numericCode,
+                        learningLanguage = effect.learningLanguage,
+                        translationLanguage = effect.translationLanguage,
+                    )
                 }
                 DictionaryFormMsg.DictionarySaved
             }

@@ -1,5 +1,6 @@
 package me.apomazkin.core_db_impl.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
@@ -17,6 +18,15 @@ data class DictionaryDb(
         val name: String = "",
         val addDate: Date,
         val changeDate: Date? = null,
+        // IS525: языки словаря — код с региональным вариантом («es-MX», «ru»),
+        // обязательные. DEFAULT 'en' в схеме — страховка SQLite (NOT NULL
+        // без DEFAULT через ALTER TABLE не добавить) и зеркало правила «нет
+        // флага — английский»; значение по умолчанию в Kotlin — для тестовых
+        // конструкций, код приложения пишет языки явно (DictionaryApi).
+        @ColumnInfo(name = "learning_language", defaultValue = "en")
+        val learningLanguage: String = "en",
+        @ColumnInfo(name = "translation_language", defaultValue = "en")
+        val translationLanguage: String = "en",
 )
 
 fun DictionaryDb.toApiEntity() = DictionaryApiEntity(
@@ -25,6 +35,8 @@ fun DictionaryDb.toApiEntity() = DictionaryApiEntity(
         name = name,
         addDate = addDate,
         changeDate = changeDate,
+        learningLanguage = learningLanguage,
+        translationLanguage = translationLanguage,
 )
 
 fun List<DictionaryDb>.toApiEntity() = map { it.toApiEntity() }

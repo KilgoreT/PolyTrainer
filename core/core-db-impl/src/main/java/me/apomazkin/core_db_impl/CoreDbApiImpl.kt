@@ -150,7 +150,12 @@ class CoreDbApiImpl @Inject constructor(
          * Идемпотентность — проверка «(ключ, словарь)» перед вставкой
          * (UNIQUE(system_key) дропнут, spec §11).
          */
-        override suspend fun addDictionary(name: String, numericCode: Int?): Long {
+        override suspend fun addDictionary(
+            name: String,
+            numericCode: Int?,
+            learningLanguage: String,
+            translationLanguage: String,
+        ): Long {
             val now = Date(System.currentTimeMillis())
             return database.useWriterConnection { transactor ->
                 transactor.immediateTransaction {
@@ -159,6 +164,8 @@ class CoreDbApiImpl @Inject constructor(
                             numericCode = numericCode,
                             name = name,
                             addDate = now,
+                            learningLanguage = learningLanguage,
+                            translationLanguage = translationLanguage,
                         )
                     )
                     seedBuiltInsForDictionary(dictId, now)
@@ -248,8 +255,21 @@ class CoreDbApiImpl @Inject constructor(
             return wordDao.getDictionaries().map { it.toApiEntity() }
         }
 
-        override suspend fun updateDictionary(id: Long, name: String, numericCode: Int?) {
-            wordDao.updateDictionary(id, name, numericCode, System.currentTimeMillis())
+        override suspend fun updateDictionary(
+            id: Long,
+            name: String,
+            numericCode: Int?,
+            learningLanguage: String,
+            translationLanguage: String,
+        ) {
+            wordDao.updateDictionary(
+                id = id,
+                name = name,
+                numericCode = numericCode,
+                learningLanguage = learningLanguage,
+                translationLanguage = translationLanguage,
+                changeDate = System.currentTimeMillis(),
+            )
         }
 
         override suspend fun deleteDictionary(id: Long) {

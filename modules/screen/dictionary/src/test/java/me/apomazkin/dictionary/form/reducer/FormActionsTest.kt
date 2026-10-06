@@ -6,7 +6,11 @@ import io.github.kilgoret.mate.NavigationEffect
 import me.apomazkin.dictionary.form.DictionaryFormMsg
 import me.apomazkin.dictionary.form.DictionaryFormReducer
 import me.apomazkin.dictionary.form.DictionaryFormScreenState
+import me.apomazkin.dictionary.form.LanguageTarget
+import me.apomazkin.dictionary.form.applyAllLanguages
+import me.apomazkin.dictionary.form.openLanguagePicker
 import me.apomazkin.dictionary.model.CountryFlagItem
+import me.apomazkin.dictionary.model.LanguageItem
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertNoEffects
@@ -38,17 +42,32 @@ import org.junit.Test
  * 16. Standard: Back on default → Back effect
  * 17. Standard: Back with data → Back effect, state preserved
  * 18. Boundary: Empty → no-op
+ *
+ * IS525, языки:
+ * 19. Save (создание) несёт оба кода языка
+ * 20. Save (правка) несёт оба кода языка
+ * 21. SelectFlag подставляет язык через редьюсер
+ * 22. OpenLanguagePicker открывает окно для цели
+ * 23. CloseLanguagePicker закрывает окно
+ * 24. LanguageQueryChanged фильтрует видимый список
+ * 25. SelectLanguage применяет выбор и закрывает окно
  */
 class FormActionsTest {
 
     private val reducer = DictionaryFormReducer()
+    private val spanish = LanguageItem(tag = "es-ES", name = "Spanish (Spain)")
+    private val mexican = LanguageItem(tag = "es-MX", name = "Spanish (Mexico)")
+    private val english = LanguageItem(tag = "en", name = "English")
+    private val russian = LanguageItem(tag = "ru", name = "Russian")
     private val spainFlag = CountryFlagItem(
         numericCode = 724, countryName = "Spain", flagRes = 100,
         languages = listOf("Spanish", "Catalan"),
+        languageItems = listOf(spanish, LanguageItem(tag = "ca", name = "Catalan")),
     )
     private val mexicoFlag = CountryFlagItem(
         numericCode = 484, countryName = "Mexico", flagRes = 101,
         languages = listOf("Spanish"),
+        languageItems = listOf(mexican),
     )
 
     // === NameChanged ===
@@ -238,6 +257,89 @@ class FormActionsTest {
 
         val effect = result.effects().first() as DictionaryFormEffect.UpdateDictionary
         assertNull("numericCode should be null", effect.numericCode)
+    }
+
+    // === IS525: языки ===
+
+    @Test
+    fun `Save carries both language tags`() {
+        val initial = DictionaryFormScreenState(
+            name = "MX",
+            selectedFlag = mexicoFlag,
+            learningLanguage = mexican,
+            translationLanguage = russian,
+        )
+        val result = reducer.testReduce(initial, DictionaryFormMsg.Save)
+
+        val effect = result.effects().first() as DictionaryFormEffect.SaveDictionary
+        assertEquals("es-MX", effect.learningLanguage)
+        assertEquals("ru", effect.translationLanguage)
+    }
+
+    @Test
+    fun `Save in edit mode carries both language tags`() {
+        val initial = DictionaryFormScreenState(
+            editingDictionaryId = 5,
+            name = "MX",
+            learningLanguage = mexican,
+            translationLanguage = russian,
+        )
+        val result = reducer.testReduce(initial, DictionaryFormMsg.Save)
+
+        val effect = result.effects().first() as DictionaryFormEffect.UpdateDictionary
+        assertEquals("es-MX", effect.learningLanguage)
+        assertEquals("ru", effect.translationLanguage)
+    }
+
+    @Test
+    fun `SelectFlag substitutes language via reducer`() {
+        val initial = DictionaryFormScreenState(noFlagLanguage = english)
+        val result = reducer.testReduce(initial, DictionaryFormMsg.SelectFlag(mexicoFlag))
+
+        assertEquals(mexican, result.state().learningLanguage)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `OpenLanguagePicker opens picker for target`() {
+        val result = reducer.testReduce(
+            DictionaryFormScreenState(),
+            DictionaryFormMsg.OpenLanguagePicker(LanguageTarget.TRANSLATION),
+        )
+
+        assertTrue(result.state().languagePicker.isOpen)
+        assertEquals(LanguageTarget.TRANSLATION, result.state().languagePicker.target)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `CloseLanguagePicker closes picker`() {
+        val opened = DictionaryFormScreenState().openLanguagePicker(LanguageTarget.LEARNING)
+        val result = reducer.testReduce(opened, DictionaryFormMsg.CloseLanguagePicker)
+
+        assertFalse(result.state().languagePicker.isOpen)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `LanguageQueryChanged filters visible languages`() {
+        val opened = DictionaryFormScreenState()
+            .applyAllLanguages(listOf(english, russian))
+            .openLanguagePicker(LanguageTarget.TRANSLATION)
+        val result = reducer.testReduce(opened, DictionaryFormMsg.LanguageQueryChanged("rus"))
+
+        assertEquals(listOf(russian), result.state().languagePicker.visibleLanguages)
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `SelectLanguage applies choice and closes picker`() {
+        val opened = DictionaryFormScreenState().openLanguagePicker(LanguageTarget.TRANSLATION)
+        val result = reducer.testReduce(opened, DictionaryFormMsg.SelectLanguage(russian))
+
+        assertEquals(russian, result.state().translationLanguage)
+        assertFalse(result.state().languagePicker.isOpen)
+        result.assertNoEffects()
     }
 
     // === Back ===

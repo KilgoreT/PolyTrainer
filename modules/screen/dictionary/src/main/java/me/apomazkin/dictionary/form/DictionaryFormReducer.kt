@@ -35,6 +35,8 @@ class DictionaryFormReducer : MateReducer<DictionaryFormScreenState, DictionaryF
                             id = state.editingDictionaryId,
                             name = state.name,
                             numericCode = numericCode,
+                            learningLanguage = state.learningLanguage.tag,
+                            translationLanguage = state.translationLanguage.tag,
                         )
                     )
                 } else {
@@ -42,6 +44,8 @@ class DictionaryFormReducer : MateReducer<DictionaryFormScreenState, DictionaryF
                         DictionaryFormEffect.SaveDictionary(
                             name = state.name,
                             numericCode = numericCode,
+                            learningLanguage = state.learningLanguage.tag,
+                            translationLanguage = state.translationLanguage.tag,
                         )
                     )
                 }
@@ -49,11 +53,31 @@ class DictionaryFormReducer : MateReducer<DictionaryFormScreenState, DictionaryF
 
             is DictionaryFormMsg.Back -> state to setOf(NavigationEffect.Back)
 
+            is DictionaryFormMsg.OpenLanguagePicker -> state
+                .openLanguagePicker(message.target) to emptySet()
+
+            is DictionaryFormMsg.CloseLanguagePicker -> state
+                .closeLanguagePicker() to emptySet()
+
+            is DictionaryFormMsg.LanguageQueryChanged -> state
+                .updateLanguageQuery(message.query) to emptySet()
+
+            is DictionaryFormMsg.SelectLanguage -> state
+                .chooseLanguage(message.item) to emptySet()
+
             is DictionaryFormMsg.FlagsUpdated -> state
                 .updateFlags(message.list) to emptySet()
 
+            is DictionaryFormMsg.LanguagesLoaded -> state
+                .applyAllLanguages(message.all) to emptySet()
+
             is DictionaryFormMsg.DictionaryLoaded -> state
-                .prefillForEdit(message.name, message.flag) to emptySet()
+                .prefillForEdit(
+                    name = message.name,
+                    flag = message.flag,
+                    learningLanguage = message.learningLanguage,
+                    translationLanguage = message.translationLanguage,
+                ) to emptySet()
 
             is DictionaryFormMsg.DictionarySaved -> state to setOf(NavigationEffect.Back)
 

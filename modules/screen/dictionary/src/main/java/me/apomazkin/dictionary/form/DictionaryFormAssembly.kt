@@ -29,26 +29,35 @@ object DictionaryFormAssembly {
         io: CoroutineDispatcher = Dispatchers.IO,
         coroutineScope: CoroutineScope,
         observers: List<MateObserver<Any?, Any?, Effect>> = emptyList(),
-    ): Mate<DictionaryFormScreenState, DictionaryFormMsg, Effect> = Mate(
-        initState = DictionaryFormScreenState(
-            editingDictionaryId = editingDictionaryId,
-        ),
-        initEffects = if (editingDictionaryId != null) {
-            setOf(DictionaryFormEffect.LoadDictionary(editingDictionaryId))
-        } else {
-            emptySet()
-        },
-        coroutineScope = coroutineScope,
-        reducer = DictionaryFormReducer(),
-        effectHandlers = listOf(
-            DictionaryFormEffectHandler(dictionaryUseCase = useCase, io = io),
-            FlagFilterEffectHandler(dictionaryUseCase = useCase),
-            navigationHandler,
-        ),
-        subscriptions = { it.subscriptions() },
-        subscriptionHandlers = listOf(
-            DictionaryFormSubHandler(dictionaryUseCase = useCase),
-        ),
-        observers = observers,
-    )
+    ): Mate<DictionaryFormScreenState, DictionaryFormMsg, Effect> {
+        // IS525: языки есть с первого кадра — словарь без флага английский,
+        // перевод — язык телефона; полный список языков догружается эффектом.
+        val defaults = useCase.languageDefaults()
+        return Mate(
+            initState = DictionaryFormScreenState(
+                editingDictionaryId = editingDictionaryId,
+                learningLanguage = defaults.noFlag,
+                translationLanguage = defaults.translation,
+                noFlagLanguage = defaults.noFlag,
+            ),
+            initEffects = buildSet {
+                add(DictionaryFormEffect.LoadLanguages)
+                if (editingDictionaryId != null) {
+                    add(DictionaryFormEffect.LoadDictionary(editingDictionaryId))
+                }
+            },
+            coroutineScope = coroutineScope,
+            reducer = DictionaryFormReducer(),
+            effectHandlers = listOf(
+                DictionaryFormEffectHandler(dictionaryUseCase = useCase, io = io),
+                FlagFilterEffectHandler(dictionaryUseCase = useCase),
+                navigationHandler,
+            ),
+            subscriptions = { it.subscriptions() },
+            subscriptionHandlers = listOf(
+                DictionaryFormSubHandler(dictionaryUseCase = useCase),
+            ),
+            observers = observers,
+        )
+    }
 }
