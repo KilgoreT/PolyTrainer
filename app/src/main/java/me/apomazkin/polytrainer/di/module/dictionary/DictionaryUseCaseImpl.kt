@@ -11,15 +11,21 @@ import me.apomazkin.dictionary.DictionaryUseCase
 import me.apomazkin.dictionary.model.CountryFlagItem
 import me.apomazkin.dictionary.model.DictionaryItem
 import me.apomazkin.dictionary.model.DictionaryListItem
+import me.apomazkin.dictionary.model.LanguageDefaults
+import me.apomazkin.dictionary.model.LanguageItem
+import me.apomazkin.flags.CountryInfo
 import me.apomazkin.flags.CountryProvider
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
+import java.text.Collator
+import java.util.Locale
 import javax.inject.Inject
 
 class DictionaryUseCaseImpl @Inject constructor(
     private val dictionaryApi: CoreDbApi.DictionaryApi,
     private val countryProvider: CountryProvider,
     private val prefsProvider: PrefsProvider,
+    private val languageRules: DictionaryLanguageRules,
 ) : DictionaryUseCase {
 
     private val allFlags: List<CountryFlagItem> by lazy { loadAllFlags() }
@@ -47,14 +53,36 @@ class DictionaryUseCaseImpl @Inject constructor(
         }
     }
 
-    override suspend fun addDictionary(name: String, numericCode: Int?): Long {
-        val id = dictionaryApi.addDictionary(name, numericCode)
+    override suspend fun addDictionary(
+        name: String,
+        numericCode: Int?,
+        learningLanguage: String,
+        translationLanguage: String,
+    ): Long {
+        val id = dictionaryApi.addDictionary(
+            name = name,
+            numericCode = numericCode,
+            learningLanguage = learningLanguage,
+            translationLanguage = translationLanguage,
+        )
         setCurrentDictionary(id)
         return id
     }
 
-    override suspend fun updateDictionary(id: Long, name: String, numericCode: Int?) {
-        dictionaryApi.updateDictionary(id, name, numericCode)
+    override suspend fun updateDictionary(
+        id: Long,
+        name: String,
+        numericCode: Int?,
+        learningLanguage: String,
+        translationLanguage: String,
+    ) {
+        dictionaryApi.updateDictionary(
+            id = id,
+            name = name,
+            numericCode = numericCode,
+            learningLanguage = learningLanguage,
+            translationLanguage = translationLanguage,
+        )
     }
 
     override suspend fun deleteDictionary(id: Long) {
@@ -97,26 +125,90 @@ class DictionaryUseCaseImpl @Inject constructor(
             id = entity.id,
             name = entity.name,
             numericCode = entity.numericCode,
+            learningLanguage = storedLanguageItem(entity.learningLanguage, entity.numericCode),
+            translationLanguage = storedLanguageItem(entity.translationLanguage, null),
         )
     }
 
+    /**
+     * Флаг по коду страны — и для стран вне списка словаря (Ф3): у юзера
+     * может быть словарь с флагом необитаемой территории, при правке он
+     * должен остаться.
+     */
     override fun findFlag(numericCode: Int): CountryFlagItem? {
         return allFlags.firstOrNull { it.numericCode == numericCode }
+            ?: countryProvider.getAllCountries()
+                .firstOrNull { it.numericCode == numericCode }
+                ?.let(::flagItem)
     }
 
+    override fun languageDefaults(): LanguageDefaults = LanguageDefaults(
+        noFlag = languageItem(languageRules.learningLanguageFor(null)),
+        translation = languageItem(languageRules.translationLanguage()),
+    )
+
+    /**
+     * Полный список для выбора. Ф4: коды без названия на устройстве
+     * отбрасываются; устаревшие коды (`iw`, `in`, `ji`), которые
+     * `getISOLanguages` ещё отдаёт, — тоже, иначе иврит в списке дважды.
+     */
+    override fun allLanguages(): List<LanguageItem> {
+        val deviceLocale = Locale.getDefault()
+        val collator = Collator.getInstance(deviceLocale)
+        return Locale.getISOLanguages()
+            .filter { tag -> Locale.forLanguageTag(tag).toLanguageTag() == tag }
+            .mapNotNull { tag ->
+                androidLanguageName(tag, deviceLocale)?.let { name -> LanguageItem(tag, name) }
+            }
+            .sortedWith(compareBy(collator) { it.name })
+    }
+
+    /** Название языка на языке телефона, с заглавной буквы; null — Android код не знает. */
+    private fun androidLanguageName(tag: String, deviceLocale: Locale): String? {
+        val name = Locale.forLanguageTag(tag).getDisplayName(deviceLocale)
+        if (name.isEmpty() || name.equals(tag, ignoreCase = true)) return null
+        return name.replaceFirstChar { it.titlecase(deviceLocale) }
+    }
+
+    /** Код → элемент: название от Android, иначе [fallbackName] (английское из библиотеки). */
+    private fun languageItem(tag: String, fallbackName: String = tag): LanguageItem {
+        val name = androidLanguageName(tag, Locale.getDefault()) ?: fallbackName
+        return LanguageItem(tag = tag, name = name)
+    }
+
+    /**
+     * Сохранённый код → элемент. Для кода, которого Android не знает
+     * (`cmn`, `tet`), запасное название ищется среди языков страны флага —
+     * то же, что показывалось при подстановке по флагу.
+     */
+    private fun storedLanguageItem(tag: String, numericCode: Int?): LanguageItem {
+        val fallbackName = numericCode
+            ?.let { countryProvider.getCountryLanguages(it) }
+            ?.firstOrNull { it.tag == tag }
+            ?.englishName
+            ?: tag
+        return languageItem(tag = tag, fallbackName = fallbackName)
+    }
+
+    /** Флаги для словаря — страны с языком (Ф3), языки страны уже без семей (Ф1, Ф2). */
     private fun loadAllFlags(): List<CountryFlagItem> {
-        val deviceLocale = java.util.Locale.getDefault()
-        return countryProvider.getAllCountries().map { country ->
-            val localized = java.util.Locale("", country.alpha2)
-                .getDisplayCountry(deviceLocale)
-            CountryFlagItem(
-                numericCode = country.numericCode,
-                countryName = country.name,
-                localizedName = localized,
-                flagRes = countryProvider.getFlagRes(country.numericCode),
-                languages = countryProvider.getLanguagesForCountry(country.numericCode),
-            )
-        }
+        return countryProvider.getDictionaryCountries().map(::flagItem)
+    }
+
+    private fun flagItem(country: CountryInfo): CountryFlagItem {
+        val deviceLocale = Locale.getDefault()
+        val localized = Locale("", country.alpha2)
+            .getDisplayCountry(deviceLocale)
+        return CountryFlagItem(
+            numericCode = country.numericCode,
+            countryName = country.name,
+            localizedName = localized,
+            flagRes = countryProvider.getFlagRes(country.numericCode),
+            languages = countryProvider.getLanguagesForCountry(country.numericCode),
+            languageItems = countryProvider
+                .getCountryLanguages(country.numericCode)
+                .map { languageItem(tag = it.tag, fallbackName = it.englishName) },
+        )
     }
 
     private fun filterFlags(

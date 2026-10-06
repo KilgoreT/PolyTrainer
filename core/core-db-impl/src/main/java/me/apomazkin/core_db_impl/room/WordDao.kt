@@ -70,8 +70,19 @@ interface WordDao {
     @Query("SELECT * FROM dictionaries WHERE id = :id")
     suspend fun getDictionaryById(id: Long): DictionaryDb?
 
-    @Query("UPDATE dictionaries SET name = :name, numericCode = :numericCode, changeDate = :changeDate WHERE id = :id")
-    suspend fun updateDictionary(id: Long, name: String, numericCode: Int?, changeDate: Long)
+    @Query(
+        "UPDATE dictionaries SET name = :name, numericCode = :numericCode, " +
+            "learning_language = :learningLanguage, translation_language = :translationLanguage, " +
+            "changeDate = :changeDate WHERE id = :id"
+    )
+    suspend fun updateDictionary(
+        id: Long,
+        name: String,
+        numericCode: Int?,
+        learningLanguage: String,
+        translationLanguage: String,
+        changeDate: Long,
+    )
 
     @Query("DELETE FROM dictionaries WHERE id = :id")
     suspend fun deleteDictionary(id: Long)

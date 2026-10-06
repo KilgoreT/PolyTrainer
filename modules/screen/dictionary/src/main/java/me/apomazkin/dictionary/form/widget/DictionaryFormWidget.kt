@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import me.apomazkin.dictionary.R
 import me.apomazkin.dictionary.form.DictionaryFormMsg
 import me.apomazkin.dictionary.form.DictionaryFormScreenState
+import me.apomazkin.dictionary.form.LanguageTarget
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.preview.PreviewWidget
 
@@ -71,6 +72,19 @@ internal fun DictionaryFormWidget(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        LanguageSummaryWidget(
+            learningName = formState.learningLanguage.name,
+            translationName = formState.translationLanguage.name,
+            onLearningClick = {
+                sendMsg(DictionaryFormMsg.OpenLanguagePicker(LanguageTarget.LEARNING))
+            },
+            onTranslationClick = {
+                sendMsg(DictionaryFormMsg.OpenLanguagePicker(LanguageTarget.TRANSLATION))
+            },
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         val buttonTextRes = if (formState.editingDictionaryId != null) {
             R.string.dictionary_save
         } else {
@@ -84,6 +98,15 @@ internal fun DictionaryFormWidget(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    if (formState.languagePicker.isOpen) {
+        LanguagePickerDialog(
+            state = formState.languagePicker,
+            onQueryChange = { sendMsg(DictionaryFormMsg.LanguageQueryChanged(it)) },
+            onSelect = { sendMsg(DictionaryFormMsg.SelectLanguage(it)) },
+            onDismiss = { sendMsg(DictionaryFormMsg.CloseLanguagePicker) },
+        )
     }
 }
 

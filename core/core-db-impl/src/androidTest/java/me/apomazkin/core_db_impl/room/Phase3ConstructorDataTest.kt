@@ -91,7 +91,7 @@ class Phase3ConstructorDataTest {
 
     private fun fixture() = runBlocking {
         val now = Date(0L)
-        dictId = dictionaryApi.addDictionary("ES", null)
+        dictId = dictionaryApi.addDictionary("ES", null, "es", "ru")
         baseId = db.componentTypeDao().insert(typeDb("Base", dependsOnTypeId = null, now = now))
         childId = db.componentTypeDao().insert(typeDb("Child", dependsOnTypeId = baseId, now = now))
         grandchildId = db.componentTypeDao().insert(typeDb("Grandchild", dependsOnTypeId = childId, now = now))

@@ -66,7 +66,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
-          script: ./gradlew :core:core-db-impl:connectedDebugAndroidTest :modules:screen:quiz:chat:connectedDebugAndroidTest --continue
+          script: ./gradlew :core:core-db-impl:connectedDebugAndroidTest :modules:screen:quiz:chat:connectedDebugAndroidTest :modules:library:flags:connectedDebugAndroidTest --continue
 
       - name: Upload Android Test Reports
         if: ${{ always() }}

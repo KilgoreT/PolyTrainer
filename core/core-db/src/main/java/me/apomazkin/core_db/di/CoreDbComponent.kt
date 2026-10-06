@@ -3,6 +3,7 @@ package me.apomazkin.core_db.di
 import android.content.Context
 import dagger.Component
 import me.apomazkin.core_db_api.CoreDbProvider
+import me.apomazkin.core_db_api.entity.DictionaryLanguageDefaults
 import me.apomazkin.core_db_api.entity.ReservedGroupNames
 import me.apomazkin.core_db_impl.di.RoomComponent
 import me.apomazkin.logger.LexemeLogger
@@ -27,13 +28,20 @@ interface CoreDbComponent : CoreDbProvider {
             context: Context,
             logger: LexemeLogger,
             reservedGroupNames: ReservedGroupNames,
+            dictionaryLanguageDefaults: DictionaryLanguageDefaults,
         ): CoreDbComponent {
             if (!::coreDbComponent.isInitialized) {
                 synchronized(CoreDbComponent::class) {
                     if (!::coreDbComponent.isInitialized) {
+                        val roomComponent = RoomComponent.get(
+                            context = context,
+                            logger = logger,
+                            reservedGroupNames = reservedGroupNames,
+                            dictionaryLanguageDefaults = dictionaryLanguageDefaults,
+                        )
                         coreDbComponent = DaggerCoreDbComponent
                             .factory()
-                            .create(RoomComponent.get(context, logger, reservedGroupNames))
+                            .create(roomComponent)
                     }
                 }
             }

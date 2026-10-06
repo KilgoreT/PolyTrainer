@@ -77,6 +77,9 @@
     <string name="dictionary_form_subtitle">Pick a language and name your dictionary</string>
     <string name="dictionary_flags_not_found">Nothing found</string>
     <string name="dictionary_edit_title">Edit dictionary</string>
+    <string name="dictionary_language_learning_title">Language you learn</string>
+    <string name="dictionary_language_translation_title">Translation language</string>
+    <string name="dictionary_language_search_hint">Search language…</string>
 
     <!--MAIN SCREEN-->
     <string name="item_title_vocabulary">Dictionary</string>

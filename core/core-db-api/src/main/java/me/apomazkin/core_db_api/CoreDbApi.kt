@@ -69,11 +69,23 @@ interface CoreDbApi {
      */
 
     interface DictionaryApi {
-        suspend fun addDictionary(name: String, numericCode: Int? = null): Long
+        /** IS525: языки обязательны — словарь без них создать нельзя. */
+        suspend fun addDictionary(
+            name: String,
+            numericCode: Int?,
+            learningLanguage: String,
+            translationLanguage: String,
+        ): Long
         suspend fun getDictionary(numericCode: Int): DictionaryApiEntity?
         suspend fun getDictionaryById(id: Long): DictionaryApiEntity?
         suspend fun getDictionaryList(): List<DictionaryApiEntity>
-        suspend fun updateDictionary(id: Long, name: String, numericCode: Int?)
+        suspend fun updateDictionary(
+            id: Long,
+            name: String,
+            numericCode: Int?,
+            learningLanguage: String,
+            translationLanguage: String,
+        )
         suspend fun deleteDictionary(id: Long)
         fun flowDictionaryList(): Flow<List<DictionaryApiEntity>>
     }
