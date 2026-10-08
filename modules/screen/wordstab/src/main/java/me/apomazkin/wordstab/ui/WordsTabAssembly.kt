@@ -9,6 +9,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.mate.ErrorLoggingObserver
+import me.apomazkin.wordstab.LogTags
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.DatasourceEffectHandler
@@ -61,6 +63,9 @@ object WordsTabAssembly {
         subscriptionHandlers = listOf(
             WordsTabSubHandler(useCase = useCase),
         ),
-        observers = observers,
+        // IS527: стектрейсы упавших эффектов (RecognizeWords — RecoverableEffect)
+        // в лог, как у quiztab/groupstab; без наблюдателя причина провала
+        // видна только как recovery-Msg.
+        observers = observers + ErrorLoggingObserver(logger, LogTags.VOCAB),
     )
 }

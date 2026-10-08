@@ -961,4 +961,136 @@ class WordsTabReducerKtTest {
         assertEquals("Input must reset", "", result.state().addWordDialogState.wordValue)
         result.assertSingleEffect<WordsNavigationEffect.OpenWordCard>("Navigation must still fire")
     }
+
+    // ===== IS527: слова с фото =====
+
+    @Test
+    fun `should open photo source chooser without effects`() {
+        val result = reducer.testReduce(createTestState(), Msg.OpenPhotoSourceChooser)
+
+        assertTrue(result.state().photoWordsState.isOpen)
+        assertTrue(result.state().photoWordsState.isChoosingSource)
+        result.assertNoEffects("Opening chooser must not emit effects")
+    }
+
+    @Test
+    fun `should start recognizing and emit RecognizeWords with new request id`() {
+        val initialState = createTestState().showPhotoSourceChooser()
+
+        val result = reducer.testReduce(initialState, Msg.PhotoPicked(uri = "content://photo/1"))
+
+        assertTrue(result.state().photoWordsState.isRecognizing)
+        assertEquals(2L, result.state().photoWordsState.requestId)
+        result.assertEffects(
+            setOf(DatasourceEffect.RecognizeWords(uri = "content://photo/1", requestId = 2L))
+        )
+    }
+
+    @Test
+    fun `should accept picked photo even when dialog is closed`() {
+        val initialState = createTestState()
+
+        val result = reducer.testReduce(initialState, Msg.PhotoPicked(uri = "content://photo/2"))
+
+        assertTrue(result.state().photoWordsState.isOpen)
+        assertTrue(result.state().photoWordsState.isRecognizing)
+    }
+
+    @Test
+    fun `should return to chooser when pick cancelled while dialog is open`() {
+        val initialState = createTestState().showPhotoSourceChooser()
+
+        val result = reducer.testReduce(initialState, Msg.PhotoPickCancelled)
+
+        assertTrue(result.state().photoWordsState.isChoosingSource)
+        result.assertNoEffects("Cancel must not emit effects")
+    }
+
+    @Test
+    fun `should ignore pick cancel when dialog is closed`() {
+        val initialState = createTestState()
+
+        val result = reducer.testReduce(initialState, Msg.PhotoPickCancelled)
+
+        assertFalse(result.state().photoWordsState.isOpen)
+        result.assertNoEffects("Cancel after process death must be silent")
+    }
+
+    @Test
+    fun `should show recognized words of current request`() {
+        val initialState = createTestState().startRecognizing()
+
+        val result = reducer.testReduce(
+            initialState,
+            Msg.WordsRecognized(words = listOf("hello"), requestId = 1L),
+        )
+
+        assertEquals(listOf("hello"), result.state().photoWordsState.words)
+        assertFalse(result.state().photoWordsState.isRecognizing)
+    }
+
+    @Test
+    fun `should ignore recognized words when dialog already closed`() {
+        val initialState = createTestState().startRecognizing().hidePhotoWords()
+
+        val result = reducer.testReduce(
+            initialState,
+            Msg.WordsRecognized(words = listOf("hello"), requestId = 1L),
+        )
+
+        assertFalse(result.state().photoWordsState.isOpen)
+        result.assertNoEffects("Late result must be ignored silently")
+    }
+
+    @Test
+    fun `should ignore recognized words of previous request when new dialog is open`() {
+        val initialState = createTestState()
+            .startRecognizing()
+            .hidePhotoWords()
+            .showPhotoSourceChooser()
+
+        val result = reducer.testReduce(
+            initialState,
+            Msg.WordsRecognized(words = listOf("stale"), requestId = 1L),
+        )
+
+        assertTrue(result.state().photoWordsState.isChoosingSource)
+        assertTrue(result.state().photoWordsState.words.isEmpty())
+    }
+
+    @Test
+    fun `should show error when recognition of current request failed`() {
+        val initialState = createTestState().startRecognizing()
+
+        val result = reducer.testReduce(
+            initialState,
+            Msg.RecognitionFailed(errorRes = 5, requestId = 1L),
+        )
+
+        assertEquals(5, result.state().photoWordsState.errorRes)
+        assertFalse(result.state().photoWordsState.isRecognizing)
+    }
+
+    @Test
+    fun `should show camera error on chooser step with current request id`() {
+        val initialState = createTestState().showPhotoSourceChooser()
+
+        val result = reducer.testReduce(
+            initialState,
+            Msg.RecognitionFailed(errorRes = 6, requestId = 1L),
+        )
+
+        assertEquals(6, result.state().photoWordsState.errorRes)
+        assertFalse(result.state().photoWordsState.isChoosingSource)
+    }
+
+    @Test
+    fun `should close photo words dialog`() {
+        val initialState = createTestState().startRecognizing().showRecognizedWords(listOf("hello"))
+
+        val result = reducer.testReduce(initialState, Msg.ClosePhotoWords)
+
+        assertEquals(PhotoWordsState(requestId = 1L), result.state().photoWordsState)
+        result.assertNoEffects("Closing must not emit effects")
+    }
 }

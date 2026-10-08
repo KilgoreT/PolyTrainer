@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.whiteColor
@@ -23,6 +24,7 @@ import me.apomazkin.ui.R
 import me.apomazkin.ui.preview.PreviewWidget
 
 private const val DEFAULT_CORNER_RADIUS = 16
+private val DEFAULT_FAB_SIZE = 56.dp
 
 /**
  * FAB Widget with custom color.
@@ -34,12 +36,13 @@ fun LexemeFab(
     enabled: Boolean = true,
     iconColor: Color = whiteColor,
     cornerRadius: Int = DEFAULT_CORNER_RADIUS,
+    size: Dp = DEFAULT_FAB_SIZE,
     contentDescription: String = "Floating action button",
     onClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier
-            .size(56.dp)
+            .size(size)
             .background(
                 color = color,
                 shape = RoundedCornerShape(cornerRadius.dp)

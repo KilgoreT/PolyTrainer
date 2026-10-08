@@ -1,5 +1,6 @@
 package me.apomazkin.wordstab.logic
 
+import androidx.annotation.StringRes
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
@@ -106,6 +107,36 @@ sealed interface Msg {
      * @param targetWord The word to toggle selection for.
      */
     data class ToggleSelection(val targetWord: WordInfo) : Msg
+
+    /** IS527: кнопка-камера — открыть выбор источника фото. */
+    data object OpenPhotoSourceChooser : Msg
+
+    /**
+     * IS527: камера или галерея вернули снимок. Uri строкой — Android-классы
+     * в unit-тестах модуля заглушены; в Uri превращает исполнитель эффекта.
+     */
+    data class PhotoPicked(val uri: String) : Msg
+
+    /** IS527: камера или галерея закрыты без снимка — назад к выбору источника. */
+    data object PhotoPickCancelled : Msg
+
+    /**
+     * IS527: распознавание завершено, слова уже отфильтрованы.
+     * [requestId] — чей это результат (см. PhotoWordsState.requestId).
+     */
+    data class WordsRecognized(
+            val words: List<String>,
+            val requestId: Long,
+    ) : Msg
+
+    /** IS527: распознавание упало или камера не запустилась — текст ошибки ресурсом. */
+    data class RecognitionFailed(
+            @StringRes val errorRes: Int,
+            val requestId: Long,
+    ) : Msg
+
+    /** IS527: закрыть диалог слов с фото на любом шаге. */
+    data object ClosePhotoWords : Msg
 
     /**
      * Message indicating no operation is needed after an effect.

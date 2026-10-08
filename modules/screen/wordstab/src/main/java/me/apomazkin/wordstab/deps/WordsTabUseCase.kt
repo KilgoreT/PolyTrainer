@@ -1,8 +1,10 @@
 package me.apomazkin.wordstab.deps
 
+import android.net.Uri
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
+import me.apomazkin.textrecognition.RecognizedText
 import me.apomazkin.wordrow.entity.TermUiItem
 
 interface WordsTabUseCase {
@@ -20,4 +22,7 @@ interface WordsTabUseCase {
     suspend fun addWord(value: String): Long
     suspend fun deleteWord(wordId: Long)
     suspend fun updateWord(id: Long, value: String): Boolean
+
+    /** IS527: текст со снимка (ML Kit на устройстве). */
+    suspend fun recognizeText(uri: Uri): RecognizedText
 }

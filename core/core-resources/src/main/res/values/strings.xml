@@ -126,6 +126,17 @@
     <string name="vocabulary_delete_word">Delete word?</string>
     <string name="vocabulary_delete_words">Delete words?</string>
 
+    <!-- IS527: words from photo -->
+    <string name="photo_words_title">Words from photo</string>
+    <string name="photo_words_camera">Camera</string>
+    <string name="photo_words_gallery">Gallery</string>
+    <string name="photo_words_recognizing">Recognizing…</string>
+    <string name="photo_words_found">Words: %1$d</string>
+    <string name="photo_words_empty">No words found</string>
+    <string name="photo_words_close">Close</string>
+    <string name="photo_words_error_camera">Camera is not available</string>
+    <string name="photo_words_error_recognition">Could not recognize text</string>
+
     <!--WordCard-->
     <string name="word_card_added_field">Added</string>
     <string name="word_card_save_title">Save</string>

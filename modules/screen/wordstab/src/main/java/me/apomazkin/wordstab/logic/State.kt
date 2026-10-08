@@ -1,5 +1,6 @@
 package me.apomazkin.wordstab.logic
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.paging.PagingData
 import androidx.paging.map
@@ -24,6 +25,7 @@ data class WordsTabState(
         val addWordDialogState: AddWordDialogState = AddWordDialogState(),
         val snackbarState: SnackbarState = SnackbarState(),
         val confirmWordDeleteDialogState: ConfirmWordDeleteDialogState = ConfirmWordDeleteDialogState(),
+        val photoWordsState: PhotoWordsState = PhotoWordsState(),
 )
 
 @Immutable
@@ -76,6 +78,24 @@ data class SnackbarState(
 data class ConfirmWordDeleteDialogState(
         val isOpen: Boolean = false,
         val wordIds: Set<WordInfo> = emptySet(),
+)
+
+/**
+ * IS527: диалог «слова с фото» — три шага явными флагами: выбор источника
+ * ([isChoosingSource]) → распознавание ([isRecognizing]) → список
+ * ([words]) или ошибка ([errorRes]). Закрыт — флаги в умолчаниях.
+ * [requestId] растёт на каждое открытие выбора и на каждый снимок и
+ * переживает закрытие диалога: результат распознавания с чужим id —
+ * устаревший, он отбрасывается (эффект mate при закрытии не отменяется).
+ */
+@Immutable
+data class PhotoWordsState(
+        val isOpen: Boolean = false,
+        val isChoosingSource: Boolean = false,
+        val isRecognizing: Boolean = false,
+        val words: List<String> = emptyList(),
+        @StringRes val errorRes: Int? = null,
+        val requestId: Long = 0L,
 )
 
 fun WordsTabState.showLoading(): WordsTabState =
@@ -278,6 +298,58 @@ fun WordsTabState.hideConfirmDeleteDialog(): WordsTabState {
             )
     )
 }
+
+/**
+ * ###### PHOTO WORDS DIALOG (IS527) ######
+ */
+/** Новый диалог — новый id: результат прежнего снимка на шаг выбора не попадёт. */
+fun WordsTabState.showPhotoSourceChooser(): WordsTabState = this.copy(
+        photoWordsState = PhotoWordsState(
+                isOpen = true,
+                isChoosingSource = true,
+                requestId = photoWordsState.requestId + 1,
+        )
+)
+
+/** Новый снимок — новый id: результаты прежних распознаваний устарели. */
+fun WordsTabState.startRecognizing(): WordsTabState = this.copy(
+        photoWordsState = PhotoWordsState(
+                isOpen = true,
+                isRecognizing = true,
+                requestId = photoWordsState.requestId + 1,
+        )
+)
+
+fun WordsTabState.showRecognizedWords(
+        words: List<String>,
+): WordsTabState = this.copy(
+        photoWordsState = PhotoWordsState(
+                isOpen = true,
+                words = words,
+                requestId = photoWordsState.requestId,
+        )
+)
+
+fun WordsTabState.showRecognitionError(
+        @StringRes errorRes: Int,
+): WordsTabState = this.copy(
+        photoWordsState = PhotoWordsState(
+                isOpen = true,
+                errorRes = errorRes,
+                requestId = photoWordsState.requestId,
+        )
+)
+
+fun WordsTabState.hidePhotoWords(): WordsTabState = this.copy(
+        photoWordsState = PhotoWordsState(
+                requestId = photoWordsState.requestId,
+        )
+)
+
+/** Результат относится к текущему открытому диалогу, а не к прошлому снимку. */
+fun WordsTabState.isCurrentPhotoRequest(
+        requestId: Long,
+): Boolean = photoWordsState.isOpen && photoWordsState.requestId == requestId
 
 fun <STATE, EFFECT> STATE.choose(
         check: (STATE) -> Boolean,

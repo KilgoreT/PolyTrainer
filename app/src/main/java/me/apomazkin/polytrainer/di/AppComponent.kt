@@ -22,6 +22,7 @@ import me.apomazkin.polytrainer.di.module.componentsmanager.ComponentsManagerMod
 import me.apomazkin.polytrainer.di.module.dictionary.DictionaryModule
 import me.apomazkin.polytrainer.di.module.dictionarytab.WordsTabModule
 import me.apomazkin.polytrainer.di.module.flags.CountryProviderModule
+import me.apomazkin.polytrainer.di.module.textrecognition.TextRecognizerModule
 import me.apomazkin.polytrainer.di.module.perdictionarycomponents.PerDictionaryComponentsModule
 import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
 import me.apomazkin.polytrainer.di.module.quizchat.QuizChatModule
@@ -101,6 +102,7 @@ interface AppComponent {
         ComponentsManagerModule::class,
         PerDictionaryComponentsModule::class,
         CountryProviderModule::class,
+        TextRecognizerModule::class,
         NavigationModule::class,
         PrefsProviderModule::class,
         ResourceModule::class,

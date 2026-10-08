@@ -29,7 +29,9 @@ import me.apomazkin.settingstab.WebViewScreen
 import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.stattab.StatisticViewModel
 import me.apomazkin.stattab.deps.StatisticUiDeps
+import me.apomazkin.polytrainer.BuildConfig
 import me.apomazkin.vocabulary.FabSpec
+import me.apomazkin.vocabulary.SecondaryFabSpec
 import me.apomazkin.vocabulary.TabSpec
 import me.apomazkin.vocabulary.VocabularyTab
 import me.apomazkin.vocabulary.deps.VocabularyHostUiDeps
@@ -89,6 +91,17 @@ class CompositionRootImpl(
                         visible = { words.isFabVisible.value },
                         onClick = words::onFabClick,
                     ),
+                    // IS527: камера над «+» — слова с фото. Только в dev-сборке,
+                    // пока не готов сквозной путь до добавления слов (Д12 IS523).
+                    secondaryFab = if (BuildConfig.DEBUG) {
+                        SecondaryFabSpec(
+                            iconRes = words.photoFabIconRes,
+                            contentDescriptionRes = words.photoFabDescriptionRes,
+                            onClick = words::onPhotoFabClick,
+                        )
+                    } else {
+                        null
+                    },
                     // words словарь-слот игнорирует — резолвит сам (В3/D9.2).
                     content = { snackbarHostState, _ -> words.Content(snackbarHostState) },
                 ),

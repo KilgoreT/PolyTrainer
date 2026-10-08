@@ -74,6 +74,9 @@ class WordsTabUseCaseImplTest {
                 dictionaryApi = dictionaryApi,
                 prefsProvider = prefsProvider,
             ),
+            // IS527: распознавание в этих тестах не трогается.
+            textRecognizer = mockk(),
+            appContext = mockk(),
         )
     }
 

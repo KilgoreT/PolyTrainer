@@ -2,6 +2,7 @@ package me.apomazkin.wordstab.logic
 
 import me.apomazkin.wordstab.logic.DatasourceEffect.CreateWord
 import me.apomazkin.wordstab.logic.DatasourceEffect.LoadTermFlow
+import me.apomazkin.wordstab.logic.DatasourceEffect.RecognizeWords
 import me.apomazkin.wordstab.logic.DatasourceEffect.RemoveWords
 import me.apomazkin.wordstab.logic.DatasourceEffect.UpdateWord
 import me.apomazkin.wordstab.logic.processor.processUiMessage
@@ -135,6 +136,50 @@ class WordsTabReducer(
                 RemoveWords(wordSet = message.wordIds),
                 UiEffect.ShowNotification(message = "Слово удалено")
             )
+
+            // IS527: диалог «слова с фото» в три шага — выбор источника,
+            // распознавание, список (PhotoWordsState).
+            Msg.OpenPhotoSourceChooser -> state
+                .showPhotoSourceChooser() to setOf()
+
+            // Принимается и при закрытом диалоге: система могла убить
+            // процесс, пока была открыта камера, — снимок приходит в свежее
+            // состояние и диалог открывается сразу на шаге распознавания.
+            // Эффект несёт id нового запроса — он выдан в startRecognizing().
+            is Msg.PhotoPicked -> state
+                .startRecognizing()
+                .let { next ->
+                    next to setOf(
+                        RecognizeWords(
+                            uri = message.uri,
+                            requestId = next.photoWordsState.requestId,
+                        )
+                    )
+                }
+
+            // Отмена в камере после смерти процесса не открывает диалог сама.
+            Msg.PhotoPickCancelled -> state.choose(
+                check = { it.photoWordsState.isOpen },
+                yes = { it.showPhotoSourceChooser() to setOf() },
+                no = { it to emptySet() },
+            )
+
+            // Результат чужого или закрытого запроса (юзер закрыл диалог во
+            // время распознавания, снял новое фото) отбрасывается.
+            is Msg.WordsRecognized -> state.choose(
+                check = { it.isCurrentPhotoRequest(message.requestId) },
+                yes = { it.showRecognizedWords(message.words) to setOf() },
+                no = { it to emptySet() },
+            )
+
+            is Msg.RecognitionFailed -> state.choose(
+                check = { it.isCurrentPhotoRequest(message.requestId) },
+                yes = { it.showRecognitionError(message.errorRes) to setOf() },
+                no = { it to emptySet() },
+            )
+
+            Msg.ClosePhotoWords -> state
+                .hidePhotoWords() to setOf()
 
             is UiMsg -> processUiMessage(state, message)
             Msg.NoOperation -> state to emptySet()

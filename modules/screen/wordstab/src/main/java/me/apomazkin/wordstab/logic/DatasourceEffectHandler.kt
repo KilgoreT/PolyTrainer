@@ -1,16 +1,20 @@
 package me.apomazkin.wordstab.logic
 
+import android.net.Uri
 import androidx.paging.cachedIn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import me.apomazkin.wordstab.R
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.entity.WordInfo
+import me.apomazkin.wordstab.logic.photo.extractWords
 import me.apomazkin.mate.EMPTY_STRING
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateEffectHandler
+import io.github.kilgoret.mate.RecoverableEffect
 import me.apomazkin.mate.LogTags
 import me.apomazkin.logger.LexemeLogger
 
@@ -24,6 +28,22 @@ sealed interface DatasourceEffect : Effect {
     data class UpdateWord(val wordId: Long, val value: String) : DatasourceEffect
 
     data class RemoveWords(val wordSet: Set<WordInfo>) : DatasourceEffect
+
+    /**
+     * IS527: распознать текст на снимке; [uri] строкой, см. Msg.PhotoPicked.
+     * Провал (недекодируемая картинка, ML Kit, OOM) объявлен в типе:
+     * хендлер ошибки не ловит, стектрейс пишет ErrorLoggingObserver.
+     */
+    data class RecognizeWords(
+            val uri: String,
+            val requestId: Long,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.RecognitionFailed(
+                errorRes = R.string.photo_words_error_recognition,
+                requestId = requestId,
+        )
+    }
 }
 
 /**
@@ -90,6 +110,24 @@ class DatasourceEffectHandler(
                     }
                 }
                 Msg.NoOperation
+            }
+
+            // IS527: полный текст по строкам — в лог: по нему на ручниках
+            // сверяется качество ML Kit с фото (в списке видны только слова).
+            // В магазинной сборке DEBUG никуда не уходит (LOG_LEVEL NONE,
+            // CrashlyticsSink пишет только WARNING и ERROR).
+            is DatasourceEffect.RecognizeWords -> withContext(io) {
+                val text = wordstabUseCase.recognizeText(Uri.parse(eff.uri))
+                text.lines.forEachIndexed { index, line ->
+                    logger.d(
+                            tag = me.apomazkin.wordstab.LogTags.VOCAB,
+                            message = "OCR line $index: $line",
+                    )
+                }
+                Msg.WordsRecognized(
+                        words = extractWords(text.words),
+                        requestId = eff.requestId,
+                )
             }
         }
         consumer(msg)

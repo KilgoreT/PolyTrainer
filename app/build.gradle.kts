@@ -142,6 +142,7 @@ dependencies {
     implementation(project("path" to ":modules:widget:component_widgets"))
 
     implementation(project("path" to ":modules:library:flags"))
+    implementation(project("path" to ":modules:library:textrecognition"))
     implementation(project("path" to ":modules:datasource:prefs"))
 
     implementation(project("path" to ":modules:domain:lexeme"))

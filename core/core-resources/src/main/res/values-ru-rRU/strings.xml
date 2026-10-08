@@ -114,6 +114,17 @@
     <string name="vocabulary_delete_word">Удалить слово?</string>
     <string name="vocabulary_delete_words">Удалить слова?</string>
 
+    <!-- IS527: слова с фото -->
+    <string name="photo_words_title">Слова с фото</string>
+    <string name="photo_words_camera">Камера</string>
+    <string name="photo_words_gallery">Галерея</string>
+    <string name="photo_words_recognizing">Распознаю…</string>
+    <string name="photo_words_found">Слов: %1$d</string>
+    <string name="photo_words_empty">Слов не найдено</string>
+    <string name="photo_words_close">Закрыть</string>
+    <string name="photo_words_error_camera">Камера недоступна</string>
+    <string name="photo_words_error_recognition">Не удалось распознать текст</string>
+
     <!--WordCard-->
     <string name="word_card_added_field">Добавлено</string>
     <string name="word_card_save_title">Сохранить</string>

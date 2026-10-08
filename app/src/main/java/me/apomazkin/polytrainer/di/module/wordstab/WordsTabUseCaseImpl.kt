@@ -1,11 +1,15 @@
 package me.apomazkin.polytrainer.di.module.dictionarytab
 
+import android.content.Context
+import android.net.Uri
 import androidx.paging.PagingData
 import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
+import me.apomazkin.textrecognition.RecognizedText
+import me.apomazkin.textrecognition.TextRecognizer
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordrow.entity.toUiItem
@@ -16,6 +20,8 @@ import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import javax.inject.Inject
 
+private const val FILE_PROVIDER_SUFFIX = ".fileprovider"
+
 class WordsTabUseCaseImpl @Inject constructor(
     private val dictionaryApi: CoreDbApi.DictionaryApi,
     private val wordApi: CoreDbApi.WordApi,
@@ -23,7 +29,20 @@ class WordsTabUseCaseImpl @Inject constructor(
     private val prefsProvider: PrefsProvider,
     private val countryProvider: CountryProvider,
     private val currentDictionaryProvider: CurrentDictionaryProvider,
+    private val textRecognizer: TextRecognizer,
+    private val appContext: Context,
 ) : WordsTabUseCase {
+
+    // IS527: распознавание целиком в библиотеке. Снимок камеры (наш
+    // FileProvider) после распознавания не нужен — удаляется в любом исходе;
+    // картинка из галереи не наша, её не трогаем.
+    override suspend fun recognizeText(uri: Uri): RecognizedText = try {
+        textRecognizer.recognize(uri)
+    } finally {
+        if (uri.authority == appContext.packageName + FILE_PROVIDER_SUFFIX) {
+            appContext.contentResolver.delete(uri, null, null)
+        }
+    }
 
     override suspend fun getCurrentDict(): DictUiEntity? {
         prefsProvider

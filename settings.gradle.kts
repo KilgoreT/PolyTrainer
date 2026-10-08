@@ -57,6 +57,7 @@ include(":modules:datasource:prefs")
 
 //Libraries
 include(":modules:library:flags")
+include(":modules:library:textrecognition")
 
 //Domain
 include(":modules:domain:lexeme")

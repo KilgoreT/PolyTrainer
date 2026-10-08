@@ -1,7 +1,9 @@
 package me.apomazkin.wordstab.ui
 
+import android.content.ActivityNotFoundException
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,10 +33,12 @@ import me.apomazkin.wordstab.logic.Msg
 import me.apomazkin.wordstab.logic.UiMsg
 import me.apomazkin.wordstab.logic.processor.toMateEvent
 import me.apomazkin.wordstab.tools.DataHelper
+import me.apomazkin.wordstab.ui.photo.rememberPhotoPicker
 import me.apomazkin.wordstab.ui.widget.ConfirmDeleteWordWidget
 import me.apomazkin.wordstab.ui.widget.EmptyWidget
 import me.apomazkin.wordstab.ui.widget.WordListWidget
 import me.apomazkin.wordstab.ui.widget.addWordBottom.AddWordPanelWidget
+import me.apomazkin.wordstab.ui.widget.photo.PhotoWordsDialog
 import me.apomazkin.wordstab.ui.widget.topBar.ActionTopBarWidget
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.theme.AppTheme
@@ -79,6 +83,17 @@ class WordsTabHandle internal constructor(
 
     fun onFabClick() {
         viewModel.accept(Msg.OpenAddWordDialog())
+    }
+
+    /** IS527: кнопка-камера над «+» — слова с фото. */
+    @DrawableRes
+    val photoFabIconRes: Int = R.drawable.ic_photo_camera
+
+    @StringRes
+    val photoFabDescriptionRes: Int = R.string.photo_words_title
+
+    fun onPhotoFabClick() {
+        viewModel.accept(Msg.OpenPhotoSourceChooser)
     }
 
     fun onExitSelectionMode() {
@@ -195,6 +210,37 @@ internal fun WordsTabContent(
             ConfirmDeleteWordWidget(
                 state = state.confirmWordDeleteDialogState,
                 sendMessage = sendMessage,
+            )
+        }
+        // IS527: launcher'ы регистрируются всегда, не под `if`: после смерти
+        // процесса в камере диалог закрыт, а результат должен дойти.
+        val photoPicker = rememberPhotoPicker(
+            onPicked = { uri -> sendMessage(Msg.PhotoPicked(uri = uri.toString())) },
+            onCancelled = { sendMessage(Msg.PhotoPickCancelled) },
+        )
+        if (state.photoWordsState.isOpen) {
+            // Наличие камеры — на открытие диалога, не на каждую рекомпозицию.
+            val isCameraAvailable = remember { photoPicker.isCameraAvailable() }
+            val cameraError = Msg.RecognitionFailed(
+                errorRes = R.string.photo_words_error_camera,
+                requestId = state.photoWordsState.requestId,
+            )
+            PhotoWordsDialog(
+                state = state.photoWordsState,
+                isCameraAvailable = isCameraAvailable,
+                onCamera = {
+                    // Камеру могли отключить между проверкой и запуском;
+                    // SecurityException — если CAMERA объявит чужая библиотека.
+                    try {
+                        photoPicker.launchCamera()
+                    } catch (e: ActivityNotFoundException) {
+                        sendMessage(cameraError)
+                    } catch (e: SecurityException) {
+                        sendMessage(cameraError)
+                    }
+                },
+                onGallery = photoPicker::launchGallery,
+                onDismiss = { sendMessage(Msg.ClosePhotoWords) },
             )
         }
     }

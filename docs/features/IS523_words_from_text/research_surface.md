@@ -175,6 +175,56 @@
 дёшева: $0.0004–0.002 за слово на дешёвых и средних моделях. Wiktionary —
 тот же механизм (шаблон ссылки + разбор ответа), а не отдельная подфича.
 
+### 3а. Легальность загрузки Cambridge (проверено 2026-10-06)
+
+- `dictionary.cambridge.org/robots.txt`: статьи слов для `User-agent: *`
+  **не запрещены**; закрыты поиск, автодополнение, `/auth/`, `/browse/`,
+  `/spellcheck/`, служебные пути.
+- Условия использования (`cambridge.org/legal/website-terms-of-use`;
+  сайт отдаёт 403 любому скрипту, текст взят из копии Wayback Machine от
+  2026-10-04). Дословно:
+  - «Do: Only use the Site and its content for personal, non-commercial
+    purposes.»
+  - «Do: Print, copy and download pages from the Site, but if you do so,
+    remember that this is still our IP and we need you to ensure any IP
+    notices on those pages stay put…»
+  - «Do not: 'Scrape' or store content from the Site on a server or other
+    storage device or create an electronic database by downloading and
+    storing the Site's content.»
+  - «These Website Terms are governed by English law and we both agree to
+    the exclusive jurisdiction of the English courts if required.»
+- «AI Tools Terms of Use» (копия от 2026-09-06) — про **их собственные**
+  ИИ-сервисы на сайте, к обработке словарных статей сторонней нейронкой
+  отношения не имеют.
+- Официальный API словаря: хост `dictionary-api.cambridge.org` теперь
+  редиректит на обычный сайт — публичного API для разработчиков **нет**.
+**Ограничения из текста условий** (как написано; решение, что из этого
+применимо к текущей ситуации «один юзер, свой сервер, свой девайс», —
+за юзером):
+
+- **Юзер качает и копирует страницу на своём устройстве** — разрешено
+  прямо («print, copy and download pages»), при личном некоммерческом
+  использовании и с сохранением их IP-пометок.
+- **Хранение контента сайта на сервере или другом накопителе** — в
+  колонке «Do not», дословно «store content from the Site on a server or
+  other storage device».
+- **Сборка электронной базы из их контента** — в колонке «Do not»,
+  дословно «create an electronic database by downloading and storing the
+  Site's content».
+- **Прогон фрагмента через свой бэкенд и OpenRouter без сохранения** —
+  условиями прямо не описан; «store» не происходит, копия на время
+  обработки есть.
+- **Коммерческое использование** — вне «personal, non-commercial
+  purposes».
+- **Нарушение условий** — юрисдикция английское право; на практике у
+  сайта два рычага: блокировка трафика и жалоба правообладателя в
+  Google Play.
+
+Что на практике отличает «один юзер на своём сервере» от публичного
+приложения: у публичного есть третьи лица (другие юзеры) и магазин, куда
+можно пожаловаться; при одном юзере и своём сервере оба рычага
+упираются в самого юзера.
+
 ## 4. Веб-поиск нейронкой
 
 Документация OpenRouter (`/docs/features/web-search`): поиск Exa —
