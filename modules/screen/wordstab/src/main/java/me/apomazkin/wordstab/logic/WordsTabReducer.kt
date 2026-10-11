@@ -5,6 +5,8 @@ import me.apomazkin.wordstab.logic.DatasourceEffect.LoadTermFlow
 import me.apomazkin.wordstab.logic.DatasourceEffect.RecognizeWords
 import me.apomazkin.wordstab.logic.DatasourceEffect.RemoveWords
 import me.apomazkin.wordstab.logic.DatasourceEffect.UpdateWord
+import me.apomazkin.wordstab.logic.photo.acceptLookupOutcome
+import me.apomazkin.wordstab.logic.photo.acceptTokens
 import me.apomazkin.wordstab.logic.processor.processUiMessage
 import me.apomazkin.wordstab.ui.WordsNavigationEffect
 import io.github.kilgoret.mate.Effect
@@ -157,24 +159,35 @@ class WordsTabReducer(
                     )
                 }
 
-            // Отмена в камере после смерти процесса не открывает диалог сама.
+            // Возврат без снимка — тот же запуск, номер не меняется (WFT-02.2).
+            // Отмена в камере после смерти процесса не открывает диалог сама (WFT-64.3).
             Msg.PhotoPickCancelled -> state.choose(
                 check = { it.photoWordsState.isOpen },
-                yes = { it.showPhotoSourceChooser() to setOf() },
+                yes = { it.returnToPhotoSourceChooser() to setOf() },
                 no = { it to emptySet() },
             )
 
-            // Результат чужого или закрытого запроса (юзер закрыл диалог во
-            // время распознавания, снял новое фото) отбрасывается.
-            is Msg.WordsRecognized -> state.choose(
+            // Результат чужого или закрытого запуска (юзер закрыл диалог во
+            // время распознавания, снял новое фото) отбрасывается (WFT-62).
+            // Токены есть — на сервер, подпись «Ищу слова в словаре» (WFT-16.2);
+            // токенов нет — «слов не найдено» без запроса (WFT-60.1).
+            is Msg.TokensReady -> state.choose(
                 check = { it.isCurrentPhotoRequest(message.requestId) },
-                yes = { it.showRecognizedWords(message.words) to setOf() },
+                yes = { it.acceptTokens(message.tokens) },
+                no = { it to emptySet() },
+            )
+
+            // Ответ сервера своего запуска: список (WFT-56), пусто (WFT-60.2),
+            // отказ по причине (WFT-63) или «сервер не ответил» (WFT-23, 61).
+            is Msg.WordsLookedUp -> state.choose(
+                check = { it.isCurrentPhotoRequest(message.requestId) },
+                yes = { it.acceptLookupOutcome(message.outcome) to setOf() },
                 no = { it to emptySet() },
             )
 
             is Msg.RecognitionFailed -> state.choose(
                 check = { it.isCurrentPhotoRequest(message.requestId) },
-                yes = { it.showRecognitionError(message.errorRes) to setOf() },
+                yes = { it.showPhotoError(message.errorRes) to setOf() },
                 no = { it to emptySet() },
             )
 

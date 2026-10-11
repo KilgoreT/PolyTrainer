@@ -7,10 +7,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.wordstab.R
+import me.apomazkin.wordstab.deps.PhotoLookupOutcome
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.entity.WordInfo
-import me.apomazkin.wordstab.logic.photo.extractWords
+import me.apomazkin.wordstab.logic.photo.prepareTokens
 import me.apomazkin.mate.EMPTY_STRING
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateEffectHandler
@@ -41,6 +43,22 @@ sealed interface DatasourceEffect : Effect {
         RecoverableEffect<Msg> {
         override fun onFail(error: Throwable) = Msg.RecognitionFailed(
                 errorRes = R.string.photo_words_error_recognition,
+                requestId = requestId,
+        )
+    }
+
+    /**
+     * IS529: токены одним запросом на сервер слов (Ш6). Слой сети исключений
+     * не бросает; сюда долетает только неожиданное (нет словаря) — для
+     * пользователя это «сервер не ответил», приложение не падает (WFT-61).
+     */
+    data class LookupWords(
+            val tokens: List<RecognizedWord>,
+            val requestId: Long,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.WordsLookedUp(
+                outcome = PhotoLookupOutcome.Unavailable,
                 requestId = requestId,
         )
     }
@@ -116,6 +134,8 @@ class DatasourceEffectHandler(
             // сверяется качество ML Kit с фото (в списке видны только слова).
             // В магазинной сборке DEBUG никуда не уходит (LOG_LEVEL NONE,
             // CrashlyticsSink пишет только WARNING и ERROR).
+            // IS529: нормализация ушла на сервер (Ш8); здесь только Ш5 —
+            // пустые прочь, дубли текста, потолок 2000.
             is DatasourceEffect.RecognizeWords -> withContext(io) {
                 val text = wordstabUseCase.recognizeText(Uri.parse(eff.uri))
                 text.lines.forEachIndexed { index, line ->
@@ -124,12 +144,37 @@ class DatasourceEffectHandler(
                             message = "OCR line $index: $line",
                     )
                 }
-                Msg.WordsRecognized(
-                        words = extractWords(text.words),
+                Msg.TokensReady(
+                        tokens = prepareTokens(text.words),
+                        requestId = eff.requestId,
+                )
+            }
+
+            // IS529: запрос на сервер слов; номер запуска уходит как X-Run-Id,
+            // строки лога устройства и сервера склеиваются по нему.
+            is DatasourceEffect.LookupWords -> withContext(io) {
+                logger.d(
+                        tag = me.apomazkin.wordstab.LogTags.VOCAB,
+                        message = "lookup run=${eff.requestId} tokens=${eff.tokens.size}",
+                )
+                val outcome = wordstabUseCase.lookupWords(eff.tokens, eff.requestId)
+                logger.d(
+                        tag = me.apomazkin.wordstab.LogTags.VOCAB,
+                        message = "lookup run=${eff.requestId} outcome=${outcome.describe()}",
+                )
+                Msg.WordsLookedUp(
+                        outcome = outcome,
                         requestId = eff.requestId,
                 )
             }
         }
         consumer(msg)
     }
+}
+
+/** Короткая строка исхода для лога: вид и число слов. */
+private fun PhotoLookupOutcome.describe(): String = when (this) {
+    is PhotoLookupOutcome.Words -> "words=${words.size}"
+    is PhotoLookupOutcome.Denied -> "denied=$reason"
+    PhotoLookupOutcome.Unavailable -> "unavailable"
 }

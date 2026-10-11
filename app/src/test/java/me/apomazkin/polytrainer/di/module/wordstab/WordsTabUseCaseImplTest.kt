@@ -76,6 +76,8 @@ class WordsTabUseCaseImplTest {
             ),
             // IS527: распознавание в этих тестах не трогается.
             textRecognizer = mockk(),
+            // IS529: сервер слов в этих тестах не трогается.
+            wordsApi = mockk(),
             appContext = mockk(),
         )
     }

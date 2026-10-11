@@ -1,5 +1,7 @@
 package me.apomazkin.wordstab.logic.ext
 
+import me.apomazkin.wordstab.deps.PhotoWord
+import me.apomazkin.wordstab.deps.PhotoWordStatus
 import me.apomazkin.wordstab.logic.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -9,12 +11,13 @@ import org.junit.Test
 
 /**
  * 1. showPhotoSourceChooser открывает диалог на шаге выбора
- * 2. startRecognizing переводит на шаг распознавания и сбрасывает слова и ошибку
- * 3. showRecognizedWords показывает список, флаги шагов сняты
- * 4. showRecognitionError показывает ошибку, слова пусты
- * 5. hidePhotoWords закрывает диалог и сбрасывает всё, кроме requestId
- * 6. requestId растёт на открытии выбора и на старте распознавания, на других шагах нет
- * 7. остальные поля состояния не меняются
+ * 2. startRecognizing переводит в фазу распознавания и сбрасывает слова и ошибку
+ * 3. startLooking переводит в фазу поиска тем же запуском
+ * 4. showPhotoWords показывает список, индикатора нет
+ * 5. showNoPhotoWords и showPhotoError — без слов и без индикатора
+ * 6. hidePhotoWords закрывает диалог и сбрасывает всё, кроме requestId
+ * 7. requestId растёт на открытии выбора и на старте распознавания, на других шагах нет
+ * 8. остальные поля состояния не меняются
  */
 class PhotoWordsExtTest {
 
@@ -23,44 +26,59 @@ class PhotoWordsExtTest {
         snackbarState = SnackbarState(title = "test", show = true),
     )
 
+    private val hello = PhotoWord(text = "hello", status = PhotoWordStatus.FOUND, lemma = "hello", partOfSpeech = "noun", meaning = "привет", gloss = "greeting")
+
     @Test
     fun `should open dialog on source chooser step`() {
         val result = baseState.showPhotoSourceChooser()
 
         assertTrue(result.photoWordsState.isOpen)
         assertTrue(result.photoWordsState.isChoosingSource)
-        assertFalse(result.photoWordsState.isRecognizing)
+        assertFalse(result.photoWordsState.isBusy)
     }
 
     @Test
-    fun `should switch to recognizing step and drop previous result`() {
+    fun `should switch to recognizing phase and drop previous result`() {
         val result = baseState
-            .showRecognitionError(errorRes = 1)
+            .showPhotoError(errorRes = 1)
             .startRecognizing()
 
-        assertTrue(result.photoWordsState.isRecognizing)
+        assertEquals(PhotoPhase.RECOGNIZING, result.photoWordsState.phase)
         assertFalse(result.photoWordsState.isChoosingSource)
         assertNull(result.photoWordsState.errorRes)
         assertTrue(result.photoWordsState.words.isEmpty())
     }
 
     @Test
-    fun `should show words and clear step flags`() {
-        val result = baseState.startRecognizing().showRecognizedWords(listOf("hello", "world"))
+    fun `should switch to looking phase within the same run`() {
+        val recognizing = baseState.startRecognizing()
 
-        assertEquals(listOf("hello", "world"), result.photoWordsState.words)
+        val result = recognizing.startLooking()
+
+        assertEquals(PhotoPhase.LOOKING, result.photoWordsState.phase)
+        assertEquals(recognizing.photoWordsState.requestId, result.photoWordsState.requestId)
+    }
+
+    @Test
+    fun `should show words without the indicator`() {
+        val result = baseState.startRecognizing().startLooking().showPhotoWords(listOf(hello))
+
+        assertEquals(listOf(hello), result.photoWordsState.words)
         assertTrue(result.photoWordsState.isOpen)
-        assertFalse(result.photoWordsState.isRecognizing)
+        assertFalse(result.photoWordsState.isBusy)
         assertNull(result.photoWordsState.errorRes)
     }
 
     @Test
-    fun `should show error without words`() {
-        val result = baseState.startRecognizing().showRecognitionError(errorRes = 7)
+    fun `should show empty result and error without words and indicator`() {
+        val empty = baseState.startRecognizing().showNoPhotoWords()
+        val error = baseState.startRecognizing().showPhotoError(errorRes = 7)
 
-        assertEquals(7, result.photoWordsState.errorRes)
-        assertTrue(result.photoWordsState.words.isEmpty())
-        assertFalse(result.photoWordsState.isRecognizing)
+        assertTrue(empty.photoWordsState.isEmptyResult)
+        assertFalse(empty.photoWordsState.isBusy)
+        assertEquals(7, error.photoWordsState.errorRes)
+        assertTrue(error.photoWordsState.words.isEmpty())
+        assertFalse(error.photoWordsState.isBusy)
     }
 
     @Test
@@ -68,7 +86,7 @@ class PhotoWordsExtTest {
         val result = baseState
             .showPhotoSourceChooser()
             .startRecognizing()
-            .showRecognizedWords(listOf("hello"))
+            .showPhotoWords(listOf(hello))
             .hidePhotoWords()
 
         assertEquals(PhotoWordsState(requestId = 2L), result.photoWordsState)
@@ -78,7 +96,7 @@ class PhotoWordsExtTest {
     fun `should increment request id on chooser and on recognizing start only`() {
         val chooser = baseState.showPhotoSourceChooser()
         val recognizing = chooser.startRecognizing()
-        val shown = recognizing.showRecognizedWords(listOf("hello"))
+        val shown = recognizing.startLooking().showPhotoWords(listOf(hello))
         val reopened = shown.hidePhotoWords().showPhotoSourceChooser()
 
         assertEquals(1L, chooser.photoWordsState.requestId)

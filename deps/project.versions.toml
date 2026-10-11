@@ -14,5 +14,7 @@ android-lib-gp = { id = "com.android.library", version.ref = "aGPVersion" }
 kotlin-gp = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinGPVersion" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlinGPVersion" }
 kotlin-jvm-gp = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinGPVersion" }
+# IS529: DTO сети с @Serializable (только :core:core-network-impl)
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlinGPVersion" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "kspVersion" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "koverVersion" }

@@ -41,6 +41,12 @@ android {
         versionName = appVersion
         versionCode = getVersionCode(appVersion)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // IS529 (Д2): ключ доступа к серверу слов — из local.properties
+        // (он в .gitignore) или -PLEXEME_ACCESS_KEY; без него пустая строка,
+        // и приложение не ходит на сервер («нет доступа», WFT-19).
+        buildConfigField("String", "LEXEME_ACCESS_KEY", "\"${getLexemeAccessKey()}\"")
+        buildConfigField("String", "LEXEME_BASE_URL", "\"https://api.lexeme.pro\"")
     }
 
     buildFeatures {
@@ -151,6 +157,8 @@ dependencies {
 
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":core:core-db"))
+    // IS529: слой сети (сервер слов), фасад с Dagger-компонентом
+    implementation(project("path" to ":core:core-network"))
     implementation(project("path" to ":modules:core:di"))
     implementation(project("path" to ":modules:core:mate"))
 
@@ -229,6 +237,22 @@ fun getVersionName(): String {
     val value: String? = System.getenv("RELEASE_VERSION")
     val result = value ?: "Debug"
     return result
+}
+
+/**
+ * IS529 (Д2): ключ доступа к серверу слов. Порядок: свойство Gradle
+ * `-PLEXEME_ACCESS_KEY` (локальный стенд) → `local.properties` (ноутбук
+ * разработчика, файл в .gitignore) → пустая строка (CI, магазинная сборка).
+ */
+fun getLexemeAccessKey(): String {
+    val localFile = rootProject.file("local.properties")
+    val localProperties = Properties()
+    if (localFile.exists()) {
+        localFile.inputStream().use { localProperties.load(it) }
+    }
+    return project.findProperty("LEXEME_ACCESS_KEY")?.toString()
+        ?: localProperties.getProperty("LEXEME_ACCESS_KEY")
+        ?: ""
 }
 
 fun getVersionCode(versionName: String): Int {

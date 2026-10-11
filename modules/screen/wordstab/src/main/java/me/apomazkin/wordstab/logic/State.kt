@@ -7,6 +7,7 @@ import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import me.apomazkin.wordstab.deps.PhotoWord
 import me.apomazkin.wordstab.entity.LexemeLabel
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordstab.entity.WordInfo
@@ -81,22 +82,37 @@ data class ConfirmWordDeleteDialogState(
 )
 
 /**
- * IS527: диалог «слова с фото» — три шага явными флагами: выбор источника
- * ([isChoosingSource]) → распознавание ([isRecognizing]) → список
- * ([words]) или ошибка ([errorRes]). Закрыт — флаги в умолчаниях.
- * [requestId] растёт на каждое открытие выбора и на каждый снимок и
- * переживает закрытие диалога: результат распознавания с чужим id —
- * устаревший, он отбрасывается (эффект mate при закрытии не отменяется).
+ * IS527/IS529: диалог «слова с фото» явными флагами: выбор источника
+ * ([isChoosingSource]) → индикатор с подписью фазы ([phase], WFT-16) →
+ * список слов из ответа сервера ([words], WFT-56), «слов не найдено»
+ * ([isEmptyResult], WFT-60) или ошибка ([errorRes], WFT-61, WFT-63).
+ * Закрыт — флаги в умолчаниях. [requestId] — номер запуска (термин
+ * «Запуск», WFT-01…03): растёт на каждое открытие выбора и на каждый
+ * снимок, переживает закрытие диалога; результат распознавания или ответ
+ * сервера с чужим id отбрасывается (WFT-62). Уходит на сервер как
+ * `X-Run-Id`.
  */
 @Immutable
 data class PhotoWordsState(
         val isOpen: Boolean = false,
         val isChoosingSource: Boolean = false,
-        val isRecognizing: Boolean = false,
-        val words: List<String> = emptyList(),
+        val phase: PhotoPhase = PhotoPhase.IDLE,
+        val words: List<PhotoWord> = emptyList(),
+        val isEmptyResult: Boolean = false,
         @StringRes val errorRes: Int? = null,
         val requestId: Long = 0L,
-)
+) {
+    /** Индикатор виден, пока идёт распознавание или ожидание ответа (WFT-16). */
+    val isBusy: Boolean
+        get() = phase != PhotoPhase.IDLE
+}
+
+/** Фаза запуска; подпись индикатора выбирается по ней (WFT-16.1, 16.2). */
+enum class PhotoPhase {
+    IDLE,
+    RECOGNIZING,
+    LOOKING,
+}
 
 fun WordsTabState.showLoading(): WordsTabState =
         this.copy(isLoading = true)
@@ -311,17 +327,36 @@ fun WordsTabState.showPhotoSourceChooser(): WordsTabState = this.copy(
         )
 )
 
+/** Возврат без снимка — тот же запуск, тот же номер (В1, WFT-02.2). */
+fun WordsTabState.returnToPhotoSourceChooser(): WordsTabState = this.copy(
+        photoWordsState = PhotoWordsState(
+                isOpen = true,
+                isChoosingSource = true,
+                requestId = photoWordsState.requestId,
+        )
+)
+
 /** Новый снимок — новый id: результаты прежних распознаваний устарели. */
 fun WordsTabState.startRecognizing(): WordsTabState = this.copy(
         photoWordsState = PhotoWordsState(
                 isOpen = true,
-                isRecognizing = true,
+                phase = PhotoPhase.RECOGNIZING,
                 requestId = photoWordsState.requestId + 1,
         )
 )
 
-fun WordsTabState.showRecognizedWords(
-        words: List<String>,
+/** Токены ушли на сервер — тот же запуск, подпись «Ищу слова в словаре» (WFT-16.2). */
+fun WordsTabState.startLooking(): WordsTabState = this.copy(
+        photoWordsState = PhotoWordsState(
+                isOpen = true,
+                phase = PhotoPhase.LOOKING,
+                requestId = photoWordsState.requestId,
+        )
+)
+
+/** Ответ сервера со словами — список на месте индикатора (WFT-56). */
+fun WordsTabState.showPhotoWords(
+        words: List<PhotoWord>,
 ): WordsTabState = this.copy(
         photoWordsState = PhotoWordsState(
                 isOpen = true,
@@ -330,7 +365,17 @@ fun WordsTabState.showRecognizedWords(
         )
 )
 
-fun WordsTabState.showRecognitionError(
+/** Токенов нет или ответ пуст — «слов не найдено» (В2, WFT-60). */
+fun WordsTabState.showNoPhotoWords(): WordsTabState = this.copy(
+        photoWordsState = PhotoWordsState(
+                isOpen = true,
+                isEmptyResult = true,
+                requestId = photoWordsState.requestId,
+        )
+)
+
+/** Ошибка запуска или отказ сервера — индикатор закрыт, текст ресурсом (В3, В5). */
+fun WordsTabState.showPhotoError(
         @StringRes errorRes: Int,
 ): WordsTabState = this.copy(
         photoWordsState = PhotoWordsState(

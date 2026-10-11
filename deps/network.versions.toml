@@ -1,0 +1,16 @@
+[versions]
+# IS529 (Д1): Retrofit поверх OkHttp, конвертер kotlinx.serialization.
+# Версии сверены с Maven Central 2026-10-10. Retrofit 3 сам тянет OkHttp
+# 4.12, поэтому OkHttp 5 закреплён явно. 5.5.0 требует compileSdk 37
+# (okhttp-android), проект на 36 с AGP 8.9.1 — последняя подходящая 5.4.0.
+retrofitVersion = "3.0.0"
+okhttpVersion = "5.4.0"
+serializationJsonVersion = "1.11.0"
+
+[libraries]
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofitVersion" }
+retrofitConverterSerialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofitVersion" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttpVersion" }
+# Тесты impl: поддельный сервер (WFT-20…23, 63) — новый API mockwebserver3.
+okhttpMockWebServer = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttpVersion" }
+serializationJson = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serializationJsonVersion" }

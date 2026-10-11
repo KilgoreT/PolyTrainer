@@ -5,11 +5,18 @@ import android.net.Uri
 import androidx.paging.PagingData
 import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.core_db_api.entity.DictionaryApiEntity
+import me.apomazkin.core_network_api.CoreNetworkApi
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
+import me.apomazkin.polytrainer.mapper.lookupRequestOf
+import me.apomazkin.polytrainer.mapper.toOutcome
 import me.apomazkin.textrecognition.RecognizedText
+import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.textrecognition.TextRecognizer
+import me.apomazkin.wordstab.deps.PhotoLookupOutcome
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordrow.entity.toUiItem
@@ -30,8 +37,23 @@ class WordsTabUseCaseImpl @Inject constructor(
     private val countryProvider: CountryProvider,
     private val currentDictionaryProvider: CurrentDictionaryProvider,
     private val textRecognizer: TextRecognizer,
+    private val wordsApi: CoreNetworkApi.WordsApi,
     private val appContext: Context,
 ) : WordsTabUseCase {
+
+    // IS529: один запрос на сервер слов с языками текущего словаря (Ш6).
+    // Исключений от сети нет: слой отдаёт один из трёх исходов; без словаря
+    // сюда не попасть (кнопка скрыта), поэтому его отсутствие — ошибка программы.
+    override suspend fun lookupWords(tokens: List<RecognizedWord>, runId: Long): PhotoLookupOutcome {
+        val dictionary = currentDictionary()
+        val request = lookupRequestOf(dictionary, tokens)
+        val result = wordsApi.lookup(request, runId)
+        return result.toOutcome()
+    }
+
+    private suspend fun currentDictionary(): DictionaryApiEntity =
+        currentDictionaryProvider.flowCurrentDict().first()
+            ?: throw IllegalStateException("Dictionary not found")
 
     // IS527: распознавание целиком в библиотеке. Снимок камеры (наш
     // FileProvider) после распознавания не нужен — удаляется в любом исходе;

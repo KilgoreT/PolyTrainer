@@ -118,12 +118,22 @@
     <string name="photo_words_title">Слова с фото</string>
     <string name="photo_words_camera">Камера</string>
     <string name="photo_words_gallery">Галерея</string>
-    <string name="photo_words_recognizing">Распознаю…</string>
+    <string name="photo_words_recognizing">Распознаю текст…</string>
+    <string name="photo_words_looking">Ищу слова в словаре…</string>
     <string name="photo_words_found">Слов: %1$d</string>
     <string name="photo_words_empty">Слов не найдено</string>
     <string name="photo_words_close">Закрыть</string>
     <string name="photo_words_error_camera">Камера недоступна</string>
     <string name="photo_words_error_recognition">Не удалось распознать текст</string>
+    <!-- IS529: пометки списка, атрибуция и ошибки сервера (WFT-56, 57, 61, 63) -->
+    <string name="photo_words_not_found_mark">не найдено</string>
+    <string name="photo_words_error_mark">не загрузилось</string>
+    <string name="photo_words_attribution">Данные: Wiktionary, CC BY-SA 4.0</string>
+    <string name="photo_words_error_no_access">Нет доступа к серверу</string>
+    <string name="photo_words_error_rate_limited">Лимит на сегодня исчерпан</string>
+    <string name="photo_words_error_too_many">Слишком много слов</string>
+    <string name="photo_words_error_language">Язык словаря не поддерживается</string>
+    <string name="photo_words_error_server">Сервер не ответил</string>
 
     <!--WordCard-->
     <string name="word_card_added_field">Добавлено</string>

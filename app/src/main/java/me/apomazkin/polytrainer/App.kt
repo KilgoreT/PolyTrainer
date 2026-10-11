@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import me.apomazkin.core_db.di.CoreDbComponent
+import me.apomazkin.core_network.di.CoreNetworkComponent
 import me.apomazkin.core_db_api.entity.ReservedGroupNames
 import me.apomazkin.flags.CountryProviderImpl
 import me.apomazkin.polytrainer.di.AppComponent
@@ -46,6 +47,13 @@ class App : Application() {
                         ),
                     )
                     .build(),
+                // IS529 (Д2, Д3): сервер слов; ключ из local.properties через
+                // BuildConfig, пустой — приложение на сервер не ходит (WFT-19).
+                coreNetworkProvider = CoreNetworkComponent.init(
+                    baseUrl = BuildConfig.LEXEME_BASE_URL,
+                    accessKey = BuildConfig.LEXEME_ACCESS_KEY,
+                    logger = logger,
+                ),
             )
         initRemoteReporting(logger)
         // Дренаж очереди навигации живёт на application-scope (Main.immediate —

@@ -130,12 +130,22 @@
     <string name="photo_words_title">Words from photo</string>
     <string name="photo_words_camera">Camera</string>
     <string name="photo_words_gallery">Gallery</string>
-    <string name="photo_words_recognizing">Recognizing…</string>
+    <string name="photo_words_recognizing">Recognizing text…</string>
+    <string name="photo_words_looking">Looking up words in the dictionary…</string>
     <string name="photo_words_found">Words: %1$d</string>
     <string name="photo_words_empty">No words found</string>
     <string name="photo_words_close">Close</string>
     <string name="photo_words_error_camera">Camera is not available</string>
     <string name="photo_words_error_recognition">Could not recognize text</string>
+    <!-- IS529: list marks, attribution and server errors (WFT-56, 57, 61, 63) -->
+    <string name="photo_words_not_found_mark">not found</string>
+    <string name="photo_words_error_mark">failed to load</string>
+    <string name="photo_words_attribution">Data: Wiktionary, CC BY-SA 4.0</string>
+    <string name="photo_words_error_no_access">No access to the server</string>
+    <string name="photo_words_error_rate_limited">Daily limit reached</string>
+    <string name="photo_words_error_too_many">Too many words</string>
+    <string name="photo_words_error_language">Dictionary language is not supported</string>
+    <string name="photo_words_error_server">Server did not respond</string>
 
     <!--WordCard-->
     <string name="word_card_added_field">Added</string>

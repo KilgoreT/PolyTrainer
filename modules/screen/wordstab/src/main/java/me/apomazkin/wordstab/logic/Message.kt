@@ -4,7 +4,9 @@ import androidx.annotation.StringRes
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
+import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.wordrow.entity.TermUiItem
+import me.apomazkin.wordstab.deps.PhotoLookupOutcome
 import me.apomazkin.wordstab.entity.WordInfo
 
 
@@ -121,11 +123,21 @@ sealed interface Msg {
     data object PhotoPickCancelled : Msg
 
     /**
-     * IS527: распознавание завершено, слова уже отфильтрованы.
-     * [requestId] — чей это результат (см. PhotoWordsState.requestId).
+     * IS529: распознавание завершено, токены подготовлены к отправке (Ш5:
+     * без пустых и дублей, не больше 2000). Пустой список — «слов не
+     * найдено» без запроса (WFT-60.1). [requestId] — чей это результат.
      */
-    data class WordsRecognized(
-            val words: List<String>,
+    data class TokensReady(
+            val tokens: List<RecognizedWord>,
+            val requestId: Long,
+    ) : Msg
+
+    /**
+     * IS529: сервер слов ответил или не ответил (Ш10, В3, В5). Чужой
+     * [requestId] — поздний ответ отменённого запуска, отбрасывается (WFT-62).
+     */
+    data class WordsLookedUp(
+            val outcome: PhotoLookupOutcome,
             val requestId: Long,
     ) : Msg
 
