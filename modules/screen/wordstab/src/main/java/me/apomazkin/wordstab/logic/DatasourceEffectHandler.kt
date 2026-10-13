@@ -7,11 +7,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import me.apomazkin.lexeme.AddWordsBatchOutcome
+import me.apomazkin.lexeme.WordsBatch
 import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.wordstab.R
+import me.apomazkin.wordstab.deps.PhotoFormOutcome
 import me.apomazkin.wordstab.deps.PhotoLookupOutcome
+import me.apomazkin.wordstab.deps.PhotoMapping
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.entity.WordInfo
+import me.apomazkin.wordstab.logic.photo.PhotoAddFailure
 import me.apomazkin.wordstab.logic.photo.prepareTokens
 import me.apomazkin.mate.EMPTY_STRING
 import io.github.kilgoret.mate.Effect
@@ -62,6 +67,48 @@ sealed interface DatasourceEffect : Effect {
                 requestId = requestId,
         )
     }
+
+    /**
+     * IS532 (Ш1): форма словаря снимка и его леммы с текстами лемм ответа.
+     * Исключение чтения — «окно не собралось» (AWP-24.1).
+     */
+    data class LoadPhotoForm(
+            val dictionaryId: Long,
+            val lemmaTexts: List<String>,
+            val requestId: Long,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.PhotoFormLoaded(
+                outcome = PhotoFormOutcome.Failed(cause = "${error.javaClass.simpleName}: ${error.message}"),
+                requestId = requestId,
+        )
+
+        override fun toString(): String = "LoadPhotoForm(dictionaryId=$dictionaryId, lemmas=${lemmaTexts.size}, requestId=$requestId)"
+    }
+
+    /**
+     * IS532 (Ш4): пакет окна одной транзакцией (AWP-20). Исключение — сбой
+     * записи, транзакция откачена, окно активно с «повторить» (AWP-21).
+     */
+    data class AddPhotoWords(
+            val batch: WordsBatch,
+            val requestId: Long,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.PhotoAddRejected(
+                failure = PhotoAddFailure.Failed,
+                requestId = requestId,
+        )
+
+        override fun toString(): String =
+            "AddPhotoWords(dictionaryId=${batch.dictionaryId}, words=${batch.words.size}, lexemes=${batch.words.sumOf { it.lexemes.size }}, requestId=$requestId)"
+    }
+
+    /** IS532 (Ш3): запомнить соответствия для словаря (AWP-06). */
+    data class SavePhotoMapping(
+            val dictionaryId: Long,
+            val mapping: PhotoMapping,
+    ) : DatasourceEffect
 }
 
 /**
@@ -167,6 +214,34 @@ class DatasourceEffectHandler(
                         requestId = eff.requestId,
                 )
             }
+
+            // IS532 (Ш1): форма словаря снимка; исход компактно в лог.
+            is DatasourceEffect.LoadPhotoForm -> withContext(io) {
+                val outcome = wordstabUseCase.loadPhotoForm(eff.dictionaryId, eff.lemmaTexts)
+                logger.d(
+                        tag = me.apomazkin.wordstab.LogTags.VOCAB,
+                        message = "photoForm run=${eff.requestId} dict=${eff.dictionaryId} outcome=${outcome.describe()}",
+                )
+                Msg.PhotoFormLoaded(
+                        outcome = outcome,
+                        requestId = eff.requestId,
+                )
+            }
+
+            // IS532 (Ш4): запись пакета; доменный исход — в плоский Msg здесь.
+            is DatasourceEffect.AddPhotoWords -> withContext(io) {
+                val outcome = wordstabUseCase.addPhotoWords(eff.batch)
+                logger.d(
+                        tag = me.apomazkin.wordstab.LogTags.VOCAB,
+                        message = "photoAdd run=${eff.requestId} outcome=${outcome.describe()}",
+                )
+                outcome.toMsg(eff.requestId)
+            }
+
+            is DatasourceEffect.SavePhotoMapping -> withContext(io) {
+                wordstabUseCase.savePhotoMapping(eff.dictionaryId, eff.mapping)
+                Msg.NoOperation
+            }
         }
         consumer(msg)
     }
@@ -174,7 +249,29 @@ class DatasourceEffectHandler(
 
 /** Короткая строка исхода для лога: вид и число слов. */
 private fun PhotoLookupOutcome.describe(): String = when (this) {
-    is PhotoLookupOutcome.Words -> "words=${words.size}"
+    is PhotoLookupOutcome.Words -> "dict=$dictionaryId words=${words.size} lemmas=${words.sumOf { it.lemmas.size }}"
     is PhotoLookupOutcome.Denied -> "denied=$reason"
     PhotoLookupOutcome.Unavailable -> "unavailable"
+}
+
+private fun PhotoFormOutcome.describe(): String = when (this) {
+    is PhotoFormOutcome.Loaded ->
+        "loaded components=${form.components.size} options=${form.partOfSpeechOptions.size} groups=${form.groups.size} existing=${form.existingLemmas.size} remembered=${remembered != null}"
+    PhotoFormOutcome.DictionaryMissing -> "dictionary missing"
+    is PhotoFormOutcome.Failed -> "failed: $cause"
+}
+
+private fun AddWordsBatchOutcome.describe(): String = when (this) {
+    is AddWordsBatchOutcome.Added -> "added words=${wordIds.size} lexemes=${lexemeIds.size}"
+    is AddWordsBatchOutcome.Rejected -> "rejected $this"
+}
+
+/** Доменный исход записи → плоский Msg (конвенция: reducer доменные sealed не разворачивает). */
+private fun AddWordsBatchOutcome.toMsg(requestId: Long): Msg = when (this) {
+    is AddWordsBatchOutcome.Added -> Msg.PhotoAddFinished(lexemeCount = lexemeIds.size, wordCount = wordIds.size, requestId = requestId)
+    is AddWordsBatchOutcome.Rejected.GroupMissing -> Msg.PhotoAddRejected(PhotoAddFailure.GroupMissing(groupId), requestId)
+    is AddWordsBatchOutcome.Rejected.WordMissing -> Msg.PhotoAddRejected(PhotoAddFailure.WordMissing(wordId), requestId)
+    is AddWordsBatchOutcome.Rejected.TypeUnavailable -> Msg.PhotoAddRejected(PhotoAddFailure.TypeUnavailable(typeId), requestId)
+    is AddWordsBatchOutcome.Rejected.NoCoreValue -> Msg.PhotoAddRejected(PhotoAddFailure.NoCoreValue, requestId)
+    AddWordsBatchOutcome.Rejected.DictionaryMissing -> Msg.PhotoAddRejected(PhotoAddFailure.DictionaryMissing, requestId)
 }

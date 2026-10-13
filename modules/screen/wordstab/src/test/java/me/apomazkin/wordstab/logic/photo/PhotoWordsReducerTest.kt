@@ -5,24 +5,17 @@ import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
-import me.apomazkin.logger.LexemeLogger
-import me.apomazkin.logger.LogLevel
 import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.wordstab.R
 import me.apomazkin.wordstab.deps.PhotoDenyReason
+import me.apomazkin.wordstab.deps.PhotoFormOutcome
 import me.apomazkin.wordstab.deps.PhotoLookupOutcome
 import me.apomazkin.wordstab.deps.PhotoWord
-import me.apomazkin.wordstab.deps.PhotoWordStatus
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.Msg
 import me.apomazkin.wordstab.logic.PhotoPhase
 import me.apomazkin.wordstab.logic.PhotoWordsState
-import me.apomazkin.wordstab.logic.WordsTabReducer
 import me.apomazkin.wordstab.logic.WordsTabState
-import me.apomazkin.wordstab.logic.hidePhotoWords
-import me.apomazkin.wordstab.logic.showPhotoSourceChooser
-import me.apomazkin.wordstab.logic.startLooking
-import me.apomazkin.wordstab.logic.startRecognizing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -31,32 +24,17 @@ import org.junit.Test
 import kotlin.random.Random
 
 /**
- * Диалог «слова с фото» глазами редьюсера: инварианты запуска (WFT-01…03),
- * Ш5 → Ш6 (WFT-16, 60), Ш10 → Ш11 (WFT-56), ветки В3…В7 (WFT-61…65).
- * Адреса строк спеки в именах — `WFT-NN_k` (точка в имени метода JVM
- * запрещена).
+ * Диалог «слова с фото» глазами reducer'а: инварианты запуска (WFT-01…03),
+ * Ш5 → Ш6 (WFT-16, 60), ответ сервера → сборка окна (Ш10 → Ш1 AWP),
+ * ветки В3…В7 (WFT-61…65). Адреса строк спеки в именах — `WFT-NN_k`.
  */
 class PhotoWordsReducerTest {
 
-    private val reducer = WordsTabReducer(
-            logger = object : LexemeLogger {
-                override fun log(level: LogLevel, tag: String, message: String, throwable: Throwable?) {}
-            },
-    )
-
-    private fun idle() = WordsTabState(isLoading = false)
+    private val reducer = reducer()
 
     private fun token(text: String) = RecognizedWord(text = text, confidence = 0.9f, language = "es")
 
-    private fun found(text: String, lemma: String, partOfSpeech: String) =
-        PhotoWord(text = text, status = PhotoWordStatus.FOUND, lemma = lemma, partOfSpeech = partOfSpeech, meaning = null, gloss = "to $lemma")
-
-    private fun notFound(text: String) =
-        PhotoWord(text = text, status = PhotoWordStatus.NOT_FOUND, lemma = null, partOfSpeech = null, meaning = null, gloss = null)
-
-    private fun words(vararg words: PhotoWord) = PhotoLookupOutcome.Words(words.toList())
-
-    private fun WordsTabState.photo() = photoWordsState
+    private fun words(vararg words: PhotoWord) = PhotoLookupOutcome.Words(Fx.DICT, words.toList())
 
     // ===== Инварианты запуска =====
 
@@ -84,7 +62,7 @@ class PhotoWordsReducerTest {
     }
 
     @Test
-    fun `WFT-02_1 photo request and answer of run two all carry number two`() {
+    fun `WFT-02_1 photo request answer and form of run two all carry number two`() {
         val chooser = reducer.testReduce(idle(), Msg.OpenPhotoSourceChooser).state()
         val picked = reducer.testReduce(chooser, Msg.PhotoPicked(uri = "content://photo/1"))
         val runId = picked.state().photo().requestId
@@ -93,12 +71,15 @@ class PhotoWordsReducerTest {
         val looking = reducer.testReduce(picked.state(), Msg.TokensReady(listOf(token("perro")), runId))
         looking.assertEffects(setOf<Effect>(DatasourceEffect.LookupWords(listOf(token("perro")), runId)))
 
-        val shown = reducer.testReduce(looking.state(), Msg.WordsLookedUp(words(found("perro", "perro", "noun")), runId))
+        val loading = reducer.testReduce(looking.state(), Msg.WordsLookedUp(words(Fx.ran), runId))
+        loading.assertEffects(setOf<Effect>(DatasourceEffect.LoadPhotoForm(dictionaryId = Fx.DICT, lemmaTexts = listOf("run"), requestId = runId)))
+
+        val shown = reducer.testReduce(loading.state(), Msg.PhotoFormLoaded(PhotoFormOutcome.Loaded(Fx.form(), null), runId))
 
         assertEquals(2L, runId)
-        assertEquals(2L, looking.state().photo().requestId)
+        assertEquals(2L, loading.state().photo().requestId)
         assertEquals(2L, shown.state().photo().requestId)
-        assertEquals(listOf("perro"), shown.state().photo().words.map { it.text })
+        assertEquals(listOf("run"), shown.state().photo().cards.map { it.lemma })
     }
 
     @Test
@@ -114,16 +95,16 @@ class PhotoWordsReducerTest {
 
     @Test
     fun `WFT-03_1 result of run one is ignored when run two is current`() {
-        val stale = idle().startRecognizing().hidePhotoWords().showPhotoSourceChooser()
+        val stale = reducer.step(reducer.step(reducer.step(idle(), Msg.PhotoPicked("content://photo/1")), Msg.ClosePhotoWords), Msg.OpenPhotoSourceChooser)
 
-        val result = reducer.testReduce(stale, Msg.WordsLookedUp(words(found("stale", "stale", "noun")), requestId = 1L))
+        val result = reducer.testReduce(stale, Msg.WordsLookedUp(words(Fx.ran), requestId = 1L))
 
         assertEquals(stale, result.state())
         result.assertNoEffects()
     }
 
     @Test
-    fun `WFT-03_2 WFT-03_3 WFT-03_4 random sequences never change state from a foreign number nor show indicator when closed nor list with indicator`() {
+    fun `WFT-03_2 WFT-03_3 WFT-03_4 AWP-24_2 random sequences never change state from a foreign number nor show indicator when closed nor window with indicator`() {
         repeat(1000) { seed ->
             var state = idle()
             for (message in randomMessages(Random(seed), state)) {
@@ -136,8 +117,8 @@ class PhotoWordsReducerTest {
                 if (!state.photo().isOpen) {
                     assertEquals("seed $seed: indicator while closed", PhotoPhase.IDLE, state.photo().phase)
                 }
-                if (state.photo().words.isNotEmpty()) {
-                    assertEquals("seed $seed: list with indicator", PhotoPhase.IDLE, state.photo().phase)
+                if (state.photo().cards.isNotEmpty()) {
+                    assertEquals("seed $seed: window with indicator", PhotoPhase.IDLE, state.photo().phase)
                 }
             }
         }
@@ -147,7 +128,7 @@ class PhotoWordsReducerTest {
 
     @Test
     fun `WFT-16_1 picked photo shows the indicator in the recognizing phase with a new run number`() {
-        val chooser = idle().showPhotoSourceChooser()
+        val chooser = reducer.step(idle(), Msg.OpenPhotoSourceChooser)
 
         val result = reducer.testReduce(chooser, Msg.PhotoPicked(uri = "content://photo/1"))
 
@@ -175,7 +156,7 @@ class PhotoWordsReducerTest {
 
     @Test
     fun `WFT-61_1 recognition failure hides the indicator and shows the error text`() {
-        val recognizing = idle().startRecognizing()
+        val recognizing = reducer.step(idle(), Msg.PhotoPicked("content://photo/1"))
 
         val result = reducer.testReduce(recognizing, Msg.RecognitionFailed(errorRes = 5, requestId = 1L))
 
@@ -188,7 +169,7 @@ class PhotoWordsReducerTest {
 
     @Test
     fun `WFT-16_2 tokens ready switch the indicator to the looking phase and send LookupWords`() {
-        val recognizing = idle().startRecognizing()
+        val recognizing = reducer.step(idle(), Msg.PhotoPicked("content://photo/1"))
         val tokens = listOf(token("corrían"), token("fuera"))
 
         val result = reducer.testReduce(recognizing, Msg.TokensReady(tokens, requestId = 1L))
@@ -200,7 +181,7 @@ class PhotoWordsReducerTest {
 
     @Test
     fun `WFT-60_1 no tokens show no words found without a request`() {
-        val recognizing = idle().startRecognizing()
+        val recognizing = reducer.step(idle(), Msg.PhotoPicked("content://photo/1"))
 
         val result = reducer.testReduce(recognizing, Msg.TokensReady(emptyList(), requestId = 1L))
 
@@ -211,7 +192,7 @@ class PhotoWordsReducerTest {
 
     @Test
     fun `WFT-62_1 tokens of a run closed during recognition send nothing`() {
-        val closed = idle().startRecognizing().hidePhotoWords()
+        val closed = reducer.step(reducer.step(idle(), Msg.PhotoPicked("content://photo/1")), Msg.ClosePhotoWords)
 
         val result = reducer.testReduce(closed, Msg.TokensReady(listOf(token("perro")), requestId = 1L))
 
@@ -219,35 +200,21 @@ class PhotoWordsReducerTest {
         result.assertNoEffects()
     }
 
-    // ===== Ш10 → Ш11: ответ =====
+    // ===== Ш10 → Ш1 (AWP): ответ =====
 
     @Test
-    fun `WFT-56_1 words of the answer are shown in answer order on the place of the indicator`() {
-        val looking = idle().startRecognizing().startLooking()
-        val answer = words(found("fuera", "fuera", "adverb"), found("corrían", "correr", "verb"))
+    fun `AWP-01_1 answer with words keeps the dictionary of the photo and loads its form`() {
+        val answered = reducer.answered(Fx.fuera, Fx.ran)
 
-        val result = reducer.testReduce(looking, Msg.WordsLookedUp(answer, requestId = 1L))
-
-        assertEquals(listOf("fuera", "corrían"), result.state().photo().words.map { it.text })
-        assertEquals(PhotoPhase.IDLE, result.state().photo().phase)
-        assertNull(result.state().photo().errorRes)
-        result.assertNoEffects()
+        assertEquals(Fx.DICT, answered.photo().dictionaryId)
+        assertEquals(PhotoPhase.FORM, answered.photo().phase)
+        assertEquals(listOf("fuera", "ran"), answered.photo().words.map { it.text })
+        assertNull(answered.photo().errorRes)
     }
 
     @Test
-    fun `WFT-56_7 found word carries the lemma and part of speech of the first candidate`() {
-        val looking = idle().startRecognizing().startLooking()
-
-        val result = reducer.testReduce(looking, Msg.WordsLookedUp(words(found("corrían", "correr", "verb")), requestId = 1L))
-
-        val word = result.state().photo().words.single()
-        assertEquals("correr", word.lemma)
-        assertEquals("verb", word.partOfSpeech)
-    }
-
-    @Test
-    fun `WFT-60_2 WFT-56_6 empty answer shows no words found`() {
-        val looking = idle().startRecognizing().startLooking()
+    fun `WFT-60_2 empty answer shows no words found`() {
+        val looking = reducer.step(reducer.step(idle(), Msg.PhotoPicked("content://photo/1")), Msg.TokensReady(listOf(token("x")), 1L))
 
         val result = reducer.testReduce(looking, Msg.WordsLookedUp(words(), requestId = 1L))
 
@@ -260,7 +227,7 @@ class PhotoWordsReducerTest {
 
     @Test
     fun `WFT-23_1 WFT-61_1 unavailable server shows server did not respond without the indicator`() {
-        val looking = idle().startRecognizing().startLooking()
+        val looking = reducer.step(reducer.step(idle(), Msg.PhotoPicked("content://photo/1")), Msg.TokensReady(listOf(token("x")), 1L))
 
         val result = reducer.testReduce(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Unavailable, requestId = 1L))
 
@@ -271,9 +238,9 @@ class PhotoWordsReducerTest {
 
     @Test
     fun `WFT-61_2 WFT-62_2 answer of a cancelled run shows neither list nor error`() {
-        val cancelled = idle().startRecognizing().startLooking().hidePhotoWords()
+        val cancelled = reducer.step(reducer.step(reducer.step(idle(), Msg.PhotoPicked("content://photo/1")), Msg.TokensReady(listOf(token("x")), 1L)), Msg.ClosePhotoWords)
 
-        val late = reducer.testReduce(cancelled, Msg.WordsLookedUp(words(found("perro", "perro", "noun")), requestId = 1L))
+        val late = reducer.testReduce(cancelled, Msg.WordsLookedUp(words(Fx.ran), requestId = 1L))
         val lateError = reducer.testReduce(cancelled, Msg.WordsLookedUp(PhotoLookupOutcome.Unavailable, requestId = 1L))
 
         assertEquals(cancelled, late.state())
@@ -284,88 +251,59 @@ class PhotoWordsReducerTest {
 
     @Test
     fun `WFT-62_3 cancel then a new run keeps the first answer away from the chooser and from the second result`() {
-        val cancelled = idle().startRecognizing().startLooking().hidePhotoWords()
-        val chooser = reducer.testReduce(cancelled, Msg.OpenPhotoSourceChooser).state()
+        val cancelled = reducer.step(reducer.step(reducer.step(idle(), Msg.PhotoPicked("content://photo/1")), Msg.TokensReady(listOf(token("x")), 1L)), Msg.ClosePhotoWords)
+        val chooser = reducer.step(cancelled, Msg.OpenPhotoSourceChooser)
 
-        val onChooser = reducer.testReduce(chooser, Msg.WordsLookedUp(words(found("first", "first", "noun")), requestId = 1L)).state()
+        val onChooser = reducer.step(chooser, Msg.WordsLookedUp(words(Fx.ran), requestId = 1L))
         assertEquals(chooser, onChooser)
 
-        val second = reducer.testReduce(onChooser, Msg.PhotoPicked(uri = "content://photo/2")).state()
-        val secondLooking = reducer.testReduce(second, Msg.TokensReady(listOf(token("second")), second.photo().requestId)).state()
-        val lateFirst = reducer.testReduce(secondLooking, Msg.WordsLookedUp(words(found("first", "first", "noun")), requestId = 1L)).state()
+        val second = reducer.step(onChooser, Msg.PhotoPicked(uri = "content://photo/2"))
+        val secondLooking = reducer.step(second, Msg.TokensReady(listOf(token("second")), second.photo().requestId))
+        val lateFirst = reducer.step(secondLooking, Msg.WordsLookedUp(words(Fx.ran), requestId = 1L))
 
         assertEquals(secondLooking, lateFirst)
         assertEquals(PhotoPhase.LOOKING, lateFirst.photo().phase)
-    }
-
-    @Test
-    fun `WFT-62_4 cancel then a new photo shows the second result`() {
-        val cancelled = idle().startRecognizing().startLooking().hidePhotoWords()
-        val second = reducer.testReduce(cancelled, Msg.PhotoPicked(uri = "content://photo/2")).state()
-        val runId = second.photo().requestId
-        val looking = reducer.testReduce(second, Msg.TokensReady(listOf(token("second")), runId)).state()
-
-        val shown = reducer.testReduce(looking, Msg.WordsLookedUp(words(found("second", "second", "adjective")), runId)).state()
-
-        assertEquals(listOf("second"), shown.photo().words.map { it.text })
     }
 
     // ===== В5: отказ =====
 
     @Test
     fun `WFT-63_1 WFT-19_1 unauthorized or missing key shows no access to the server`() {
-        val looking = idle().startRecognizing().startLooking()
+        val looking = reducer.step(reducer.step(idle(), Msg.PhotoPicked("content://photo/1")), Msg.TokensReady(listOf(token("x")), 1L))
 
-        val unauthorized = reducer.testReduce(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.UNAUTHORIZED), 1L))
-        val noKey = reducer.testReduce(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.NO_ACCESS_KEY), 1L))
+        val unauthorized = reducer.step(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.UNAUTHORIZED), 1L))
+        val noKey = reducer.step(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.NO_ACCESS_KEY), 1L))
 
-        assertEquals(R.string.photo_words_error_no_access, unauthorized.state().photo().errorRes)
-        assertEquals(R.string.photo_words_error_no_access, noKey.state().photo().errorRes)
-        assertTrue(unauthorized.state().photo().words.isEmpty())
+        assertEquals(R.string.photo_words_error_no_access, unauthorized.photo().errorRes)
+        assertEquals(R.string.photo_words_error_no_access, noKey.photo().errorRes)
+        assertTrue(unauthorized.photo().words.isEmpty())
     }
 
     @Test
-    fun `WFT-63_2 rate limited shows daily limit reached`() {
-        val looking = idle().startRecognizing().startLooking()
+    fun `WFT-63_2 WFT-63_3 WFT-63_4 rate limit size and language denials map to their texts`() {
+        val looking = reducer.step(reducer.step(idle(), Msg.PhotoPicked("content://photo/1")), Msg.TokensReady(listOf(token("x")), 1L))
 
-        val result = reducer.testReduce(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.RATE_LIMITED), 1L))
-
-        assertEquals(R.string.photo_words_error_rate_limited, result.state().photo().errorRes)
-    }
-
-    @Test
-    fun `WFT-63_3 request too large shows too many words`() {
-        val looking = idle().startRecognizing().startLooking()
-
-        val result = reducer.testReduce(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.REQUEST_TOO_LARGE), 1L))
-
-        assertEquals(R.string.photo_words_error_too_many, result.state().photo().errorRes)
-    }
-
-    @Test
-    fun `WFT-63_4 unsupported language shows dictionary language is not supported`() {
-        val looking = idle().startRecognizing().startLooking()
-
-        val result = reducer.testReduce(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.UNSUPPORTED_LANGUAGE), 1L))
-
-        assertEquals(R.string.photo_words_error_language, result.state().photo().errorRes)
+        assertEquals(R.string.photo_words_error_rate_limited, reducer.step(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.RATE_LIMITED), 1L)).photo().errorRes)
+        assertEquals(R.string.photo_words_error_too_many, reducer.step(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.REQUEST_TOO_LARGE), 1L)).photo().errorRes)
+        assertEquals(R.string.photo_words_error_language, reducer.step(looking, Msg.WordsLookedUp(PhotoLookupOutcome.Denied(PhotoDenyReason.UNSUPPORTED_LANGUAGE), 1L)).photo().errorRes)
     }
 
     // ===== В7: перезапуск =====
 
     @Test
-    fun `WFT-65_1 fresh state after process death shows neither indicator nor list`() {
+    fun `WFT-65_1 AWP-27_1 fresh state after process death shows neither indicator nor window`() {
         val fresh = PhotoWordsState()
 
         assertFalse(fresh.isOpen)
         assertFalse(fresh.isBusy)
-        assertTrue(fresh.words.isEmpty())
+        assertTrue(fresh.cards.isEmpty())
+        assertNull(fresh.form)
         assertNull(fresh.errorRes)
     }
 
     @Test
     fun `closing the dialog keeps the run number for the next run`() {
-        val shown = idle().startRecognizing().startLooking()
+        val shown = reducer.step(reducer.step(idle(), Msg.PhotoPicked("content://photo/1")), Msg.TokensReady(listOf(token("x")), 1L))
 
         val result = reducer.testReduce(shown, Msg.ClosePhotoWords)
 
@@ -379,22 +317,33 @@ class PhotoWordsReducerTest {
         is Msg.TokensReady -> requestId
         is Msg.WordsLookedUp -> requestId
         is Msg.RecognitionFailed -> requestId
+        is Msg.PhotoFormLoaded -> requestId
+        is Msg.PhotoAddFinished -> requestId
+        is Msg.PhotoAddRejected -> requestId
         else -> null
     }
 
-    /** Случайные события с перемешанными номерами запуска вокруг текущего. */
+    /** Случайные события с перемешанными номерами запуска вокруг текущего, включая окно. */
     private fun randomMessages(random: Random, start: WordsTabState): List<Msg> {
         var runId = start.photoWordsState.requestId
-        return List(random.nextInt(5, 30)) {
+        return List(random.nextInt(5, 40)) {
             val id = runId + random.nextInt(-2, 3)
-            when (random.nextInt(8)) {
+            when (random.nextInt(16)) {
                 0 -> Msg.OpenPhotoSourceChooser.also { runId++ }
                 1 -> Msg.PhotoPicked(uri = "content://photo/$it").also { runId++ }
                 2 -> Msg.PhotoPickCancelled
                 3 -> Msg.TokensReady(listOf(token("w$it")), id)
                 4 -> Msg.TokensReady(emptyList(), id)
-                5 -> Msg.WordsLookedUp(words(found("w$it", "w$it", "noun")), id)
+                5 -> Msg.WordsLookedUp(words(Fx.ran, Fx.bank), id)
                 6 -> Msg.RecognitionFailed(errorRes = 1, requestId = id)
+                7 -> Msg.PhotoFormLoaded(PhotoFormOutcome.Loaded(Fx.form(), null), id)
+                8 -> Msg.PhotoFormLoaded(PhotoFormOutcome.DictionaryMissing, id)
+                9 -> Msg.DeletePhotoLexeme("run", "ru/v1")
+                10 -> Msg.RequestPhotoAdd
+                11 -> Msg.ConfirmPhotoAdd
+                12 -> Msg.PhotoAddFinished(lexemeCount = 3, wordCount = 2, requestId = id)
+                13 -> Msg.PhotoAddRejected(PhotoAddFailure.Failed, id)
+                14 -> Msg.RequestClosePhotoWords
                 else -> Msg.ClosePhotoWords
             }
         }

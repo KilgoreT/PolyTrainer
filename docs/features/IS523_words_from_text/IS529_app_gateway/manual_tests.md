@@ -25,13 +25,23 @@
 - `POST /v1/words/lookup -> <код> in <мс>ms` — одна строка на обмен;
   заголовков в логе нет, ключ не печатается (WFT-05).
 
-### Reduce — mate (`###MATE###`)
+### Reduce — редьюсер вкладки (`###VOCAB###`)
 
-- `Reduce ---message---: TokensReady(...)`, `WordsLookedUp(...)`,
-  `ClosePhotoWords`, `PhotoPicked(...)` — порядок событий и их
-  `requestId`; по нему видно, чей результат отброшен (WFT-62).
-- `Reduce --newState--: … photoWordsState=PhotoWordsState(isOpen=…,
-  phase=…, words=[…], isEmptyResult=…, errorRes=…, requestId=N)`.
+- `Reduce ---message---: PhotoPicked(uri=…)`, `PhotoPickCancelled`,
+  `TokensReady`, `WordsLookedUp`, `ClosePhotoWords` — порядок событий; у
+  тяжёлых data-Msg только имя класса, их содержимое пишет handler
+  строками `lookup …`.
+- `Reduce ---step---: <атом> | k=v` — один шаг состояния:
+  `showPhotoSourceChooser | requestId=N`, `returnToPhotoSourceChooser |
+  requestId=N`, `startRecognizing | requestId=N`, `startLooking |
+  requestId=N`, `showNoPhotoWords`, `showPhotoError | errorRes=…`,
+  `hidePhotoWords | requestId=N`; по `requestId` видно, чей запуск
+  (WFT-62).
+- `Reduce ---step---: no-op | reason=…` — событие пришло и намеренно
+  проигнорировано: `tokensReady: foreign run N`, `wordsLookedUp: foreign
+  run N` — ответ закрытого или чужого запуска; `photoPickCancelled:
+  dialog closed`.
+- `RunEffect: <эффект>` под `###MATE###` — эффект ушёл в handler.
 
 ### Сервер (`ssh … docker logs lexeme-server`)
 
@@ -132,8 +142,9 @@
 
 Ожидания:
 - экран: диалог закрыт, список не появляется
-- лог: `ClosePhotoWords` раньше, чем `WordsLookedUp(... requestId=N)`;
-  после `WordsLookedUp` состояние `isOpen=false`, `words=[]`
+- лог: `Reduce ---message---: ClosePhotoWords` и `hidePhotoWords |
+  requestId=N` раньше, чем `WordsLookedUp`; за `WordsLookedUp` — `no-op |
+  reason=wordsLookedUp: foreign run N`, без `startFormLoading`
 
 Анти-проверки:
 - экран: диалог не открывается сам
@@ -165,7 +176,8 @@
 
 Ожидания:
 - экран: ни индикатора, ни списка, ни ошибки; вкладка в обычном виде
-- состояние: `photoWordsState` в умолчаниях
+- лог: после перезапуска ни `showPhotoSourceChooser`, ни `lookup` — только
+  по нажатию кнопки-камеры; у нового запуска `requestId=1`
 
 Прогон: ✅ 2026-10-11 (запуск 6: outcome=unavailable без строки POST, errorRes=photo_words_error_server, индикатор закрыт, приложение живо)
 
@@ -210,7 +222,8 @@
 
 Ожидания:
 - экран: как в шагах
-- состояние: после шагов 1 и 2 `requestId` не изменился (WFT-02.2)
+- лог: `returnToPhotoSourceChooser | requestId=N` с тем же N, что в
+  `showPhotoSourceChooser` (WFT-02.2)
 
 Прогон: ✅ 2026-10-11 (экран по словам юзера; панель открывалась и закрывалась, кнопки прятались и возвращались)
 

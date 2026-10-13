@@ -401,4 +401,90 @@
     <string name="components_error_multi_choice">Multiple values are not allowed for choice</string>
     <string name="components_error_last_core">Cannot disable the last core component</string>
 
+
+    <!-- IS532: add words from a photo -->
+    <string name="photo_add_form_loading">Building the window…</string>
+    <string name="photo_add_form_failed">Could not build the window</string>
+    <string name="photo_add_dictionary_missing">The dictionary was deleted</string>
+    <string name="photo_add_common_group">Group for all</string>
+    <string name="photo_add_group_all">All</string>
+    <string name="photo_add_group_as_common">As for all</string>
+    <string name="photo_add_group_hint">New groups are created on the Groups tab</string>
+    <string name="photo_add_card_group_title">Group of «%1$s»</string>
+    <string name="photo_add_mapping_title">Where it goes</string>
+    <string name="photo_add_mapping_change">change</string>
+    <string name="photo_add_mapping_collapse">collapse</string>
+    <string name="photo_add_mapping_translation">Translation (%1$s)</string>
+    <string name="photo_add_mapping_gloss">Definition (English)</string>
+    <string name="photo_add_mapping_part_of_speech">Part of speech</string>
+    <string name="photo_add_mapping_examples">Examples</string>
+    <string name="photo_add_mapping_none">do not add</string>
+    <string name="photo_add_mapping_remembered">The choice is remembered for this dictionary</string>
+    <string name="photo_add_mapping_taken">now holds %1$s</string>
+    <string name="photo_add_mapping_target_title">%1$s →</string>
+    <string name="photo_add_mapping_no_core">No core gets any text</string>
+    <string name="photo_add_in_text">in the text: %1$s</string>
+    <string name="photo_add_exists">in the dictionary</string>
+    <string name="photo_add_exists_count">in the dictionary: %1$d</string>
+    <string name="photo_add_more">%1$s more</string>
+    <string name="photo_add_where">Where:</string>
+    <string name="photo_add_group">Group:</string>
+    <string name="photo_add_new_word">new word</string>
+    <string name="photo_add_target_title">Where to add the meanings of «%1$s»</string>
+    <string name="photo_add_target_existing">into «%1$s»: %2$s</string>
+    <string name="photo_add_target_new">new word «%1$s»</string>
+    <string name="photo_add_target_groups">groups: %1$s</string>
+    <string name="photo_add_target_no_groups">no groups</string>
+    <string name="photo_add_target_group_hint">The word joins the group «%1$s» together with its %2$s</string>
+    <string name="photo_add_old_lexemes">old meanings</string>
+    <string name="photo_add_part_of_speech_title">Part of speech</string>
+    <string name="photo_add_part_of_speech_none">no part of speech</string>
+    <string name="photo_add_english_mark">eng.</string>
+    <string name="photo_add_exists_mark">exists</string>
+    <string name="photo_add_no_core_mark">no core</string>
+    <string name="photo_add_edited_mark">edited</string>
+    <string name="photo_add_not_added">Not to add: %1$d</string>
+    <string name="photo_add_not_found">not found</string>
+    <string name="photo_add_error">did not load</string>
+    <string name="photo_add_no_lexemes">no meanings</string>
+    <string name="photo_add_nothing">Nothing to add</string>
+    <string name="photo_add_button">Add %1$s</string>
+    <string name="photo_add_button_plain">Add</string>
+    <string name="photo_add_adding">Adding…</string>
+    <string name="photo_add_nothing_to_add">Nothing to add</string>
+    <string name="photo_add_count_in">%1$s into %2$s</string>
+    <string name="photo_add_confirm">Add %1$s?</string>
+    <string name="photo_add_yes">Yes</string>
+    <string name="photo_add_failed">Not added — nothing was written</string>
+    <string name="photo_add_failed_group">The group was deleted, the choice is reset</string>
+    <string name="photo_add_failed_word">The word was deleted, a new word is selected</string>
+    <string name="photo_add_failed_type">A component was switched off, the mapping is reset</string>
+    <string name="photo_add_failed_core">A meaning has no core</string>
+    <string name="photo_add_retry">Retry</string>
+    <string name="photo_add_close_question">Close without adding?</string>
+    <string name="photo_add_stay">Stay</string>
+    <string name="photo_add_close">Close</string>
+    <string name="photo_add_edit_translation">Translation text</string>
+    <string name="photo_add_edit_gloss">Definition</string>
+    <string name="photo_add_edit_example">Example</string>
+    <string name="photo_add_edit_was">was: %1$s</string>
+    <string name="photo_add_edit_reset">reset</string>
+    <string name="photo_add_edit_save">Save</string>
+    <string name="photo_add_delete">delete</string>
+    <plurals name="photo_add_lexemes">
+        <item quantity="one">%d meaning</item>
+        <item quantity="other">%d meanings</item>
+    </plurals>
+    <plurals name="photo_add_words">
+        <item quantity="one">%d word</item>
+        <item quantity="other">%d words</item>
+    </plurals>
+    <plurals name="photo_add_no_core_reason">
+        <item quantity="one">%d meaning gets no core</item>
+        <item quantity="other">%d meanings get no core</item>
+    </plurals>
+    <plurals name="photo_add_existing_skipped">
+        <item quantity="one">%d already exists — will not be added</item>
+        <item quantity="other">%d already exist — will not be added</item>
+    </plurals>
 </resources>

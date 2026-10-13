@@ -1,7 +1,9 @@
 package me.apomazkin.polytrainer.mapper
 
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
+import me.apomazkin.core_network_api.entity.CandidateLexeme
 import me.apomazkin.core_network_api.entity.DenyReason
+import me.apomazkin.core_network_api.entity.Lemma
 import me.apomazkin.core_network_api.entity.LookupRequest
 import me.apomazkin.core_network_api.entity.LookupResult
 import me.apomazkin.core_network_api.entity.TokenQuery
@@ -9,14 +11,16 @@ import me.apomazkin.core_network_api.entity.WordResult
 import me.apomazkin.core_network_api.entity.WordStatus
 import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.wordstab.deps.PhotoDenyReason
+import me.apomazkin.wordstab.deps.PhotoLemma
+import me.apomazkin.wordstab.deps.PhotoLexeme
 import me.apomazkin.wordstab.deps.PhotoLookupOutcome
 import me.apomazkin.wordstab.deps.PhotoWord
 import me.apomazkin.wordstab.deps.PhotoWordStatus
 
 /*
- * IS529: граница «слой сети → экран». Сущности сети в экран не ходят,
- * экран получает PhotoLookupOutcome с тем, что показывает (Д4: первая
- * лемма и часть речи).
+ * IS529/IS532: граница «слой сети → экран». Сущности сети в экран не
+ * ходят, экран получает PhotoLookupOutcome со словарём снимка (AWP-01) и
+ * леммами ответа с лексемами-кандидатами (WFT-76, AWP-04).
  */
 
 /** Токены как распознаны плюс языки словаря → запрос `lookupWords` (WFT-20). */
@@ -33,29 +37,38 @@ private fun RecognizedWord.toTokenQuery(): TokenQuery = TokenQuery(
     language = language,
 )
 
-/** Исход слоя сети → исход для экрана (WFT-56, WFT-63). */
-fun LookupResult.toOutcome(): PhotoLookupOutcome = when (this) {
-    is LookupResult.Success -> PhotoLookupOutcome.Words(words.map { it.toPhotoWord() })
+/** Исход слоя сети → исход для экрана (WFT-50, WFT-63); [dictionaryId] — словарь снимка. */
+fun LookupResult.toOutcome(dictionaryId: Long): PhotoLookupOutcome = when (this) {
+    is LookupResult.Success -> PhotoLookupOutcome.Words(dictionaryId = dictionaryId, words = words.map { it.toPhotoWord() })
     is LookupResult.Denied -> PhotoLookupOutcome.Denied(reason.toPhotoDenyReason())
     is LookupResult.Unavailable -> PhotoLookupOutcome.Unavailable
 }
 
-/**
- * Слово со статусом; у найденного — лемма, часть речи, первое значение на
- * языке перевода и первое толкование первого кандидата (Д4, Д5, Д6,
- * WFT-56.7…56.10). Чего нет у кандидата — null.
- */
-private fun WordResult.toPhotoWord(): PhotoWord {
-    val first = candidates.firstOrNull()
-    return PhotoWord(
-        text = text,
-        status = status.toPhotoWordStatus(),
-        lemma = first?.lemma,
-        partOfSpeech = first?.partOfSpeech,
-        meaning = first?.meanings?.firstOrNull(),
-        gloss = first?.senses?.firstOrNull()?.gloss,
-    )
-}
+/** Слово со статусом и леммами ответа; у «не найдено» и «ошибка источника» лемм нет (WFT-50). */
+private fun WordResult.toPhotoWord(): PhotoWord = PhotoWord(
+    text = text,
+    status = status.toPhotoWordStatus(),
+    lemmas = lemmas.map { it.toPhotoLemma() },
+)
+
+private fun Lemma.toPhotoLemma(): PhotoLemma = PhotoLemma(
+    text = text,
+    formNote = formNote,
+    lexemes = lexemes.map { it.toPhotoLexeme() },
+)
+
+private fun CandidateLexeme.toPhotoLexeme(): PhotoLexeme = PhotoLexeme(
+    key = key,
+    partOfSpeechKey = partOfSpeechKey,
+    source = source,
+    translations = translations,
+    gloss = gloss,
+    caption = caption,
+    notes = notes,
+    examples = examples,
+    parent = parent,
+    parentKey = parentKey,
+)
 
 private fun WordStatus.toPhotoWordStatus(): PhotoWordStatus = when (this) {
     WordStatus.FOUND -> PhotoWordStatus.FOUND

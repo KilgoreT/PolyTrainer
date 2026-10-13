@@ -7,8 +7,16 @@ import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import me.apomazkin.wordstab.deps.PhotoDictionaryForm
+import me.apomazkin.wordstab.deps.PhotoMapping
 import me.apomazkin.wordstab.deps.PhotoWord
 import me.apomazkin.wordstab.entity.LexemeLabel
+import me.apomazkin.wordstab.logic.photo.PhotoAddFailure
+import me.apomazkin.wordstab.logic.photo.PhotoAddSummary
+import me.apomazkin.wordstab.logic.photo.PhotoCard
+import me.apomazkin.wordstab.logic.photo.PhotoFormError
+import me.apomazkin.wordstab.logic.photo.PhotoNotAdded
+import me.apomazkin.wordstab.logic.photo.PhotoSheet
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordstab.entity.WordInfo
 import me.apomazkin.mate.EMPTY_STRING
@@ -82,15 +90,23 @@ data class ConfirmWordDeleteDialogState(
 )
 
 /**
- * IS527/IS529: диалог «слова с фото» явными флагами: выбор источника
+ * IS527/IS529/IS532: диалог «слова с фото» явными флагами: выбор источника
  * ([isChoosingSource]) → индикатор с подписью фазы ([phase], WFT-16) →
- * список слов из ответа сервера ([words], WFT-56), «слов не найдено»
- * ([isEmptyResult], WFT-60) или ошибка ([errorRes], WFT-61, WFT-63).
+ * ответ сервера ([words]) и признак загрузки формы ([phase] = FORM) →
+ * окно-черновик ([cards], AWP-03), «слов не найдено» ([isEmptyResult],
+ * WFT-60) или ошибка ([errorRes], WFT-61, WFT-63; [formError], AWP-24).
  * Закрыт — флаги в умолчаниях. [requestId] — номер запуска (термин
  * «Запуск», WFT-01…03): растёт на каждое открытие выбора и на каждый
- * снимок, переживает закрытие диалога; результат распознавания или ответ
- * сервера с чужим id отбрасывается (WFT-62). Уходит на сервер как
- * `X-Run-Id`.
+ * снимок, переживает закрытие диалога; результат распознавания, ответ
+ * сервера, форма и итог записи с чужим id отбрасываются (WFT-62,
+ * AWP-24.2). Уходит на сервер как `X-Run-Id`.
+ *
+ * Окно (Ш2): [dictionaryId] — словарь снимка (AWP-01), [form] — форма
+ * словаря (`data: T? = null`), [mapping] — соответствия, [commonGroupId] —
+ * общая группа (null — «Все»), [cards] и [notAdded] — список, [summary]
+ * — кнопка; [isDirty] — были удаления, правки текста или смены части
+ * речи (AWP-19); [isAdding] — запись идёт (AWP-13.4); [addFailure] — В3;
+ * вопросы [isConfirmingAdd], [isConfirmingClose]; [sheet] — открытый лист.
  */
 @Immutable
 data class PhotoWordsState(
@@ -101,17 +117,38 @@ data class PhotoWordsState(
         val isEmptyResult: Boolean = false,
         @StringRes val errorRes: Int? = null,
         val requestId: Long = 0L,
+        val dictionaryId: Long? = null,
+        val form: PhotoDictionaryForm? = null,
+        val formError: PhotoFormError? = null,
+        val mapping: PhotoMapping = PhotoMapping.NONE,
+        val commonGroupId: Long? = null,
+        val cards: List<PhotoCard> = emptyList(),
+        val notAdded: List<PhotoNotAdded> = emptyList(),
+        val summary: PhotoAddSummary = PhotoAddSummary(),
+        val isDirty: Boolean = false,
+        val isAdding: Boolean = false,
+        val addFailure: PhotoAddFailure? = null,
+        val isConfirmingAdd: Boolean = false,
+        val isConfirmingClose: Boolean = false,
+        val isMappingExpanded: Boolean = false,
+        val isNotAddedExpanded: Boolean = false,
+        val sheet: PhotoSheet? = null,
 ) {
-    /** Индикатор виден, пока идёт распознавание или ожидание ответа (WFT-16). */
+    /** Индикатор виден, пока идёт распознавание, ожидание ответа или сборка окна (WFT-16, AWP-24). */
     val isBusy: Boolean
         get() = phase != PhotoPhase.IDLE
+
+    /** Окно-черновик собрано: форма есть, ошибок нет (Ш2). */
+    val isWindowReady: Boolean
+        get() = form != null && formError == null
 }
 
-/** Фаза запуска; подпись индикатора выбирается по ней (WFT-16.1, 16.2). */
+/** Фаза запуска; подпись индикатора выбирается по ней (WFT-16.1, 16.2; AWP-24). */
 enum class PhotoPhase {
     IDLE,
     RECOGNIZING,
     LOOKING,
+    FORM,
 }
 
 fun WordsTabState.showLoading(): WordsTabState =
@@ -316,80 +353,9 @@ fun WordsTabState.hideConfirmDeleteDialog(): WordsTabState {
 }
 
 /**
- * ###### PHOTO WORDS DIALOG (IS527) ######
+ * ###### PHOTO WORDS DIALOG (IS527/IS532) ######
+ * Шаги диалога — атомы `logic/photo/PhotoStateAtoms`; здесь только предикат.
  */
-/** Новый диалог — новый id: результат прежнего снимка на шаг выбора не попадёт. */
-fun WordsTabState.showPhotoSourceChooser(): WordsTabState = this.copy(
-        photoWordsState = PhotoWordsState(
-                isOpen = true,
-                isChoosingSource = true,
-                requestId = photoWordsState.requestId + 1,
-        )
-)
-
-/** Возврат без снимка — тот же запуск, тот же номер (В1, WFT-02.2). */
-fun WordsTabState.returnToPhotoSourceChooser(): WordsTabState = this.copy(
-        photoWordsState = PhotoWordsState(
-                isOpen = true,
-                isChoosingSource = true,
-                requestId = photoWordsState.requestId,
-        )
-)
-
-/** Новый снимок — новый id: результаты прежних распознаваний устарели. */
-fun WordsTabState.startRecognizing(): WordsTabState = this.copy(
-        photoWordsState = PhotoWordsState(
-                isOpen = true,
-                phase = PhotoPhase.RECOGNIZING,
-                requestId = photoWordsState.requestId + 1,
-        )
-)
-
-/** Токены ушли на сервер — тот же запуск, подпись «Ищу слова в словаре» (WFT-16.2). */
-fun WordsTabState.startLooking(): WordsTabState = this.copy(
-        photoWordsState = PhotoWordsState(
-                isOpen = true,
-                phase = PhotoPhase.LOOKING,
-                requestId = photoWordsState.requestId,
-        )
-)
-
-/** Ответ сервера со словами — список на месте индикатора (WFT-56). */
-fun WordsTabState.showPhotoWords(
-        words: List<PhotoWord>,
-): WordsTabState = this.copy(
-        photoWordsState = PhotoWordsState(
-                isOpen = true,
-                words = words,
-                requestId = photoWordsState.requestId,
-        )
-)
-
-/** Токенов нет или ответ пуст — «слов не найдено» (В2, WFT-60). */
-fun WordsTabState.showNoPhotoWords(): WordsTabState = this.copy(
-        photoWordsState = PhotoWordsState(
-                isOpen = true,
-                isEmptyResult = true,
-                requestId = photoWordsState.requestId,
-        )
-)
-
-/** Ошибка запуска или отказ сервера — индикатор закрыт, текст ресурсом (В3, В5). */
-fun WordsTabState.showPhotoError(
-        @StringRes errorRes: Int,
-): WordsTabState = this.copy(
-        photoWordsState = PhotoWordsState(
-                isOpen = true,
-                errorRes = errorRes,
-                requestId = photoWordsState.requestId,
-        )
-)
-
-fun WordsTabState.hidePhotoWords(): WordsTabState = this.copy(
-        photoWordsState = PhotoWordsState(
-                requestId = photoWordsState.requestId,
-        )
-)
 
 /** Результат относится к текущему открытому диалогу, а не к прошлому снимку. */
 fun WordsTabState.isCurrentPhotoRequest(

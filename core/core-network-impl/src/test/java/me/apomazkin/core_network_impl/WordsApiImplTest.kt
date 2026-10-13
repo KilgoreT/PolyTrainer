@@ -294,6 +294,144 @@ class WordsApiImplTest {
         assertTrue(accorc.candidates.isEmpty())
     }
 
+    // === Ш10: леммы ответа с лексемами-кандидатами, записано с прода v0.1.9 (IS532) ===
+
+    @Test
+    fun `WFT-50_2 old recorded response without lemmas parses with empty lemmas`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
+
+        val result = api().lookup(requestOf(token("corrían")), runId = 1) as LookupResult.Success
+
+        assertTrue(result.words.all { it.lemmas.isEmpty() })
+        assertEquals(4, result.words.size)
+    }
+
+    @Test
+    fun `WFT-76_2 recorded running gives lemmas run with a form note and running without`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_en.json")))
+
+        val result = api().lookup(requestOf(token("running")), runId = 1) as LookupResult.Success
+
+        val running = result.words.first { it.text == "running" }
+        assertEquals(listOf("run", "running"), running.lemmas.map { it.text })
+        assertEquals("present participle and gerund", running.lemmas[0].formNote)
+        assertNull(running.lemmas[1].formNote)
+        assertEquals(71, running.lemmas[0].lexemes.size)
+        assertEquals(35, running.lemmas[1].lexemes.size)
+    }
+
+    @Test
+    fun `WFT-71_1 WFT-72_1 recorded run carries 130 lexemes with key source and part of speech key`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_en.json")))
+
+        val result = api().lookup(requestOf(token("run")), runId = 1) as LookupResult.Success
+
+        val run = result.words.first { it.text == "run" }.lemmas.first { it.text == "run" }
+        assertEquals(130, run.lexemes.size)
+        assertEquals(71, run.lexemes.count { it.partOfSpeechKey == "verb" })
+        assertEquals(54, run.lexemes.count { it.partOfSpeechKey == "noun" })
+        assertEquals(5, run.lexemes.count { it.partOfSpeechKey == "adjective" })
+        assertEquals(setOf("ruwiktionary", "enwiktionary"), run.lexemes.map { it.source }.toSet())
+        assertEquals(130, run.lexemes.map { it.key }.toSet().size)
+        assertEquals(listOf("бежать, бегать"), run.lexemes.first().translations)
+        val london = result.words.first { it.text == "london" }.lemmas.single()
+        assertEquals("noun", london.lexemes.first { it.source == "ruwiktionary" }.partOfSpeechKey)
+    }
+
+    @Test
+    fun `WFT-71_11 WFT-71_3 recorded russian lexeme of London has null gloss caption parent key and keeps its example`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_en.json")))
+
+        val result = api().lookup(requestOf(token("London")), runId = 1) as LookupResult.Success
+
+        val lexeme = result.words.first { it.text == "london" }.lemmas.single().lexemes.first()
+        assertEquals("ruwiktionary", lexeme.source)
+        assertEquals(listOf("Лондон (город в Великобритании)"), lexeme.translations)
+        assertNull(lexeme.gloss)
+        assertNull(lexeme.caption)
+        assertNull(lexeme.parentKey)
+        assertFalse(lexeme.parent)
+        assertEquals(listOf("Eventually, she got a job and moved to London."), lexeme.examples)
+        assertTrue(lexeme.notes.isEmpty())
+    }
+
+    @Test
+    fun `WFT-71_8 recorded run has parent lexemes and children pointing at them`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_en.json")))
+
+        val result = api().lookup(requestOf(token("run")), runId = 1) as LookupResult.Success
+
+        val run = result.words.first { it.text == "run" }.lemmas.first { it.text == "run" }
+        val parent = run.lexemes.first { it.parent }
+        assertEquals("To move swiftly.", parent.gloss)
+        assertNull(parent.parentKey)
+        val child = run.lexemes.first { it.parentKey == parent.key }
+        assertEquals("enwiktionary", child.source)
+        assertTrue(child.gloss!!.startsWith("To move forward quickly upon two feet"))
+    }
+
+    @Test
+    fun `WFT-76_1 recorded corrian gives lemma correr with a form note and 27 lexemes`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_es.json")))
+
+        val result = api().lookup(requestOf(token("corrían")), runId = 1) as LookupResult.Success
+
+        val correr = result.words.first { it.text == "corrían" }.lemmas.single()
+        assertEquals("correr", correr.text)
+        assertEquals("third-person plural imperfect indicative", correr.formNote)
+        assertEquals(27, correr.lexemes.size)
+        assertEquals(15, correr.lexemes.count { it.source == "ruwiktionary" })
+        assertTrue(correr.lexemes.all { it.partOfSpeechKey == "verb" })
+    }
+
+    @Test
+    fun `WFT-76_3 WFT-73_1 recorded fuera gives three lemmas and amigo ends with the russian adjective`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_es.json")))
+
+        val result = api().lookup(requestOf(token("fuera")), runId = 1) as LookupResult.Success
+
+        val fuera = result.words.first { it.text == "fuera" }
+        assertEquals(listOf("fuera", "ser", "ir"), fuera.lemmas.map { it.text })
+        assertEquals(setOf("adverb", "interjection"), fuera.lemmas[0].lexemes.map { it.partOfSpeechKey }.toSet())
+        val amigo = result.words.first { it.text == "amigo" }.lemmas.first { it.text == "amigo" }
+        assertEquals("adjective", amigo.lexemes.last().partOfSpeechKey)
+        assertEquals(listOf("дружественный; дружеский, приятельский"), amigo.lexemes.last().translations)
+    }
+
+    @Test
+    fun `unknown source part of speech key and extra fields keep the lexeme and the response stays a success`() = runTest {
+        server.enqueue(
+                MockResponse(
+                        code = 200,
+                        body = """{"attribution":"Wiktionary, CC BY-SA 4.0","served":"cache","words":[{"text":"run","status":"found","candidates":[],"lemmas":[{"text":"run","formNote":null,"lexemes":[{"key":"cambridge/1","partOfSpeechKey":"gerund","source":"cambridge","translations":["бег"],"level":"B1"}]}]}]}""",
+                )
+        )
+
+        val result = api().lookup(requestOf(token("run")), runId = 1)
+
+        val success = result as LookupResult.Success
+        val lexeme = success.words.single().lemmas.single().lexemes.single()
+        assertEquals("cambridge", lexeme.source)
+        assertEquals("gerund", lexeme.partOfSpeechKey)
+        assertEquals(listOf("бег"), lexeme.translations)
+        assertNull(lexeme.gloss)
+        assertTrue(lexeme.examples.isEmpty())
+    }
+
+    @Test
+    fun `lexeme without key or source is off the schema and makes the response unavailable`() = runTest {
+        server.enqueue(
+                MockResponse(
+                        code = 200,
+                        body = """{"attribution":"x","words":[{"text":"run","status":"found","candidates":[],"lemmas":[{"text":"run","lexemes":[{"translations":["бег"]}]}]}]}""",
+                )
+        )
+
+        val result = api().lookup(requestOf(token("run")), runId = 1)
+
+        assertTrue(result is LookupResult.Unavailable)
+    }
+
     // === обвязка ===
 
     private fun api(

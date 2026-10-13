@@ -38,6 +38,7 @@ import me.apomazkin.wordstab.ui.widget.ConfirmDeleteWordWidget
 import me.apomazkin.wordstab.ui.widget.EmptyWidget
 import me.apomazkin.wordstab.ui.widget.WordListWidget
 import me.apomazkin.wordstab.ui.widget.addWordBottom.AddWordPanelWidget
+import me.apomazkin.wordstab.ui.widget.photo.PhotoAddWindow
 import me.apomazkin.wordstab.ui.widget.photo.PhotoWordsDialog
 import me.apomazkin.wordstab.ui.widget.topBar.ActionTopBarWidget
 import me.apomazkin.mate.EMPTY_STRING
@@ -218,7 +219,14 @@ internal fun WordsTabContent(
             onPicked = { uri -> sendMessage(Msg.PhotoPicked(uri = uri.toString())) },
             onCancelled = { sendMessage(Msg.PhotoPickCancelled) },
         )
-        if (state.photoWordsState.isOpen) {
+        // IS532: собранное окно добавления — на весь экран (AWP-14); до него и
+        // при ошибках — диалог запуска.
+        if (state.photoWordsState.isWindowReady) {
+            PhotoAddWindow(
+                state = state.photoWordsState,
+                sendMessage = sendMessage,
+            )
+        } else if (state.photoWordsState.isOpen) {
             // Наличие камеры — на открытие диалога, не на каждую рекомпозицию.
             val isCameraAvailable = remember { photoPicker.isCameraAvailable() }
             val cameraError = Msg.RecognitionFailed(

@@ -390,4 +390,98 @@
 
     <string name="settings_section_about_app_title">Lexeme — это приложение, которое позволяет создавать собственный словарь иностранных слов.\nМы — команда разработчиков, которая понимает на своём опыте, как важно держать иностранную лексику в порядке и постоянно её повторять.</string>
 
+
+    <!-- IS532: добавление слов со снимка -->
+    <string name="photo_add_form_loading">Собираю окно…</string>
+    <string name="photo_add_form_failed">Не удалось собрать окно</string>
+    <string name="photo_add_dictionary_missing">Словарь удалён</string>
+    <string name="photo_add_common_group">Группа для всех</string>
+    <string name="photo_add_group_all">Все</string>
+    <string name="photo_add_group_as_common">Как у всех</string>
+    <string name="photo_add_group_hint">Новую группу создают на вкладке «Группы»</string>
+    <string name="photo_add_card_group_title">Группа для «%1$s»</string>
+    <string name="photo_add_mapping_title">Куда пишем</string>
+    <string name="photo_add_mapping_change">изменить</string>
+    <string name="photo_add_mapping_collapse">свернуть</string>
+    <string name="photo_add_mapping_translation">Перевод (%1$s)</string>
+    <string name="photo_add_mapping_gloss">Толкование (англ.)</string>
+    <string name="photo_add_mapping_part_of_speech">Часть речи</string>
+    <string name="photo_add_mapping_examples">Примеры</string>
+    <string name="photo_add_mapping_none">не добавлять</string>
+    <string name="photo_add_mapping_remembered">Выбор запомнится для этого словаря</string>
+    <string name="photo_add_mapping_taken">сейчас в нём %1$s</string>
+    <string name="photo_add_mapping_target_title">%1$s →</string>
+    <string name="photo_add_mapping_no_core">Ни одно ядро не заполняется</string>
+    <string name="photo_add_in_text">в тексте: %1$s</string>
+    <string name="photo_add_exists">есть в словаре</string>
+    <string name="photo_add_exists_count">есть в словаре: %1$d</string>
+    <string name="photo_add_more">ещё %1$s</string>
+    <string name="photo_add_where">Куда:</string>
+    <string name="photo_add_group">Группа:</string>
+    <string name="photo_add_new_word">новое слово</string>
+    <string name="photo_add_target_title">Куда добавить значения «%1$s»</string>
+    <string name="photo_add_target_existing">в «%1$s»: %2$s</string>
+    <string name="photo_add_target_new">новое слово «%1$s»</string>
+    <string name="photo_add_target_groups">группы: %1$s</string>
+    <string name="photo_add_target_no_groups">без групп</string>
+    <string name="photo_add_target_group_hint">Слово войдёт в группу «%1$s» вместе со своими %2$s</string>
+    <string name="photo_add_old_lexemes">старыми значениями</string>
+    <string name="photo_add_part_of_speech_title">Часть речи</string>
+    <string name="photo_add_part_of_speech_none">без части речи</string>
+    <string name="photo_add_english_mark">англ.</string>
+    <string name="photo_add_exists_mark">есть</string>
+    <string name="photo_add_no_core_mark">не попадёт в ядро</string>
+    <string name="photo_add_edited_mark">изменено</string>
+    <string name="photo_add_not_added">Не добавить: %1$d</string>
+    <string name="photo_add_not_found">не найдено</string>
+    <string name="photo_add_error">не загрузилось</string>
+    <string name="photo_add_no_lexemes">нет значений</string>
+    <string name="photo_add_nothing">Добавить нечего</string>
+    <string name="photo_add_button">Добавить %1$s</string>
+    <string name="photo_add_button_plain">Добавить</string>
+    <string name="photo_add_adding">Добавляю…</string>
+    <string name="photo_add_nothing_to_add">Добавлять нечего</string>
+    <string name="photo_add_count_in">%1$s в %2$s</string>
+    <string name="photo_add_confirm">Добавить %1$s?</string>
+    <string name="photo_add_yes">Да</string>
+    <string name="photo_add_failed">Не добавилось — ничего не записано</string>
+    <string name="photo_add_failed_group">Группа удалена, выбор сброшен</string>
+    <string name="photo_add_failed_word">Слово удалено, выбрано новое</string>
+    <string name="photo_add_failed_type">Компонент выключен, соответствие сброшено</string>
+    <string name="photo_add_failed_core">У значения нет ядра</string>
+    <string name="photo_add_retry">Повторить</string>
+    <string name="photo_add_close_question">Закрыть без добавления?</string>
+    <string name="photo_add_stay">Остаться</string>
+    <string name="photo_add_close">Закрыть</string>
+    <string name="photo_add_edit_translation">Текст перевода</string>
+    <string name="photo_add_edit_gloss">Толкование</string>
+    <string name="photo_add_edit_example">Пример</string>
+    <string name="photo_add_edit_was">было: %1$s</string>
+    <string name="photo_add_edit_reset">сбросить</string>
+    <string name="photo_add_edit_save">Сохранить</string>
+    <string name="photo_add_delete">удалить</string>
+    <plurals name="photo_add_lexemes">
+        <item quantity="one">%d значение</item>
+        <item quantity="few">%d значения</item>
+        <item quantity="many">%d значений</item>
+        <item quantity="other">%d значения</item>
+    </plurals>
+    <plurals name="photo_add_words">
+        <item quantity="one">%d слово</item>
+        <item quantity="few">%d слова</item>
+        <item quantity="many">%d слов</item>
+        <item quantity="other">%d слова</item>
+    </plurals>
+    <plurals name="photo_add_no_core_reason">
+        <item quantity="one">%d значение не попадёт в ядро</item>
+        <item quantity="few">%d значения не попадут в ядро</item>
+        <item quantity="many">%d значений не попадут в ядро</item>
+        <item quantity="other">%d значения не попадут в ядро</item>
+    </plurals>
+    <plurals name="photo_add_existing_skipped">
+        <item quantity="one">%d уже есть — не добавится</item>
+        <item quantity="few">%d уже есть — не добавятся</item>
+        <item quantity="many">%d уже есть — не добавятся</item>
+        <item quantity="other">%d уже есть — не добавятся</item>
+    </plurals>
 </resources>

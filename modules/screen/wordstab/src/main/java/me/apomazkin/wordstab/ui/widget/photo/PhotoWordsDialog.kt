@@ -1,16 +1,12 @@
 package me.apomazkin.wordstab.ui.widget.photo
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
@@ -18,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -26,29 +21,23 @@ import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.LexemeColor
 import me.apomazkin.theme.LexemeStyle
 import me.apomazkin.theme.formBackground
-import me.apomazkin.theme.formTextSecondary
 import me.apomazkin.theme.formTextTertiary
 import me.apomazkin.ui.btn.CancelButtonWidget
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.wordstab.R
-import me.apomazkin.wordstab.deps.PhotoWord
-import me.apomazkin.wordstab.deps.PhotoWordStatus
 import me.apomazkin.wordstab.logic.PhotoPhase
 import me.apomazkin.wordstab.logic.PhotoWordsState
-
-/** Страница лицензии данных источника (WFT-57.2). */
-private const val LICENSE_URL = "https://creativecommons.org/licenses/by-sa/4.0/"
+import me.apomazkin.wordstab.logic.photo.PhotoFormError
 
 /**
- * IS527/IS529: один диалог на весь запуск — выбор источника, индикатор с
- * подписью фазы (WFT-16), список слов из ответа сервера с леммой первого
- * кандидата или пометкой (WFT-56, Д4), подпись источника с лицензией
- * (WFT-57), «слов не найдено» (WFT-60) или ошибка (WFT-61, WFT-63). Со
- * списком ничего нельзя делать, кроме прокрутки и закрытия (WFT-58).
+ * IS527/IS529/IS532: диалог запуска — выбор источника, индикатор с
+ * подписью фазы (WFT-16; сборка окна — AWP-24), «слов не найдено»
+ * (WFT-60), ошибка запуска, отказ сервера (WFT-61, WFT-63) или «окно не
+ * собралось» (AWP-24). Собранное окно рисует [PhotoAddWindow].
  * Цвета явные, парой из LanguagePickerDialog (IS525): фон formBackground,
- * текст formTextTertiary, вторая строка formTextSecondary, акцент
- * LexemeColor.primary. [isCameraAvailable] false — кнопки «Камера» нет.
+ * текст formTextTertiary, акцент LexemeColor.primary.
+ * [isCameraAvailable] false — кнопки «Камера» нет.
  */
 @Composable
 internal fun PhotoWordsDialog(
@@ -58,14 +47,11 @@ internal fun PhotoWordsDialog(
     onGallery: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val hasList = state.words.isNotEmpty()
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = formBackground,
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(if (hasList) Modifier.fillMaxHeight(0.8f) else Modifier),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -82,11 +68,8 @@ internal fun PhotoWordsDialog(
                     )
                     state.isBusy -> Busy()
                     state.errorRes != null -> Message(textRes = state.errorRes)
-                    state.isEmptyResult || !hasList -> Message(textRes = R.string.photo_words_empty)
-                    else -> {
-                        WordList(words = state.words, modifier = Modifier.weight(1f))
-                        Attribution()
-                    }
+                    state.formError != null -> Message(textRes = formErrorRes(state.formError))
+                    else -> Message(textRes = R.string.photo_words_empty)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 CancelButtonWidget(
@@ -102,13 +85,19 @@ internal fun PhotoWordsDialog(
     }
 }
 
-/** Подпись фазы (WFT-16.1, 16.2) или число слов (WFT-56.1). */
+/** Подпись фазы (WFT-16.1, 16.2; AWP-24) или заголовок диалога. */
 @Composable
-private fun title(state: PhotoWordsState): String = when {
-    state.phase == PhotoPhase.RECOGNIZING -> stringResource(id = R.string.photo_words_recognizing)
-    state.phase == PhotoPhase.LOOKING -> stringResource(id = R.string.photo_words_looking)
-    state.words.isNotEmpty() -> stringResource(id = R.string.photo_words_found, state.words.size)
-    else -> stringResource(id = R.string.photo_words_title)
+private fun title(state: PhotoWordsState): String = when (state.phase) {
+    PhotoPhase.RECOGNIZING -> stringResource(id = R.string.photo_words_recognizing)
+    PhotoPhase.LOOKING -> stringResource(id = R.string.photo_words_looking)
+    PhotoPhase.FORM -> stringResource(id = R.string.photo_add_form_loading)
+    PhotoPhase.IDLE -> stringResource(id = R.string.photo_words_title)
+}
+
+@StringRes
+private fun formErrorRes(error: PhotoFormError): Int = when (error) {
+    PhotoFormError.DICTIONARY_MISSING -> R.string.photo_add_dictionary_missing
+    PhotoFormError.LOAD_FAILED -> R.string.photo_add_form_failed
 }
 
 @Composable
@@ -154,91 +143,26 @@ private fun Message(@StringRes textRes: Int) {
     )
 }
 
-/** Элемент на слово ответа, порядок ответа; ключ — позиция (слова в ответе без повторов, WFT-04). */
+@PreviewWidget
 @Composable
-private fun WordList(words: List<PhotoWord>, modifier: Modifier) {
-    LazyColumn(modifier = modifier) {
-        itemsIndexed(words, key = { index, _ -> index }) { _, word ->
-            WordItem(word = word)
-        }
-    }
-}
-
-/**
- * Слово первой строкой; второй — «лемма, часть речи» первого кандидата (Д4)
- * или пометка; третьей — первое толкование на языке источника (Д5);
- * четвёртой — первое значение на языке перевода (Д6). Чего у кандидата
- * нет, той строки нет.
- */
-@Composable
-private fun WordItem(word: PhotoWord) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-    ) {
-        Text(
-            text = word.text,
-            style = LexemeStyle.BodyM,
-            color = formTextTertiary,
+private fun PreviewChooser() {
+    AppTheme {
+        PhotoWordsDialog(
+            state = PhotoWordsState(isOpen = true, isChoosingSource = true),
+            isCameraAvailable = true,
+            onCamera = {},
+            onGallery = {},
+            onDismiss = {},
         )
-        Text(
-            text = secondLine(word),
-            style = LexemeStyle.BodyS,
-            color = formTextSecondary,
-        )
-        if (word.gloss != null) {
-            Text(
-                text = word.gloss,
-                style = LexemeStyle.BodyS,
-                color = formTextSecondary,
-            )
-        }
-        if (word.meaning != null) {
-            Text(
-                text = word.meaning,
-                style = LexemeStyle.BodyS,
-                color = formTextTertiary,
-            )
-        }
     }
-}
-
-@Composable
-private fun secondLine(word: PhotoWord): String = when (word.status) {
-    PhotoWordStatus.FOUND -> listOfNotNull(word.lemma, word.partOfSpeech).joinToString(", ")
-    PhotoWordStatus.NOT_FOUND -> stringResource(id = R.string.photo_words_not_found_mark)
-    PhotoWordStatus.ERROR -> stringResource(id = R.string.photo_words_error_mark)
-}
-
-/** «Данные: Wiktionary, CC BY-SA 4.0», нажатие открывает лицензию (WFT-57). */
-@Composable
-private fun Attribution() {
-    val uriHandler = LocalUriHandler.current
-    Text(
-        text = stringResource(id = R.string.photo_words_attribution),
-        style = LexemeStyle.BodyS,
-        color = formTextSecondary,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { uriHandler.openUri(LICENSE_URL) }
-            .padding(top = 12.dp, bottom = 4.dp),
-    )
 }
 
 @PreviewWidget
 @Composable
-private fun PreviewList() {
+private fun PreviewFormError() {
     AppTheme {
         PhotoWordsDialog(
-            state = PhotoWordsState(
-                isOpen = true,
-                words = listOf(
-                    PhotoWord(text = "corrían", status = PhotoWordStatus.FOUND, lemma = "correr", partOfSpeech = "verb", meaning = "бегать; бежать", gloss = "to run, to jog"),
-                    PhotoWord(text = "accorc", status = PhotoWordStatus.NOT_FOUND, lemma = null, partOfSpeech = null, meaning = null, gloss = null),
-                    PhotoWord(text = "fuera", status = PhotoWordStatus.ERROR, lemma = null, partOfSpeech = null, meaning = null, gloss = null),
-                ),
-            ),
+            state = PhotoWordsState(isOpen = true, formError = PhotoFormError.DICTIONARY_MISSING),
             isCameraAvailable = true,
             onCamera = {},
             onGallery = {},

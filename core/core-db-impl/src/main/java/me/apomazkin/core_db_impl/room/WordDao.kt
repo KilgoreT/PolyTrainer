@@ -17,6 +17,7 @@ import me.apomazkin.core_db_impl.entity.LexemeDbEntity
 import me.apomazkin.core_db_impl.entity.QuizConfigDb
 import me.apomazkin.core_db_impl.entity.TermDbEntity
 import me.apomazkin.core_db_impl.entity.WordDb
+import me.apomazkin.core_db_impl.entity.WordTextDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDb
 import me.apomazkin.core_db_impl.entity.WriteQuizDbEntity
 
@@ -202,6 +203,10 @@ interface WordDao {
      */
     @Query("SELECT dictionary_id FROM words WHERE id = :id")
     suspend fun getWordDictionaryId(id: Long): Long?
+
+    /** IS532 (AWP-07): тексты слов словаря без лексем; сравнение без регистра — в Kotlin. */
+    @Query("SELECT id, value FROM words WHERE dictionary_id = :dictionaryId")
+    suspend fun getWordTexts(dictionaryId: Long): List<WordTextDb>
 
     /**
      * LEXEME

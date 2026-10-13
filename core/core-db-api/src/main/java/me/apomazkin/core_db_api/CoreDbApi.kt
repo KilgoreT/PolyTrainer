@@ -20,6 +20,7 @@ import me.apomazkin.core_db_api.entity.SoftDeleteComponentOutcome
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.TranslationApiEntity
 import me.apomazkin.core_db_api.entity.UserDefinedTypesUsageSnapshot
+import me.apomazkin.core_db_api.entity.WordTextApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
 import me.apomazkin.group.AddMembershipOutcome
@@ -28,12 +29,14 @@ import me.apomazkin.group.DeleteGroupOutcome
 import me.apomazkin.group.DeleteGroupWithWordsOutcome
 import me.apomazkin.group.RemoveMembershipOutcome
 import me.apomazkin.group.RenameGroupOutcome
+import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.DeletionImpact
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.lexeme.TemplateValues
+import me.apomazkin.lexeme.WordsBatch
 
 interface CoreDbApi {
 
@@ -203,6 +206,28 @@ interface CoreDbApi {
         suspend fun addWordSuspend(value: String, dictionaryId: Int): Long
         suspend fun deleteWordSuspend(id: Long): Int
         suspend fun updateWordSuspend(id: Long, value: String): Boolean
+    }
+
+    /**
+     * IS532: слова со снимка — тексты словаря для пометки «есть» (AWP-07)
+     * и запись пакета одной транзакцией (AWP-20, AWP-21). Отдельный
+     * интерфейс: узкий контракт окна добавления, фейки остальных API не
+     * растут.
+     */
+    interface WordsBatchApi {
+        /** Слова словаря без лексем; сравнение без регистра — в Kotlin (`wordTextKey`). */
+        suspend fun getWordTexts(dictionaryId: Long): List<WordTextApiEntity>
+
+        /**
+         * Все проверки — до первой вставки, внутри одной транзакции: словарь
+         * жив; слово по id из этого словаря; группа жива и из этого словаря;
+         * тип из словаря, жив и включён, шаблон соответствует значению,
+         * опция CHOICE его и жива, кардинальность; у каждой лексемы
+         * значение хотя бы одного включённого ядра. Отказ типизированный,
+         * записей нет; сбой после первой записи — исключение, транзакция
+         * откатывается (AWP-21).
+         */
+        suspend fun addWordsBatch(batch: WordsBatch): AddWordsBatchOutcome
     }
 
     interface LexemeApi {

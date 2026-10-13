@@ -1,10 +1,10 @@
 package me.apomazkin.polytrainer.mapper
 
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
-import me.apomazkin.core_network_api.entity.Candidate
+import me.apomazkin.core_network_api.entity.CandidateLexeme
 import me.apomazkin.core_network_api.entity.DenyReason
+import me.apomazkin.core_network_api.entity.Lemma
 import me.apomazkin.core_network_api.entity.LookupResult
-import me.apomazkin.core_network_api.entity.Sense
 import me.apomazkin.core_network_api.entity.WordResult
 import me.apomazkin.core_network_api.entity.WordStatus
 import me.apomazkin.textrecognition.RecognizedWord
@@ -13,13 +13,14 @@ import me.apomazkin.wordstab.deps.PhotoLookupOutcome
 import me.apomazkin.wordstab.deps.PhotoWordStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Date
 
 /**
- * Граница «слой сети → экран» (IS529): запрос из токенов и языков словаря
- * (WFT-20), слова ответа с первым кандидатом (WFT-56, Д4), причины отказа
- * (WFT-63). Адреса строк спеки в именах — `WFT-NN_k`.
+ * Граница «слой сети → экран» (IS529/IS532): запрос из токенов и языков
+ * словаря (WFT-20), слова ответа со словарём снимка (AWP-01) и леммами с
+ * лексемами-кандидатами (WFT-71, WFT-76), причины отказа (WFT-63).
  */
 class PhotoLookupMapperTest {
 
@@ -32,19 +33,29 @@ class PhotoLookupMapperTest {
         translationLanguage = "ru",
     )
 
-    private fun candidate(
-        lemma: String,
-        partOfSpeech: String,
-        formNote: String? = null,
-        gloss: String? = "gloss",
-        meanings: List<String> = emptyList(),
-    ) = Candidate(
-        lemma = lemma,
-        partOfSpeech = partOfSpeech,
-        formNote = formNote,
-        senses = listOfNotNull(gloss?.let { Sense(it, emptyList()) }),
-        meanings = meanings,
+    private fun lexeme(
+        key: String,
+        partOfSpeechKey: String? = "verb",
+        translations: List<String> = emptyList(),
+        gloss: String? = null,
+        parent: Boolean = false,
+        parentKey: String? = null,
+    ) = CandidateLexeme(
+        key = key,
+        partOfSpeechKey = partOfSpeechKey,
+        source = if (gloss == null) "ruwiktionary" else "enwiktionary",
+        translations = translations,
+        gloss = gloss,
+        caption = null,
+        notes = emptyList(),
+        examples = emptyList(),
+        parent = parent,
+        parentKey = parentKey,
     )
+
+    private fun success(vararg words: WordResult) = LookupResult.Success("Wiktionary, CC BY-SA 4.0", words.toList())
+
+    private fun found(text: String, vararg lemmas: Lemma) = WordResult(text, WordStatus.FOUND, emptyList(), lemmas.toList())
 
     @Test
     fun `WFT-20_1 request carries dictionary languages and tokens in order with confidence and language`() {
@@ -70,132 +81,82 @@ class PhotoLookupMapperTest {
     }
 
     @Test
-    fun `WFT-56_1 words keep response order`() {
-        val result = LookupResult.Success(
-            attribution = "Wiktionary, CC BY-SA 4.0",
-            words = listOf(
-                WordResult("fuera", WordStatus.FOUND, listOf(candidate("fuera", "adverb"))),
-                WordResult("corrían", WordStatus.FOUND, listOf(candidate("correr", "verb"))),
-            ),
-        )
+    fun `AWP-01_1 WFT-49_1 outcome carries the dictionary of the photo and words in response order`() {
+        val result = success(found("fuera", Lemma("fuera", null, listOf(lexeme("ru/f1", "adverb", listOf("снаружи"))))), found("corrían", Lemma("correr", "third-person plural imperfect indicative", listOf(lexeme("ru/c1", translations = listOf("бегать; бежать"))))))
 
-        val outcome = result.toOutcome() as PhotoLookupOutcome.Words
+        val outcome = result.toOutcome(dictionaryId = 1L) as PhotoLookupOutcome.Words
 
+        assertEquals(1L, outcome.dictionaryId)
         assertEquals(listOf("fuera", "corrían"), outcome.words.map { it.text })
     }
 
     @Test
-    fun `WFT-56_3 not found word has the status and no lemma`() {
-        val result = LookupResult.Success("Wiktionary, CC BY-SA 4.0", listOf(WordResult("accorc", WordStatus.NOT_FOUND, emptyList())))
+    fun `WFT-50_2 not found and source error words have the status and no lemmas`() {
+        val result = success(WordResult("accorc", WordStatus.NOT_FOUND, emptyList()), WordResult("perro", WordStatus.ERROR, emptyList()))
 
-        val word = (result.toOutcome() as PhotoLookupOutcome.Words).words.single()
+        val words = (result.toOutcome(1L) as PhotoLookupOutcome.Words).words
 
-        assertEquals(PhotoWordStatus.NOT_FOUND, word.status)
-        assertNull(word.lemma)
-        assertNull(word.partOfSpeech)
+        assertEquals(PhotoWordStatus.NOT_FOUND, words[0].status)
+        assertEquals(PhotoWordStatus.ERROR, words[1].status)
+        assertTrue(words.all { it.lemmas.isEmpty() })
     }
 
     @Test
-    fun `WFT-56_4 source error word has the status and no lemma`() {
-        val result = LookupResult.Success("Wiktionary, CC BY-SA 4.0", listOf(WordResult("perro", WordStatus.ERROR, emptyList())))
+    fun `WFT-76_2 WFT-71_1 lemmas keep text form note and every lexeme field`() {
+        val parent = lexeme("en/g1", gloss = "To move swiftly.", parent = true)
+        val child = CandidateLexeme(
+            key = "en/v1",
+            partOfSpeechKey = "verb",
+            source = "enwiktionary",
+            translations = listOf("бегать", "побегать"),
+            gloss = "To move forward quickly upon two feet…",
+            caption = null,
+            notes = listOf("colloquial"),
+            examples = listOf("Run, Sarah, run!"),
+            parent = false,
+            parentKey = "en/g1",
+        )
+        val result = success(found("running", Lemma("run", "present participle and gerund", listOf(parent, child)), Lemma("running", null, emptyList())))
 
-        val word = (result.toOutcome() as PhotoLookupOutcome.Words).words.single()
+        val word = (result.toOutcome(1L) as PhotoLookupOutcome.Words).words.single()
 
-        assertEquals(PhotoWordStatus.ERROR, word.status)
-        assertNull(word.lemma)
+        assertEquals(listOf("run", "running"), word.lemmas.map { it.text })
+        assertEquals("present participle and gerund", word.lemmas[0].formNote)
+        assertNull(word.lemmas[1].formNote)
+        assertTrue(word.lemmas[1].lexemes.isEmpty())
+        val mapped = word.lemmas[0].lexemes[1]
+        assertEquals("en/v1", mapped.key)
+        assertEquals("verb", mapped.partOfSpeechKey)
+        assertEquals("enwiktionary", mapped.source)
+        assertEquals(listOf("бегать", "побегать"), mapped.translations)
+        assertEquals("To move forward quickly upon two feet…", mapped.gloss)
+        assertEquals(listOf("colloquial"), mapped.notes)
+        assertEquals(listOf("Run, Sarah, run!"), mapped.examples)
+        assertEquals("en/g1", mapped.parentKey)
+        assertTrue(word.lemmas[0].lexemes[0].parent)
     }
 
     @Test
-    fun `WFT-56_7 found word carries lemma and part of speech of the first candidate`() {
-        val result = LookupResult.Success(
-            "Wiktionary, CC BY-SA 4.0",
-            listOf(WordResult("corrían", WordStatus.FOUND, listOf(candidate("correr", "verb", "third-person plural imperfect indicative")))),
-        )
+    fun `WFT-72_4 null part of speech key and unknown source stay as they are`() {
+        val result = success(found("los", Lemma("el", "masculine plural", listOf(lexeme("x/1", partOfSpeechKey = null, gloss = "the").copy(source = "cambridge")))))
 
-        val word = (result.toOutcome() as PhotoLookupOutcome.Words).words.single()
+        val mapped = (result.toOutcome(1L) as PhotoLookupOutcome.Words).words.single().lemmas.single().lexemes.single()
 
-        assertEquals(PhotoWordStatus.FOUND, word.status)
-        assertEquals("correr", word.lemma)
-        assertEquals("verb", word.partOfSpeech)
-    }
-
-    @Test
-    fun `WFT-56_9 found word carries the first gloss of the first candidate and none when the candidate has no senses`() {
-        val withSenses = LookupResult.Success(
-            "Wiktionary, CC BY-SA 4.0",
-            listOf(
-                WordResult(
-                    "corrían",
-                    WordStatus.FOUND,
-                    listOf(
-                        Candidate("correr", "verb", null, listOf(Sense("to run, to jog", emptyList()), Sense("to flow", emptyList())), emptyList()),
-                        Candidate("correr", "noun", null, listOf(Sense("a run", emptyList())), emptyList()),
-                    ),
-                ),
-            ),
-        )
-        val withoutSenses = LookupResult.Success(
-            "Wiktionary, CC BY-SA 4.0",
-            listOf(WordResult("rara", WordStatus.FOUND, listOf(candidate("raro", "adjective", gloss = null)))),
-        )
-
-        val corrian = (withSenses.toOutcome() as PhotoLookupOutcome.Words).words.single()
-        val rara = (withoutSenses.toOutcome() as PhotoLookupOutcome.Words).words.single()
-
-        assertEquals("to run, to jog", corrian.gloss)
-        assertNull(rara.gloss)
-        assertEquals("raro", rara.lemma)
-    }
-
-    @Test
-    fun `WFT-56_10 found word carries the first meaning in the translation language and none when the server has none`() {
-        val withMeanings = LookupResult.Success(
-            "Wiktionary, CC BY-SA 4.0",
-            listOf(WordResult("corrían", WordStatus.FOUND, listOf(candidate("correr", "verb", meanings = listOf("бегать; бежать", "мчаться, нестись"))))),
-        )
-        val withoutMeanings = LookupResult.Success(
-            "Wiktionary, CC BY-SA 4.0",
-            listOf(WordResult("moreno", WordStatus.FOUND, listOf(candidate("moreno", "adjective")))),
-        )
-
-        val corrian = (withMeanings.toOutcome() as PhotoLookupOutcome.Words).words.single()
-        val moreno = (withoutMeanings.toOutcome() as PhotoLookupOutcome.Words).words.single()
-
-        assertEquals("бегать; бежать", corrian.meaning)
-        assertNull(moreno.meaning)
-        assertEquals("gloss", moreno.gloss)
-    }
-
-    @Test
-    fun `WFT-56_8 several candidates give only the first one in article order`() {
-        val result = LookupResult.Success(
-            "Wiktionary, CC BY-SA 4.0",
-            listOf(
-                WordResult(
-                    "fuera",
-                    WordStatus.FOUND,
-                    listOf(candidate("fuera", "adverb"), candidate("fuera", "interjection"), candidate("ser", "verb"), candidate("ir", "verb")),
-                ),
-            ),
-        )
-
-        val word = (result.toOutcome() as PhotoLookupOutcome.Words).words.single()
-
-        assertEquals("fuera", word.lemma)
-        assertEquals("adverb", word.partOfSpeech)
+        assertNull(mapped.partOfSpeechKey)
+        assertEquals("cambridge", mapped.source)
     }
 
     @Test
     fun `WFT-63_1 WFT-63_2 WFT-63_3 WFT-63_4 WFT-19_1 deny reasons map one to one`() {
-        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.UNAUTHORIZED), LookupResult.Denied(DenyReason.UNAUTHORIZED).toOutcome())
-        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.RATE_LIMITED), LookupResult.Denied(DenyReason.RATE_LIMITED).toOutcome())
-        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.REQUEST_TOO_LARGE), LookupResult.Denied(DenyReason.REQUEST_TOO_LARGE).toOutcome())
-        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.UNSUPPORTED_LANGUAGE), LookupResult.Denied(DenyReason.UNSUPPORTED_LANGUAGE).toOutcome())
-        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.NO_ACCESS_KEY), LookupResult.Denied(DenyReason.NO_ACCESS_KEY).toOutcome())
+        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.UNAUTHORIZED), LookupResult.Denied(DenyReason.UNAUTHORIZED).toOutcome(1L))
+        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.RATE_LIMITED), LookupResult.Denied(DenyReason.RATE_LIMITED).toOutcome(1L))
+        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.REQUEST_TOO_LARGE), LookupResult.Denied(DenyReason.REQUEST_TOO_LARGE).toOutcome(1L))
+        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.UNSUPPORTED_LANGUAGE), LookupResult.Denied(DenyReason.UNSUPPORTED_LANGUAGE).toOutcome(1L))
+        assertEquals(PhotoLookupOutcome.Denied(PhotoDenyReason.NO_ACCESS_KEY), LookupResult.Denied(DenyReason.NO_ACCESS_KEY).toOutcome(1L))
     }
 
     @Test
     fun `WFT-23_1 unavailable maps to unavailable`() {
-        assertEquals(PhotoLookupOutcome.Unavailable, LookupResult.Unavailable("offline").toOutcome())
+        assertEquals(PhotoLookupOutcome.Unavailable, LookupResult.Unavailable("offline").toOutcome(1L))
     }
 }

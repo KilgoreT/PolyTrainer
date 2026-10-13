@@ -1,0 +1,8 @@
+HTTP/2 200 
+content-encoding: gzip
+content-type: application/json; charset=utf-8
+date: Tue, 13 Oct 2026 07:03:36 GMT
+strict-transport-security: max-age=31536000
+vary: Accept-Encoding
+x-content-type-options: nosniff
+

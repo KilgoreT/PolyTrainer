@@ -8,6 +8,7 @@ interface CoreDbProvider {
     fun getTermApi(): CoreDbApi.TermApi
     fun getGroupApi(): CoreDbApi.GroupApi
     fun getLexemeApi(): CoreDbApi.LexemeApi
+    fun getWordsBatchApi(): CoreDbApi.WordsBatchApi
     fun getQuizApi(): CoreDbApi.QuizApi
     fun getStatisticApi(): CoreDbApi.StatisticApi
 }

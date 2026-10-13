@@ -1,14 +1,20 @@
 package me.apomazkin.wordstab.deps
 
 /**
- * IS529: исход запроса слов на сервер глазами экрана — ровно то, что
- * диалог показывает. Сущности слоя сети сюда не доходят: маппинг в `app`,
- * как у `TermUiItem` и `DictUiEntity`. Порядок вариантов по важности.
+ * IS529/IS532: исход запроса слов на сервер глазами экрана. Сущности слоя
+ * сети сюда не доходят: маппинг в `app`, как у `TermUiItem` и
+ * `DictUiEntity`. Порядок вариантов по важности.
  */
 sealed interface PhotoLookupOutcome {
 
-    /** Ответ сервера получен: слова в порядке ответа (Ш11). */
-    data class Words(val words: List<PhotoWord>) : PhotoLookupOutcome
+    /**
+     * Ответ сервера получен: слова в порядке ответа (Ш10) и словарь
+     * снимка — тот, на вкладке которого сделан снимок (AWP-01).
+     */
+    data class Words(
+            val dictionaryId: Long,
+            val words: List<PhotoWord>,
+    ) : PhotoLookupOutcome
 
     /** Отказ сервера или ключ не задан; текст по причине (В5, WFT-63). */
     data class Denied(val reason: PhotoDenyReason) : PhotoLookupOutcome
@@ -18,18 +24,40 @@ sealed interface PhotoLookupOutcome {
 }
 
 /**
- * Слово ответа для списка (WFT-56): [text] как вернул сервер, [status], у
- * найденного — [lemma] и [partOfSpeech] первого кандидата (Д4), [meaning] —
- * его первое значение на языке перевода (Д6, WFT-56.10) и [gloss] — первое
- * толкование на языке источника (Д5, WFT-56.9); иначе null.
+ * Слово ответа (WFT-50): [text] как вернул сервер, [status]; у найденного
+ * — [lemmas] с лексемами-кандидатами (WFT-76), у остальных пусто.
  */
 data class PhotoWord(
         val text: String,
         val status: PhotoWordStatus,
-        val lemma: String?,
-        val partOfSpeech: String?,
-        val meaning: String?,
+        val lemmas: List<PhotoLemma>,
+)
+
+/** Лемма ответа (WFT-76): текст, пометка формы, лексемы-кандидаты в порядке сервера. */
+data class PhotoLemma(
+        val text: String,
+        val formNote: String?,
+        val lexemes: List<PhotoLexeme>,
+)
+
+/**
+ * Лексема-кандидат (WFT-71): [key] уникален у леммы, [partOfSpeechKey] —
+ * ключ опции «Части речи» или null, [source] — строка источника,
+ * [translations] на языке перевода, [gloss] и [examples] — у английского
+ * Викисловаря, [caption] — у непривязанных переводов, [notes] — пометы,
+ * [parent] и [parentKey] — родительское значение и ссылка на него.
+ */
+data class PhotoLexeme(
+        val key: String,
+        val partOfSpeechKey: String?,
+        val source: String,
+        val translations: List<String>,
         val gloss: String?,
+        val caption: String?,
+        val notes: List<String>,
+        val examples: List<String>,
+        val parent: Boolean,
+        val parentKey: String?,
 )
 
 enum class PhotoWordStatus {
