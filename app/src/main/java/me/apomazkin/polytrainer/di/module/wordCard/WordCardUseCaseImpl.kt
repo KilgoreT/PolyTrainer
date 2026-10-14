@@ -2,7 +2,20 @@ package me.apomazkin.polytrainer.di.module.wordCard
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoMapping
 import me.apomazkin.core_db_api.CoreDbApi
+import me.apomazkin.core_network_api.CoreNetworkApi
+import me.apomazkin.lexeme.AddWordsBatchOutcome
+import me.apomazkin.lexeme.WordsBatch
+import me.apomazkin.polytrainer.di.module.candidates.CandidatesFormLoader
+import me.apomazkin.polytrainer.di.module.candidates.ServerAccess
+import me.apomazkin.polytrainer.di.module.wordstab.PhotoMappingStore
+import me.apomazkin.polytrainer.mapper.lookupRequestOf
+import me.apomazkin.polytrainer.mapper.toOutcome
+import me.apomazkin.textrecognition.RecognizedWord
+import kotlinx.coroutines.CancellationException
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.flags.CountryProvider
 import me.apomazkin.lexeme.ComponentTemplate
@@ -43,7 +56,60 @@ class WordCardUseCaseImpl @Inject constructor(
     private val prefsProvider: PrefsProvider,
     private val logger: LexemeLogger,
     private val countryProvider: CountryProvider,
+    // IS533: значения из словаря — сервер слов, запись пачкой, память соответствий, ключ в сборке.
+    private val wordsApi: CoreNetworkApi.WordsApi,
+    private val wordsBatchApi: CoreDbApi.WordsBatchApi,
+    private val photoMappingStore: PhotoMappingStore,
+    private val serverAccess: ServerAccess,
 ) : WordCardUseCase {
+
+    // IS533: сборка формы — общая с окном снимка.
+    private val formLoader = CandidatesFormLoader(
+        lexemeApi = lexemeApi,
+        groupApi = groupApi,
+        termApi = termApi,
+        wordsBatchApi = wordsBatchApi,
+    )
+
+    override suspend fun hasServerAccess(): Boolean = serverAccess.hasKey
+
+    // WCL-03: один токен — текст слова без краёв, языки — словаря слова; null —
+    // слова или словаря уже нет (WCL-01.3). Пустой текст на сервер не уходит (WCL-03.4).
+    override suspend fun lookupWord(wordId: Long, runId: Long): PhotoLookupOutcome? {
+        val term = termApi.getTermById(wordId) ?: return null
+        val dictionary = dictionaryApi.getDictionaryById(term.word.dictionaryId) ?: return null
+        val text = term.word.value.trim()
+        if (text.isEmpty()) return PhotoLookupOutcome.Words(dictionaryId = dictionary.id, words = emptyList())
+        val request = lookupRequestOf(dictionary, listOf(RecognizedWord(text = text, confidence = 1f, language = null)))
+        return wordsApi.lookup(request, runId).toOutcome(dictionaryId = dictionary.id)
+    }
+
+    // WCL-06: форма словаря слова с лексемами только этого слова; словаря нет →
+    // В1; чтение упало → В1; отмена пролетает.
+    override suspend fun loadCandidatesForm(
+        wordId: Long,
+        lemmaTexts: List<String>,
+    ): PhotoFormOutcome {
+        val term = termApi.getTermById(wordId) ?: return PhotoFormOutcome.Failed(cause = "word $wordId missing")
+        val dictionary = dictionaryApi.getDictionaryById(term.word.dictionaryId) ?: return PhotoFormOutcome.DictionaryMissing
+        return try {
+            PhotoFormOutcome.Loaded(
+                form = formLoader.formForWord(dictionary, wordId, lemmaTexts),
+                remembered = photoMappingStore.read(dictionary.id),
+            )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            PhotoFormOutcome.Failed(cause = "${failure.javaClass.simpleName}: ${failure.message}")
+        }
+    }
+
+    // WCL-10: исключение записи пролетает к эффекту — это «не добавилось» (WCL-13).
+    override suspend fun addCandidates(batch: WordsBatch): AddWordsBatchOutcome = wordsBatchApi.addWordsBatch(batch)
+
+    override suspend fun saveCandidatesMapping(dictionaryId: Long, mapping: PhotoMapping) {
+        photoMappingStore.write(dictionaryId, mapping)
+    }
 
     override suspend fun getTermById(wordId: Long): Term? =
         termApi.getTermById(wordId)?.toDomainEntity()?.let { term ->

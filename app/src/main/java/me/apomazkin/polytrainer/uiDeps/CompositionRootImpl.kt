@@ -30,6 +30,7 @@ import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.stattab.StatisticViewModel
 import me.apomazkin.stattab.deps.StatisticUiDeps
 import me.apomazkin.vocabulary.FabSpec
+import me.apomazkin.vocabulary.SecondaryFabSpec
 import me.apomazkin.vocabulary.TabSpec
 import me.apomazkin.vocabulary.VocabularyTab
 import me.apomazkin.vocabulary.deps.VocabularyHostUiDeps
@@ -89,6 +90,17 @@ class CompositionRootImpl(
                         visible = { words.isFabVisible.value },
                         onClick = words::onFabClick,
                     ),
+                    // IS527: камера над «+» — слова с фото. Во всех сборках, где есть
+                    // ключ сервера (как FAB словаря в карточке, WCL-08); без ключа — нет.
+                    secondaryFab = if (envParams.hasServerAccess) {
+                        SecondaryFabSpec(
+                            iconRes = words.photoFabIconRes,
+                            contentDescriptionRes = words.photoFabDescriptionRes,
+                            onClick = words::onPhotoFabClick,
+                        )
+                    } else {
+                        null
+                    },
                     // words словарь-слот игнорирует — резолвит сам (В3/D9.2).
                     content = { snackbarHostState, _ -> words.Content(snackbarHostState) },
                 ),

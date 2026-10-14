@@ -50,6 +50,7 @@ include(":modules:widget:dictionarypicker")
 include(":modules:widget:iconDropDowned")
 include(":modules:widget:chipPicker")
 include(":modules:widget:component_widgets")
+include(":modules:widget:candidates")
 include(":modules:widget:wordrow")
 include(":modules:widget:grouptree")
 
@@ -57,6 +58,7 @@ include(":modules:datasource:prefs")
 
 //Libraries
 include(":modules:library:flags")
+include(":modules:library:textrecognition")
 
 //Domain
 include(":modules:domain:lexeme")
@@ -68,6 +70,11 @@ include(":core:core-resources")
 include(":core:core-db-api")
 include(":core:core-db-impl")
 include(":core:core-db")
+// IS529: слой сети по образцу слоя базы — api (интерфейс и сущности),
+// impl (Retrofit, DTO), фасад с Dagger-компонентом.
+include(":core:core-network-api")
+include(":core:core-network-impl")
+include(":core:core-network")
 
 
 dependencyResolutionManagement {
@@ -114,6 +121,9 @@ dependencyResolutionManagement {
         }
         create("otherLibs") {
             from(files("deps/other-libs.versions.toml"))
+        }
+        create("networkLibs") {
+            from(files("deps/network.versions.toml"))
         }
     }
 }

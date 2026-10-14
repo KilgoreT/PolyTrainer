@@ -22,6 +22,7 @@ import me.apomazkin.polytrainer.di.module.componentsmanager.ComponentsManagerMod
 import me.apomazkin.polytrainer.di.module.dictionary.DictionaryModule
 import me.apomazkin.polytrainer.di.module.dictionarytab.WordsTabModule
 import me.apomazkin.polytrainer.di.module.flags.CountryProviderModule
+import me.apomazkin.polytrainer.di.module.textrecognition.TextRecognizerModule
 import me.apomazkin.polytrainer.di.module.perdictionarycomponents.PerDictionaryComponentsModule
 import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
 import me.apomazkin.polytrainer.di.module.quizchat.QuizChatModule
@@ -38,6 +39,7 @@ import me.apomazkin.polytrainer.di.module.wordCard.WordCardModule
 import me.apomazkin.vocabulary.ui.VocabularyHostViewModel
 import me.apomazkin.polytrainer.env.EnvParams
 import me.apomazkin.logger.LexemeLogger
+import me.apomazkin.core_network_api.CoreNetworkProvider
 import me.apomazkin.splash.SplashUseCase
 import me.apomazkin.splash.SplashViewModel
 import me.apomazkin.wordcard.WordCardViewModel
@@ -45,19 +47,21 @@ import javax.inject.Singleton
 
 @Component(
     modules = [AppModule::class],
-    dependencies = [CoreDbProvider::class]
+    // IS529: слой сети подключён тем же приёмом, что и база.
+    dependencies = [CoreDbProvider::class, CoreNetworkProvider::class]
 )
 @Singleton
 interface AppComponent {
-    
+
     fun inject(mainActivity: MainActivity)
-    
+
     @Component.Factory
     interface AppComponentFactory {
         fun create(
             @BindsInstance appContext: Context,
             @BindsInstance logger: LexemeLogger,
             coreDbProvider: CoreDbProvider,
+            coreNetworkProvider: CoreNetworkProvider,
         ): AppComponent
     }
     
@@ -101,6 +105,7 @@ interface AppComponent {
         ComponentsManagerModule::class,
         PerDictionaryComponentsModule::class,
         CountryProviderModule::class,
+        TextRecognizerModule::class,
         NavigationModule::class,
         PrefsProviderModule::class,
         ResourceModule::class,

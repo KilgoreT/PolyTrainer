@@ -47,6 +47,8 @@ dependencies {
     implementation(project("path" to ":modules:core:ui"))
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":modules:domain:lexeme"))
+    implementation(project("path" to ":modules:widget:candidates"))
+    implementation(project("path" to ":modules:library:textrecognition"))
     implementation(project("path" to ":modules:widget:iconDropDowned"))
     implementation(project("path" to ":modules:widget:chipPicker"))
     implementation(project("path" to ":modules:widget:wordrow"))

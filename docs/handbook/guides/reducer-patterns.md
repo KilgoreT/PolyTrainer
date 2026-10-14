@@ -259,12 +259,12 @@ is Msg.Empty -> state to emptySet()
 - **Check:** ветка обрабатывается inline chain extension'ов прямо в `when` (см. § Предпочитаемый стиль / ChatReducer). Делегирование в private методы (`onTermLoading(state)`, `onChangeDropdownMenu(...)`) — legacy паттерн, новый код не пишет так.
 - **Зачем:** читается как декларативный рецепт; нет промежуточных приватных методов; extension'ы переиспользуемы между сообщениями.
 
-### R-RP-007. Reducer обязан логировать prevState / message / newState / effects
+### R-RP-007. Reducer логирует каждый Msg и каждый шаг цепочки, State целиком — нет
 
 - **Severity:** minor.
-- **Applies to:** функция `reduce(state, message)` в каждом reducer-классе.
-- **Check:** в начале функции — `logger.log("Reduce --prevState--: $state")` + `logger.log("Reduce ---message---: $message")`. В конце — `.also { logger.log("Reduce --newState--: ${it.state()}"); it.effects().forEach { logger.log("Reduce --toEffect--: $effect") } }`.
-- **Зачем:** консистентный лог TEA-цикла для диагностики. Все reducer'ы пишут одинаково — диагностика становится механической.
+- **Applies to:** функция `reduce(state, message)` и атомы `StateAtoms` каждого reducer-класса (§Reducer-конвенция в `project-architecture.md`).
+- **Check:** `reduce()` пишет каждый входящий Msg через `logMessage` (`Reduce ---message---: …`): юзер-события — полным `toString`, data-Msg с тяжёлым содержимым (списки слов, ответ сервера, форма) — именем класса, их содержимое компактно пишет effect handler счётчиками. Каждый атом цепочки пишет `logStep` с характеристиками (`Reduce ---step---: deleteLexeme | lemma=run key=ru/v2`), осознанный пропуск — `noOp(reason)`. Дампа всего State до и после сообщения нет: он рос с размером экрана (окно на 300 карточек — мегабайты лога на каждое нажатие) и дублировал шаги.
+- **Зачем:** лог TEA-цикла читается как последовательность шагов с нужными числами, не как два снимка состояния; размер лога не зависит от размера данных. Прежняя форма правила (prevState / newState целиком) отменена IS532 — противоречила §Reducer-конвенция.
 
 ### R-RP-008. `Msg.Empty` обработан явно
 

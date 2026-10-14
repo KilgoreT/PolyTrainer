@@ -28,7 +28,10 @@ interface ApiModule {
 
     @Binds
     fun provideLexemeApi(impl: CoreDbApiImpl.LexemeApiImpl): CoreDbApi.LexemeApi
-    
+
+    @Binds
+    fun provideWordsBatchApi(impl: CoreDbApiImpl.WordsBatchApiImpl): CoreDbApi.WordsBatchApi
+
     @Binds
     fun provideQuizApi(impl: CoreDbApiImpl.QuizApiImpl): CoreDbApi.QuizApi
 

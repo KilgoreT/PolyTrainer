@@ -1,6 +1,10 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.annotation.StringRes
+import me.apomazkin.candidates.CandidateAction
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentValue
 import me.apomazkin.lexeme.ComponentValueId
@@ -184,6 +188,49 @@ sealed interface Msg {
     /** Исключение membership-эффекта: снять in-flight. */
     data class MembershipFailed(
         val groupId: Long,
+    ) : Msg
+
+    // --- IS533: значения из словаря в карточке (WCL) ---
+
+    /** Кнопка «Добавить значения из словаря» → диалог и запрос (WCL-03). */
+    data object OpenCandidates : Msg
+
+    /** Ответ сервера по слову диалога; null — слова или словаря уже нет (WCL-01.3). */
+    data class CandidatesLookedUp(
+        val outcome: PhotoLookupOutcome?,
+        val requestId: Long,
+    ) : Msg
+
+    data class CandidatesFormLoaded(
+        val outcome: PhotoFormOutcome,
+        val requestId: Long,
+    ) : Msg
+
+    /** Записано: лексем добавлено (WCL-10). */
+    data class CandidatesAdded(
+        val lexemeCount: Int,
+        val requestId: Long,
+    ) : Msg
+
+    /** Перенесено (WCL-15.3): слова диалога больше нет — его лексемы и новые ушли в слово леммы. */
+    data class CandidatesTransferred(
+        val requestId: Long,
+    ) : Msg
+
+    /** Отказ или ошибка записи (WCL-13). */
+    data class CandidatesRejected(
+        val failure: PhotoAddFailure,
+        val requestId: Long,
+    ) : Msg
+
+    /** Есть ли ключ сервера в сборке (WCL-08). */
+    data class ServerAccessLoaded(
+        val hasAccess: Boolean,
+    ) : Msg
+
+    /** Действие пользователя в диалоге — общие виджеты модуля candidates. */
+    data class Candidates(
+        val action: CandidateAction,
     ) : Msg
 
     // --- Errors / nav ---

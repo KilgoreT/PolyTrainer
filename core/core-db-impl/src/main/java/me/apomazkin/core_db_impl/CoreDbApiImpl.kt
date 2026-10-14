@@ -30,6 +30,7 @@ import me.apomazkin.core_db_api.entity.SetEnabledComponentOutcome
 import me.apomazkin.core_db_api.entity.SoftDeleteComponentOutcome
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.UserDefinedTypesUsageSnapshot
+import me.apomazkin.core_db_api.entity.WordTextApiEntity
 import me.apomazkin.core_db_api.entity.WriteQuizComplexEntity
 import me.apomazkin.core_db_api.entity.WriteQuizUpsertApiEntity
 import me.apomazkin.core_db_impl.entity.ComponentOptionDb
@@ -76,6 +77,11 @@ import me.apomazkin.lexeme.Primitive
 import me.apomazkin.lexeme.Scope
 import me.apomazkin.lexeme.TemplateValues
 import me.apomazkin.lexeme.TextValues
+import me.apomazkin.lexeme.AddWordsBatchOutcome
+import me.apomazkin.lexeme.BatchComponent
+import me.apomazkin.lexeme.CaptionedTextValues
+import me.apomazkin.lexeme.ImageValues
+import me.apomazkin.lexeme.WordsBatch
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogTags as FeatureLogTags
 import java.util.Date
@@ -575,6 +581,190 @@ class CoreDbApiImpl @Inject constructor(
 
     }
 
+    /**
+     * IS532: тексты слов словаря и запись пакета одной транзакцией
+     * (AWP-07, AWP-20, AWP-21). Проверки — до первой вставки, внутри той же
+     * immediateTransaction, что и записи (прецедент addWordToGroup):
+     * отказ — типизированный исход при пустой транзакции; сбой после
+     * первой записи — исключение, откат всего пакета.
+     */
+    class WordsBatchApiImpl @Inject constructor(
+        private val database: Database,
+        private val wordDao: WordDao,
+        private val groupDao: GroupDao,
+        private val componentTypeDao: ComponentTypeDao,
+        private val componentOptionDao: ComponentOptionDao,
+    ) : CoreDbApi.WordsBatchApi {
+
+        override suspend fun getWordTexts(dictionaryId: Long): List<WordTextApiEntity> =
+            wordDao.getWordTexts(dictionaryId).map { WordTextApiEntity(id = it.id, value = it.value) }
+
+        override suspend fun addWordsBatch(batch: WordsBatch): AddWordsBatchOutcome =
+            database.useWriterConnection { transactor ->
+                transactor.immediateTransaction {
+                    val rejection = rejectionOf(batch)
+                    if (rejection != null) {
+                        return@immediateTransaction rejection
+                    }
+                    write(batch)
+                }
+            }
+
+        /** Первая причина отказа в порядке: словарь → слова → группы → типы → ядро. */
+        private suspend fun rejectionOf(batch: WordsBatch): AddWordsBatchOutcome.Rejected? {
+            if (wordDao.getDictionaryById(batch.dictionaryId) == null) {
+                return AddWordsBatchOutcome.Rejected.DictionaryMissing
+            }
+            val types = componentTypeDao.getTypesForDictionary(batch.dictionaryId).associateBy { it.id }
+            val options = componentOptionDao.getAllForTypes(types.keys.toList()).associateBy { it.id }
+            return missingWord(batch)
+                ?: missingGroup(batch)
+                ?: unavailableType(batch, types, options)
+                ?: lexemeWithoutCore(batch, types)
+        }
+
+        /**
+         * Существующее слово пакета — живое и из словаря пакета (AWP-21.4);
+         * слово-источник переноса — тоже, и не то же самое (WCL-15.3).
+         */
+        private suspend fun missingWord(batch: WordsBatch): AddWordsBatchOutcome.Rejected? {
+            for (word in batch.words) {
+                val wordId = word.wordId ?: continue
+                if (wordDao.getWordDictionaryId(wordId) != batch.dictionaryId) {
+                    return AddWordsBatchOutcome.Rejected.WordMissing(wordId)
+                }
+                val absorbWordId = word.absorbWordId ?: continue
+                if (absorbWordId == wordId || wordDao.getWordDictionaryId(absorbWordId) != batch.dictionaryId) {
+                    return AddWordsBatchOutcome.Rejected.WordMissing(absorbWordId)
+                }
+            }
+            return null
+        }
+
+        /** Каждая группа пакета — живая и из словаря пакета (AWP-21.3, 21.5). */
+        private suspend fun missingGroup(batch: WordsBatch): AddWordsBatchOutcome.Rejected? {
+            for (groupId in batch.words.mapNotNull { it.groupId }.distinct()) {
+                if (groupDao.getLivingGroupByIdInDict(groupId, batch.dictionaryId) == null) {
+                    return AddWordsBatchOutcome.Rejected.GroupMissing(groupId)
+                }
+            }
+            return null
+        }
+
+        /**
+         * Тип каждого значения — из словаря, живой, включённый, принимает
+         * шаблон значения и его опцию; кардинальность не нарушена (AWP-21.6).
+         */
+        private fun unavailableType(
+            batch: WordsBatch,
+            types: Map<Long, ComponentTypeDb>,
+            options: Map<Long, ComponentOptionDb>,
+        ): AddWordsBatchOutcome.Rejected? {
+            for (lexeme in batch.words.flatMap { it.lexemes }) {
+                for (component in lexeme.components) {
+                    val type = types[component.typeId]
+                    if (type == null || !isUsable(type) || !accepts(type, component.data, options)) {
+                        return AddWordsBatchOutcome.Rejected.TypeUnavailable(component.typeId)
+                    }
+                }
+                val overfilled = lexeme.components
+                    .groupBy { it.typeId }
+                    .keys
+                    .firstOrNull { typeId -> !types.getValue(typeId).isMultiple && lexeme.components.count { it.typeId == typeId } > 1 }
+                if (overfilled != null) {
+                    return AddWordsBatchOutcome.Rejected.TypeUnavailable(overfilled)
+                }
+            }
+            return null
+        }
+
+        private fun isUsable(type: ComponentTypeDb): Boolean = type.removedAt == null && type.enabled
+
+        /** Шаблон типа принимает значение; у CHOICE опция — его и живая. */
+        private fun accepts(
+            type: ComponentTypeDb,
+            data: TemplateValues,
+            options: Map<Long, ComponentOptionDb>,
+        ): Boolean = when (data) {
+            is TextValues -> type.templateKey == ComponentTemplate.TEXT.key
+            is ChoiceValues -> type.templateKey == ComponentTemplate.CHOICE.key && isLivingOptionOf(options[data.optionId], type)
+            is CaptionedTextValues -> type.templateKey == ComponentTemplate.CAPTIONED_TEXT.key
+            is ImageValues -> type.templateKey == ComponentTemplate.IMAGE.key
+        }
+
+        private fun isLivingOptionOf(option: ComponentOptionDb?, type: ComponentTypeDb): Boolean =
+            option != null && option.componentTypeId == type.id && option.removedAt == null
+
+        /** У каждой лексемы — непустое значение хотя бы в одном ядре (AWP-11). */
+        private fun lexemeWithoutCore(
+            batch: WordsBatch,
+            types: Map<Long, ComponentTypeDb>,
+        ): AddWordsBatchOutcome.Rejected? {
+            batch.words.forEachIndexed { wordIndex, word ->
+                word.lexemes.forEachIndexed { lexemeIndex, lexeme ->
+                    if (lexeme.components.none { types.getValue(it.typeId).core && hasText(it.data) }) {
+                        return AddWordsBatchOutcome.Rejected.NoCoreValue(wordIndex = wordIndex, lexemeIndex = lexemeIndex)
+                    }
+                }
+            }
+            return null
+        }
+
+        private fun hasText(data: TemplateValues): Boolean = when (data) {
+            is TextValues -> data.value.value.isNotBlank()
+            is CaptionedTextValues -> data.text.value.isNotBlank()
+            is ChoiceValues -> true
+            is ImageValues -> true
+        }
+
+        /** Записи после проверок: слово новое или существующее, его лексемы, членство в группе. */
+        private suspend fun write(batch: WordsBatch): AddWordsBatchOutcome.Added {
+            val now = Date(System.currentTimeMillis())
+            val wordIds = mutableListOf<Long>()
+            val lexemeIds = mutableListOf<Long>()
+            for (word in batch.words) {
+                val wordId = word.wordId
+                    ?: wordDao.addWordSuspend(WordDb(value = word.text, dictionaryId = batch.dictionaryId, addDate = now))
+                wordIds += wordId
+                // IS533 (WCL-15.3): перенос — лексемы слова-источника сюда (значения и статистика
+                // квизов идут с ними), затем источник прочь; его членства в группах — каскадом.
+                val absorbWordId = word.absorbWordId
+                if (word.wordId != null && absorbWordId != null) {
+                    wordDao.moveLexemes(fromWordId = absorbWordId, toWordId = wordId)
+                    wordDao.removeWordSuspend(absorbWordId)
+                }
+                // IS533 (WCL-15): слово было формой — переименовать в лемму той же транзакцией.
+                val renameTo = word.renameTo?.trim()
+                if (word.wordId != null && !renameTo.isNullOrEmpty()) {
+                    val current = wordDao.getWordSuspend(wordId).wordDb
+                    wordDao.updateWordSuspend(current.copy(value = renameTo, changeDate = now))
+                }
+                for (lexeme in word.lexemes) {
+                    lexemeIds += wordDao.addLexemeWithComponents(
+                        lexemeDb = LexemeDb(wordId = wordId, addDate = now),
+                        dictionaryId = batch.dictionaryId,
+                        components = lexeme.components.map { componentValueOf(it, now) },
+                    )
+                }
+                val groupId = word.groupId
+                if (groupId != null) {
+                    groupDao.insertWordGroup(WordGroupDb(wordId = wordId, groupId = groupId, createdAt = now))
+                }
+            }
+            return AddWordsBatchOutcome.Added(wordIds = wordIds, lexemeIds = lexemeIds)
+        }
+
+        private fun componentValueOf(component: BatchComponent, now: Date): ComponentValueDb =
+            ComponentValueDb(
+                lexemeId = 0L,
+                componentTypeId = component.typeId,
+                value = component.data.toJson(),
+                optionId = (component.data as? ChoiceValues)?.optionId,
+                createdAt = now,
+                updatedAt = now,
+            )
+    }
+
     class LexemeApiImpl @Inject constructor(
         private val database: Database,
         private val wordDao: WordDao,
@@ -712,6 +902,9 @@ class CoreDbApiImpl @Inject constructor(
                                 lexemeId = 0L,
                                 componentTypeId = typeDb.id,
                                 value = data.toJson(),
+                                // IS532: payload CHOICE — колонка option_id, как в addComponentValue;
+                                // без неё «Отменить» удаления лексемы теряло «Часть речи».
+                                optionId = (data as? ChoiceValues)?.optionId,
                                 createdAt = date,
                                 updatedAt = date,
                             )

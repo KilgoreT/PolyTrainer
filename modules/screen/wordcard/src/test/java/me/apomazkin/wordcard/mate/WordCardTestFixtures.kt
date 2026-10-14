@@ -87,6 +87,25 @@ internal object NotImplementedUseCase : me.apomazkin.wordcard.deps.WordCardUseCa
         wordId: Long,
         groupId: Long,
     ): me.apomazkin.group.RemoveMembershipOutcome = TODO()
+
+    override suspend fun hasServerAccess(): Boolean = TODO()
+
+    override suspend fun lookupWord(
+        wordId: Long,
+        runId: Long,
+    ): me.apomazkin.candidates.PhotoLookupOutcome? = TODO()
+
+    override suspend fun loadCandidatesForm(
+        wordId: Long,
+        lemmaTexts: List<String>,
+    ): me.apomazkin.candidates.PhotoFormOutcome = TODO()
+
+    override suspend fun addCandidates(batch: me.apomazkin.lexeme.WordsBatch): me.apomazkin.lexeme.AddWordsBatchOutcome = TODO()
+
+    override suspend fun saveCandidatesMapping(
+        dictionaryId: Long,
+        mapping: me.apomazkin.candidates.PhotoMapping,
+    ): Unit = TODO()
 }
 
 /**

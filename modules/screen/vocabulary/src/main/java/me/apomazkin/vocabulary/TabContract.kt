@@ -33,6 +33,18 @@ data class FabSpec(
 )
 
 /**
+ * IS527: вторичный маленький FAB над основным (камера над «+»). Своей
+ * видимости нет: показывается и прячется вместе с [TabSpec.fab] (Д9 IS523),
+ * без основного не рисуется. [contentDescriptionRes] — подпись для TalkBack.
+ */
+@Stable
+data class SecondaryFabSpec(
+    @DrawableRes val iconRes: Int,
+    @StringRes val contentDescriptionRes: Int,
+    val onClick: () -> Unit,
+)
+
+/**
  * IS493 Э2 (D9.4): текущий словарь для вкладки — параметр ВЫЗОВА content,
  * НЕ поле TabSpec (спеки стабильны, смена словаря их не пересобирает).
  *
@@ -62,5 +74,6 @@ data class TabSpec(
     val isTopBarOverridden: () -> Boolean = { false },
     val topBarOverride: @Composable () -> Unit = {},
     val fab: FabSpec? = null,
+    val secondaryFab: SecondaryFabSpec? = null,
     val content: @Composable (SnackbarHostState, DictionarySlot) -> Unit,
 )

@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -33,6 +35,7 @@ import me.apomazkin.di.viewModelFactory
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.btn.PrimaryFabWidget
+import me.apomazkin.ui.btn.SmallFabWidget
 import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.vocabulary.DictionarySlot
 import me.apomazkin.vocabulary.R
@@ -133,10 +136,24 @@ internal fun VocabularyHostScreen(
                     enter = scaleIn(),
                     exit = scaleOut(),
                 ) {
-                    PrimaryFabWidget(
-                        iconRes = fab.iconRes,
-                        enabled = fabVisible,
-                    ) { fab.onClick() }
+                    // IS527: вторичный FAB (камера) над основным, одна
+                    // анимация на обе кнопки — прячутся вместе (Д9).
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        activeSpec.secondaryFab?.let { secondary ->
+                            SmallFabWidget(
+                                iconRes = secondary.iconRes,
+                                contentDescription = stringResource(secondary.contentDescriptionRes),
+                                enabled = fabVisible,
+                            ) { secondary.onClick() }
+                        }
+                        PrimaryFabWidget(
+                            iconRes = fab.iconRes,
+                            enabled = fabVisible,
+                        ) { fab.onClick() }
+                    }
                 }
             }
         },

@@ -1,5 +1,6 @@
 package me.apomazkin.wordcard.mate
 
+import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import io.github.kilgoret.mate.Effect
 
@@ -24,5 +25,11 @@ sealed interface UiEffect : Effect {
         @StringRes val messageRes: Int,
         @StringRes val actionLabelRes: Int,
         val retryMsg: Msg,
+    ) : UiEffect
+
+    /** IS533: snackbar со счётом формами plurals («Добавлено 3 значения», WCL-10). */
+    data class ShowCountSnackbar(
+        @PluralsRes val messageRes: Int,
+        val count: Int,
     ) : UiEffect
 }

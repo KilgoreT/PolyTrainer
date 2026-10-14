@@ -41,6 +41,12 @@ android {
         versionName = appVersion
         versionCode = getVersionCode(appVersion)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // IS529 (Д2): ключ доступа к серверу слов — из local.properties
+        // (он в .gitignore) или -PLEXEME_ACCESS_KEY; без него пустая строка,
+        // и приложение не ходит на сервер («нет доступа», WFT-19).
+        buildConfigField("String", "LEXEME_ACCESS_KEY", "\"${getLexemeAccessKey()}\"")
+        buildConfigField("String", "LEXEME_BASE_URL", "\"https://api.lexeme.pro\"")
     }
 
     buildFeatures {
@@ -83,7 +89,15 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             signingConfig = signingConfigs.getByName("signForRelease")
-            isMinifyEnabled = false
+            // `-PMINIFY_DEBUG=true` — R8 с правилами release на dev-пакете: проверка
+            // минификации на девайсе, куда магазинный пакет не ставится.
+            isMinifyEnabled = project.findProperty("MINIFY_DEBUG")?.toString() == "true"
+            if (isMinifyEnabled) {
+                proguardFiles(
+                        getDefaultProguardFile("proguard-android-optimize.txt"),
+                        "proguard-rules.pro"
+                )
+            }
             val logLevel = project.findProperty("LOG_LEVEL")?.toString() ?: "DEBUG"
             val remoteLogLevel = project.findProperty("REMOTE_LOG_LEVEL")?.toString() ?: "NONE"
             buildConfigField("String", "LOG_LEVEL", "\"$logLevel\"")
@@ -140,8 +154,10 @@ dependencies {
     implementation(project("path" to ":modules:widget:dictionarypicker"))
     implementation(project("path" to ":modules:widget:dictionaryappbar"))
     implementation(project("path" to ":modules:widget:component_widgets"))
+    implementation(project("path" to ":modules:widget:candidates"))
 
     implementation(project("path" to ":modules:library:flags"))
+    implementation(project("path" to ":modules:library:textrecognition"))
     implementation(project("path" to ":modules:datasource:prefs"))
 
     implementation(project("path" to ":modules:domain:lexeme"))
@@ -150,6 +166,8 @@ dependencies {
 
     implementation(project("path" to ":core:core-resources"))
     implementation(project("path" to ":core:core-db"))
+    // IS529: слой сети (сервер слов), фасад с Dagger-компонентом
+    implementation(project("path" to ":core:core-network"))
     implementation(project("path" to ":modules:core:di"))
     implementation(project("path" to ":modules:core:mate"))
 
@@ -228,6 +246,25 @@ fun getVersionName(): String {
     val value: String? = System.getenv("RELEASE_VERSION")
     val result = value ?: "Debug"
     return result
+}
+
+/**
+ * IS529 (Д2): ключ доступа к серверу слов. Порядок: свойство Gradle
+ * `-PLEXEME_ACCESS_KEY` (локальный стенд) → переменная окружения
+ * `LEXEME_ACCESS_KEY` (CI: секрет репозитория в релизном workflow, общий
+ * ключ магазинной сборки) → `local.properties` (ноутбук разработчика, файл
+ * в .gitignore) → пустая строка (кнопки словаря спрятаны).
+ */
+fun getLexemeAccessKey(): String {
+    val localFile = rootProject.file("local.properties")
+    val localProperties = Properties()
+    if (localFile.exists()) {
+        localFile.inputStream().use { localProperties.load(it) }
+    }
+    return project.findProperty("LEXEME_ACCESS_KEY")?.toString()
+        ?: System.getenv("LEXEME_ACCESS_KEY")?.takeIf { it.isNotBlank() }
+        ?: localProperties.getProperty("LEXEME_ACCESS_KEY")
+        ?: ""
 }
 
 fun getVersionCode(versionName: String): Int {
