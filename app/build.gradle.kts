@@ -89,7 +89,15 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             signingConfig = signingConfigs.getByName("signForRelease")
-            isMinifyEnabled = false
+            // `-PMINIFY_DEBUG=true` — R8 с правилами release на dev-пакете: проверка
+            // минификации на девайсе, куда магазинный пакет не ставится.
+            isMinifyEnabled = project.findProperty("MINIFY_DEBUG")?.toString() == "true"
+            if (isMinifyEnabled) {
+                proguardFiles(
+                        getDefaultProguardFile("proguard-android-optimize.txt"),
+                        "proguard-rules.pro"
+                )
+            }
             val logLevel = project.findProperty("LOG_LEVEL")?.toString() ?: "DEBUG"
             val remoteLogLevel = project.findProperty("REMOTE_LOG_LEVEL")?.toString() ?: "NONE"
             buildConfigField("String", "LOG_LEVEL", "\"$logLevel\"")
@@ -242,8 +250,10 @@ fun getVersionName(): String {
 
 /**
  * IS529 (Д2): ключ доступа к серверу слов. Порядок: свойство Gradle
- * `-PLEXEME_ACCESS_KEY` (локальный стенд) → `local.properties` (ноутбук
- * разработчика, файл в .gitignore) → пустая строка (CI, магазинная сборка).
+ * `-PLEXEME_ACCESS_KEY` (локальный стенд) → переменная окружения
+ * `LEXEME_ACCESS_KEY` (CI: секрет репозитория в релизном workflow, общий
+ * ключ магазинной сборки) → `local.properties` (ноутбук разработчика, файл
+ * в .gitignore) → пустая строка (кнопки словаря спрятаны).
  */
 fun getLexemeAccessKey(): String {
     val localFile = rootProject.file("local.properties")
@@ -252,6 +262,7 @@ fun getLexemeAccessKey(): String {
         localFile.inputStream().use { localProperties.load(it) }
     }
     return project.findProperty("LEXEME_ACCESS_KEY")?.toString()
+        ?: System.getenv("LEXEME_ACCESS_KEY")?.takeIf { it.isNotBlank() }
         ?: localProperties.getProperty("LEXEME_ACCESS_KEY")
         ?: ""
 }

@@ -14,8 +14,14 @@ requestId=…`, `applyCandidatesForm | components=… cards=…`,
 лексемами, три «bank», группы Finance и Harry Potter 1, компонент
 «Definition»). Прогон 2026-10-13 юзер делал на своём словаре «Mexico»
 (es→ru, слова «semana», «corrían», «qwrtk») короткими кейсами по одному;
-итоги — в строках «Прогон». Кейс WCL-15 добавлен после прогона (Д5) и
-не гонялся.
+итоги — в строках «Прогон». Кейсы WCL-15 добавлены после прогона (Д5,
+Д7) и прогнаны отдельно.
+
+Проверка минификации (Д8, релиз с общим ключом) 2026-10-13: dev-сборка с
+`-PMINIFY_DEBUG=true` (R8 с правилами release) на Pixel 7 Pro — кнопка-
+камера на месте, карточка «correr» → FAB → `POST /v1/words/lookup -> 200`,
+`candidates lookup … outcome=dict=5 words=1 lemmas=1`, разделы собрались;
+`assembleRelease` локально проходит без ошибок правил R8.
 
 ## Кейсы
 

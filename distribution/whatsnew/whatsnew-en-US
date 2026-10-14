@@ -1,2 +1,3 @@
-• Dictionaries now have a language you learn and a translation language: set by flag and phone language, editable in the dictionary form.
-• Fixed flags in the picker after search.
+• Dictionary meanings right in the word card: a button above "+", pick translations, definitions and examples, and they land in the word.
+• If the word turns out to be an inflected form, rename it to the lemma or move everything into the word you already have.
+• Words from a photo: the camera button above "+" on the Words tab recognises text and suggests words with meanings.

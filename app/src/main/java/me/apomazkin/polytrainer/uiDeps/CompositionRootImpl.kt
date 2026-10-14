@@ -29,7 +29,6 @@ import me.apomazkin.settingstab.WebViewScreen
 import me.apomazkin.stattab.StatisticTabScreen
 import me.apomazkin.stattab.StatisticViewModel
 import me.apomazkin.stattab.deps.StatisticUiDeps
-import me.apomazkin.polytrainer.BuildConfig
 import me.apomazkin.vocabulary.FabSpec
 import me.apomazkin.vocabulary.SecondaryFabSpec
 import me.apomazkin.vocabulary.TabSpec
@@ -91,9 +90,9 @@ class CompositionRootImpl(
                         visible = { words.isFabVisible.value },
                         onClick = words::onFabClick,
                     ),
-                    // IS527: камера над «+» — слова с фото. Только в dev-сборке,
-                    // пока не готов сквозной путь до добавления слов (Д12 IS523).
-                    secondaryFab = if (BuildConfig.DEBUG) {
+                    // IS527: камера над «+» — слова с фото. Во всех сборках, где есть
+                    // ключ сервера (как FAB словаря в карточке, WCL-08); без ключа — нет.
+                    secondaryFab = if (envParams.hasServerAccess) {
                         SecondaryFabSpec(
                             iconRes = words.photoFabIconRes,
                             contentDescriptionRes = words.photoFabDescriptionRes,

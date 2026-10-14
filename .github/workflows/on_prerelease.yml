@@ -9,6 +9,8 @@ env:
   KEYSTORE_GIT_REPO: ${{ secrets.KEYSTORE_GIT_REPO }}
   KEYSTORE_ACCESS_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
   UPLOAD_ARTEFACTS_TOKEN: ${{ secrets.UPLOAD_ARTEFACTS_TOKEN }}
+  # Общий ключ сервера слов магазинной сборки (субъект app-release); Gradle читает его из окружения.
+  LEXEME_ACCESS_KEY: ${{ secrets.LEXEME_ACCESS_KEY }}
 
 jobs:
   lint_job:
