@@ -1,7 +1,6 @@
-package me.apomazkin.wordstab.logic.photo
+package me.apomazkin.candidates
 
 import androidx.compose.runtime.Immutable
-import me.apomazkin.wordstab.deps.PhotoDataKind
 
 /*
  * IS532: состояние окна добавления — черновик (AWP-03). Всё, что показано,
@@ -27,6 +26,8 @@ data class PhotoCard(
         val target: PhotoCardTarget,
         val ownGroup: PhotoOwnGroup,
         val isExpanded: Boolean,
+        /** Пометка формы сервера («past participle»), если слово — форма этой леммы (WCL-04); null — прямая лемма. */
+        val formNote: String? = null,
 )
 
 /**
@@ -35,7 +36,8 @@ data class PhotoCard(
  * с пометкой «англ.» (AWP-10.3), [gloss] — правимое толкование под текстом
  * или null, [examples] — оставшиеся примеры, [partOfSpeechOptionId] —
  * опция «Части речи» или null («без части речи», AWP-17), [exists] —
- * «есть» (AWP-07), [lacksCore] — «не попадёт в ядро» (AWP-11).
+ * «есть» (AWP-07), [lacksCore] — «не попадёт в ядро» (AWP-11),
+ * [existsInLemma] — «есть в «correr»» у раздела леммы-формы (WCL-15.4).
  */
 @Immutable
 data class PhotoCardLexeme(
@@ -54,6 +56,8 @@ data class PhotoCardLexeme(
         val parentKey: String?,
         val exists: Boolean,
         val lacksCore: Boolean,
+        /** Такое же значение уже есть у слова словаря с текстом леммы-формы; пишется всегда, кроме переноса в это слово. */
+        val existsInLemma: Boolean = false,
 )
 
 /** Правимый текст: [text] — что ляжет в словарь, [original] — текст источника; «изменено» = text != original. */

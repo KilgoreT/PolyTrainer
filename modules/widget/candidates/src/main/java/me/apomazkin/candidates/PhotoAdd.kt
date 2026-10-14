@@ -1,4 +1,4 @@
-package me.apomazkin.wordstab.deps
+package me.apomazkin.candidates
 
 import me.apomazkin.lexeme.BuiltInComponent
 

@@ -1,5 +1,6 @@
 package me.apomazkin.wordstab.ui.widget.photo
 
+import me.apomazkin.candidates.PhotoFormError
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +29,6 @@ import me.apomazkin.ui.preview.PreviewWidget
 import me.apomazkin.wordstab.R
 import me.apomazkin.wordstab.logic.PhotoPhase
 import me.apomazkin.wordstab.logic.PhotoWordsState
-import me.apomazkin.wordstab.logic.photo.PhotoFormError
 
 /**
  * IS527/IS529/IS532: диалог запуска — выбор источника, индикатор с

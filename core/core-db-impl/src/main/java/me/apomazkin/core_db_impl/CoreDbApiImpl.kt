@@ -623,12 +623,19 @@ class CoreDbApiImpl @Inject constructor(
                 ?: lexemeWithoutCore(batch, types)
         }
 
-        /** Существующее слово пакета — живое и из словаря пакета (AWP-21.4). */
+        /**
+         * Существующее слово пакета — живое и из словаря пакета (AWP-21.4);
+         * слово-источник переноса — тоже, и не то же самое (WCL-15.3).
+         */
         private suspend fun missingWord(batch: WordsBatch): AddWordsBatchOutcome.Rejected? {
             for (word in batch.words) {
                 val wordId = word.wordId ?: continue
                 if (wordDao.getWordDictionaryId(wordId) != batch.dictionaryId) {
                     return AddWordsBatchOutcome.Rejected.WordMissing(wordId)
+                }
+                val absorbWordId = word.absorbWordId ?: continue
+                if (absorbWordId == wordId || wordDao.getWordDictionaryId(absorbWordId) != batch.dictionaryId) {
+                    return AddWordsBatchOutcome.Rejected.WordMissing(absorbWordId)
                 }
             }
             return null
@@ -719,6 +726,19 @@ class CoreDbApiImpl @Inject constructor(
                 val wordId = word.wordId
                     ?: wordDao.addWordSuspend(WordDb(value = word.text, dictionaryId = batch.dictionaryId, addDate = now))
                 wordIds += wordId
+                // IS533 (WCL-15.3): перенос — лексемы слова-источника сюда (значения и статистика
+                // квизов идут с ними), затем источник прочь; его членства в группах — каскадом.
+                val absorbWordId = word.absorbWordId
+                if (word.wordId != null && absorbWordId != null) {
+                    wordDao.moveLexemes(fromWordId = absorbWordId, toWordId = wordId)
+                    wordDao.removeWordSuspend(absorbWordId)
+                }
+                // IS533 (WCL-15): слово было формой — переименовать в лемму той же транзакцией.
+                val renameTo = word.renameTo?.trim()
+                if (word.wordId != null && !renameTo.isNullOrEmpty()) {
+                    val current = wordDao.getWordSuspend(wordId).wordDb
+                    wordDao.updateWordSuspend(current.copy(value = renameTo, changeDate = now))
+                }
                 for (lexeme in word.lexemes) {
                     lexemeIds += wordDao.addLexemeWithComponents(
                         lexemeDb = LexemeDb(wordId = wordId, addDate = now),

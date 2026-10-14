@@ -1,12 +1,19 @@
 package me.apomazkin.wordstab.logic.photo
 
+import me.apomazkin.candidates.PhotoCardTarget
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoFormError
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLemma
+import me.apomazkin.candidates.PhotoOwnGroup
+import me.apomazkin.candidates.PhotoSheet
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoTextField
+import me.apomazkin.candidates.VISIBLE_LEXEMES
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoFormOutcome
-import me.apomazkin.wordstab.deps.PhotoTarget
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.Msg
 import me.apomazkin.wordstab.logic.PhotoPhase
@@ -144,7 +151,7 @@ class PhotoWindowReducerTest {
 
     @Test
     fun `AWP-15_2 deleting an example keeps the lexeme`() {
-        val window = reducer.window(Fx.word("run", me.apomazkin.wordstab.deps.PhotoLemma("run", null, listOf(Fx.runLexemes[4]))))
+        val window = reducer.window(Fx.word("run", me.apomazkin.candidates.PhotoLemma("run", null, listOf(Fx.runLexemes[4]))))
 
         val result = reducer.step(window, Msg.DeletePhotoExample("run", "en/v1", 0))
 
@@ -181,7 +188,7 @@ class PhotoWindowReducerTest {
 
     @Test
     fun `AWP-16_5 example emptied is deleted`() {
-        val window = reducer.window(Fx.word("run", me.apomazkin.wordstab.deps.PhotoLemma("run", null, listOf(Fx.runLexemes[4]))))
+        val window = reducer.window(Fx.word("run", me.apomazkin.candidates.PhotoLemma("run", null, listOf(Fx.runLexemes[4]))))
         val opened = reducer.step(window, Msg.OpenPhotoSheet(PhotoSheet.TextEdit("run", "en/v1", PhotoTextField.Example(0), "Run, Sarah, run!")))
 
         val result = reducer.step(reducer.step(opened, Msg.UpdatePhotoDraft("")), Msg.SubmitPhotoText)

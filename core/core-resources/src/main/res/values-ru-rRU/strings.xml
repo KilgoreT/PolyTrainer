@@ -460,6 +460,28 @@
     <string name="photo_add_edit_reset">сбросить</string>
     <string name="photo_add_edit_save">Сохранить</string>
     <string name="photo_add_delete">удалить</string>
+    <!-- IS533: значения из словаря в карточке слова (WCL) -->
+    <string name="word_card_add_from_dictionary">Добавить значения из словаря</string>
+    <string name="candidates_form_of">форма слова «%1$s»</string>
+    <string name="candidates_not_found">В словаре нет «%1$s»</string>
+    <string name="candidates_word_missing">Слово удалено</string>
+    <string name="candidates_rename_to">переименовать слово в «%1$s»</string>
+    <string name="candidates_transfer_to">перенести в «%1$s» и удалить «%2$s»</string>
+    <string name="candidates_transfer_to_values">перенести в «%1$s» (%2$s) и удалить «%3$s»</string>
+    <string name="candidates_no_values">без значений</string>
+    <string name="candidates_exists_in_lemma">есть в «%1$s»</string>
+    <plurals name="candidates_same_values">
+        <item quantity="one">в «%1$s» уже есть %2$d такое же значение</item>
+        <item quantity="few">в «%1$s» уже есть %2$d таких же значения</item>
+        <item quantity="many">в «%1$s» уже есть %2$d таких же значений</item>
+        <item quantity="other">в «%1$s» уже есть %2$d таких же значения</item>
+    </plurals>
+    <plurals name="candidates_added">
+        <item quantity="one">Добавлено %d значение</item>
+        <item quantity="few">Добавлено %d значения</item>
+        <item quantity="many">Добавлено %d значений</item>
+        <item quantity="other">Добавлено %d значения</item>
+    </plurals>
     <plurals name="photo_add_lexemes">
         <item quantity="one">%d значение</item>
         <item quantity="few">%d значения</item>

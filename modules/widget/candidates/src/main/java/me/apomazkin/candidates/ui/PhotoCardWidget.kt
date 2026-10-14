@@ -1,5 +1,15 @@
-package me.apomazkin.wordstab.ui.widget.photo
+package me.apomazkin.candidates.ui
 
+import me.apomazkin.candidates.PhotoCard
+import me.apomazkin.candidates.PhotoCardLexeme
+import me.apomazkin.candidates.PhotoCardTarget
+import me.apomazkin.candidates.PhotoDictionaryForm
+import me.apomazkin.candidates.PhotoEditableText
+import me.apomazkin.candidates.PhotoOwnGroup
+import me.apomazkin.candidates.PhotoSheet
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoTextField
+import me.apomazkin.candidates.existingOf
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,19 +32,9 @@ import me.apomazkin.theme.cardDivider
 import me.apomazkin.theme.destructiveRed
 import me.apomazkin.theme.formTextSecondary
 import me.apomazkin.theme.formTextTertiary
-import me.apomazkin.wordstab.R
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.deps.PhotoTarget
-import me.apomazkin.wordstab.logic.Msg
-import me.apomazkin.wordstab.logic.PhotoWordsState
-import me.apomazkin.wordstab.logic.photo.PhotoCard
-import me.apomazkin.wordstab.logic.photo.PhotoCardLexeme
-import me.apomazkin.wordstab.logic.photo.PhotoCardTarget
-import me.apomazkin.wordstab.logic.photo.PhotoEditableText
-import me.apomazkin.wordstab.logic.photo.PhotoOwnGroup
-import me.apomazkin.wordstab.logic.photo.PhotoSheet
-import me.apomazkin.wordstab.logic.photo.PhotoTextField
-import me.apomazkin.wordstab.logic.photo.existingOf
+import me.apomazkin.core_resources.R
+import me.apomazkin.candidates.CandidateAction
+import me.apomazkin.candidates.CandidatesView
 
 /** Сколько первых текстов видно в свёрнутой карточке (набросок §1). */
 private const val COLLAPSED_TEXTS = 3
@@ -47,17 +47,17 @@ private const val COLLAPSED_TEXTS = 3
 @Composable
 internal fun PhotoCardWidget(
     card: PhotoCard,
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        CardHead(card = card, form = form, sendMessage = sendMessage)
+        CardHead(card = card, form = form, onAction = onAction)
         if (card.isExpanded) {
-            CardChoices(card = card, form = form, sendMessage = sendMessage)
+            CardChoices(card = card, form = form, onAction = onAction)
             card.lexemes.forEach { lexeme ->
                 HorizontalDivider(color = cardDivider, modifier = Modifier.padding(start = 16.dp))
-                LexemeRow(card = card, lexeme = lexeme, state = state, form = form, sendMessage = sendMessage)
+                LexemeRow(card = card, lexeme = lexeme, state = state, form = form, onAction = onAction)
             }
             if (card.hiddenCount > 0) {
                 Text(
@@ -79,12 +79,12 @@ internal fun PhotoCardWidget(
 private fun CardHead(
     card: PhotoCard,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { sendMessage(Msg.TogglePhotoCard(card.lemma)) }
+            .clickable { onAction(CandidateAction.ToggleCard(card.lemma)) }
             .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
     ) {
         Row(
@@ -114,7 +114,7 @@ private fun CardHead(
                 color = formTextSecondary,
                 modifier = Modifier.padding(horizontal = 10.dp),
             )
-            Cross(onClick = { sendMessage(Msg.DeletePhotoCard(card.lemma)) })
+            Cross(onClick = { onAction(CandidateAction.DeleteCard(card.lemma)) })
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -154,7 +154,7 @@ private fun CollapsedTexts(card: PhotoCard) {
 private fun CardChoices(
     card: PhotoCard,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     val hasExisting = form.existingOf(card.lemma).isNotEmpty()
     val hasGroups = form.groups.isNotEmpty()
@@ -168,13 +168,13 @@ private fun CardChoices(
             label = stringResource(id = R.string.photo_add_where),
             value = targetName(card, form),
             enabled = hasExisting,
-            onClick = { sendMessage(Msg.OpenPhotoSheet(PhotoSheet.CardTarget(card.lemma))) },
+            onClick = { onAction(CandidateAction.OpenSheet(PhotoSheet.CardTarget(card.lemma))) },
         )
         Choice(
             label = stringResource(id = R.string.photo_add_group),
             value = ownGroupName(card.ownGroup, form),
             enabled = hasGroups,
-            onClick = { sendMessage(Msg.OpenPhotoSheet(PhotoSheet.CardGroup(card.lemma))) },
+            onClick = { onAction(CandidateAction.OpenSheet(PhotoSheet.CardGroup(card.lemma))) },
         )
     }
 }
@@ -225,12 +225,12 @@ private fun ownGroupName(
  * попадёт в ядро», «изменено»; уточнения родителя — с отступом.
  */
 @Composable
-private fun LexemeRow(
+internal fun LexemeRow(
     card: PhotoCard,
     lexeme: PhotoCardLexeme,
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     val indent = if (lexeme.parentKey != null) 32.dp else 16.dp
     Column(
@@ -242,10 +242,10 @@ private fun LexemeRow(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PartOfSpeechChip(card = card, lexeme = lexeme, state = state, form = form, sendMessage = sendMessage)
+            PartOfSpeechChip(card = card, lexeme = lexeme, state = state, form = form, onAction = onAction)
             Spacer(modifier = Modifier.weight(1f))
-            Marks(lexeme = lexeme)
-            Cross(onClick = { sendMessage(Msg.DeletePhotoLexeme(card.lemma, lexeme.key)) })
+            Marks(card = card, lexeme = lexeme)
+            Cross(onClick = { onAction(CandidateAction.DeleteLexeme(card.lemma, lexeme.key)) })
         }
         if (lexeme.notes.isNotEmpty() || lexeme.caption != null) {
             Text(
@@ -257,13 +257,13 @@ private fun LexemeRow(
         EditableLine(
             text = lexeme.translation,
             style = LexemeStyle.BodyM,
-            onClick = { sendMessage(Msg.OpenPhotoSheet(PhotoSheet.TextEdit(card.lemma, lexeme.key, PhotoTextField.Translation, lexeme.translation.text))) },
+            onClick = { onAction(CandidateAction.OpenSheet(PhotoSheet.TextEdit(card.lemma, lexeme.key, PhotoTextField.Translation, lexeme.translation.text))) },
         )
         lexeme.gloss?.let { gloss ->
             EditableLine(
                 text = gloss,
                 style = LexemeStyle.BodyS,
-                onClick = { sendMessage(Msg.OpenPhotoSheet(PhotoSheet.TextEdit(card.lemma, lexeme.key, PhotoTextField.Gloss, gloss.text))) },
+                onClick = { onAction(CandidateAction.OpenSheet(PhotoSheet.TextEdit(card.lemma, lexeme.key, PhotoTextField.Gloss, gloss.text))) },
             )
         }
         if (state.mapping.examples != PhotoTarget.None) {
@@ -277,9 +277,9 @@ private fun LexemeRow(
                         style = LexemeStyle.BodyS,
                         quoted = true,
                         modifier = Modifier.weight(1f),
-                        onClick = { sendMessage(Msg.OpenPhotoSheet(PhotoSheet.TextEdit(card.lemma, lexeme.key, PhotoTextField.Example(index), example.text))) },
+                        onClick = { onAction(CandidateAction.OpenSheet(PhotoSheet.TextEdit(card.lemma, lexeme.key, PhotoTextField.Example(index), example.text))) },
                     )
-                    Cross(onClick = { sendMessage(Msg.DeletePhotoExample(card.lemma, lexeme.key, index)) })
+                    Cross(onClick = { onAction(CandidateAction.DeleteExample(card.lemma, lexeme.key, index)) })
                 }
             }
         }
@@ -290,9 +290,9 @@ private fun LexemeRow(
 private fun PartOfSpeechChip(
     card: PhotoCard,
     lexeme: PhotoCardLexeme,
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     val canChoose = state.mapping.partOfSpeech != PhotoTarget.None && form.partOfSpeechOptions.isNotEmpty()
     val option = form.partOfSpeechOptions.firstOrNull { it.id == lexeme.partOfSpeechOptionId }
@@ -302,19 +302,24 @@ private fun PartOfSpeechChip(
         style = LexemeStyle.BodyS,
         color = if (canChoose) LexemeColor.primary else formTextSecondary,
         modifier = Modifier
-            .clickable(enabled = canChoose) { sendMessage(Msg.OpenPhotoSheet(PhotoSheet.PartOfSpeech(card.lemma, lexeme.key))) }
+            .clickable(enabled = canChoose) { onAction(CandidateAction.OpenSheet(PhotoSheet.PartOfSpeech(card.lemma, lexeme.key))) }
             .padding(vertical = 2.dp),
     )
 }
 
 @Composable
-private fun Marks(lexeme: PhotoCardLexeme) {
+private fun Marks(
+    card: PhotoCard,
+    lexeme: PhotoCardLexeme,
+) {
     val marks = buildList {
         if (lexeme.isEnglishFallback) add(stringResource(id = R.string.photo_add_english_mark) to formTextSecondary)
         if (lexeme.translation.isEdited || lexeme.gloss?.isEdited == true || lexeme.examples.any { it.isEdited }) {
             add(stringResource(id = R.string.photo_add_edited_mark) to formTextSecondary)
         }
         if (lexeme.exists) add(stringResource(id = R.string.photo_add_exists_mark) to LexemeColor.primary)
+        // «Есть в «correr»» (WCL-15.4) — только когда это не «есть» у самого слова диалога.
+        if (lexeme.existsInLemma && !lexeme.exists) add(stringResource(id = R.string.candidates_exists_in_lemma, card.lemma) to LexemeColor.primary)
         if (lexeme.lacksCore) add(stringResource(id = R.string.photo_add_no_core_mark) to destructiveRed)
     }
     marks.forEach { (text, color) ->

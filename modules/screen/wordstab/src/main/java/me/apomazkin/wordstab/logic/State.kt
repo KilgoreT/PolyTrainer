@@ -1,5 +1,15 @@
 package me.apomazkin.wordstab.logic
 
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoAddSummary
+import me.apomazkin.candidates.PhotoCard
+import me.apomazkin.candidates.PhotoDictionaryForm
+import me.apomazkin.candidates.PhotoFormError
+import me.apomazkin.candidates.PhotoMapping
+import me.apomazkin.candidates.PhotoNotAdded
+import me.apomazkin.candidates.PhotoSheet
+import me.apomazkin.candidates.PhotoWord
+import me.apomazkin.candidates.choose
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.paging.PagingData
@@ -7,16 +17,7 @@ import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.deps.PhotoMapping
-import me.apomazkin.wordstab.deps.PhotoWord
 import me.apomazkin.wordstab.entity.LexemeLabel
-import me.apomazkin.wordstab.logic.photo.PhotoAddFailure
-import me.apomazkin.wordstab.logic.photo.PhotoAddSummary
-import me.apomazkin.wordstab.logic.photo.PhotoCard
-import me.apomazkin.wordstab.logic.photo.PhotoFormError
-import me.apomazkin.wordstab.logic.photo.PhotoNotAdded
-import me.apomazkin.wordstab.logic.photo.PhotoSheet
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordstab.entity.WordInfo
 import me.apomazkin.mate.EMPTY_STRING

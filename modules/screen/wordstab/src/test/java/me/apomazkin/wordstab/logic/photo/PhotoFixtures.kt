@@ -1,19 +1,19 @@
 package me.apomazkin.wordstab.logic.photo
 
+import me.apomazkin.candidates.PhotoComponent
+import me.apomazkin.candidates.PhotoDictionaryForm
+import me.apomazkin.candidates.PhotoExistingLemma
+import me.apomazkin.candidates.PhotoGroup
+import me.apomazkin.candidates.PhotoLemma
+import me.apomazkin.candidates.PhotoLexeme
+import me.apomazkin.candidates.PhotoMapping
+import me.apomazkin.candidates.PhotoPartOfSpeechOption
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoTemplate
+import me.apomazkin.candidates.PhotoWord
+import me.apomazkin.candidates.PhotoWordStatus
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.lexemeTextKey
-import me.apomazkin.wordstab.deps.PhotoComponent
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.deps.PhotoExistingLemma
-import me.apomazkin.wordstab.deps.PhotoGroup
-import me.apomazkin.wordstab.deps.PhotoLemma
-import me.apomazkin.wordstab.deps.PhotoLexeme
-import me.apomazkin.wordstab.deps.PhotoMapping
-import me.apomazkin.wordstab.deps.PhotoPartOfSpeechOption
-import me.apomazkin.wordstab.deps.PhotoTarget
-import me.apomazkin.wordstab.deps.PhotoTemplate
-import me.apomazkin.wordstab.deps.PhotoWord
-import me.apomazkin.wordstab.deps.PhotoWordStatus
 
 /**
  * Фикстуры окна добавления: словарь «English» с «Перевод», «Определение»,

@@ -1,12 +1,6 @@
-package me.apomazkin.wordstab.logic.photo
+package me.apomazkin.candidates
 
 import me.apomazkin.lexeme.BuiltInComponent
-import me.apomazkin.wordstab.deps.PhotoComponent
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.deps.PhotoMapping
-import me.apomazkin.wordstab.deps.PhotoTarget
-import me.apomazkin.wordstab.deps.PhotoTemplate
 
 /*
  * IS532: правила соответствий (AWP-06, AWP-09, AWP-28) — чистые функции
@@ -15,7 +9,7 @@ import me.apomazkin.wordstab.deps.PhotoTemplate
  */
 
 /** Компоненты, которые может принять вид данных (AWP-09); порядок формы. */
-internal fun PhotoDictionaryForm.targetsFor(kind: PhotoDataKind): List<PhotoComponent> = when (kind) {
+fun PhotoDictionaryForm.targetsFor(kind: PhotoDataKind): List<PhotoComponent> = when (kind) {
     PhotoDataKind.TRANSLATION, PhotoDataKind.GLOSS -> components.filter { it.template == PhotoTemplate.TEXT }
     PhotoDataKind.EXAMPLES -> components.filter { it.template == PhotoTemplate.CAPTIONED_TEXT && it.isMultiple }
     PhotoDataKind.PART_OF_SPEECH -> components.filter { it.systemKey == BuiltInComponent.PART_OF_SPEECH }
@@ -27,7 +21,7 @@ internal fun PhotoDictionaryForm.targetsFor(kind: PhotoDataKind): List<PhotoComp
  * position, затем id); толкование — не добавлять; часть речи — «Часть
  * речи»; примеры — «Пример». Нет компонента — не добавлять.
  */
-internal fun PhotoDictionaryForm.defaultTarget(kind: PhotoDataKind): PhotoTarget = when (kind) {
+fun PhotoDictionaryForm.defaultTarget(kind: PhotoDataKind): PhotoTarget = when (kind) {
     PhotoDataKind.TRANSLATION -> builtIn(BuiltInComponent.TRANSLATION) ?: firstTextCore()
     PhotoDataKind.GLOSS -> PhotoTarget.None
     PhotoDataKind.EXAMPLES -> builtIn(BuiltInComponent.EXAMPLE) ?: PhotoTarget.None
@@ -51,7 +45,7 @@ private fun PhotoDictionaryForm.firstTextCore(): PhotoTarget = components
  * один вид (AWP-28): запомненный выбор сильнее умолчания, между
  * умолчаниями виды разбираются в порядке [PhotoDataKind].
  */
-internal fun PhotoDictionaryForm.resolveMapping(remembered: PhotoMapping?): PhotoMapping {
+fun PhotoDictionaryForm.resolveMapping(remembered: PhotoMapping?): PhotoMapping {
     val chosen = PhotoDataKind.entries.associateWith { kind -> choiceOf(kind, remembered?.targetOf(kind)) }
     val taken = mutableSetOf<Long>()
     var mapping = PhotoMapping.NONE
@@ -86,7 +80,7 @@ private fun claim(target: PhotoTarget, taken: MutableSet<Long>): PhotoTarget {
  * Выбор пользователя (AWP-28.1): компонент, занятый другим видом,
  * переводит тот вид в «не добавлять».
  */
-internal fun PhotoMapping.choose(kind: PhotoDataKind, target: PhotoTarget): PhotoMapping {
+fun PhotoMapping.choose(kind: PhotoDataKind, target: PhotoTarget): PhotoMapping {
     var mapping = with(kind, target)
     if (target is PhotoTarget.Component) {
         for (other in PhotoDataKind.entries.filter { it != kind }) {
@@ -97,15 +91,15 @@ internal fun PhotoMapping.choose(kind: PhotoDataKind, target: PhotoTarget): Phot
 }
 
 /** Ни один вид данных не идёт в ядро — сводка красная (AWP-11.7, 11.8, AWP-06.4). */
-internal fun PhotoMapping.hasNoCore(form: PhotoDictionaryForm): Boolean =
+fun PhotoMapping.hasNoCore(form: PhotoDictionaryForm): Boolean =
     listOf(translation, gloss, examples).none { it.isCore(form) }
 
 private fun PhotoTarget.isCore(form: PhotoDictionaryForm): Boolean =
     this is PhotoTarget.Component && form.components.any { it.id == componentId && it.isCore }
 
 /** Компонент формы по цели; «не добавлять» или чужой id — null. */
-internal fun PhotoDictionaryForm.componentOf(target: PhotoTarget): PhotoComponent? =
+fun PhotoDictionaryForm.componentOf(target: PhotoTarget): PhotoComponent? =
     (target as? PhotoTarget.Component)?.let { chosen -> components.firstOrNull { it.id == chosen.componentId } }
 
 /** Соответствия после того, как компонент выключен или удалён (AWP-21.6): недействительные цели → умолчания. */
-internal fun PhotoDictionaryForm.revalidate(mapping: PhotoMapping): PhotoMapping = resolveMapping(mapping)
+fun PhotoDictionaryForm.revalidate(mapping: PhotoMapping): PhotoMapping = resolveMapping(mapping)

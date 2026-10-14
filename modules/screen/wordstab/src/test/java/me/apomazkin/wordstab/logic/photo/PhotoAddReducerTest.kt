@@ -1,10 +1,15 @@
 package me.apomazkin.wordstab.logic.photo
 
+import me.apomazkin.candidates.PhotoTextField
+import me.apomazkin.candidates.PhotoSheet
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoCardTarget
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoOwnGroup
+import me.apomazkin.candidates.PhotoTarget
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoTarget
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.Msg
 import me.apomazkin.wordstab.logic.UiEffect
@@ -254,5 +259,21 @@ class PhotoAddReducerTest {
         val result = reducer.step(failed, Msg.RequestClosePhotoWords)
 
         assertTrue(result.photo().isConfirmingClose)
+    }
+
+    @Test
+    fun `AWP-19_9 saving an unchanged text or the same part of speech does not ask on close`() {
+        val window = reducer.window(Fx.ran)
+        val lexeme = window.photo().cards.first().lexemes.first()
+        var state = reducer.step(window, Msg.OpenPhotoSheet(PhotoSheet.TextEdit("run", lexeme.key, PhotoTextField.Translation, lexeme.translation.text)))
+        state = reducer.step(state, Msg.SubmitPhotoText)
+        state = reducer.step(state, Msg.SetPhotoPartOfSpeech("run", lexeme.key, lexeme.partOfSpeechOptionId))
+        state = reducer.step(state, Msg.ResetPhotoText("run", lexeme.key, PhotoTextField.Translation))
+        assertFalse(state.photo().isDirty)
+
+        val result = reducer.testReduce(state, Msg.RequestClosePhotoWords)
+
+        assertFalse(result.state().photo().isOpen)
+        result.assertNoEffects()
     }
 }

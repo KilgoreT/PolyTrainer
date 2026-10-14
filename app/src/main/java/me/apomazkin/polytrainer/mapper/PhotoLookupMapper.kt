@@ -1,5 +1,11 @@
 package me.apomazkin.polytrainer.mapper
 
+import me.apomazkin.candidates.PhotoDenyReason
+import me.apomazkin.candidates.PhotoLemma
+import me.apomazkin.candidates.PhotoLexeme
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoWord
+import me.apomazkin.candidates.PhotoWordStatus
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_network_api.entity.CandidateLexeme
 import me.apomazkin.core_network_api.entity.DenyReason
@@ -10,12 +16,6 @@ import me.apomazkin.core_network_api.entity.TokenQuery
 import me.apomazkin.core_network_api.entity.WordResult
 import me.apomazkin.core_network_api.entity.WordStatus
 import me.apomazkin.textrecognition.RecognizedWord
-import me.apomazkin.wordstab.deps.PhotoDenyReason
-import me.apomazkin.wordstab.deps.PhotoLemma
-import me.apomazkin.wordstab.deps.PhotoLexeme
-import me.apomazkin.wordstab.deps.PhotoLookupOutcome
-import me.apomazkin.wordstab.deps.PhotoWord
-import me.apomazkin.wordstab.deps.PhotoWordStatus
 
 /*
  * IS529/IS532: граница «слой сети → экран». Сущности сети в экран не

@@ -39,7 +39,7 @@ object WordCardAssembly {
     ): Mate<WordCardState, Msg, Effect> =
         Mate(
             initState = WordCardState(),
-            initEffects = setOf(DatasourceEffect.LoadWord(wordId)),
+            initEffects = setOf(DatasourceEffect.LoadWord(wordId), DatasourceEffect.LoadServerAccess),
             coroutineScope = coroutineScope,
             reducer = WordCardReducer(logger),
             effectHandlers = listOf(

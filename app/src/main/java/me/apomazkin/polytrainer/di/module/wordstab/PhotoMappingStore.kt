@@ -1,12 +1,13 @@
 package me.apomazkin.polytrainer.di.module.wordstab
 
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoMapping
+import me.apomazkin.candidates.resolveMapping
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.prefs.photoWordsMappingPrefKey
 import me.apomazkin.wordstab.LogTags
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoMapping
-import me.apomazkin.wordstab.deps.PhotoTarget
 import javax.inject.Inject
 import javax.inject.Singleton
 

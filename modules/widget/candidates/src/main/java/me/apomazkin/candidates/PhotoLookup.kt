@@ -1,4 +1,4 @@
-package me.apomazkin.wordstab.deps
+package me.apomazkin.candidates
 
 /**
  * IS529/IS532: исход запроса слов на сервер глазами экрана. Сущности слоя

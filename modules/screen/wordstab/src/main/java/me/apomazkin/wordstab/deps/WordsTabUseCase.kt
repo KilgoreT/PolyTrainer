@@ -1,5 +1,8 @@
 package me.apomazkin.wordstab.deps
 
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoMapping
 import android.net.Uri
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow

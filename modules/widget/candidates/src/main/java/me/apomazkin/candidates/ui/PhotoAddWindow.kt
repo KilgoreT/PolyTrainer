@@ -1,5 +1,6 @@
-package me.apomazkin.wordstab.ui.widget.photo
+package me.apomazkin.candidates.ui
 
+import me.apomazkin.candidates.PhotoNotAdded
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -38,10 +39,9 @@ import me.apomazkin.ui.btn.AlarmButtonWidget
 import me.apomazkin.ui.btn.CancelButtonWidget
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 import me.apomazkin.ui.dialog.base.LexemeDialog
-import me.apomazkin.wordstab.R
-import me.apomazkin.wordstab.logic.Msg
-import me.apomazkin.wordstab.logic.PhotoWordsState
-import me.apomazkin.wordstab.logic.photo.PhotoNotAdded
+import me.apomazkin.core_resources.R
+import me.apomazkin.candidates.CandidateAction
+import me.apomazkin.candidates.CandidatesView
 
 /** Страница лицензии данных источника (WFT-57.2). */
 private const val LICENSE_URL = "https://creativecommons.org/licenses/by-sa/4.0/"
@@ -49,18 +49,18 @@ private const val LICENSE_URL = "https://creativecommons.org/licenses/by-sa/4.0/
 /**
  * IS532: окно добавления на весь экран — черновик (AWP-03). Диалог без
  * ширины платформы и без закрытия тапом снаружи (AWP-14); системная
- * «назад» — [Msg.RequestClosePhotoWords] (AWP-19). Пока идёт запись,
+ * «назад» — [CandidateAction.RequestClose] (AWP-19). Пока идёт запись,
  * окно не принимает нажатий (AWP-13.4). Цвета явные, парой из
  * PhotoWordsDialog: фон formBackground, текст formTextTertiary, второй
  * план formTextSecondary, ошибка destructiveRed.
  */
 @Composable
-internal fun PhotoAddWindow(
-    state: PhotoWordsState,
-    sendMessage: (Msg) -> Unit,
+fun PhotoAddWindow(
+    state: CandidatesView,
+    onAction: (CandidateAction) -> Unit,
 ) {
     Dialog(
-        onDismissRequest = { sendMessage(Msg.RequestClosePhotoWords) },
+        onDismissRequest = { onAction(CandidateAction.RequestClose) },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             dismissOnClickOutside = false,
@@ -78,14 +78,14 @@ internal fun PhotoAddWindow(
                         .fillMaxSize()
                         .statusBarsPadding(),
                 ) {
-                    WindowTopBar(onClose = { sendMessage(Msg.RequestClosePhotoWords) })
+                    WindowTopBar(onClose = { onAction(CandidateAction.RequestClose) })
                     WindowList(
                         state = state,
-                        sendMessage = sendMessage,
+                        onAction = onAction,
                         modifier = Modifier.weight(1f),
                     )
                     if (state.cards.isNotEmpty()) {
-                        PhotoBottomPanel(state = state, sendMessage = sendMessage)
+                        PhotoBottomPanel(state = state, onAction = onAction, countText = countInWords(state.summary.lexemeCount, state.summary.wordCount))
                     }
                 }
                 if (state.isAdding) {
@@ -98,12 +98,12 @@ internal fun PhotoAddWindow(
                 }
             }
         }
-        PhotoSheets(state = state, sendMessage = sendMessage)
+        PhotoSheets(state = state, onAction = onAction)
         if (state.isConfirmingAdd) {
-            AddConfirmDialog(state = state, sendMessage = sendMessage)
+            AddConfirmDialog(state = state, onAction = onAction)
         }
         if (state.isConfirmingClose) {
-            CloseConfirmDialog(sendMessage = sendMessage)
+            CloseConfirmDialog(onAction = onAction)
         }
     }
 }
@@ -136,15 +136,15 @@ private fun WindowTopBar(onClose: () -> Unit) {
 /** Шапка, карточки, «Добавить нечего», блок «не добавить», атрибуция — одним списком (AWP-04.6). */
 @Composable
 private fun WindowList(
-    state: PhotoWordsState,
-    sendMessage: (Msg) -> Unit,
+    state: CandidatesView,
+    onAction: (CandidateAction) -> Unit,
     modifier: Modifier,
 ) {
     val form = state.form ?: return
     LazyColumn(modifier = modifier.fillMaxWidth()) {
         if (state.cards.isNotEmpty()) {
             item(key = "header") {
-                PhotoHeaderWidget(state = state, form = form, sendMessage = sendMessage)
+                PhotoHeaderWidget(state = state, form = form, onAction = onAction)
                 HorizontalDivider(color = cardDivider)
             }
         } else {
@@ -159,12 +159,12 @@ private fun WindowList(
             }
         }
         items(state.cards, key = { it.lemma }) { card ->
-            PhotoCardWidget(card = card, state = state, form = form, sendMessage = sendMessage)
+            PhotoCardWidget(card = card, state = state, form = form, onAction = onAction)
             HorizontalDivider(color = cardDivider)
         }
         if (state.notAdded.isNotEmpty()) {
             item(key = "not-added") {
-                NotAddedBlock(items = state.notAdded, isExpanded = state.isNotAddedExpanded, sendMessage = sendMessage)
+                NotAddedBlock(items = state.notAdded, isExpanded = state.isNotAddedExpanded, onAction = onAction)
                 HorizontalDivider(color = cardDivider)
             }
         }
@@ -179,13 +179,13 @@ private fun WindowList(
 private fun NotAddedBlock(
     items: List<PhotoNotAdded>,
     isExpanded: Boolean,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { sendMessage(Msg.TogglePhotoNotAdded) }
+                .clickable { onAction(CandidateAction.ToggleNotAdded) }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -216,7 +216,7 @@ private fun NotAddedBlock(
 
 /** «Данные: Wiktionary, CC BY-SA 4.0», нажатие открывает лицензию (WFT-57). */
 @Composable
-private fun Attribution() {
+internal fun Attribution() {
     val uriHandler = LocalUriHandler.current
     Text(
         text = stringResource(id = R.string.photo_words_attribution),
@@ -235,9 +235,10 @@ private fun Attribution() {
  * «повторить» (В3, AWP-26).
  */
 @Composable
-private fun PhotoBottomPanel(
-    state: PhotoWordsState,
-    sendMessage: (Msg) -> Unit,
+internal fun PhotoBottomPanel(
+    state: CandidatesView,
+    onAction: (CandidateAction) -> Unit,
+    countText: String,
 ) {
     val summary = state.summary
     val failure = state.addFailure
@@ -268,16 +269,16 @@ private fun PhotoBottomPanel(
                 modifier = Modifier.fillMaxWidth(),
                 titleRes = R.string.photo_add_retry,
                 enabled = summary.isEnabled && !state.isAdding,
-                onClick = { sendMessage(Msg.RetryPhotoAdd) },
+                onClick = { onAction(CandidateAction.RetryAdd) },
             )
         } else {
-            AddButton(state = state, sendMessage = sendMessage)
+            AddButton(state = state, onAction = onAction, countText = countText)
         }
     }
 }
 
 @Composable
-private fun PanelNote(
+internal fun PanelNote(
     text: String,
     isError: Boolean = false,
 ) {
@@ -291,14 +292,15 @@ private fun PanelNote(
 
 /** Текст кнопки — ресурс не умеет счёт, поэтому кнопка собирается из общей кнопки с подменой текста через ширину. */
 @Composable
-private fun AddButton(
-    state: PhotoWordsState,
-    sendMessage: (Msg) -> Unit,
+internal fun AddButton(
+    state: CandidatesView,
+    onAction: (CandidateAction) -> Unit,
+    countText: String,
 ) {
     val summary = state.summary
     val title = when {
         state.isAdding -> stringResource(id = R.string.photo_add_adding)
-        summary.isEnabled -> stringResource(id = R.string.photo_add_button, countInWords(summary.lexemeCount, summary.wordCount))
+        summary.isEnabled -> stringResource(id = R.string.photo_add_button, countText)
         else -> stringResource(id = R.string.photo_add_button_plain)
     }
     AlarmButtonWidget(
@@ -308,16 +310,16 @@ private fun AddButton(
         enabled = summary.isEnabled && !state.isAdding,
         containerColor = me.apomazkin.theme.LexemeColor.primary,
         contentColor = me.apomazkin.theme.LexemeColor.onPrimary,
-    ) { sendMessage(Msg.RequestPhotoAdd) }
+    ) { onAction(CandidateAction.RequestAdd) }
 }
 
 /** «Добавить N значений в M слов?» — всегда перед записью (AWP-13, Д23). */
 @Composable
 private fun AddConfirmDialog(
-    state: PhotoWordsState,
-    sendMessage: (Msg) -> Unit,
+    state: CandidatesView,
+    onAction: (CandidateAction) -> Unit,
 ) {
-    LexemeDialog(onDismissRequest = { sendMessage(Msg.CancelPhotoAdd) }) {
+    LexemeDialog(onDismissRequest = { onAction(CandidateAction.CancelAdd) }) {
         Text(
             text = stringResource(id = R.string.photo_add_confirm, countInWords(state.summary.lexemeCount, state.summary.wordCount)),
             style = LexemeStyle.H6,
@@ -329,11 +331,11 @@ private fun AddConfirmDialog(
                 .padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CancelButtonWidget(modifier = Modifier.weight(1f)) { sendMessage(Msg.CancelPhotoAdd) }
+            CancelButtonWidget(modifier = Modifier.weight(1f)) { onAction(CandidateAction.CancelAdd) }
             PrimaryFullButtonWidget(
                 modifier = Modifier.weight(1f),
                 titleRes = R.string.photo_add_yes,
-                onClick = { sendMessage(Msg.ConfirmPhotoAdd) },
+                onClick = { onAction(CandidateAction.ConfirmAdd) },
             )
         }
     }
@@ -341,8 +343,8 @@ private fun AddConfirmDialog(
 
 /** «Закрыть без добавления?» после удалений и правок (AWP-25). */
 @Composable
-private fun CloseConfirmDialog(sendMessage: (Msg) -> Unit) {
-    LexemeDialog(onDismissRequest = { sendMessage(Msg.StayInPhotoWords) }) {
+internal fun CloseConfirmDialog(onAction: (CandidateAction) -> Unit) {
+    LexemeDialog(onDismissRequest = { onAction(CandidateAction.Stay) }) {
         Text(
             text = stringResource(id = R.string.photo_add_close_question),
             style = LexemeStyle.H6,
@@ -357,11 +359,11 @@ private fun CloseConfirmDialog(sendMessage: (Msg) -> Unit) {
             CancelButtonWidget(
                 modifier = Modifier.weight(1f),
                 titleRes = R.string.photo_add_stay,
-            ) { sendMessage(Msg.StayInPhotoWords) }
+            ) { onAction(CandidateAction.Stay) }
             AlarmButtonWidget(
                 modifier = Modifier.weight(1f),
                 titleRes = R.string.photo_add_close,
-            ) { sendMessage(Msg.ConfirmClosePhotoWords) }
+            ) { onAction(CandidateAction.ConfirmClose) }
         }
     }
 }

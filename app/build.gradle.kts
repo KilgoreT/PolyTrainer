@@ -146,6 +146,7 @@ dependencies {
     implementation(project("path" to ":modules:widget:dictionarypicker"))
     implementation(project("path" to ":modules:widget:dictionaryappbar"))
     implementation(project("path" to ":modules:widget:component_widgets"))
+    implementation(project("path" to ":modules:widget:candidates"))
 
     implementation(project("path" to ":modules:library:flags"))
     implementation(project("path" to ":modules:library:textrecognition"))

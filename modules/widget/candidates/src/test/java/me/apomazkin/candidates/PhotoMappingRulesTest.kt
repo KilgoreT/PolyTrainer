@@ -1,9 +1,5 @@
-package me.apomazkin.wordstab.logic.photo
+package me.apomazkin.candidates
 
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoMapping
-import me.apomazkin.wordstab.deps.PhotoTarget
-import me.apomazkin.wordstab.deps.PhotoTemplate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

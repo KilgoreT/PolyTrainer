@@ -38,7 +38,9 @@ import me.apomazkin.wordstab.ui.widget.ConfirmDeleteWordWidget
 import me.apomazkin.wordstab.ui.widget.EmptyWidget
 import me.apomazkin.wordstab.ui.widget.WordListWidget
 import me.apomazkin.wordstab.ui.widget.addWordBottom.AddWordPanelWidget
-import me.apomazkin.wordstab.ui.widget.photo.PhotoAddWindow
+import me.apomazkin.candidates.ui.PhotoAddWindow
+import me.apomazkin.wordstab.ui.widget.photo.toCandidatesView
+import me.apomazkin.wordstab.ui.widget.photo.toMsg
 import me.apomazkin.wordstab.ui.widget.photo.PhotoWordsDialog
 import me.apomazkin.wordstab.ui.widget.topBar.ActionTopBarWidget
 import me.apomazkin.mate.EMPTY_STRING
@@ -223,8 +225,8 @@ internal fun WordsTabContent(
         // при ошибках — диалог запуска.
         if (state.photoWordsState.isWindowReady) {
             PhotoAddWindow(
-                state = state.photoWordsState,
-                sendMessage = sendMessage,
+                state = state.photoWordsState.toCandidatesView(),
+                onAction = { action -> sendMessage(action.toMsg()) },
             )
         } else if (state.photoWordsState.isOpen) {
             // Наличие камеры — на открытие диалога, не на каждую рекомпозицию.

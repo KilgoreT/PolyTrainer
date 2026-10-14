@@ -46,6 +46,7 @@ dependencies {
     implementation(project("path" to ":modules:core:tools"))
     implementation(project("path" to ":modules:core:logger"))
     implementation(project("path" to ":modules:domain:lexeme"))
+    implementation(project("path" to ":modules:widget:candidates"))
     // IS493 Э5: группы слова (GroupNode + membership-outcomes).
     implementation(project("path" to ":modules:domain:group"))
     implementation(project("path" to ":core:core-resources"))

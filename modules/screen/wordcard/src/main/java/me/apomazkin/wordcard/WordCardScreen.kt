@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -51,6 +52,10 @@ import me.apomazkin.wordcard.mate.NOT_IN_DB
 import me.apomazkin.wordcard.mate.WordCardState
 import me.apomazkin.wordcard.mate.WordState
 import me.apomazkin.wordcard.mate.addableTypeIdsFor
+import me.apomazkin.candidates.ui.CandidatesDialog
+import me.apomazkin.core_resources.R
+import me.apomazkin.ui.btn.SmallFabWidget
+import me.apomazkin.wordcard.mate.CandidatesPhase
 import me.apomazkin.wordcard.widget.AddLexemeWidget
 import me.apomazkin.wordcard.widget.ConfirmDeleteLexemeWidget
 import me.apomazkin.wordcard.widget.ConfirmDeleteWordWidget
@@ -120,10 +125,24 @@ internal fun WordCardScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             if (state.isLoaded) {
-                AddLexemeWidget(
-                    enabled = state.canAddLexeme,
-                    onAddLexeme = { sendMessage(Msg.CreateLexeme) },
-                )
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    // IS533: значения из словаря — вторая FAB над «+», как камера над «+» на
+                    // вкладке «Слова»; есть, пока в сборке есть ключ сервера (WCL-08).
+                    if (state.canAddFromDictionary) {
+                        SmallFabWidget(
+                            iconRes = R.drawable.ic_download,
+                            contentDescription = stringResource(id = R.string.word_card_add_from_dictionary),
+                            enabled = !state.isPendingDbOp && !state.isExiting,
+                        ) { sendMessage(Msg.OpenCandidates) }
+                    }
+                    AddLexemeWidget(
+                        enabled = state.canAddLexeme,
+                        onAddLexeme = { sendMessage(Msg.CreateLexeme) },
+                    )
+                }
             }
         },
         containerColor = Color.Transparent,
@@ -234,6 +253,17 @@ internal fun WordCardScreen(
             GroupPickerBottomSheetWidget(
                 block = state.groupsBlock,
                 sendMessage = sendMessage,
+            )
+        }
+
+        // IS533: диалог «значения из словаря» (WCL) — общие виджеты модуля candidates.
+        state.candidates?.let { dialog ->
+            CandidatesDialog(
+                wordText = dialog.text,
+                isLoading = dialog.phase == CandidatesPhase.LOADING,
+                errorRes = dialog.errorRes.takeIf { dialog.phase == CandidatesPhase.ERROR },
+                view = dialog.toView(),
+                onAction = { action -> sendMessage(Msg.Candidates(action)) },
             )
         }
     }

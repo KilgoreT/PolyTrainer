@@ -4,6 +4,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -15,6 +16,7 @@ import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.LexemeApiEntity
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.WordApiEntity
+import me.apomazkin.core_db_api.entity.WordTextApiEntity
 import me.apomazkin.flags.CountryProvider
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
@@ -52,6 +54,9 @@ class WordCardUseCaseImplTest {
     private val logger = mockk<LexemeLogger>(relaxed = true)
     private val countryProvider = mockk<CountryProvider>(relaxed = true)
 
+    private val wordsApi = mockk<me.apomazkin.core_network_api.CoreNetworkApi.WordsApi>(relaxed = true)
+    private val wordsBatchApi = mockk<CoreDbApi.WordsBatchApi>(relaxed = true)
+
     private val useCase = WordCardUseCaseImpl(
         wordApi = wordApi,
         dictionaryApi = dictionaryApi,
@@ -61,6 +66,10 @@ class WordCardUseCaseImplTest {
         prefsProvider = prefsProvider,
         logger = logger,
         countryProvider = countryProvider,
+        wordsApi = wordsApi,
+        wordsBatchApi = wordsBatchApi,
+        photoMappingStore = me.apomazkin.polytrainer.di.module.wordstab.PhotoMappingStore(prefsProvider, logger),
+        serverAccess = me.apomazkin.polytrainer.di.module.candidates.ServerAccess(hasKey = true),
     )
 
     private val D0 = Date(0L)
@@ -346,5 +355,115 @@ class WordCardUseCaseImplTest {
         assertEquals(2, available.types.size)
         val options = available.optionsByType[ComponentTypeId(3L)]
         assertEquals(listOf("noun", "verb"), options?.map { it.systemKey })
+    }
+
+    // ===== IS533: значения из словаря (WCL) =====
+
+    private fun wordTerm(value: String, lexemes: List<LexemeApiEntity> = emptyList(), id: Long = 7L) = TermApiEntity(
+        word = WordApiEntity(id = id, dictionaryId = 3L, value = value, addDate = D0),
+        lexemes = lexemes,
+    )
+
+    private fun dictionary() = DictionaryApiEntity(
+        id = 3L, numericCode = null, name = "EN", addDate = D0, learningLanguage = "en", translationLanguage = "ru",
+    )
+
+    @Test
+    fun `WCL-03_1 WCL-03_2 WCL-03_3 lookupWord sends one trimmed token with the dictionary languages and the run id`() = runTest {
+        coEvery { termApi.getTermById(7L) } returns wordTerm("  give up ")
+        coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
+        val request = slot<me.apomazkin.core_network_api.entity.LookupRequest>()
+        coEvery { wordsApi.lookup(capture(request), 4L) } returns me.apomazkin.core_network_api.entity.LookupResult.Unavailable("down")
+
+        val outcome = useCase.lookupWord(7L, 4L)
+
+        assertEquals(me.apomazkin.candidates.PhotoLookupOutcome.Unavailable, outcome)
+        assertEquals(listOf("give up"), request.captured.tokens.map { it.text })
+        assertEquals("en", request.captured.learningLanguage)
+        assertEquals("ru", request.captured.translationLanguage)
+    }
+
+    @Test
+    fun `WCL-01_3 lookupWord gives null when the word or its dictionary is gone`() = runTest {
+        coEvery { termApi.getTermById(7L) } returns null
+        assertNull(useCase.lookupWord(7L, 1L))
+        coEvery { termApi.getTermById(7L) } returns wordTerm("run")
+        coEvery { dictionaryApi.getDictionaryById(3L) } returns null
+        assertNull(useCase.lookupWord(7L, 1L))
+        coVerify(exactly = 0) { wordsApi.lookup(any(), any()) }
+    }
+
+    @Test
+    fun `WCL-03_4 a blank word text does not reach the server`() = runTest {
+        coEvery { termApi.getTermById(7L) } returns wordTerm("   ")
+        coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
+
+        val outcome = useCase.lookupWord(7L, 1L)
+
+        assertEquals(me.apomazkin.candidates.PhotoLookupOutcome.Words(dictionaryId = 3L, words = emptyList()), outcome)
+        coVerify(exactly = 0) { wordsApi.lookup(any(), any()) }
+    }
+
+    @Test
+    fun `WCL-06_2 loadCandidatesForm carries the lexemes of this word only`() = runTest {
+        coEvery { termApi.getTermById(7L) } returns wordTerm("run", listOf(lexemeEntity(100L, listOf(cvEntity(60L, 100L, "управлять")))))
+        coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
+        coEvery { lexemeApi.getComponentTypes(3L) } returns listOf(typeEntity(50L, TR))
+        coEvery { groupApi.groupTree(3L) } returns flowOf(emptyList())
+
+        val outcome = useCase.loadCandidatesForm(7L, emptyList()) as me.apomazkin.candidates.PhotoFormOutcome.Loaded
+
+        val existing = outcome.form.existingLemmas.single()
+        assertEquals(7L, existing.wordId)
+        assertEquals(1, existing.lexemeCount)
+        assertEquals(setOf(me.apomazkin.lexeme.lexemeTextKey("управлять")), existing.lexemeTextKeys)
+        coVerify(exactly = 0) { wordsBatchApi.getWordTexts(any()) }
+        assertEquals("ru", outcome.form.translationLanguage)
+    }
+
+    @Test
+    fun `WCL-15_1 loadCandidatesForm adds the dictionary words of the form lemmas without groups`() = runTest {
+        coEvery { termApi.getTermById(7L) } returns wordTerm("corrían")
+        coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
+        // Ядро — чтобы значения слов леммы попали в подпись переноса (coreValues).
+        coEvery { lexemeApi.getComponentTypes(3L) } returns listOf(typeEntity(50L, TR).copy(core = true))
+        coEvery { groupApi.groupTree(3L) } returns flowOf(emptyList())
+        coEvery { wordsBatchApi.getWordTexts(3L) } returns listOf(
+            WordTextApiEntity(8L, "Correr"),
+            WordTextApiEntity(9L, "perro"),
+            WordTextApiEntity(7L, "corrían"),
+            WordTextApiEntity(10L, "correr"),
+        )
+        coEvery { termApi.getTermsByIds(listOf(8L, 10L)) } returns listOf(
+            wordTerm("Correr", listOf(lexemeEntity(101L, listOf(cvEntity(61L, 101L, "бегать")))), id = 8L),
+            wordTerm("correr", id = 10L),
+        )
+
+        val outcome = useCase.loadCandidatesForm(7L, listOf("correr")) as me.apomazkin.candidates.PhotoFormOutcome.Loaded
+
+        assertEquals(listOf(7L, 10L, 8L), outcome.form.existingLemmas.map { it.wordId })
+        assertEquals(listOf("бегать"), outcome.form.existingLemmas.last().coreValues)
+        assertEquals(emptyList<String>(), outcome.form.existingLemmas[1].coreValues)
+        coVerify(exactly = 0) { groupApi.wordGroups(any()) }
+    }
+
+    @Test
+    fun `WCL-11_5 loadCandidatesForm without the dictionary says so`() = runTest {
+        coEvery { termApi.getTermById(7L) } returns wordTerm("run")
+        coEvery { dictionaryApi.getDictionaryById(3L) } returns null
+        assertEquals(me.apomazkin.candidates.PhotoFormOutcome.DictionaryMissing, useCase.loadCandidatesForm(7L, listOf("run")))
+    }
+
+    @Test
+    fun `WCL-10_4 addCandidates writes the batch as it is`() = runTest {
+        val batch = me.apomazkin.lexeme.WordsBatch(dictionaryId = 3L, words = emptyList())
+        val added = me.apomazkin.lexeme.AddWordsBatchOutcome.Added(wordIds = listOf(7L), lexemeIds = listOf(1L))
+        coEvery { wordsBatchApi.addWordsBatch(batch) } returns added
+        assertEquals(added, useCase.addCandidates(batch))
+    }
+
+    @Test
+    fun `WCL-08_1 hasServerAccess reflects the build key`() = runTest {
+        assertTrue(useCase.hasServerAccess())
     }
 }

@@ -1,14 +1,7 @@
-package me.apomazkin.wordstab.logic.photo
+package me.apomazkin.candidates
 
 import me.apomazkin.lexeme.lexemeTextKey
 import me.apomazkin.lexeme.wordTextKey
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.deps.PhotoExistingLemma
-import me.apomazkin.wordstab.deps.PhotoLemma
-import me.apomazkin.wordstab.deps.PhotoLexeme
-import me.apomazkin.wordstab.deps.PhotoMapping
-import me.apomazkin.wordstab.deps.PhotoWord
-import me.apomazkin.wordstab.deps.PhotoWordStatus
 
 /*
  * IS532: сборка карточек из ответа сервера и формы словаря (Ш1) и
@@ -16,13 +9,13 @@ import me.apomazkin.wordstab.deps.PhotoWordStatus
  */
 
 /** Сколько лексем-кандидатов показано в карточке (AWP-05). */
-internal const val VISIBLE_LEXEMES = 5
+const val VISIBLE_LEXEMES = 5
 
 /** Язык перевода, при котором толкование и есть перевод — пометки «англ.» нет (AWP-10.4). */
-internal const val ENGLISH = "en"
+const val ENGLISH = "en"
 
 /** Карточки и слова без добавления из ответа (AWP-04, AWP-12). */
-internal data class PhotoCardsBuild(
+data class PhotoCardsBuild(
         val cards: List<PhotoCard>,
         val notAdded: List<PhotoNotAdded>,
 )
@@ -33,7 +26,7 @@ internal data class PhotoCardsBuild(
  * лексем-кандидатов карточки не получает; слово, у которого все леммы
  * такие, «не найдено» и «ошибка источника» — в «не добавить» (AWP-12).
  */
-internal fun buildPhotoCards(words: List<PhotoWord>, form: PhotoDictionaryForm): PhotoCardsBuild {
+fun buildPhotoCards(words: List<PhotoWord>, form: PhotoDictionaryForm): PhotoCardsBuild {
     val cards = LinkedHashMap<String, PhotoCard>()
     val notAdded = mutableListOf<PhotoNotAdded>()
     for (word in words) {
@@ -69,11 +62,69 @@ private fun newCard(lemma: PhotoLemma, word: String, form: PhotoDictionaryForm):
             target = existing.firstOrNull()?.let { PhotoCardTarget.Existing(it.wordId) } ?: PhotoCardTarget.NewWord,
             ownGroup = PhotoOwnGroup.AsCommon,
             isExpanded = false,
+            formNote = lemma.formNote,
     )
 }
 
+/**
+ * Разделы диалога в карточке слова (WCL-04): по карточке на лемму ответа с
+ * лексемами, прямая лемма — с текстом слова без учёта регистра и краёв —
+ * первой и без пометки формы, остальные — леммы-формы с пометкой сервера;
+ * все разделы развёрнуты, цель — слово диалога, группы нет.
+ */
+fun buildCandidateCards(word: PhotoWord, wordText: String, form: PhotoDictionaryForm): List<PhotoCard> {
+    val key = wordTextKey(wordText)
+    val cards = word.lemmas
+            .filter { it.lexemes.isNotEmpty() }
+            .map { lemma ->
+                val isDirect = wordTextKey(lemma.text) == key
+                newCard(lemma, word.text, form).copy(
+                        isExpanded = true,
+                        target = PhotoCardTarget.NewWord,
+                        formNote = if (isDirect) null else lemma.formNote,
+                )
+            }
+    return cards.sortedBy { if (wordTextKey(it.lemma) == key) 0 else 1 }
+}
+
+/**
+ * Пометка «есть» по ключам текстов лексем одного слова (WCL-06): для всех
+ * разделов, в том числе лемм-форм; сравнение — `lexemeTextKey`.
+ */
+fun List<PhotoCard>.withExistsMarks(keys: Set<String>): List<PhotoCard> = map { card ->
+    card.copy(lexemes = card.lexemes.map { lexeme -> lexeme.copy(exists = lexeme.matchesTexts(keys)) })
+}
+
+/**
+ * Пометка «есть в «correr»» (WCL-15.4): у раздела леммы-формы — текст
+ * перевода или толкование кандидата совпадает со значением шаблона «текст»
+ * любого слова словаря с текстом этой леммы; у прямой леммы пометки нет —
+ * её слово и есть слово диалога (WCL-06).
+ */
+fun List<PhotoCard>.withLemmaExistsMarks(form: PhotoDictionaryForm): List<PhotoCard> = map { card ->
+    val keys = if (card.formNote == null) emptySet() else form.lemmaWordKeys(card.lemma)
+    card.copy(lexemes = card.lexemes.map { lexeme -> lexeme.copy(existsInLemma = lexeme.matchesTexts(keys)) })
+}
+
+/** Ключи текстов лексем всех слов словаря с текстом леммы (WCL-15.4). */
+fun PhotoDictionaryForm.lemmaWordKeys(lemma: String): Set<String> = existingOf(lemma).flatMapTo(HashSet()) { it.lexemeTextKeys }
+
+/**
+ * Сколько значений у слов леммы-формы совпадёт с тем, что окажется в одном
+ * слове (WCL-15.4): кандидаты раздела с пометкой «есть в …» плюс тексты
+ * лексем слова диалога [ownKeys], которые есть и у слов леммы. Леммы без
+ * совпадений в карте нет.
+ */
+fun sameValuesOf(cards: List<PhotoCard>, form: PhotoDictionaryForm, ownKeys: Set<String>): Map<String, Int> = cards
+        .filter { it.formNote != null }
+        .associate { card ->
+            val lemmaKeys = form.lemmaWordKeys(card.lemma)
+            card.lemma to card.lexemes.count { it.existsInLemma } + ownKeys.count { it in lemmaKeys }
+        }
+        .filterValues { it > 0 }
+
 /** Леммы словаря с тем же текстом (AWP-07.3): без регистра, краёв и формы Unicode; порядок формы — самая новая первой. */
-internal fun PhotoDictionaryForm.existingOf(lemma: String): List<PhotoExistingLemma> {
+fun PhotoDictionaryForm.existingOf(lemma: String): List<PhotoExistingLemma> {
     val key = wordTextKey(lemma)
     return existingLemmas.filter { wordTextKey(it.text) == key }
 }
@@ -83,7 +134,7 @@ internal fun PhotoDictionaryForm.existingOf(lemma: String): List<PhotoExistingLe
  * сервера, затем добор до пяти по порядку сервера; «без части речи» —
  * тоже часть.
  */
-internal fun visibleLexemes(lexemes: List<PhotoLexeme>): List<PhotoLexeme> {
+fun visibleLexemes(lexemes: List<PhotoLexeme>): List<PhotoLexeme> {
     val picked = LinkedHashSet<String>()
     val seenParts = mutableSetOf<String?>()
     for (lexeme in lexemes) {
@@ -129,12 +180,13 @@ private fun PhotoLexeme.toCardLexeme(form: PhotoDictionaryForm): PhotoCardLexeme
  * совпадает с любым значением шаблона «текст» любой лексемы лемм словаря
  * с тем же текстом; сравнение — `lexemeTextKey`; от соответствий не зависит.
  */
-internal fun List<PhotoCard>.withExistsMarks(form: PhotoDictionaryForm): List<PhotoCard> = map { card ->
-    val keys = form.existingOf(card.lemma).flatMapTo(HashSet()) { it.lexemeTextKeys }
-    card.copy(lexemes = card.lexemes.map { lexeme -> lexeme.copy(exists = lexeme.matches(keys)) })
+fun List<PhotoCard>.withExistsMarks(form: PhotoDictionaryForm): List<PhotoCard> = map { card ->
+    val keys = form.lemmaWordKeys(card.lemma)
+    card.copy(lexemes = card.lexemes.map { lexeme -> lexeme.copy(exists = lexeme.matchesTexts(keys)) })
 }
 
-private fun PhotoCardLexeme.matches(keys: Set<String>): Boolean {
+/** Текст перевода или толкование кандидата совпадает с одним из ключей текстов (сравнение — `lexemeTextKey`). */
+fun PhotoCardLexeme.matchesTexts(keys: Set<String>): Boolean {
     if (keys.isEmpty()) return false
     val texts = listOfNotNull(translation.text, gloss?.text).filter { it.isNotBlank() }
     return texts.any { lexemeTextKey(it) in keys }
@@ -145,11 +197,11 @@ private fun PhotoCardLexeme.matches(keys: Set<String>): Boolean {
  * включённый компонент-ядро не получит текста; считается тем же правилом,
  * что и запись (AWP-22, [componentsFor]).
  */
-internal fun List<PhotoCard>.withCoreMarks(mapping: PhotoMapping, form: PhotoDictionaryForm): List<PhotoCard> = map { card ->
+fun List<PhotoCard>.withCoreMarks(mapping: PhotoMapping, form: PhotoDictionaryForm): List<PhotoCard> = map { card ->
     card.copy(lexemes = card.lexemes.map { lexeme -> lexeme.copy(lacksCore = !lexeme.fillsCore(mapping, form)) })
 }
 
-internal fun PhotoCardLexeme.fillsCore(mapping: PhotoMapping, form: PhotoDictionaryForm): Boolean =
+fun PhotoCardLexeme.fillsCore(mapping: PhotoMapping, form: PhotoDictionaryForm): Boolean =
     componentsFor(mapping, form).any { component -> form.components.any { it.id == component.typeId && it.isCore } }
 
 /**
@@ -157,7 +209,7 @@ internal fun PhotoCardLexeme.fillsCore(mapping: PhotoMapping, form: PhotoDiction
  * они лягут; «есть» отдельно; без ядра — причина неактивности; ни один
  * вид данных не идёт в ядро — сводка красная (AWP-11.7).
  */
-internal fun summaryOf(cards: List<PhotoCard>, mapping: PhotoMapping, form: PhotoDictionaryForm?): PhotoAddSummary {
+fun summaryOf(cards: List<PhotoCard>, mapping: PhotoMapping, form: PhotoDictionaryForm?): PhotoAddSummary {
     val lexemes = cards.flatMap { it.lexemes }
     val toAdd = lexemes.filterNot { it.exists }
     val lacksCore = toAdd.count { it.lacksCore }

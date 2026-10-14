@@ -50,6 +50,7 @@ include(":modules:widget:dictionarypicker")
 include(":modules:widget:iconDropDowned")
 include(":modules:widget:chipPicker")
 include(":modules:widget:component_widgets")
+include(":modules:widget:candidates")
 include(":modules:widget:wordrow")
 include(":modules:widget:grouptree")
 

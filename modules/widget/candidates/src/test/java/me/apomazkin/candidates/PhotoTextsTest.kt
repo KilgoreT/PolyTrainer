@@ -1,4 +1,4 @@
-package me.apomazkin.wordstab.logic.photo
+package me.apomazkin.candidates
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

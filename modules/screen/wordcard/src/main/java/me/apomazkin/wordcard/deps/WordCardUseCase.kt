@@ -103,6 +103,39 @@ interface WordCardUseCase {
         wordId: Long,
         groupId: Long,
     ): me.apomazkin.group.RemoveMembershipOutcome
+
+    // ===== IS533: значения из словаря (WCL) =====
+
+    /** В сборке есть ключ сервера — кнопка «Добавить значения из словаря» видна (WCL-08). */
+    suspend fun hasServerAccess(): Boolean
+
+    /**
+     * Один токен — текст слова без краёв, языки — из словаря слова (WCL-03).
+     * null — слова или его словаря уже нет (WCL-01.3); отказы и «сервер не
+     * ответил» — исходами, не исключениями.
+     */
+    suspend fun lookupWord(
+        wordId: Long,
+        runId: Long,
+    ): me.apomazkin.candidates.PhotoLookupOutcome?
+
+    /**
+     * Форма словаря слова для диалога: компоненты, опции «Части речи»,
+     * лексемы этого слова (WCL-06) и слова словаря с текстами лемм-форм
+     * [lemmaTexts] — получатели переноса (WCL-15), запомненные соответствия.
+     */
+    suspend fun loadCandidatesForm(
+        wordId: Long,
+        lemmaTexts: List<String>,
+    ): me.apomazkin.candidates.PhotoFormOutcome
+
+    /** Запись пачки в слово диалога одной транзакцией (WCL-10); исключение пролетает к эффекту. */
+    suspend fun addCandidates(batch: me.apomazkin.lexeme.WordsBatch): me.apomazkin.lexeme.AddWordsBatchOutcome
+
+    suspend fun saveCandidatesMapping(
+        dictionaryId: Long,
+        mapping: me.apomazkin.candidates.PhotoMapping,
+    )
 }
 
 /**

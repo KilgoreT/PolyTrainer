@@ -1,11 +1,18 @@
 package me.apomazkin.wordstab.logic.photo
 
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoCardTarget
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoFormError
+import me.apomazkin.candidates.PhotoLemma
+import me.apomazkin.candidates.PhotoOwnGroup
+import me.apomazkin.candidates.PhotoSheet
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoTextField
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.state
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoTarget
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.PhotoPhase
 import me.apomazkin.wordstab.logic.PhotoWordsState
@@ -152,7 +159,7 @@ class PhotoStateAtomsTest : PhotoStateAtoms(NoopLogger) {
     @Test
     fun `AWP-15_2 deleting an example keeps the lexeme`() {
         val state = baseState.startRecognizing().state()
-            .startFormLoading(Fx.DICT, listOf(Fx.word("run", me.apomazkin.wordstab.deps.PhotoLemma("run", null, listOf(Fx.runLexemes[4]))))).state()
+            .startFormLoading(Fx.DICT, listOf(Fx.word("run", me.apomazkin.candidates.PhotoLemma("run", null, listOf(Fx.runLexemes[4]))))).state()
             .applyForm(form, null).state()
 
         val result = state.deleteExample("run", "en/v1", 0).state()
@@ -177,7 +184,7 @@ class PhotoStateAtomsTest : PhotoStateAtoms(NoopLogger) {
     @Test
     fun `AWP-16_5 emptied example is dropped by the next atom`() {
         val state = baseState.startRecognizing().state()
-            .startFormLoading(Fx.DICT, listOf(Fx.word("run", me.apomazkin.wordstab.deps.PhotoLemma("run", null, listOf(Fx.runLexemes[4]))))).state()
+            .startFormLoading(Fx.DICT, listOf(Fx.word("run", me.apomazkin.candidates.PhotoLemma("run", null, listOf(Fx.runLexemes[4]))))).state()
             .applyForm(form, null).state()
 
         val result = state.applyTextEdit("run", "en/v1", PhotoTextField.Example(0), " ").state().dropEmptyExamples("run", "en/v1").state()

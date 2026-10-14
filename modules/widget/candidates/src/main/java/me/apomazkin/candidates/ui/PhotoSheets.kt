@@ -1,5 +1,16 @@
-package me.apomazkin.wordstab.ui.widget.photo
+package me.apomazkin.candidates.ui
 
+import me.apomazkin.candidates.PhotoCard
+import me.apomazkin.candidates.PhotoCardTarget
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoDictionaryForm
+import me.apomazkin.candidates.PhotoOwnGroup
+import me.apomazkin.candidates.PhotoSheet
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoTextField
+import me.apomazkin.candidates.existingOf
+import me.apomazkin.candidates.groupIdOr
+import me.apomazkin.candidates.targetsFor
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,20 +40,9 @@ import me.apomazkin.theme.formTextSecondary
 import me.apomazkin.theme.formTextTertiary
 import me.apomazkin.ui.btn.CancelButtonWidget
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
-import me.apomazkin.wordstab.R
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.deps.PhotoTarget
-import me.apomazkin.wordstab.logic.Msg
-import me.apomazkin.wordstab.logic.PhotoWordsState
-import me.apomazkin.wordstab.logic.photo.PhotoCard
-import me.apomazkin.wordstab.logic.photo.PhotoCardTarget
-import me.apomazkin.wordstab.logic.photo.PhotoOwnGroup
-import me.apomazkin.wordstab.logic.photo.PhotoSheet
-import me.apomazkin.wordstab.logic.photo.PhotoTextField
-import me.apomazkin.wordstab.logic.photo.existingOf
-import me.apomazkin.wordstab.logic.photo.groupIdOr
-import me.apomazkin.wordstab.logic.photo.targetsFor
+import me.apomazkin.core_resources.R
+import me.apomazkin.candidates.CandidateAction
+import me.apomazkin.candidates.CandidatesView
 
 /**
  * Нижние листы окна (набросок §2, §3, §5, §6): общая и своя группа, «куда
@@ -52,13 +52,13 @@ import me.apomazkin.wordstab.logic.photo.targetsFor
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PhotoSheets(
-    state: PhotoWordsState,
-    sendMessage: (Msg) -> Unit,
+    state: CandidatesView,
+    onAction: (CandidateAction) -> Unit,
 ) {
     val sheet = state.sheet ?: return
     val form = state.form ?: return
     ModalBottomSheet(
-        onDismissRequest = { sendMessage(Msg.ClosePhotoSheet) },
+        onDismissRequest = { onAction(CandidateAction.CloseSheet) },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = formBackground,
         dragHandle = {},
@@ -70,12 +70,12 @@ internal fun PhotoSheets(
                 .navigationBarsPadding(),
         ) {
             when (sheet) {
-                PhotoSheet.CommonGroup -> CommonGroupSheet(state = state, form = form, sendMessage = sendMessage)
-                is PhotoSheet.CardGroup -> CardGroupSheet(lemma = sheet.lemma, state = state, form = form, sendMessage = sendMessage)
-                is PhotoSheet.CardTarget -> CardTargetSheet(lemma = sheet.lemma, state = state, form = form, sendMessage = sendMessage)
-                is PhotoSheet.PartOfSpeech -> PartOfSpeechSheet(sheet = sheet, state = state, form = form, sendMessage = sendMessage)
-                is PhotoSheet.MappingTarget -> MappingTargetSheet(kind = sheet.kind, state = state, form = form, sendMessage = sendMessage)
-                is PhotoSheet.TextEdit -> TextEditSheet(sheet = sheet, state = state, sendMessage = sendMessage)
+                PhotoSheet.CommonGroup -> CommonGroupSheet(state = state, form = form, onAction = onAction)
+                is PhotoSheet.CardGroup -> CardGroupSheet(lemma = sheet.lemma, state = state, form = form, onAction = onAction)
+                is PhotoSheet.CardTarget -> CardTargetSheet(lemma = sheet.lemma, state = state, form = form, onAction = onAction)
+                is PhotoSheet.PartOfSpeech -> PartOfSpeechSheet(sheet = sheet, state = state, form = form, onAction = onAction)
+                is PhotoSheet.MappingTarget -> MappingTargetSheet(kind = sheet.kind, state = state, form = form, onAction = onAction)
+                is PhotoSheet.TextEdit -> TextEditSheet(sheet = sheet, state = state, onAction = onAction)
             }
         }
     }
@@ -141,21 +141,21 @@ private fun SheetRow(
 /** Общая группа (AWP-08): «Все» или группа словаря; создать группу нельзя (AWP-08.3). */
 @Composable
 private fun CommonGroupSheet(
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     SheetTitle(text = stringResource(id = R.string.photo_add_common_group))
     SheetRow(
         text = stringResource(id = R.string.photo_add_group_all),
         selected = state.commonGroupId == null,
-        onClick = { sendMessage(Msg.SetPhotoCommonGroup(null)) },
+        onClick = { onAction(CandidateAction.SetCommonGroup(null)) },
     )
     form.groups.forEach { group ->
         SheetRow(
             text = group.name,
             selected = state.commonGroupId == group.id,
-            onClick = { sendMessage(Msg.SetPhotoCommonGroup(group.id)) },
+            onClick = { onAction(CandidateAction.SetCommonGroup(group.id)) },
         )
     }
     SheetHint(text = stringResource(id = R.string.photo_add_group_hint))
@@ -165,27 +165,27 @@ private fun CommonGroupSheet(
 @Composable
 private fun CardGroupSheet(
     lemma: String,
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     val card = state.cards.firstOrNull { it.lemma == lemma } ?: return
     SheetTitle(text = stringResource(id = R.string.photo_add_card_group_title, lemma))
     SheetRow(
         text = stringResource(id = R.string.photo_add_group_as_common),
         selected = card.ownGroup == PhotoOwnGroup.AsCommon,
-        onClick = { sendMessage(Msg.SetPhotoCardGroup(lemma, PhotoOwnGroup.AsCommon)) },
+        onClick = { onAction(CandidateAction.SetCardGroup(lemma, PhotoOwnGroup.AsCommon)) },
     )
     SheetRow(
         text = stringResource(id = R.string.photo_add_group_all),
         selected = card.ownGroup == PhotoOwnGroup.All,
-        onClick = { sendMessage(Msg.SetPhotoCardGroup(lemma, PhotoOwnGroup.All)) },
+        onClick = { onAction(CandidateAction.SetCardGroup(lemma, PhotoOwnGroup.All)) },
     )
     form.groups.forEach { group ->
         SheetRow(
             text = group.name,
             selected = card.ownGroup == PhotoOwnGroup.Group(group.id),
-            onClick = { sendMessage(Msg.SetPhotoCardGroup(lemma, PhotoOwnGroup.Group(group.id))) },
+            onClick = { onAction(CandidateAction.SetCardGroup(lemma, PhotoOwnGroup.Group(group.id))) },
         )
     }
 }
@@ -194,9 +194,9 @@ private fun CardGroupSheet(
 @Composable
 private fun CardTargetSheet(
     lemma: String,
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     val card = state.cards.firstOrNull { it.lemma == lemma } ?: return
     SheetTitle(text = stringResource(id = R.string.photo_add_target_title, lemma))
@@ -208,7 +208,7 @@ private fun CardTargetSheet(
                 "${existing.coreValues.joinToString(", ")} · ${lexemesCount(existing.lexemeCount)}",
             ),
             selected = card.target == PhotoCardTarget.Existing(existing.wordId),
-            onClick = { sendMessage(Msg.SetPhotoCardTarget(lemma, PhotoCardTarget.Existing(existing.wordId))) },
+            onClick = { onAction(CandidateAction.SetCardTarget(lemma, PhotoCardTarget.Existing(existing.wordId))) },
             subtitle = if (existing.groupNames.isEmpty()) {
                 stringResource(id = R.string.photo_add_target_no_groups)
             } else {
@@ -219,7 +219,7 @@ private fun CardTargetSheet(
     SheetRow(
         text = stringResource(id = R.string.photo_add_target_new, lemma),
         selected = card.target == PhotoCardTarget.NewWord,
-        onClick = { sendMessage(Msg.SetPhotoCardTarget(lemma, PhotoCardTarget.NewWord)) },
+        onClick = { onAction(CandidateAction.SetCardTarget(lemma, PhotoCardTarget.NewWord)) },
     )
     GroupHint(card = card, state = state, form = form)
 }
@@ -227,7 +227,7 @@ private fun CardTargetSheet(
 @Composable
 private fun GroupHint(
     card: PhotoCard,
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
 ) {
     val target = card.target as? PhotoCardTarget.Existing ?: return
@@ -247,9 +247,9 @@ private fun GroupHint(
 @Composable
 private fun PartOfSpeechSheet(
     sheet: PhotoSheet.PartOfSpeech,
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     val lexeme = state.cards.firstOrNull { it.lemma == sheet.lemma }?.lexemes?.firstOrNull { it.key == sheet.key } ?: return
     SheetTitle(text = stringResource(id = R.string.photo_add_part_of_speech_title))
@@ -257,13 +257,13 @@ private fun PartOfSpeechSheet(
         SheetRow(
             text = partOfSpeechLabel(option),
             selected = lexeme.partOfSpeechOptionId == option.id,
-            onClick = { sendMessage(Msg.SetPhotoPartOfSpeech(sheet.lemma, sheet.key, option.id)) },
+            onClick = { onAction(CandidateAction.SetPartOfSpeech(sheet.lemma, sheet.key, option.id)) },
         )
     }
     SheetRow(
         text = stringResource(id = R.string.photo_add_part_of_speech_none),
         selected = lexeme.partOfSpeechOptionId == null,
-        onClick = { sendMessage(Msg.SetPhotoPartOfSpeech(sheet.lemma, sheet.key, null)) },
+        onClick = { onAction(CandidateAction.SetPartOfSpeech(sheet.lemma, sheet.key, null)) },
     )
 }
 
@@ -271,16 +271,16 @@ private fun PartOfSpeechSheet(
 @Composable
 private fun MappingTargetSheet(
     kind: PhotoDataKind,
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     val current = state.mapping.targetOf(kind)
     SheetTitle(text = stringResource(id = R.string.photo_add_mapping_target_title, kindLabel(kind, form.translationLanguage)))
     SheetRow(
         text = stringResource(id = R.string.photo_add_mapping_none),
         selected = current == PhotoTarget.None,
-        onClick = { sendMessage(Msg.SetPhotoMapping(kind, PhotoTarget.None)) },
+        onClick = { onAction(CandidateAction.SetMapping(kind, PhotoTarget.None)) },
     )
     form.targetsFor(kind).forEach { component ->
         val target = PhotoTarget.Component(component.id)
@@ -288,7 +288,7 @@ private fun MappingTargetSheet(
         SheetRow(
             text = "«${componentLabel(component)}»",
             selected = current == target,
-            onClick = { sendMessage(Msg.SetPhotoMapping(kind, target)) },
+            onClick = { onAction(CandidateAction.SetMapping(kind, target)) },
             subtitle = takenBy?.let { stringResource(id = R.string.photo_add_mapping_taken, kindLabel(it, form.translationLanguage).lowercase()) },
         )
     }
@@ -298,8 +298,8 @@ private fun MappingTargetSheet(
 @Composable
 private fun TextEditSheet(
     sheet: PhotoSheet.TextEdit,
-    state: PhotoWordsState,
-    sendMessage: (Msg) -> Unit,
+    state: CandidatesView,
+    onAction: (CandidateAction) -> Unit,
 ) {
     val lexeme = state.cards.firstOrNull { it.lemma == sheet.lemma }?.lexemes?.firstOrNull { it.key == sheet.key } ?: return
     val original = when (val field = sheet.field) {
@@ -315,7 +315,7 @@ private fun TextEditSheet(
     SheetTitle(text = stringResource(id = titleRes))
     OutlinedTextField(
         value = sheet.draft,
-        onValueChange = { sendMessage(Msg.UpdatePhotoDraft(it)) },
+        onValueChange = { onAction(CandidateAction.UpdateDraft(it)) },
         modifier = Modifier.fillMaxWidth(),
         textStyle = LexemeStyle.BodyM,
         colors = OutlinedTextFieldDefaults.colors(
@@ -346,7 +346,7 @@ private fun TextEditSheet(
                 style = LexemeStyle.BodyS,
                 color = LexemeColor.primary,
                 modifier = Modifier
-                    .clickable { sendMessage(Msg.ResetPhotoText(sheet.lemma, sheet.key, sheet.field)) }
+                    .clickable { onAction(CandidateAction.ResetText(sheet.lemma, sheet.key, sheet.field)) }
                     .padding(start = 12.dp),
             )
         }
@@ -356,11 +356,11 @@ private fun TextEditSheet(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        CancelButtonWidget(modifier = Modifier.weight(1f)) { sendMessage(Msg.ClosePhotoSheet) }
+        CancelButtonWidget(modifier = Modifier.weight(1f)) { onAction(CandidateAction.CloseSheet) }
         PrimaryFullButtonWidget(
             modifier = Modifier.weight(1f),
             titleRes = R.string.photo_add_edit_save,
-            onClick = { sendMessage(Msg.SubmitPhotoText) },
+            onClick = { onAction(CandidateAction.SubmitText) },
         )
     }
 }

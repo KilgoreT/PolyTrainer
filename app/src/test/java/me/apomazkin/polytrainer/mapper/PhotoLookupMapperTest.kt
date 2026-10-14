@@ -1,5 +1,9 @@
 package me.apomazkin.polytrainer.mapper
 
+import me.apomazkin.candidates.PhotoDenyReason
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoWordStatus
+import me.apomazkin.candidates.plural
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_network_api.entity.CandidateLexeme
 import me.apomazkin.core_network_api.entity.DenyReason
@@ -8,9 +12,6 @@ import me.apomazkin.core_network_api.entity.LookupResult
 import me.apomazkin.core_network_api.entity.WordResult
 import me.apomazkin.core_network_api.entity.WordStatus
 import me.apomazkin.textrecognition.RecognizedWord
-import me.apomazkin.wordstab.deps.PhotoDenyReason
-import me.apomazkin.wordstab.deps.PhotoLookupOutcome
-import me.apomazkin.wordstab.deps.PhotoWordStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

@@ -1,5 +1,8 @@
-package me.apomazkin.wordstab.ui.widget.photo
+package me.apomazkin.candidates.ui
 
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoDictionaryForm
+import me.apomazkin.candidates.PhotoSheet
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,12 +23,9 @@ import me.apomazkin.theme.cardDivider
 import me.apomazkin.theme.destructiveRed
 import me.apomazkin.theme.formTextSecondary
 import me.apomazkin.theme.formTextTertiary
-import me.apomazkin.wordstab.R
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.logic.Msg
-import me.apomazkin.wordstab.logic.PhotoWordsState
-import me.apomazkin.wordstab.logic.photo.PhotoSheet
+import me.apomazkin.core_resources.R
+import me.apomazkin.candidates.CandidateAction
+import me.apomazkin.candidates.CandidatesView
 
 /**
  * Шапка окна (набросок §2): общая группа (AWP-08) и соответствия (AWP-09)
@@ -34,15 +34,15 @@ import me.apomazkin.wordstab.logic.photo.PhotoSheet
  */
 @Composable
 internal fun PhotoHeaderWidget(
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { sendMessage(Msg.OpenPhotoSheet(PhotoSheet.CommonGroup)) }
+                .clickable { onAction(CandidateAction.OpenSheet(PhotoSheet.CommonGroup)) }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -59,24 +59,24 @@ internal fun PhotoHeaderWidget(
         }
         HorizontalDivider(color = cardDivider)
         if (state.isMappingExpanded) {
-            MappingExpanded(state = state, form = form, sendMessage = sendMessage)
+            MappingExpanded(state = state, form = form, onAction = onAction)
         } else {
-            MappingSummary(state = state, form = form, sendMessage = sendMessage)
+            MappingSummary(state = state, form = form, onAction = onAction)
         }
     }
 }
 
 @Composable
 private fun commonGroupLabel(
-    state: PhotoWordsState,
+    state: CandidatesView,
     form: PhotoDictionaryForm,
 ): String = form.groups.firstOrNull { it.id == state.commonGroupId }?.name ?: stringResource(id = R.string.photo_add_group_all)
 
 @Composable
-private fun MappingSummary(
-    state: PhotoWordsState,
+internal fun MappingSummary(
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     // map — inline, внутри можно звать composable; joinToString с лямбдой — нет.
     val parts = PhotoDataKind.entries.map { kind ->
@@ -86,7 +86,7 @@ private fun MappingSummary(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { sendMessage(Msg.TogglePhotoMapping) }
+            .clickable { onAction(CandidateAction.ToggleMapping) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -112,16 +112,16 @@ private fun MappingSummary(
 }
 
 @Composable
-private fun MappingExpanded(
-    state: PhotoWordsState,
+internal fun MappingExpanded(
+    state: CandidatesView,
     form: PhotoDictionaryForm,
-    sendMessage: (Msg) -> Unit,
+    onAction: (CandidateAction) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { sendMessage(Msg.TogglePhotoMapping) }
+                .clickable { onAction(CandidateAction.ToggleMapping) }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -140,7 +140,7 @@ private fun MappingExpanded(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { sendMessage(Msg.OpenPhotoSheet(PhotoSheet.MappingTarget(kind))) }
+                    .clickable { onAction(CandidateAction.OpenSheet(PhotoSheet.MappingTarget(kind))) }
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {

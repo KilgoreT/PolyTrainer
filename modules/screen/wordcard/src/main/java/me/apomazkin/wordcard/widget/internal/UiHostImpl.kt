@@ -1,6 +1,7 @@
 package me.apomazkin.wordcard.widget.internal
 
 import android.content.Context
+import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -28,5 +29,12 @@ internal class UiHostImpl(
             duration = SnackbarDuration.Short,
         )
         return result == SnackbarResult.ActionPerformed
+    }
+
+    override suspend fun showCountSnackbar(
+        @PluralsRes messageRes: Int,
+        count: Int,
+    ) {
+        snackbarHostState.showSnackbar(context.resources.getQuantityString(messageRes, count, count))
     }
 }

@@ -1,5 +1,31 @@
 package me.apomazkin.wordstab.logic.photo
 
+import me.apomazkin.candidates.PhotoCardLexeme
+import me.apomazkin.candidates.cardOf
+import me.apomazkin.candidates.lexemeOf
+import me.apomazkin.candidates.originalOf
+import me.apomazkin.candidates.updateCard
+import me.apomazkin.candidates.updateLexeme
+import me.apomazkin.candidates.withText
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoCard
+import me.apomazkin.candidates.PhotoCardTarget
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoDictionaryForm
+import me.apomazkin.candidates.PhotoFormError
+import me.apomazkin.candidates.PhotoMapping
+import me.apomazkin.candidates.PhotoOwnGroup
+import me.apomazkin.candidates.PhotoSheet
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoTextField
+import me.apomazkin.candidates.PhotoWord
+import me.apomazkin.candidates.buildPhotoCards
+import me.apomazkin.candidates.choose
+import me.apomazkin.candidates.resolveMapping
+import me.apomazkin.candidates.revalidate
+import me.apomazkin.candidates.summaryOf
+import me.apomazkin.candidates.withCoreMarks
+import me.apomazkin.candidates.withExistsMarks
 import androidx.annotation.StringRes
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.ReducerResult
@@ -7,11 +33,6 @@ import io.github.kilgoret.mate.begin
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.mate.ReducerLogging
 import me.apomazkin.wordstab.LogTags
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.deps.PhotoMapping
-import me.apomazkin.wordstab.deps.PhotoTarget
-import me.apomazkin.wordstab.deps.PhotoWord
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.PhotoPhase
 import me.apomazkin.wordstab.logic.PhotoWordsState
@@ -596,46 +617,23 @@ abstract class PhotoStateAtoms(
         return copy(photoWordsState = photoWordsState.copy(isConfirmingClose = false)).begin()
     }
 
-    /** ###### ВНУТРЕННИЕ ХЕЛПЕРЫ (чистые, не шаги — не логируются) ###### */
+    /** ###### ВНУТРЕННИЕ ХЕЛПЕРЫ (чистые, не шаги — не логируются): общие переходы модуля candidates над карточками ###### */
 
-    private fun WordsTabState.cardOf(lemma: String): PhotoCard? = photoWordsState.cards.firstOrNull { it.lemma == lemma }
+    private fun WordsTabState.cardOf(lemma: String): PhotoCard? = photoWordsState.cards.cardOf(lemma)
 
     private fun WordsTabState.lexemeOf(
         lemma: String,
         key: String,
-    ): PhotoCardLexeme? = cardOf(lemma)?.lexemes?.firstOrNull { it.key == key }
+    ): PhotoCardLexeme? = photoWordsState.cards.lexemeOf(lemma, key)
 
     private fun WordsTabState.updateCard(
         lemma: String,
         change: (PhotoCard) -> PhotoCard,
-    ): WordsResult = copy(
-        photoWordsState = photoWordsState.copy(
-            cards = photoWordsState.cards.map { if (it.lemma == lemma) change(it) else it },
-        ),
-    ).begin()
+    ): WordsResult = copy(photoWordsState = photoWordsState.copy(cards = photoWordsState.cards.updateCard(lemma, change))).begin()
 
     private fun WordsTabState.updateLexeme(
         lemma: String,
         key: String,
         change: (PhotoCardLexeme) -> PhotoCardLexeme,
-    ): WordsResult = updateCard(lemma) { card ->
-        card.copy(lexemes = card.lexemes.map { if (it.key == key) change(it) else it })
-    }
-
-    private fun PhotoCardLexeme.withText(
-        field: PhotoTextField,
-        text: String,
-    ): PhotoCardLexeme? = when (field) {
-        PhotoTextField.Translation -> copy(translation = translation.copy(text = text))
-        PhotoTextField.Gloss -> gloss?.let { copy(gloss = it.copy(text = text)) }
-        is PhotoTextField.Example -> examples.getOrNull(field.index)?.let { example ->
-            copy(examples = examples.mapIndexed { i, item -> if (i == field.index) example.copy(text = text) else item })
-        }
-    }
-
-    private fun PhotoCardLexeme.originalOf(field: PhotoTextField): String? = when (field) {
-        PhotoTextField.Translation -> translation.original
-        PhotoTextField.Gloss -> gloss?.original
-        is PhotoTextField.Example -> examples.getOrNull(field.index)?.original
-    }
+    ): WordsResult = copy(photoWordsState = photoWordsState.copy(cards = photoWordsState.cards.updateLexeme(lemma, key, change))).begin()
 }

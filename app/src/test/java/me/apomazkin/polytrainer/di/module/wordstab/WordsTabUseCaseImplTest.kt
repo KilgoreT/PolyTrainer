@@ -1,5 +1,10 @@
 package me.apomazkin.polytrainer.di.module.dictionarytab
 
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoMapping
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoTemplate
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -34,10 +39,6 @@ import me.apomazkin.polytrainer.di.module.wordstab.PhotoMappingStore
 import me.apomazkin.prefs.PrefKey
 import me.apomazkin.prefs.PrefsProvider
 import me.apomazkin.textrecognition.RecognizedWord
-import me.apomazkin.wordstab.deps.PhotoFormOutcome
-import me.apomazkin.wordstab.deps.PhotoLookupOutcome
-import me.apomazkin.wordstab.deps.PhotoTarget
-import me.apomazkin.wordstab.deps.PhotoTemplate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -319,7 +320,7 @@ class WordsTabUseCaseImplTest {
 
     @Test
     fun `AWP-06 saved mapping goes to prefs under the dictionary key`() = runTest {
-        useCase.savePhotoMapping(1L, me.apomazkin.wordstab.deps.PhotoMapping.NONE)
+        useCase.savePhotoMapping(1L, me.apomazkin.candidates.PhotoMapping.NONE)
 
         coVerify { prefsProvider.setStringByRawKey("photo_words_mapping_dict_1", "translation=none,gloss=none,examples=none,partOfSpeech=none") }
     }

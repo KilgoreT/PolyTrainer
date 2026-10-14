@@ -1,5 +1,10 @@
 package me.apomazkin.wordstab.logic.photo
 
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoDenyReason
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoWord
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.assertEffects
@@ -7,10 +12,6 @@ import io.github.kilgoret.mate.test.assertNoEffects
 import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.wordstab.R
-import me.apomazkin.wordstab.deps.PhotoDenyReason
-import me.apomazkin.wordstab.deps.PhotoFormOutcome
-import me.apomazkin.wordstab.deps.PhotoLookupOutcome
-import me.apomazkin.wordstab.deps.PhotoWord
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.Msg
 import me.apomazkin.wordstab.logic.PhotoPhase

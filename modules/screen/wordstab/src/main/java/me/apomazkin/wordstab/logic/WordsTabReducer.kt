@@ -1,5 +1,12 @@
 package me.apomazkin.wordstab.logic
 
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoFormError
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoSheet
+import me.apomazkin.candidates.addedMessage
+import me.apomazkin.candidates.choose
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateReducer
 import io.github.kilgoret.mate.ReducerResult
@@ -8,19 +15,16 @@ import io.github.kilgoret.mate.then
 import io.github.kilgoret.mate.withEffect
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.wordstab.R
-import me.apomazkin.wordstab.deps.PhotoFormOutcome
-import me.apomazkin.wordstab.deps.PhotoLookupOutcome
 import me.apomazkin.wordstab.logic.DatasourceEffect.CreateWord
 import me.apomazkin.wordstab.logic.DatasourceEffect.LoadTermFlow
 import me.apomazkin.wordstab.logic.DatasourceEffect.RecognizeWords
 import me.apomazkin.wordstab.logic.DatasourceEffect.RemoveWords
 import me.apomazkin.wordstab.logic.DatasourceEffect.UpdateWord
-import me.apomazkin.wordstab.logic.photo.PhotoAddFailure
-import me.apomazkin.wordstab.logic.photo.PhotoFormError
-import me.apomazkin.wordstab.logic.photo.PhotoSheet
 import me.apomazkin.wordstab.logic.photo.PhotoStateAtoms
-import me.apomazkin.wordstab.logic.photo.addedMessage
-import me.apomazkin.wordstab.logic.photo.errorResOf
+import me.apomazkin.candidates.errorResOf
+import me.apomazkin.candidates.lexemeOf
+import me.apomazkin.candidates.originalOf
+import me.apomazkin.candidates.textOf
 import me.apomazkin.wordstab.logic.processor.processUiMessage
 import me.apomazkin.wordstab.ui.WordsNavigationEffect
 
@@ -272,34 +276,45 @@ class WordsTabReducer(
 
             // Правка текста из листа: обрезать, пустой пример — удалить,
             // «есть» и «ядро» пересчитать (AWP-16, AWP-07.7, AWP-11.5).
+            // Флаг изменений — только если текст и правда сменился (AWP-19.9).
             Msg.SubmitPhotoText -> when (val sheet = state.photoWordsState.sheet) {
-                is PhotoSheet.TextEdit -> state
-                    .begin<WordsTabState, Effect>()
-                    .then { it.applyTextEdit(sheet.lemma, sheet.key, sheet.field, sheet.draft) }
-                    .then { it.dropEmptyExamples(sheet.lemma, sheet.key) }
-                    .then { it.closeSheet() }
-                    .then { it.markDirty() }
-                    .then { it.refreshExistsMarks() }
-                    .then { it.refreshCoreMarks() }
-                    .then { it.refreshSummary() }
+                is PhotoSheet.TextEdit -> {
+                    val changed = state.photoWordsState.cards.lexemeOf(sheet.lemma, sheet.key)?.textOf(sheet.field) != sheet.draft.trim()
+                    state
+                        .begin<WordsTabState, Effect>()
+                        .then { it.applyTextEdit(sheet.lemma, sheet.key, sheet.field, sheet.draft) }
+                        .then { it.dropEmptyExamples(sheet.lemma, sheet.key) }
+                        .then { it.closeSheet() }
+                        .then { if (changed) it.markDirty() else it.begin() }
+                        .then { it.refreshExistsMarks() }
+                        .then { it.refreshCoreMarks() }
+                        .then { it.refreshSummary() }
+                }
                 else -> state.noOp("submitPhotoText: no text edit sheet")
             }
 
-            is Msg.ResetPhotoText -> state
-                .begin<WordsTabState, Effect>()
-                .then { it.resetText(message.lemma, message.key, message.field) }
-                .then { it.closeSheet() }
-                .then { it.markDirty() }
-                .then { it.refreshExistsMarks() }
-                .then { it.refreshCoreMarks() }
-                .then { it.refreshSummary() }
+            is Msg.ResetPhotoText -> {
+                val lexeme = state.photoWordsState.cards.lexemeOf(message.lemma, message.key)
+                val changed = lexeme != null && lexeme.textOf(message.field) != lexeme.originalOf(message.field)
+                state
+                    .begin<WordsTabState, Effect>()
+                    .then { it.resetText(message.lemma, message.key, message.field) }
+                    .then { it.closeSheet() }
+                    .then { if (changed) it.markDirty() else it.begin() }
+                    .then { it.refreshExistsMarks() }
+                    .then { it.refreshCoreMarks() }
+                    .then { it.refreshSummary() }
+            }
 
-            // Часть речи — изменение (вопрос при закрытии, AWP-19.7); ядро не трогает.
-            is Msg.SetPhotoPartOfSpeech -> state
-                .begin<WordsTabState, Effect>()
-                .then { it.setPartOfSpeech(message.lemma, message.key, message.optionId) }
-                .then { it.closeSheet() }
-                .then { it.markDirty() }
+            // Часть речи — изменение (вопрос при закрытии, AWP-19.7), если и правда сменилась (AWP-19.9); ядро не трогает.
+            is Msg.SetPhotoPartOfSpeech -> {
+                val changed = state.photoWordsState.cards.lexemeOf(message.lemma, message.key)?.partOfSpeechOptionId != message.optionId
+                state
+                    .begin<WordsTabState, Effect>()
+                    .then { it.setPartOfSpeech(message.lemma, message.key, message.optionId) }
+                    .then { it.closeSheet() }
+                    .then { if (changed) it.markDirty() else it.begin() }
+            }
 
             // Выборы групп, «куда класть» и соответствий — без флага изменений (AWP-19.6, 19.8).
             is Msg.SetPhotoCardTarget -> state

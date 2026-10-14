@@ -1,15 +1,17 @@
 package me.apomazkin.wordstab.logic.photo
 
+import me.apomazkin.candidates.PhotoCard
+import me.apomazkin.candidates.PhotoCardLexeme
+import me.apomazkin.candidates.PhotoDictionaryForm
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoMapping
+import me.apomazkin.candidates.PhotoWord
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.deps.PhotoFormOutcome
-import me.apomazkin.wordstab.deps.PhotoLookupOutcome
-import me.apomazkin.wordstab.deps.PhotoMapping
-import me.apomazkin.wordstab.deps.PhotoWord
 import me.apomazkin.wordstab.logic.Msg
 import me.apomazkin.wordstab.logic.PhotoWordsState
 import me.apomazkin.wordstab.logic.WordsTabReducer

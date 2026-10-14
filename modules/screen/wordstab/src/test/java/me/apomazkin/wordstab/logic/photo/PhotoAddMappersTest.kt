@@ -1,10 +1,19 @@
 package me.apomazkin.wordstab.logic.photo
 
+import me.apomazkin.candidates.EXAMPLE_CAPTION
+import me.apomazkin.candidates.PhotoCard
+import me.apomazkin.candidates.PhotoLemma
+import me.apomazkin.candidates.PhotoMapping
+import me.apomazkin.candidates.PhotoOwnGroup
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoWord
+import me.apomazkin.candidates.buildPhotoCards
+import me.apomazkin.candidates.componentsFor
+import me.apomazkin.candidates.withExistsMarks
 import me.apomazkin.lexeme.CaptionedTextValues
 import me.apomazkin.lexeme.ChoiceValues
 import me.apomazkin.lexeme.Primitive
 import me.apomazkin.lexeme.TextValues
-import me.apomazkin.wordstab.deps.PhotoTarget
 import me.apomazkin.wordstab.logic.PhotoWordsState
 import me.apomazkin.wordstab.logic.WordsTabState
 import org.junit.Assert.assertEquals
@@ -17,12 +26,12 @@ class PhotoAddMappersTest {
 
     private val form = Fx.form()
 
-    private fun cardsOf(vararg words: me.apomazkin.wordstab.deps.PhotoWord) =
+    private fun cardsOf(vararg words: me.apomazkin.candidates.PhotoWord) =
         buildPhotoCards(words.toList(), form).cards.withExistsMarks(form)
 
     private fun state(
         cards: List<PhotoCard>,
-        mapping: me.apomazkin.wordstab.deps.PhotoMapping = Fx.defaultMapping,
+        mapping: me.apomazkin.candidates.PhotoMapping = Fx.defaultMapping,
         commonGroupId: Long? = null,
     ): PhotoWordsState = WordsTabState(
         photoWordsState = PhotoWordsState(isOpen = true, dictionaryId = Fx.DICT, form = form, mapping = mapping, commonGroupId = commonGroupId, cards = cards),
@@ -31,7 +40,7 @@ class PhotoAddMappersTest {
     private fun text(value: String) = TextValues(Primitive.Text(value))
 
     private val russianVerb = cardsOf(Fx.ran).single().lexemes.first { it.key == "ru/v1" }
-    private val englishVerb = buildPhotoCards(listOf(Fx.word("run", me.apomazkin.wordstab.deps.PhotoLemma("run", null, listOf(Fx.runLexemes[4])))), form)
+    private val englishVerb = buildPhotoCards(listOf(Fx.word("run", me.apomazkin.candidates.PhotoLemma("run", null, listOf(Fx.runLexemes[4])))), form)
         .cards.single().lexemes.single()
     private val adjective = cardsOf(Fx.ran).single().lexemes.first { it.key == "en/a1" }
 

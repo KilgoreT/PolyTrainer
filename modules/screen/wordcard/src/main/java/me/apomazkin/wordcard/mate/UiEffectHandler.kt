@@ -33,6 +33,9 @@ class UiEffectHandler(
                 )
                 if (retryPressed) consumer(effect.retryMsg)
             }
+            is UiEffect.ShowCountSnackbar -> {
+                uiHost.showCountSnackbar(effect.messageRes, effect.count)
+            }
         }
     }
 }

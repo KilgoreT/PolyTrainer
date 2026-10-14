@@ -105,6 +105,13 @@ interface WordDao {
     @Query("DELETE FROM words WHERE id = :id")
     suspend fun removeWordSuspend(id: Long): Int
 
+    /** IS533 (WCL-15.3): лексемы одного слова — другому; значения компонентов и статистика квизов идут с ними. */
+    @Query("UPDATE lexemes SET word_id = :toWordId WHERE word_id = :fromWordId")
+    suspend fun moveLexemes(
+        fromWordId: Long,
+        toWordId: Long,
+    ): Int
+
     /**
      * TERM
      */

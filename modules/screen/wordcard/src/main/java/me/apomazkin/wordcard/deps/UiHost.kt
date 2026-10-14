@@ -22,4 +22,14 @@ interface UiHost {
         messageRes: Int,
         actionLabelRes: Int,
     ): Boolean
+
+    /**
+     * IS533: snackbar со счётом — форма plurals по [count].
+     *
+     * @param messageRes ресурс plurals с одним числовым аргументом.
+     */
+    suspend fun showCountSnackbar(
+        messageRes: Int,
+        count: Int,
+    )
 }

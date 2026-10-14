@@ -1,5 +1,10 @@
 package me.apomazkin.wordstab.logic
 
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.describe
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoMapping
 import android.net.Uri
 import androidx.paging.cachedIn
 import kotlinx.coroutines.CoroutineDispatcher
@@ -11,12 +16,8 @@ import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.WordsBatch
 import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.wordstab.R
-import me.apomazkin.wordstab.deps.PhotoFormOutcome
-import me.apomazkin.wordstab.deps.PhotoLookupOutcome
-import me.apomazkin.wordstab.deps.PhotoMapping
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.entity.WordInfo
-import me.apomazkin.wordstab.logic.photo.PhotoAddFailure
 import me.apomazkin.wordstab.logic.photo.prepareTokens
 import me.apomazkin.mate.EMPTY_STRING
 import io.github.kilgoret.mate.Effect
@@ -248,23 +249,6 @@ class DatasourceEffectHandler(
 }
 
 /** Короткая строка исхода для лога: вид и число слов. */
-private fun PhotoLookupOutcome.describe(): String = when (this) {
-    is PhotoLookupOutcome.Words -> "dict=$dictionaryId words=${words.size} lemmas=${words.sumOf { it.lemmas.size }}"
-    is PhotoLookupOutcome.Denied -> "denied=$reason"
-    PhotoLookupOutcome.Unavailable -> "unavailable"
-}
-
-private fun PhotoFormOutcome.describe(): String = when (this) {
-    is PhotoFormOutcome.Loaded ->
-        "loaded components=${form.components.size} options=${form.partOfSpeechOptions.size} groups=${form.groups.size} existing=${form.existingLemmas.size} remembered=${remembered != null}"
-    PhotoFormOutcome.DictionaryMissing -> "dictionary missing"
-    is PhotoFormOutcome.Failed -> "failed: $cause"
-}
-
-private fun AddWordsBatchOutcome.describe(): String = when (this) {
-    is AddWordsBatchOutcome.Added -> "added words=${wordIds.size} lexemes=${lexemeIds.size}"
-    is AddWordsBatchOutcome.Rejected -> "rejected $this"
-}
 
 /** Доменный исход записи → плоский Msg (конвенция: reducer доменные sealed не разворачивает). */
 private fun AddWordsBatchOutcome.toMsg(requestId: Long): Msg = when (this) {

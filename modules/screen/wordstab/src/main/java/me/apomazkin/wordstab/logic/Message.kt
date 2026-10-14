@@ -1,21 +1,21 @@
 package me.apomazkin.wordstab.logic
 
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoCardTarget
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoOwnGroup
+import me.apomazkin.candidates.PhotoSheet
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.PhotoTextField
 import androidx.annotation.StringRes
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.wordrow.entity.TermUiItem
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoFormOutcome
-import me.apomazkin.wordstab.deps.PhotoLookupOutcome
-import me.apomazkin.wordstab.deps.PhotoTarget
 import me.apomazkin.wordstab.entity.WordInfo
-import me.apomazkin.wordstab.logic.photo.PhotoAddFailure
-import me.apomazkin.wordstab.logic.photo.PhotoCardTarget
-import me.apomazkin.wordstab.logic.photo.PhotoOwnGroup
-import me.apomazkin.wordstab.logic.photo.PhotoSheet
-import me.apomazkin.wordstab.logic.photo.PhotoTextField
 
 
 sealed interface Msg {

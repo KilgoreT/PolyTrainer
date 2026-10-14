@@ -50,7 +50,35 @@ class DatasourceEffectHandlerTest {
                 )
             },
         var captionSuggestionsImpl: suspend (ComponentTypeId) -> List<String> = { emptyList() },
+        // IS533: значения из словаря
+        var hasServerAccessImpl: suspend () -> Boolean = { false },
+        var lookupWordImpl: suspend (Long, Long) -> me.apomazkin.candidates.PhotoLookupOutcome? = { _, _ -> null },
+        var loadCandidatesFormImpl: suspend (Long, List<String>) -> me.apomazkin.candidates.PhotoFormOutcome =
+            { _, _ -> me.apomazkin.candidates.PhotoFormOutcome.DictionaryMissing },
+        var addCandidatesImpl: suspend (me.apomazkin.lexeme.WordsBatch) -> me.apomazkin.lexeme.AddWordsBatchOutcome =
+            { me.apomazkin.lexeme.AddWordsBatchOutcome.Rejected.DictionaryMissing },
+        var saveCandidatesMappingImpl: suspend (Long, me.apomazkin.candidates.PhotoMapping) -> Unit = { _, _ -> },
     ) : WordCardUseCase {
+        override suspend fun hasServerAccess(): Boolean = hasServerAccessImpl()
+
+        override suspend fun lookupWord(
+            wordId: Long,
+            runId: Long,
+        ): me.apomazkin.candidates.PhotoLookupOutcome? = lookupWordImpl(wordId, runId)
+
+        override suspend fun loadCandidatesForm(
+            wordId: Long,
+            lemmaTexts: List<String>,
+        ): me.apomazkin.candidates.PhotoFormOutcome = loadCandidatesFormImpl(wordId, lemmaTexts)
+
+        override suspend fun addCandidates(batch: me.apomazkin.lexeme.WordsBatch): me.apomazkin.lexeme.AddWordsBatchOutcome =
+            addCandidatesImpl(batch)
+
+        override suspend fun saveCandidatesMapping(
+            dictionaryId: Long,
+            mapping: me.apomazkin.candidates.PhotoMapping,
+        ) = saveCandidatesMappingImpl(dictionaryId, mapping)
+
         override suspend fun getTermById(wordId: Long): Term? = getTermByIdImpl(wordId)
 
         override suspend fun deleteWord(wordId: Long): Int = deleteWordImpl(wordId)
@@ -358,5 +386,73 @@ class DatasourceEffectHandlerTest {
     fun `RemoveWord success yields NavigateBack`() {
         val msgs = run(FakeUseCase(deleteWordImpl = { 1 }), DatasourceEffect.RemoveWord(7L))
         assertTrue(msgs.single() is Msg.NavigateBack)
+    }
+
+    // ===== IS533: значения из словаря (WCL) =====
+
+    @Test
+    fun `WCL-10_1 AddCandidates success reloads the word and then reports the count`() {
+        val term = stubTerm()
+        val useCase = FakeUseCase(
+            getTermByIdImpl = { term },
+            addCandidatesImpl = { me.apomazkin.lexeme.AddWordsBatchOutcome.Added(wordIds = listOf(7L), lexemeIds = listOf(1L, 2L, 3L)) },
+        )
+        val batch = me.apomazkin.lexeme.WordsBatch(dictionaryId = 3L, words = emptyList())
+        val msgs = run(useCase, DatasourceEffect.AddCandidates(batch = batch, wordId = 7L, requestId = 1L))
+        assertEquals(2, msgs.size)
+        assertEquals(true, msgs[0] is Msg.WordLoaded)
+        assertEquals(Msg.CandidatesAdded(lexemeCount = 3, requestId = 1L), msgs[1])
+    }
+
+    @Test
+    fun `WCL-15_3 AddCandidates with a transfer reports it instead of reloading the deleted word`() {
+        val useCase = FakeUseCase(
+            getTermByIdImpl = { error("the dialog word is gone — nothing to reload") },
+            addCandidatesImpl = { me.apomazkin.lexeme.AddWordsBatchOutcome.Added(wordIds = listOf(8L), lexemeIds = listOf(1L, 2L)) },
+        )
+        val batch = me.apomazkin.lexeme.WordsBatch(dictionaryId = 3L, words = emptyList())
+        val msgs = run(useCase, DatasourceEffect.AddCandidates(batch = batch, wordId = 7L, requestId = 1L, isTransfer = true))
+        assertEquals(listOf<Msg>(Msg.CandidatesTransferred(requestId = 1L)), msgs)
+    }
+
+    @Test
+    fun `WCL-15_1 LoadCandidatesForm passes the form lemma texts to the use case`() {
+        var seen: Pair<Long, List<String>>? = null
+        val useCase = FakeUseCase(loadCandidatesFormImpl = { wordId, lemmas -> seen = wordId to lemmas; me.apomazkin.candidates.PhotoFormOutcome.DictionaryMissing })
+        val msgs = run(useCase, DatasourceEffect.LoadCandidatesForm(wordId = 7L, lemmaTexts = listOf("correr"), requestId = 2L))
+        assertEquals(7L to listOf("correr"), seen)
+        assertEquals(listOf<Msg>(Msg.CandidatesFormLoaded(me.apomazkin.candidates.PhotoFormOutcome.DictionaryMissing, 2L)), msgs)
+    }
+
+    @Test
+    fun `WCL-13_2 AddCandidates rejection maps to a flat failure`() {
+        val useCase = FakeUseCase(addCandidatesImpl = { me.apomazkin.lexeme.AddWordsBatchOutcome.Rejected.WordMissing(7L) })
+        val batch = me.apomazkin.lexeme.WordsBatch(dictionaryId = 3L, words = emptyList())
+        val msgs = run(useCase, DatasourceEffect.AddCandidates(batch = batch, wordId = 7L, requestId = 1L))
+        assertEquals(listOf<Msg>(Msg.CandidatesRejected(me.apomazkin.candidates.PhotoAddFailure.WordMissing(7L), 1L)), msgs)
+    }
+
+    @Test
+    fun `WCL-11_3 WCL-13_1 failed effects degrade to the unavailable and failed messages`() {
+        val batch = me.apomazkin.lexeme.WordsBatch(dictionaryId = 3L, words = emptyList())
+        val add = DatasourceEffect.AddCandidates(batch = batch, wordId = 7L, requestId = 1L)
+        assertEquals(Msg.CandidatesRejected(me.apomazkin.candidates.PhotoAddFailure.Failed, 1L), add.onFail(RuntimeException("x")))
+        val lookup = DatasourceEffect.LookupCandidates(wordId = 7L, requestId = 1L)
+        assertEquals(Msg.CandidatesLookedUp(me.apomazkin.candidates.PhotoLookupOutcome.Unavailable, 1L), lookup.onFail(RuntimeException("x")))
+    }
+
+    @Test
+    fun `WCL-08_1 LoadServerAccess reports whether the build has a key`() {
+        val msgs = run(FakeUseCase(hasServerAccessImpl = { true }), DatasourceEffect.LoadServerAccess)
+        assertEquals(listOf<Msg>(Msg.ServerAccessLoaded(true)), msgs)
+    }
+
+    @Test
+    fun `WCL-03_1 LookupCandidates passes the run number to the use case`() {
+        var seen: Pair<Long, Long>? = null
+        val useCase = FakeUseCase(lookupWordImpl = { wordId, runId -> seen = wordId to runId; null })
+        val msgs = run(useCase, DatasourceEffect.LookupCandidates(wordId = 7L, requestId = 4L))
+        assertEquals(7L to 4L, seen)
+        assertEquals(listOf<Msg>(Msg.CandidatesLookedUp(null, 4L)), msgs)
     }
 }

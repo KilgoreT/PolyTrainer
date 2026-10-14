@@ -1,17 +1,17 @@
-package me.apomazkin.wordstab.ui.widget.photo
+package me.apomazkin.candidates.ui
 
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoComponent
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoDictionaryForm
+import me.apomazkin.candidates.PhotoNotAddedReason
+import me.apomazkin.candidates.PhotoPartOfSpeechOption
+import me.apomazkin.candidates.PhotoTarget
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import me.apomazkin.lexeme.BuiltInComponent
-import me.apomazkin.wordstab.R
-import me.apomazkin.wordstab.deps.PhotoComponent
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoDictionaryForm
-import me.apomazkin.wordstab.deps.PhotoPartOfSpeechOption
-import me.apomazkin.wordstab.deps.PhotoTarget
-import me.apomazkin.wordstab.logic.photo.PhotoAddFailure
-import me.apomazkin.wordstab.logic.photo.PhotoNotAddedReason
+import me.apomazkin.core_resources.R
 import java.util.Locale
 
 /*

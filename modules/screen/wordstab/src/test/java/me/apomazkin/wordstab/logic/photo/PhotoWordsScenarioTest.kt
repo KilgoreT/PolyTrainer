@@ -1,11 +1,16 @@
 package me.apomazkin.wordstab.logic.photo
 
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoCardTarget
+import me.apomazkin.candidates.PhotoDataKind
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoTarget
+import me.apomazkin.candidates.countPhrase
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.lexeme.ChoiceValues
 import me.apomazkin.lexeme.TextValues
-import me.apomazkin.wordstab.deps.PhotoDataKind
-import me.apomazkin.wordstab.deps.PhotoTarget
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.Msg
 import org.junit.Assert.assertEquals
@@ -50,9 +55,9 @@ class PhotoWordsScenarioTest {
         val runId = picked.photo().requestId
         val answered = reducer.step(
             reducer.step(picked, Msg.TokensReady(listOf(me.apomazkin.textrecognition.RecognizedWord("bank", 0.9f, "en")), runId)),
-            Msg.WordsLookedUp(me.apomazkin.wordstab.deps.PhotoLookupOutcome.Words(Fx.DICT, listOf(Fx.bank)), runId),
+            Msg.WordsLookedUp(me.apomazkin.candidates.PhotoLookupOutcome.Words(Fx.DICT, listOf(Fx.bank)), runId),
         )
-        val next = reducer.step(answered, Msg.PhotoFormLoaded(me.apomazkin.wordstab.deps.PhotoFormOutcome.Loaded(Fx.form(), null), runId))
+        val next = reducer.step(answered, Msg.PhotoFormLoaded(me.apomazkin.candidates.PhotoFormOutcome.Loaded(Fx.form(), null), runId))
 
         assertFalse(done.photo().isOpen)
         assertEquals(adding.photo().requestId, done.photo().requestId)

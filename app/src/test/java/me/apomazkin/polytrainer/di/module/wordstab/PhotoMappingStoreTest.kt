@@ -1,5 +1,7 @@
 package me.apomazkin.polytrainer.di.module.wordstab
 
+import me.apomazkin.candidates.PhotoMapping
+import me.apomazkin.candidates.PhotoTarget
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -8,8 +10,6 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.prefs.PrefsProvider
-import me.apomazkin.wordstab.deps.PhotoMapping
-import me.apomazkin.wordstab.deps.PhotoTarget
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

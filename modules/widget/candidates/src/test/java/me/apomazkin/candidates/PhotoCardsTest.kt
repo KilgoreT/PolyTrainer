@@ -1,6 +1,6 @@
-package me.apomazkin.wordstab.logic.photo
+package me.apomazkin.candidates
 
-import me.apomazkin.wordstab.deps.PhotoTarget
+import me.apomazkin.lexeme.lexemeTextKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,7 +11,7 @@ class PhotoCardsTest {
 
     private val form = Fx.form()
 
-    private fun cards(vararg words: me.apomazkin.wordstab.deps.PhotoWord) = buildPhotoCards(words.toList(), form)
+    private fun cards(vararg words: me.apomazkin.candidates.PhotoWord) = buildPhotoCards(words.toList(), form)
 
     @Test
     fun `AWP-04_1 AWP-04_3 ran and running give cards run and running with source words and no doubled lexemes`() {
@@ -86,7 +86,7 @@ class PhotoCardsTest {
     fun `AWP-10_1 AWP-10_2 russian lexeme has text only, english one has translations joined and a gloss below with examples`() {
         val run = cards(Fx.ran).cards.single()
         val russian = run.lexemes.first { it.key == "ru/v1" }
-        val english = buildPhotoCards(listOf(Fx.word("run", me.apomazkin.wordstab.deps.PhotoLemma("run", null, listOf(Fx.runLexemes[4])))), form)
+        val english = buildPhotoCards(listOf(Fx.word("run", me.apomazkin.candidates.PhotoLemma("run", null, listOf(Fx.runLexemes[4])))), form)
             .cards.single().lexemes.single()
 
         assertEquals("бежать, бегать", russian.translation.text)
@@ -119,7 +119,7 @@ class PhotoCardsTest {
 
     @Test
     fun `AWP-17_2 lexeme without a part of speech key has no option`() {
-        val article = Fx.word("el", me.apomazkin.wordstab.deps.PhotoLemma("el", null, listOf(Fx.lexeme("en/el1", null, gloss = "the"))))
+        val article = Fx.word("el", me.apomazkin.candidates.PhotoLemma("el", null, listOf(Fx.lexeme("en/el1", null, gloss = "the"))))
 
         val lexeme = cards(article).cards.single().lexemes.single()
 
@@ -165,6 +165,39 @@ class PhotoCardsTest {
         val marked = buildPhotoCards(listOf(Fx.ran), definitions).cards.withExistsMarks(definitions)
 
         assertTrue(marked.single().lexemes.first { it.key == "en/a1" }.exists)
+    }
+
+    @Test
+    fun `WCL-15_4 lemma words mark candidates of form sections only and count the same values`() {
+        val form = Fx.form(existing = listOf(Fx.existing(5L, "run", listOf("бежать, бегать")), Fx.existing(9L, "running", listOf("бег"))))
+        val own = form.existingLemmas.last().lexemeTextKeys
+
+        val cards = buildCandidateCards(Fx.running, "running", form).withExistsMarks(own).withLemmaExistsMarks(form)
+
+        val run = cards.first { it.lemma == "run" }
+        assertTrue(run.lexemes.first { it.key == "ru/v1" }.existsInLemma)
+        assertFalse(run.lexemes.first { it.key == "ru/v2" }.existsInLemma)
+        assertTrue(run.lexemes.first { it.key == "ru/n1" }.exists)
+        assertFalse(cards.first { it.lemma == "running" }.lexemes.single().existsInLemma)
+        assertEquals(mapOf("run" to 1), sameValuesOf(cards, form, ownKeys = own))
+        assertEquals(mapOf("run" to 2), sameValuesOf(cards, form, ownKeys = own + lexemeTextKey("Бежать, бегать")))
+        val none = Fx.form(existing = emptyList())
+        assertEquals(emptyMap<String, Int>(), sameValuesOf(cards.withLemmaExistsMarks(none), none, ownKeys = own))
+    }
+
+    @Test
+    fun `WCL-15_3 the transfer batch skips what the dialog word or the target already has`() {
+        val form = Fx.form(existing = listOf(Fx.existing(5L, "run", listOf("бежать, бегать")), Fx.existing(9L, "running", listOf("бег"))))
+        val cards = buildCandidateCards(Fx.running, "running", form).withExistsMarks(form.existingLemmas.last().lexemeTextKeys)
+
+        val batch = wordsBatchForTransfer(targetWordId = 5L, targetText = "run", absorbWordId = 9L, cards = cards, mapping = Fx.defaultMapping, form = form)
+
+        val word = batch.words.single()
+        assertEquals(5L, word.wordId)
+        assertEquals(9L, word.absorbWordId)
+        assertEquals(null, word.groupId)
+        // Шесть видимых кандидатов: «бег» ×2 есть у слова диалога, «бежать, бегать» — у получателя.
+        assertEquals(3, word.lexemes.size)
     }
 
     @Test

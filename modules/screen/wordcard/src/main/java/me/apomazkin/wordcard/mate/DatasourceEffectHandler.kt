@@ -4,7 +4,15 @@ import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateEffectHandler
 import io.github.kilgoret.mate.RecoverableEffect
 import io.github.kilgoret.mate.runSuspendCatching
+import me.apomazkin.candidates.PhotoAddFailure
+import me.apomazkin.candidates.PhotoFormOutcome
+import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.PhotoMapping
+import me.apomazkin.candidates.describe
+import me.apomazkin.candidates.toFailure
 import me.apomazkin.core_resources.R
+import me.apomazkin.lexeme.AddWordsBatchOutcome
+import me.apomazkin.lexeme.WordsBatch
 import me.apomazkin.lexeme.CaptionedTextValues
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentTypeId
@@ -147,6 +155,59 @@ sealed interface DatasourceEffect : Effect {
     ) : DatasourceEffect,
         RecoverableEffect<Msg> {
         override fun onFail(error: Throwable) = Msg.OperationFailed(R.string.word_card_error_restore_lexeme)
+    }
+
+    // === IS533: значения из словаря (WCL) ===
+
+    /** Есть ли ключ сервера в сборке; ошибка — считаем, что нет. */
+    data object LoadServerAccess :
+        DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.ServerAccessLoaded(false)
+    }
+
+    /** Один токен — текст слова (WCL-03); сбой — «сервер не ответил». */
+    data class LookupCandidates(
+        val wordId: Long,
+        val requestId: Long,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.CandidatesLookedUp(PhotoLookupOutcome.Unavailable, requestId)
+    }
+
+    /** Форма словаря слова, его лексемы (WCL-06) и слова словаря с текстами лемм-форм [lemmaTexts] (WCL-15); сбой — В1. */
+    data class LoadCandidatesForm(
+        val wordId: Long,
+        val lemmaTexts: List<String>,
+        val requestId: Long,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) =
+            Msg.CandidatesFormLoaded(PhotoFormOutcome.Failed(cause = "${error.javaClass.simpleName}: ${error.message}"), requestId)
+    }
+
+    /**
+     * Запись пачки в слово диалога (WCL-10) или перенос в слово леммы
+     * ([isTransfer], WCL-15.3 — слова диалога после записи нет); исключение
+     * — «не добавилось» (WCL-13).
+     */
+    data class AddCandidates(
+        val batch: WordsBatch,
+        val wordId: Long,
+        val requestId: Long,
+        val isTransfer: Boolean = false,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.CandidatesRejected(PhotoAddFailure.Failed, requestId)
+    }
+
+    /** Запомнить соответствия словаря (WCL-09.4); сбой не меняет экран. */
+    data class SaveCandidatesMapping(
+        val dictionaryId: Long,
+        val mapping: PhotoMapping,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.NoOperation
     }
 
     // === IS493: группы слова ===
@@ -299,6 +360,52 @@ class DatasourceEffectHandler
                         consumer(Msg.RestoreLexemeFailed(effect.snapshot))
                     }
                 }
+
+                // === IS533: значения из словаря — исходы компактно в лог, доменные sealed → плоские Msg ===
+
+                DatasourceEffect.LoadServerAccess ->
+                    consumer(Msg.ServerAccessLoaded(wordCardUseCase.hasServerAccess()))
+
+                is DatasourceEffect.LookupCandidates -> {
+                    val outcome = wordCardUseCase.lookupWord(effect.wordId, effect.requestId)
+                    logger.d(
+                        tag = WordCardLogTags.WORDCARD,
+                        message = "candidates lookup run=${effect.requestId} word=${effect.wordId} outcome=${outcome?.describe() ?: "word missing"}",
+                    )
+                    consumer(Msg.CandidatesLookedUp(outcome, effect.requestId))
+                }
+
+                is DatasourceEffect.LoadCandidatesForm -> {
+                    val outcome = wordCardUseCase.loadCandidatesForm(effect.wordId, effect.lemmaTexts)
+                    logger.d(
+                        tag = WordCardLogTags.WORDCARD,
+                        message = "candidates form run=${effect.requestId} word=${effect.wordId} outcome=${outcome.describe()}",
+                    )
+                    consumer(Msg.CandidatesFormLoaded(outcome, effect.requestId))
+                }
+
+                // Записано — слово перечитывается целиком, как после восстановления
+                // лексемы: список карточки обновляется до закрытия диалога.
+                is DatasourceEffect.AddCandidates -> {
+                    val outcome = wordCardUseCase.addCandidates(effect.batch)
+                    logger.d(
+                        tag = WordCardLogTags.WORDCARD,
+                        message = "candidates add run=${effect.requestId} word=${effect.wordId} outcome=${outcome.describe()}",
+                    )
+                    when (outcome) {
+                        // Перенос (WCL-15.3): слова диалога уже нет — перечитывать нечего, карточка уходит.
+                        is AddWordsBatchOutcome.Added -> if (effect.isTransfer) {
+                            consumer(Msg.CandidatesTransferred(effect.requestId))
+                        } else {
+                            wordCardUseCase.getTermById(effect.wordId)?.let { consumer(Msg.WordLoaded(it)) }
+                            consumer(Msg.CandidatesAdded(outcome.lexemeIds.size, effect.requestId))
+                        }
+                        is AddWordsBatchOutcome.Rejected -> consumer(Msg.CandidatesRejected(outcome.toFailure(), effect.requestId))
+                    }
+                }
+
+                is DatasourceEffect.SaveCandidatesMapping ->
+                    wordCardUseCase.saveCandidatesMapping(effect.dictionaryId, effect.mapping)
 
                 // === IS493: membership-мутации (плоские Msg через маппер) ===
 

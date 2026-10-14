@@ -1,4 +1,4 @@
-package me.apomazkin.wordstab.logic.photo
+package me.apomazkin.candidates
 
 /*
  * IS532: русские формы счёта для кнопки, вопроса и сообщения
@@ -7,14 +7,14 @@ package me.apomazkin.wordstab.logic.photo
  */
 
 /** «N значений в M слов» — хвост кнопки, вопроса и сообщения. */
-internal fun countPhrase(lexemes: Int, words: Int): String =
+fun countPhrase(lexemes: Int, words: Int): String =
     "${plural(lexemes, "значение", "значения", "значений")} в ${plural(words, "слово", "слова", "слов")}"
 
 /** Сообщение после записи (AWP-23.1). */
-internal fun addedMessage(lexemes: Int, words: Int): String = "Добавлено ${countPhrase(lexemes, words)}"
+fun addedMessage(lexemes: Int, words: Int): String = "Добавлено ${countPhrase(lexemes, words)}"
 
 /** Русская форма по числу: 1 — одна, 2–4 — вторая, остальное — третья; 11–14 — третья. */
-internal fun plural(count: Int, one: String, few: String, many: String): String {
+fun plural(count: Int, one: String, few: String, many: String): String {
     val mod100 = count % 100
     val mod10 = count % 10
     val form = when {
