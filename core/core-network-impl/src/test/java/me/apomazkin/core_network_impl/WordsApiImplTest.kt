@@ -246,7 +246,7 @@ class WordsApiImplTest {
     // === Ш10 → Ш11: ответ сервера, записанный с прода 2026-10-10 ===
 
     @Test
-    fun `WFT-56_1 recorded response gives words in response order with attribution`() = runTest {
+    fun `WFP-16_1 recorded response gives words in response order with attribution`() = runTest {
         server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
 
         val result = api().lookup(requestOf(token("corrían")), runId = 1) as LookupResult.Success
@@ -256,7 +256,7 @@ class WordsApiImplTest {
     }
 
     @Test
-    fun `WFT-56_7 recorded corrian is found with first candidate correr verb and a form note`() = runTest {
+    fun `WFP-16_7 recorded corrian is found with first candidate correr verb and a form note`() = runTest {
         server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
 
         val result = api().lookup(requestOf(token("corrían")), runId = 1) as LookupResult.Success
@@ -270,7 +270,7 @@ class WordsApiImplTest {
     }
 
     @Test
-    fun `WFT-56_8 recorded fuera keeps four candidates in article order`() = runTest {
+    fun `WFP-16_8 recorded fuera keeps four candidates in article order`() = runTest {
         server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
 
         val result = api().lookup(requestOf(token("fuera")), runId = 1) as LookupResult.Success
@@ -284,7 +284,7 @@ class WordsApiImplTest {
     }
 
     @Test
-    fun `WFT-56_3 recorded accorc is not found with no candidates`() = runTest {
+    fun `WFP-16_3 recorded accorc is not found with no candidates`() = runTest {
         server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
 
         val result = api().lookup(requestOf(token("accorc")), runId = 1) as LookupResult.Success

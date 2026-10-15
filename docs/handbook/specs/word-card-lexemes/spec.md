@@ -5,10 +5,10 @@
 `docs/handbook/specs/words-add-from-photo/spec.md` (AWP): правила показа
 лексем-кандидатов, соответствий, правок, пометок и записи — те же, здесь
 только отличия и то, что добавляется. Ответ сервера — спека бэка
-`backend/spec/words-from-text.md` (WFT), запрос — WFT-16…20 с одним
+`backend/docs/handbook/specs/words-from-text/spec.md` (WFT), запрос — WFT-19…23 с одним
 токеном.
 
-Формат — `backend/spec/README.md`, проверки — `backend/spec/CHECKS.md`.
+Формат — `backend/docs/handbook/guides/spec-howto.md`, проверки — `backend/docs/handbook/guides/spec-checks.md`.
 Префикс номеров `WCL`, адрес строки `WCL-04.2`; дорожка одна —
 устройство, поле «Исполняет» опущено.
 
@@ -188,7 +188,7 @@
 
 ## Векторная правда
 
-Правила чтения — `backend/spec/README.md`, «Карточка утверждения».
+Правила чтения — `backend/docs/handbook/guides/spec-howto.md`, «Карточка утверждения».
 
 ### Инварианты
 
@@ -244,7 +244,8 @@
 - [3] «  run » → токен «run»
 - [4] пустой или пробельный текст слова → запрос не уходит, В1
 
-Связи: запрос — WFT-16…20; номер запуска в `X-Run-Id` — WFT-62
+Связи: запрос — WFT-19…23; номер запуска в `X-Run-Id` — как у снимка,
+WFP-01…03
 
 #### WCL-04 Прямая лемма и леммы-формы
 Проверка: unit · Статус: реализовано · Шаг: Ш1, Ш2
@@ -411,7 +412,7 @@
   поддерживается»)
 - [3] сервер не ответил → «Сервер не ответил»
 - [4] ответ пришёл после закрытия диалога → отброшен, диалог не
-  открывается (WFT-62)
+  открывается (как у снимка, WFP-21)
 - [5] форма словаря не загрузилась → «Не удалось собрать окно»
 
 Связи: статусы слова — WFT-50; отказы — WFT-63; AWP-24
@@ -515,10 +516,11 @@
 Границы:
 - границ нет
 
-Связи: AWP-27, WFT-65
+Связи: AWP-27, WFP-23
 
 ## Ссылки
 
 Адреса `AWP-NN` — утверждения `docs/handbook/specs/words-add-from-photo/
-spec.md`; `WFT-NN` — `backend/spec/words-from-text.md` через симлинк
-`backend` → `~/dev/lexeme`.
+spec.md`; `WFT-NN` — базовая спека `backend/docs/handbook/specs/words-from-text/spec.md`,
+`WFP-NN` — спека снимка `backend/docs/handbook/specs/words-from-photo/spec.md`,
+через симлинк `backend` → `~/dev/lexeme`.

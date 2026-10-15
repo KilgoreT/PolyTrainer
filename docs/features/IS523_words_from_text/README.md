@@ -9,7 +9,7 @@
 - исследование поверхности: `backend/docs/features/IS523_words_from_text/research_surface.md`
 - конвейер: `backend/docs/features/IS523_words_from_text/pipeline.md`
 - бэкенд (подфича 2а, IS528): `backend/docs/features/IS523_words_from_text/IS528_backend_wiki/`
-- спека поведения: `backend/spec/words-from-text.md`, контракт `backend/api/openapi.yaml`
+- спеки бэкенда: базовая `backend/docs/handbook/specs/words-from-text/spec.md` (WFT, значения слова из словаря) и снимок `backend/docs/handbook/specs/words-from-photo/spec.md` (WFP), контракт `backend/api/openapi.yaml`
 
 Здесь, в PolyTrainer, остаются только подфичи приложения:
 
