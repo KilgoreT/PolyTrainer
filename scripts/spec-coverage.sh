@@ -10,7 +10,11 @@
 # если в тестах есть адрес, которого нет в спеке.
 #
 #   SPEC_FILE=… SPEC_PREFIX=… — другая спека и префикс (по умолчанию AWP);
-#   SPEC_MANUALS="file1.md file2.md" — документы ручников с адресами.
+#   SPEC_MANUALS="file1.md file2.md" — документы ручников с адресами;
+#   SPEC_SIDE=устройство — своя сторона для продуктовой спеки бэкенда
+#     (через backend/): судятся утверждения «Исполняет: устройство» и «оба»,
+#     утверждения другой стороны пропускаются; без поля «Исполняет» (экранные
+#     спеки) утверждение считается своим.
 #
 # Инструменты: grep и perl, без python/sed/awk (правило репозитория).
 set -euo pipefail
@@ -18,21 +22,27 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SPEC="${SPEC_FILE:-$ROOT/docs/handbook/specs/words-add-from-photo/spec.md}"
 PREFIX="${SPEC_PREFIX:-AWP}"
+SIDE="${SPEC_SIDE:-устройство}"
 
-perl -CSD -Mutf8 -e '
+perl -CSDA -Mutf8 -e '
   use strict; use warnings;
-  my ($spec, $root, $prefix, $manuals) = @ARGV;
+  my ($spec, $root, $prefix, $manuals, $side) = @ARGV;
 
-  # Адреса спеки: утверждение → статус, список номеров строк.
+  # Адреса спеки: утверждение → статус, сторона, список номеров строк.
   open my $fh, "<:encoding(UTF-8)", $spec or die "spec: $!";
-  my (%status, %lines, @order, $cur);
+  my (%status, %who, %lines, @order, $cur);
   while (my $l = <$fh>) {
     if ($l =~ /^#### ($prefix-\d+) /) { $cur = $1; push @order, $cur; $lines{$cur} = []; next }
     next unless defined $cur;
+    if ($l =~ /Исполняет: (\S+)/ && !exists $who{$cur}) { $who{$cur} = $1 }
     if ($l =~ /Статус: (\S+)/ && !exists $status{$cur}) { $status{$cur} = $1; next }
     if ($l =~ /^- \[(\d+)\]/) { push @{$lines{$cur}}, $1 }
   }
   close $fh;
+
+  # Своя сторона: без поля — своё; «оба» судится каждой стороной целиком.
+  my @mine = grep { !exists $who{$_} || $who{$_} eq $side || $who{$_} eq "оба" } @order;
+  my $skipped = @order - @mine;
 
   # Адреса в тестах Kotlin трёх каталогов и в ручниках: оба разделителя.
   my %covered;
@@ -50,23 +60,24 @@ perl -CSD -Mutf8 -e '
   }
 
   my ($bad, $closed_total, $open_total) = (0, 0, 0);
-  for my $id (@order) {
+  for my $id (@mine) {
     my $st = $status{$id} // "?";
     my (@closed, @open);
     for my $n (@{$lines{$id}}) { exists $covered{"$id.$n"} ? push(@closed, $n) : push(@open, $n) }
     $closed_total += @closed; $open_total += @open;
     my $mark = (@open && $st eq "реализовано") ? "!!" : "  ";
     $bad = 1 if $mark eq "!!";
-    printf "%s %-7s %-12s закрыто %-16s открыто %s\n", $mark, $id, $st,
+    printf "%s %-7s %-12s %-11s закрыто %-16s открыто %s\n", $mark, $id, $st, ($who{$id} // "-"),
       (join(",", @closed) || "-"), (join(",", @open) || "-");
   }
 
-  # Адреса в тестах, которых нет в спеке.
+  # Адреса в тестах, которых нет в спеке (по всем утверждениям, не только своим).
   my %known; for my $id (keys %lines) { $known{"$id.$_"} = 1 for @{$lines{$id}} }
   my @stale = sort grep { !$known{$_} } keys %covered;
   if (@stale) { $bad = 1; print "\nВ тестах есть адреса, которых нет в спеке: @stale\n" }
 
-  printf "\nСтрок закрыто %d, открыто %d. %s\n", $closed_total, $open_total,
+  printf "\nСторона «%s»: утверждений %d, другой стороны пропущено %d. Строк закрыто %d, открыто %d. %s\n",
+    $side, scalar(@mine), $skipped, $closed_total, $open_total,
     $bad ? "ЕСТЬ НАРУШЕНИЯ (!! — реализовано с открытыми строками)" : "нарушений нет";
   exit($bad ? 1 : 0);
-' "$SPEC" "$ROOT" "$PREFIX" "${SPEC_MANUALS:-}"
+' "$SPEC" "$ROOT" "$PREFIX" "${SPEC_MANUALS:-}" "$SIDE"
