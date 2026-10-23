@@ -1,5 +1,6 @@
 package me.apomazkin.polytrainer.scenario
 
+import io.github.kilgoret.mate.MateStore
 import io.github.kilgoret.mate.apptest.HarnessContext
 import io.github.kilgoret.mate.apptest.RunnerSlot
 import io.github.kilgoret.mate.apptest.ScreenNode
@@ -7,16 +8,21 @@ import io.github.kilgoret.mate.apptest.ScreenRegistry
 import io.github.kilgoret.mate.apptest.screenRegistry
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.coroutines.ContinuationInterceptor
 import me.apomazkin.groupstab.deps.GroupsTabUseCase
 import me.apomazkin.groupstab.ui.GroupsTabAssembly
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.polytrainer.navigation.AppScreen
+import me.apomazkin.scancandidates.ScanCandidatesAssembly
+import me.apomazkin.scancandidates.deps.ScanCandidatesUseCase
 import me.apomazkin.wordcard.WordCardAssembly
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.ui.WordsTabAssembly
 import me.apomazkin.groupstab.logic.Msg as GroupsMsg
+import me.apomazkin.scancandidates.mate.Msg as ScanMsg
 import me.apomazkin.wordcard.mate.Msg as WordCardMsg
 import me.apomazkin.wordstab.logic.Msg as WordsMsg
 
@@ -24,16 +30,26 @@ import me.apomazkin.wordstab.logic.Msg as WordsMsg
  * Registry пилотных сценариев: те же Assembly, что зовёт прод, — со
  * стабами use case'ов вместо базы. Узел Main — композиция раннеров
  * words + groups (как на живом экране: обе вкладки живут
- * одновременно и слушают словарь сами), карточка — плоский узел.
+ * одновременно и слушают словарь сами), карточка и экран лексем-кандидатов —
+ * плоские узлы. Псевдоэкран результата — узел без цикла: харнес требует узел
+ * на каждый экран, который кладёт таблица.
  */
 /** Тестовый диспатчер сценария — блокирующие операции идут в виртуальном времени. */
 private val HarnessContext.io: CoroutineDispatcher
     get() = scope.coroutineContext[ContinuationInterceptor] as CoroutineDispatcher
 
+/** Раннер псевдоэкрана: ни состояния, ни сообщений — только место в стеке. */
+private object ResultOnly : MateStore<Unit, Nothing> {
+    override val state: StateFlow<Unit> = MutableStateFlow(Unit)
+
+    override fun accept(message: Nothing) = Unit
+}
+
 fun pilotRegistry(
     wordsUseCase: WordsTabUseCase,
     groupsUseCase: GroupsTabUseCase,
     wordCardUseCase: WordCardUseCase,
+    scanUseCase: ScanCandidatesUseCase,
 ): ScreenRegistry {
     val logger = mockk<LexemeLogger>(relaxed = true)
     return screenRegistry {
@@ -85,6 +101,38 @@ fun pilotRegistry(
                             coroutineScope = context.scope,
                             observers = listOf(context.observer),
                         ),
+                    ),
+                ),
+            )
+        }
+        on<AppScreen.ScanCandidates> { screen, context ->
+            ScreenNode(
+                screen = screen,
+                runners = listOf(
+                    RunnerSlot(
+                        name = "scan",
+                        messageFamily = ScanMsg::class,
+                        holder = ScanCandidatesAssembly.create(
+                            useCase = scanUseCase,
+                            logger = logger,
+                            navigationHandler = context.navigationHandler,
+                            uri = screen.uri,
+                            coroutineScope = context.scope,
+                            io = context.io,
+                            observers = listOf(context.observer),
+                        ),
+                    ),
+                ),
+            )
+        }
+        on<AppScreen.ScanCandidatesAdded> { screen, _ ->
+            ScreenNode(
+                screen = screen,
+                runners = listOf(
+                    RunnerSlot(
+                        name = "result",
+                        messageFamily = Nothing::class,
+                        holder = ResultOnly,
                     ),
                 ),
             )

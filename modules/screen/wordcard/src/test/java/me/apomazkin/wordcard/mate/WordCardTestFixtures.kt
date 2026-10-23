@@ -1,5 +1,6 @@
 package me.apomazkin.wordcard.mate
 
+import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.ComponentType
@@ -7,10 +8,13 @@ import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentValue
 import me.apomazkin.lexeme.ComponentValueId
+import me.apomazkin.lexeme.FormOutcome
 import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.lexeme.LexemeId
 import me.apomazkin.lexeme.Primitive
 import me.apomazkin.lexeme.TextValues
+import me.apomazkin.lexeme.WordLookupOutcome
+import me.apomazkin.lexeme.WordsBatch
 import me.apomazkin.wordcard.entity.Term
 import me.apomazkin.wordcard.entity.Word
 import me.apomazkin.wordcard.entity.WordId
@@ -93,19 +97,14 @@ internal object NotImplementedUseCase : me.apomazkin.wordcard.deps.WordCardUseCa
     override suspend fun lookupWord(
         wordId: Long,
         runId: Long,
-    ): me.apomazkin.candidates.PhotoLookupOutcome? = TODO()
+    ): WordLookupOutcome = TODO()
 
     override suspend fun loadCandidatesForm(
         wordId: Long,
         lemmaTexts: List<String>,
-    ): me.apomazkin.candidates.PhotoFormOutcome = TODO()
+    ): FormOutcome = TODO()
 
-    override suspend fun addCandidates(batch: me.apomazkin.lexeme.WordsBatch): me.apomazkin.lexeme.AddWordsBatchOutcome = TODO()
-
-    override suspend fun saveCandidatesMapping(
-        dictionaryId: Long,
-        mapping: me.apomazkin.candidates.PhotoMapping,
-    ): Unit = TODO()
+    override suspend fun addCandidates(batch: WordsBatch): AddWordsBatchOutcome = TODO()
 }
 
 /**

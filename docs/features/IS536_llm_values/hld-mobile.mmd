@@ -1,0 +1,40 @@
+%%{init: {"flowchart": {"wrappingWidth": 320, "nodeSpacing": 40, "rankSpacing": 50}}}%%
+flowchart TB
+  classDef new fill:#fff1b8,stroke:#b58900,stroke-width:2px,color:#000
+  classDef changed fill:#e8f4ff,stroke:#2b6cb0,stroke-dasharray:5 3,color:#000
+  classDef gone fill:#fde8e8,stroke:#c53030,stroke-dasharray:2 2,color:#000
+  classDef store fill:#f3f3f3,stroke:#888,color:#000
+
+  subgraph LEG["Условные знаки"]
+    direction TB
+    L1["новое в IS536"]:::new
+    L2["меняется в IS536"]:::changed
+    L4["снято в IS536"]:::gone
+    L3["как есть"]
+  end
+
+  IN1["Экран «Слова»: кнопка снимка<br/>wordstab · WordsTabReducer"]
+  OCR["1. Снимок → слова на устройстве<br/>ML Kit · library/textrecognition"]
+  IN2["Карточка слова: «Из словаря»<br/>wordcard · WordCardReducer"]
+  REQ["2. Запрос: токены, языки словаря<br/>+ дерево компонентов словаря<br/>app · PhotoLookupMapper"]:::changed
+  NET["3. Шлюз к бэкенду<br/>ключ доступа, лог запроса, таймаут<br/>core-network · WordsApi.lookup"]:::changed
+  ERR["Отказ, сеть или 503<br/>→ «Словарь сейчас недоступен,<br/>попробуй позже»"]:::changed
+  MAP["4. Ответ → исход для экрана<br/>слово: найдено / не найдено / ошибка,<br/>леммы, лексемы с раскладкой, сообщения<br/>app · PhotoLookupMapper"]:::changed
+  FORM["Форма словаря<br/>включённые компоненты, опции, группы<br/>app · CandidatesFormLoader"]
+  ST["5. Состояние окна в редьюсере<br/>wordstab · PhotoStateAtoms, PhotoBatch<br/>wordcard · CandidatesAtoms"]:::changed
+  WIN["6. Окно добавления / диалог кандидатов<br/>карточки лемм, лексемы по компонентам<br/>widget/candidates · PhotoAddWindow, CandidatesDialog"]:::changed
+  NEWW["Новые блоки окна<br/>«От словаря», «Как разложено»,<br/>пометка «англ.», сообщения словаря"]:::new
+  GONE["Правила и память соответствий<br/>на устройстве — раскладку даёт сервер<br/>PhotoMappingRules · savePhotoMapping"]:::gone
+  SAVE["7. Запись в словарь<br/>леммы, группы, лексемы<br/>со значениями компонентов<br/>WordsTabUseCase · WordCardUseCase"]
+  DB[("Room<br/>словари, слова, лексемы, компоненты")]:::store
+  BE["Бэкенд<br/>POST /v1/words/lookup"]:::store
+
+  IN1 --> OCR --> REQ
+  IN2 --> REQ
+  REQ --> NET --> MAP --> ST --> WIN --> SAVE --> DB
+  NET -.-> ERR
+  NET --- BE
+  FORM --> ST
+  FORM --- DB
+  WIN --- NEWW
+  WIN -.- GONE

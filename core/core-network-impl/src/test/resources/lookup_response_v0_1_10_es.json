@@ -1,0 +1,93 @@
+{
+  "attribution": "Wiktionary, CC BY-SA 4.0",
+  "recommendations": [
+    { "code": "component_recommended", "name": "Род", "template": "choice", "options": ["м.р.", "ж.р."] }
+  ],
+  "words": [
+    { "text": "corrían", "status": "found", "remarks": [],
+      "lemmas": [
+        { "text": "correr", "formNote": "third-person plural imperfect indicative", "pronunciations": [],
+          "lexemes": [
+            { "key": "ruwiktionary/1.verb.3", "partOfSpeechKey": "verb", "source": "ruwiktionary",
+              "translations": ["течь, литься, струиться (о жидкости)"],
+              "gloss": "to flow", "examples": [], "caption": null, "notes": [],
+              "grammar": {}, "level": null, "synonyms": [], "antonyms": [],
+              "componentMatches": [
+                { "componentId": 1, "optionId": null, "field": "translations" },
+                { "componentId": 2, "optionId": 22, "field": null },
+                { "componentId": 4, "optionId": null, "field": "gloss" } ] },
+            { "key": "ruwiktionary/1.verb.1", "partOfSpeechKey": "verb", "source": "ruwiktionary",
+              "translations": ["бегать; бежать"],
+              "gloss": "to run, to jog", "examples": [], "caption": null, "notes": [],
+              "grammar": {}, "level": null, "synonyms": [], "antonyms": [],
+              "componentMatches": [
+                { "componentId": 1, "optionId": null, "field": "translations" },
+                { "componentId": 2, "optionId": 22, "field": null },
+                { "componentId": 4, "optionId": null, "field": "gloss" } ] },
+            { "key": "ruwiktionary/1.verb.5", "partOfSpeechKey": "verb", "source": "ruwiktionary",
+              "translations": ["бежать, проходить, лететь (о времени)"],
+              "gloss": "to elapse (time)", "examples": [], "caption": null, "notes": [],
+              "grammar": {}, "level": null, "synonyms": [], "antonyms": [],
+              "componentMatches": [
+                { "componentId": 1, "optionId": null, "field": "translations" },
+                { "componentId": 2, "optionId": 22, "field": null },
+                { "componentId": 4, "optionId": null, "field": "gloss" } ] } ] } ] },
+    { "text": "perro", "status": "found", "remarks": [],
+      "lemmas": [
+        { "text": "perro", "formNote": null,
+          "pronunciations": [ { "ipa": "/ˈpero/", "accent": [], "form": null } ],
+          "lexemes": [
+            { "key": "ruwiktionary/1.noun.1", "partOfSpeechKey": "noun", "source": "ruwiktionary",
+              "translations": ["собака; пёс (также ругательство)"],
+              "gloss": "dog (the species Canis familiaris …)", "examples": ["perro callejero"],
+              "caption": null, "notes": [],
+              "grammar": { "gender": "masculine" }, "level": null, "synonyms": [], "antonyms": [],
+              "componentMatches": [
+                { "componentId": 1, "optionId": null, "field": "translations" },
+                { "componentId": 2, "optionId": 21, "field": null },
+                { "componentId": 5, "optionId": 51, "field": null },
+                { "componentId": 3, "optionId": null, "field": "examples" },
+                { "componentId": 4, "optionId": null, "field": "gloss" } ] },
+            { "key": "ruwiktionary/2.adjective.1", "partOfSpeechKey": "adjective", "source": "ruwiktionary",
+              "translations": ["дурной, скверный, паршивый; несладкий, собачий"],
+              "gloss": "wicked; mean", "examples": [], "caption": null, "notes": ["разг."],
+              "grammar": {}, "level": null, "synonyms": [], "antonyms": [],
+              "componentMatches": [
+                { "componentId": 1, "optionId": null, "field": "translations" },
+                { "componentId": 2, "optionId": 23, "field": null },
+                { "componentId": 4, "optionId": null, "field": "gloss" } ] },
+            { "key": "ruwiktionary/1.noun.2", "partOfSpeechKey": "noun", "source": "ruwiktionary",
+              "translations": ["надувательство, обман"],
+              "gloss": null, "examples": [], "caption": null, "notes": [],
+              "grammar": {}, "level": null, "synonyms": [], "antonyms": [],
+              "componentMatches": [
+                { "componentId": 1, "optionId": null, "field": "translations" },
+                { "componentId": 2, "optionId": 21, "field": null },
+                { "componentId": 5, "optionId": 51, "field": null } ] } ] } ] },
+    { "text": "zarpó", "status": "found",
+      "remarks": [
+        { "code": "no_translation", "lemma": "zarpar", "lexemeKey": "enwiktionary/1.verb.1" },
+        { "code": "no_translation", "lemma": "zarpar", "lexemeKey": "enwiktionary/2.verb.1" } ],
+      "lemmas": [
+        { "text": "zarpar", "formNote": "third-person singular preterite indicative", "pronunciations": [],
+          "lexemes": [
+            { "key": "enwiktionary/1.verb.1", "partOfSpeechKey": "verb", "source": "enwiktionary",
+              "translations": [], "gloss": "to embark; to set sail", "examples": [],
+              "caption": null, "notes": [],
+              "grammar": { "transitivity": "intransitive" }, "level": "B1", "synonyms": ["salir"], "antonyms": ["atracar"],
+              "componentMatches": [
+                { "componentId": 1, "optionId": null, "field": "gloss" },
+                { "componentId": 2, "optionId": 22, "field": null },
+                { "componentId": 4, "optionId": null, "field": "gloss" } ] },
+            { "key": "enwiktionary/2.verb.1", "partOfSpeechKey": "verb", "source": "enwiktionary",
+              "translations": [], "gloss": "to behave in a daring and out of place way", "examples": [],
+              "caption": null, "notes": [],
+              "grammar": {}, "level": null, "synonyms": [], "antonyms": [],
+              "componentMatches": [
+                { "componentId": 1, "optionId": null, "field": "gloss" },
+                { "componentId": 2, "optionId": 22, "field": null },
+                { "componentId": 4, "optionId": null, "field": "gloss" } ] } ] } ] },
+    { "text": "accorc", "status": "not_found", "remarks": [], "lemmas": [] },
+    { "text": "llave", "status": "error", "remarks": [], "lemmas": [] }
+  ]
+}

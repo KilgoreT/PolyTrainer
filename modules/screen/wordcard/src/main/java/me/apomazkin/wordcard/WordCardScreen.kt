@@ -256,12 +256,13 @@ internal fun WordCardScreen(
             )
         }
 
-        // IS533: диалог «значения из словаря» (WCL) — общие виджеты модуля candidates.
+        // IS533/IS536: диалог лексем-кандидатов (WCL) — общие виджеты модуля candidates.
         state.candidates?.let { dialog ->
             CandidatesDialog(
                 wordText = dialog.text,
                 isLoading = dialog.phase == CandidatesPhase.LOADING,
                 errorRes = dialog.errorRes.takeIf { dialog.phase == CandidatesPhase.ERROR },
+                hasRetryButton = dialog.hasRetryButton,
                 view = dialog.toView(),
                 onAction = { action -> sendMessage(Msg.Candidates(action)) },
             )

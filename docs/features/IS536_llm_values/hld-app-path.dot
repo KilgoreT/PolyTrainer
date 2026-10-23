@@ -1,0 +1,107 @@
+digraph AppPath {
+  // Путь фичи в приложении: откуда запускается, через какие окна идёт,
+  // куда приходит. Две колонки — снимок и карточка слова, общие блоки
+  // между ними. На ребре — шаг спеки WFP, AWP или WCL и что передаётся.
+  // После Д51 путь снимка: вкладка открывает только диалог скана, после
+  // снимка — отдельный экран со своим редьюсером.
+  graph [rankdir=TB, newrank=true, remincross=false, splines=ortho,
+         nodesep=0.3, ranksep=0.28, pad=0.08,
+         fontname="Helvetica", fontsize=11, labeljust=c];
+  node  [shape=box, style="filled", fillcolor="white", color="#333333", penwidth=1.2,
+         fontname="Helvetica", fontsize=11, margin="0.10,0.05"];
+  edge  [arrowsize=0.7, color="#333333"];
+
+  // ----- колонка снимка (WFP → AWP) -----
+  S1 [group=s, label="Вкладка «Слова»\n[экран, screen/wordstab]\nкнопка-камера над «+»,\nтолько у сборки с ключом сервера"];
+  S2 [group=s, label="Диалог скана\n[диалог ScanDialog, стейт вкладки]\n«Камера» или «Галерея»;\nнет камеры — только галерея",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  S3 [group=s, label="Камера или галерея\n[системное приложение]\nснимок камеры во временный файл;\nкартинка галереи — доступ закреплён",
+      fillcolor="#f3f3f3", color="#888888"];
+  S4 [group=s, label="Экран лексем-кандидатов: «Распознаю текст»\n[экран screen/scancandidates + эффект RecognizeText]\nML Kit на устройстве, без сети,\nсвой редьюсер и стейт, без номера запуска",
+      fillcolor="#fff1b8", color="#b58900", penwidth=2];
+  S5 [group=s, label="«Ищу слова»\n[тот же экран + эффект LookupWords]\nзапрос: токены, языки словаря,\nдерево компонентов словаря",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  S6 [group=s, label="«Собираю окно»\n[тот же экран + эффект LoadForm]\nформа словаря из Room: компоненты\nс опциями и зависимостями, леммы, группы",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  S7 [group=s, label="Окно лексем-кандидатов\n[тот же экран, виджеты widget/candidates]\nкарточки лемм, значения по компонентам,\n«Замечания», «Сопоставление»",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  S8 [group=s, label="Запись в словарь\n[эффект AddWords, WordsBatchApi]\nодна транзакция: леммы, группы,\nлексемы со значениями компонентов"];
+  S9 [group=s, label="Вкладка «Слова»\n[экран]\nэкран закрылся с результатом навигации:\nновые слова в списке, «Добавлено N значений в M слов»",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+
+  // ----- колонка карточки слова (WCL) -----
+  C1 [group=c, label="Карточка слова\n[экран, screen/wordcard]\nкнопка «Добавить лексемы-кандидаты»\nнад «+», только у сборки с ключом"];
+  C2 [group=c, label="Диалог лексем-кандидатов: признак загрузки\n[диалог CandidatesDialog + эффект LookupCandidates]\nзапрос: один токен — текст слова,\nязыки и дерево словаря слова",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  C3 [group=c, label="Диалог лексем-кандидатов: сборка\n[эффект LoadCandidatesForm]\nформа словаря слова из Room,\nлексемы слова для пометки «есть»",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  C4 [group=c, label="Диалог лексем-кандидатов\n[диалог, CandidatesDialog]\nразделы лемм, значения по компонентам,\n«Замечания», «Сопоставление»",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  C5 [group=c, label="Запись в слово\n[эффект AddCandidates, WordsBatchApi]\nлексемы в слово диалога;\nпереименование или перенос в лемму-форму"];
+  C6 [group=c, label="Карточка слова\n[экран]\nновые лексемы, «Добавлено N значений»;\nпосле переноса — список слов"];
+
+  // ----- общие блоки -----
+  BE [label="Бэкенд\n[внешняя система, POST /v1/words/lookup]\nWFT Ш1…Ш8: ключ, лимиты, слова, леммы,\nотбор и сопоставление нейронкой, проверка",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+
+  NOTE [style="filled", fillcolor="#f3f3f3", color="#888888", margin="0.12,0.06",
+        label=<<table border="0" cellpadding="0" cellspacing="2">
+          <tr><td align="left">Ветки [WFP, AWP]</td></tr>
+          <tr><td align="left">В1 без снимка → диалог скана как был</td></tr>
+          <tr><td align="left">на экране: «Слов нет», снимок не прочитался,</td></tr>
+          <tr><td align="left">отказ по ключу или лимиту → текст и «Закрыть»</td></tr>
+          <tr><td align="left">сеть, 503 → ещё «Повторить» (Д53)</td></tr>
+          <tr><td align="left">«Назад» на экране → вкладка, ответ не ждём</td></tr>
+          <tr><td align="left">AWP В1 «Не удалось собрать окно»</td></tr>
+          <tr><td align="left">процесс убит в камере → экран со снимком (Д52)</td></tr>
+          <tr><td align="left">процесс убит на экране → вкладка (AWP-27)</td></tr>
+          <tr><td align="left">В диалоге лексем-кандидатов — то же, WCL В1</td></tr>
+        </table>>];
+
+  // ----- подписи рёбер: узлы в разрыве линии -----
+  node [shape=box, style="filled", fillcolor="#e8e8e8", color="#e8e8e8", penwidth=0,
+        fontsize=10, margin="0.04,0.02", width=0, height=0];
+  s1 [label=<<b>WFP Ш1</b> нажатие кнопки-камеры>];
+  s2 [label=<<b>Ш2</b> «Камера» или «Галерея» → эффект запуска>];
+  s3 [label=<<b>Ш3</b> снимок, uri файла → ImagePicked,<br/>навигация OpenScanCandidates(uri)>];
+  s4 [label=<<b>Ш4–Ш5</b> токены как распознаны, с повторами,<br/>пустые прочь, потолок 2000>];
+  s5 [label=<<b>Ш6</b> запрос, X-Run-Id>];
+  s6 [label=<<b>Ш7</b> ответ: слова, леммы, лексемы<br/>с сопоставлением, замечания, рекомендации>];
+  s7 [label=<<b>AWP Ш1</b> карточки по сопоставлению,<br/>пометки «есть» и «ядро», замечания>];
+  s8 [label=<<b>AWP Ш3–Ш4</b> правки, «добавить»,<br/>вопрос «Добавить N в M?», пакет>];
+  s9 [label=<<b>AWP Ш5</b> записано → назад с результатом>];
+  c1 [label=<<b>WCL Ш1</b> нажатие кнопки>];
+  c2 [label=<<b>WCL Ш1</b> запрос, X-Run-Id>];
+  c3 [label=<ответ: одно слово,<br/>прямая лемма и леммы-формы>];
+  c4 [label=<<b>WCL Ш2</b> разделы лемм,<br/>пометки, замечания>];
+  c5 [label=<<b>WCL Ш3–Ш4</b> правки, «Добавить N»,<br/>без вопроса, пакет>];
+  c6 [label=<<b>WCL Ш5</b> записано>];
+
+  { rank=same; S1 -> C1 [style=invis]; }
+  { rank=same; s1 -> c1 [style=invis]; }
+  { rank=same; S5 -> C2 [style=invis]; }
+  { rank=same; s5 -> c2 [style=invis]; }
+  { rank=same; s6 -> c3 [style=invis]; }
+  { rank=same; S6 -> C3 [style=invis]; }
+  { rank=same; S7 -> C4 [style=invis]; }
+  { rank=same; S8 -> C5 [style=invis]; }
+  { rank=same; S9 -> C6 [style=invis]; }
+  { rank=same; S4; NOTE; }
+
+  S1 -> s1 [arrowhead=none]; s1 -> S2;
+  S2 -> s2 [arrowhead=none]; s2 -> S3;
+  S3 -> s3 [arrowhead=none]; s3 -> S4;
+  S4 -> s4 [arrowhead=none]; s4 -> S5;
+  S5 -> s5 [arrowhead=none]; s5 -> BE;
+  BE -> s6 [arrowhead=none]; s6 -> S6;
+  S6 -> s7 [arrowhead=none]; s7 -> S7;
+  S7 -> s8 [arrowhead=none]; s8 -> S8;
+  S8 -> s9 [arrowhead=none]; s9 -> S9;
+
+  C1 -> c1 [arrowhead=none]; c1 -> C2;
+  C2 -> c2 [arrowhead=none]; c2 -> BE;
+  BE -> c3 [arrowhead=none]; c3 -> C3;
+  C3 -> c4 [arrowhead=none]; c4 -> C4;
+  C4 -> c5 [arrowhead=none]; c5 -> C5;
+  C5 -> c6 [arrowhead=none]; c6 -> C6;
+}

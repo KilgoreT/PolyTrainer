@@ -12,6 +12,7 @@ import me.apomazkin.dictionaryappbar.DictionaryAppBarViewModel
 import me.apomazkin.wordstab.ui.WordsTabViewModel
 import me.apomazkin.per_dictionary_components.PerDictionaryComponentsViewModel
 import me.apomazkin.quiztab.QuizTabViewModel
+import me.apomazkin.scancandidates.ScanCandidatesViewModel
 import me.apomazkin.settingstab.SettingsTabViewModel
 import me.apomazkin.stattab.StatisticViewModel
 import me.apomazkin.quiz.chat.ChatViewModel
@@ -27,6 +28,7 @@ import me.apomazkin.polytrainer.di.module.perdictionarycomponents.PerDictionaryC
 import me.apomazkin.polytrainer.di.module.prefs.PrefsProviderModule
 import me.apomazkin.polytrainer.di.module.quizchat.QuizChatModule
 import me.apomazkin.polytrainer.di.module.quiztab.QuizTabModule
+import me.apomazkin.polytrainer.di.module.scancandidates.ScanCandidatesModule
 import me.apomazkin.polytrainer.di.module.settingstab.SettingsModule
 import me.apomazkin.polytrainer.di.module.navigation.NavigationModule
 import me.apomazkin.polytrainer.di.module.splash.SplashModule
@@ -71,6 +73,7 @@ interface AppComponent {
     fun getDictionaryFormViewModelFactory(): DictionaryFormViewModel.Factory
     fun getDictionaryListViewModelFactory(): DictionaryListViewModel.Factory
     fun getWordCardViewModelFactory(): WordCardViewModel.Factory
+    fun getScanCandidatesViewModelFactory(): ScanCandidatesViewModel.Factory
     fun getChatViewModelFactory(): ChatViewModel.Factory
     fun getDictionaryAppBarViewModelFactory(): DictionaryAppBarViewModel.Factory
     fun getWordsTabViewModelFactory(): WordsTabViewModel.Factory
@@ -97,6 +100,7 @@ interface AppComponent {
         VocabularyHostModule::class,
         GroupsTabModule::class,
         WordCardModule::class,
+        ScanCandidatesModule::class,
         QuizTabModule::class,
         QuizChatModule::class,
         StatisticModule::class,

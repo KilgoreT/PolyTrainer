@@ -144,6 +144,7 @@ dependencies {
     implementation(project("path" to ":modules:screen:vocabulary"))
     implementation(project("path" to ":modules:screen:groupstab"))
     implementation(project("path" to ":modules:screen:wordcard"))
+    implementation(project("path" to ":modules:screen:scancandidates"))
     implementation(project("path" to ":modules:screen:quiztab"))
     implementation(project("path" to ":modules:screen:quiz:chat"))
     implementation(project("path" to ":modules:screen:stattab"))

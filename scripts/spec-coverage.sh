@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
 # Покрытие спеки устройства проверками (IS532, Э8): адреса строк AWP-NN.k
 # из docs/handbook/specs/words-add-from-photo/spec.md против имён тестов
-# Kotlin (`AWP-NN_k` — JVM не пускает точку в имя метода) в modules, app,
-# core и документов ручников. Копия backend/scripts/spec-coverage.sh с
-# параметрами «файл спеки» и «префикс».
+# Kotlin (`AWP-NN_k` — JVM не пускает точку в имя метода; в
+# инструментальных тестах бывает строчными без дефиса — `awp20_1_`) в
+# modules, app, core и документов ручников. Копия
+# backend/scripts/spec-coverage.sh с параметрами «файл спеки» и «префикс».
 #
-# Выход: по утверждению — закрытые и незакрытые адреса; код 1, если у
-# утверждения со статусом «реализовано» есть незакрытая строка, или
+# Строки «снято» — не проверки, в покрытии не участвуют.
+#
+# Выход: по тезису — закрытые и незакрытые адреса; код 1, если у
+# тезиса со статусом «реализовано» есть незакрытая строка, или
 # если в тестах есть адрес, которого нет в спеке.
 #
 #   SPEC_FILE=… SPEC_PREFIX=… — другая спека и префикс (по умолчанию AWP);
 #   SPEC_MANUALS="file1.md file2.md" — документы ручников с адресами;
 #   SPEC_SIDE=устройство — своя сторона для продуктовой спеки бэкенда
-#     (через backend/): судятся утверждения «Исполняет: устройство» и «оба»,
-#     утверждения другой стороны пропускаются; без поля «Исполняет» (экранные
-#     спеки) утверждение считается своим.
+#     (через backend/): судятся тезисы «Исполняет: устройство» и «оба»,
+#     тезисы другой стороны пропускаются; без поля «Исполняет» (экранные
+#     спеки) тезис считается своим;
+#   SPEC_WHERE=1 — вместо сводки печатать карту «адрес → файл» по
+#     одной строке на пару (ревью К18: какой тест закрывает строку).
 #
 # Инструменты: grep и perl, без python/sed/awk (правило репозитория).
 set -euo pipefail
@@ -26,17 +31,17 @@ SIDE="${SPEC_SIDE:-устройство}"
 
 perl -CSDA -Mutf8 -e '
   use strict; use warnings;
-  my ($spec, $root, $prefix, $manuals, $side) = @ARGV;
+  my ($spec, $root, $prefix, $manuals, $side, $where) = @ARGV;
 
-  # Адреса спеки: утверждение → статус, сторона, список номеров строк.
+  # Адреса спеки: тезис → статус, сторона, список номеров строк.
   open my $fh, "<:encoding(UTF-8)", $spec or die "spec: $!";
-  my (%status, %who, %lines, @order, $cur);
+  my (%status, %who, %lines, %all, @order, $cur);
   while (my $l = <$fh>) {
     if ($l =~ /^#### ($prefix-\d+) /) { $cur = $1; push @order, $cur; $lines{$cur} = []; next }
     next unless defined $cur;
     if ($l =~ /Исполняет: (\S+)/ && !exists $who{$cur}) { $who{$cur} = $1 }
     if ($l =~ /Статус: (\S+)/ && !exists $status{$cur}) { $status{$cur} = $1; next }
-    if ($l =~ /^- \[(\d+)\]/) { push @{$lines{$cur}}, $1 }
+    if ($l =~ /^- \[(\d+)\]/) { $all{"$cur.$1"} = 1; push @{$lines{$cur}}, $1 unless $l =~ /^- \[\d+\] снято\b/ }
   }
   close $fh;
 
@@ -54,9 +59,18 @@ perl -CSDA -Mutf8 -e '
   for my $f (@files) {
     open my $t, "<:encoding(UTF-8)", $f or next;
     while (my $l = <$t>) {
-      while ($l =~ /($prefix-\d+)[._](\d+)/g) { $covered{"$1.$2"}{$f}++ }
+      while ($l =~ /\b($prefix)-?(\d+)[._](\d+)/gi) { $covered{uc($1) . "-$2.$3"}{$f}++ }
     }
     close $t;
+  }
+
+  # SPEC_WHERE=1: карта «адрес → файл», по строке на пару, адреса по номерам.
+  if ($where) {
+    my $num = sub { my @n = $_[0] =~ /(\d+)\.(\d+)/; return @n };
+    for my $addr (sort { my @a = $num->($a); my @b = $num->($b); $a[0] <=> $b[0] || $a[1] <=> $b[1] } keys %covered) {
+      print "$addr\t$_\n" for sort keys %{$covered{$addr}};
+    }
+    exit 0;
   }
 
   my ($bad, $closed_total, $open_total) = (0, 0, 0);
@@ -71,13 +85,12 @@ perl -CSDA -Mutf8 -e '
       (join(",", @closed) || "-"), (join(",", @open) || "-");
   }
 
-  # Адреса в тестах, которых нет в спеке (по всем утверждениям, не только своим).
-  my %known; for my $id (keys %lines) { $known{"$id.$_"} = 1 for @{$lines{$id}} }
-  my @stale = sort grep { !$known{$_} } keys %covered;
+  # Адреса в тестах, которых нет в спеке (по всем тезисам, не только своим; «снято» — есть).
+  my @stale = sort grep { !$all{$_} } keys %covered;
   if (@stale) { $bad = 1; print "\nВ тестах есть адреса, которых нет в спеке: @stale\n" }
 
-  printf "\nСторона «%s»: утверждений %d, другой стороны пропущено %d. Строк закрыто %d, открыто %d. %s\n",
+  printf "\nСторона «%s»: тезисов %d, другой стороны пропущено %d. Строк закрыто %d, открыто %d. %s\n",
     $side, scalar(@mine), $skipped, $closed_total, $open_total,
     $bad ? "ЕСТЬ НАРУШЕНИЯ (!! — реализовано с открытыми строками)" : "нарушений нет";
   exit($bad ? 1 : 0);
-' "$SPEC" "$ROOT" "$PREFIX" "${SPEC_MANUALS:-}" "$SIDE"
+' "$SPEC" "$ROOT" "$PREFIX" "${SPEC_MANUALS:-}" "$SIDE" "${SPEC_WHERE:-}"

@@ -1,10 +1,11 @@
 package me.apomazkin.wordcard.mate
 
 import androidx.annotation.StringRes
+import me.apomazkin.candidates.AddFailureUi
 import me.apomazkin.candidates.CandidateAction
-import me.apomazkin.candidates.PhotoAddFailure
-import me.apomazkin.candidates.PhotoFormOutcome
-import me.apomazkin.candidates.PhotoLookupOutcome
+import me.apomazkin.candidates.ComponentRecommendationUi
+import me.apomazkin.candidates.DictionaryFormUi
+import me.apomazkin.candidates.LookupWordUi
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentValue
 import me.apomazkin.lexeme.ComponentValueId
@@ -190,19 +191,48 @@ sealed interface Msg {
         val groupId: Long,
     ) : Msg
 
-    // --- IS533: значения из словаря в карточке (WCL) ---
+    // --- IS533/IS536: лексемы-кандидаты в карточке (WCL) ---
+    // Ответы эффектов диалога несут номер запуска: чужой ответ отсекается (WCL-11.4).
 
-    /** Кнопка «Добавить значения из словаря» → диалог и запрос (WCL-03). */
+    /** Кнопка «Добавить лексемы-кандидаты» → диалог и запрос (WCL-03). */
     data object OpenCandidates : Msg
 
-    /** Ответ сервера по слову диалога; null — слова или словаря уже нет (WCL-01.3). */
-    data class CandidatesLookedUp(
-        val outcome: PhotoLookupOutcome?,
+    /** Хендлер запроса, исход Found: слово ответа с леммами и рекомендации ко всему ответу. */
+    data class CandidatesFound(
+        val word: LookupWordUi,
+        val recommendations: List<ComponentRecommendationUi>,
         val requestId: Long,
     ) : Msg
 
+    /** Хендлер запроса, исход NotFound: ни одной лексемы-кандидата (WCL-04.7, WCL-11.1). */
+    data class CandidatesNotFound(
+        val requestId: Long,
+    ) : Msg
+
+    /** Хендлер запроса: слово удалено или отказ сервера — текст без «Повторить» (WCL-11.2). */
+    data class CandidatesLookupFailed(
+        @StringRes val errorRes: Int,
+        val requestId: Long,
+    ) : Msg
+
+    /**
+     * Хендлер запроса: сервер не ответил, 503 или слово, по которому сервер не
+     * справился, — текст и «Повторить» (WCL-11.7, WCL-11.9).
+     */
+    data class CandidatesLookupUnavailable(
+        @StringRes val errorRes: Int,
+        val requestId: Long,
+    ) : Msg
+
+    /** Хендлер формы, исход Loaded: форма словаря слова с опциями, зависимостями и словами. */
     data class CandidatesFormLoaded(
-        val outcome: PhotoFormOutcome,
+        val form: DictionaryFormUi,
+        val requestId: Long,
+    ) : Msg
+
+    /** Хендлер формы: словарь удалён или чтение упало — текст причины (WCL-11.5). */
+    data class CandidatesFormFailed(
+        @StringRes val errorRes: Int,
         val requestId: Long,
     ) : Msg
 
@@ -217,9 +247,21 @@ sealed interface Msg {
         val requestId: Long,
     ) : Msg
 
-    /** Отказ или ошибка записи (WCL-13). */
-    data class CandidatesRejected(
-        val failure: PhotoAddFailure,
+    /** Отказ записи: слово диалога или получатель переноса удалены (WCL-13.2, WCL-15.6). */
+    data class CandidatesWordGone(
+        val failure: AddFailureUi.WordMissing,
+        val requestId: Long,
+    ) : Msg
+
+    /** Отказ записи: компонент из сопоставления выключен (WCL-13.3, AWP-21.6). */
+    data class CandidatesComponentGone(
+        val failure: AddFailureUi.TypeUnavailable,
+        val requestId: Long,
+    ) : Msg
+
+    /** Прочий отказ или ошибка записи — «Не добавилось» с «Повторить» (WCL-13.1). */
+    data class CandidatesAddFailed(
+        val failure: AddFailureUi,
         val requestId: Long,
     ) : Msg
 

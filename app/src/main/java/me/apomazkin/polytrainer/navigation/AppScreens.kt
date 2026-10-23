@@ -33,6 +33,20 @@ sealed interface AppScreen : Screen {
     /** Карточка слова. */
     data class WordCard(val wordId: Long) : AppScreen
 
+    /** Экран лексем-кандидатов со снимка; [uri] — файл снимка строкой. */
+    data class ScanCandidates(val uri: String) : AppScreen
+
+    /**
+     * Псевдоэкран «вернуться на вкладку «Слова» со счётом записанного»:
+     * исполняется как передача счёта вкладке и возврат назад, на стек не
+     * ложится. Нужен, потому что таблица навигации знает только `push` и
+     * `pop`, результата у неё нет.
+     */
+    data class ScanCandidatesAdded(
+        val lexemeCount: Int,
+        val wordCount: Int,
+    ) : AppScreen
+
     /** Компоненты конкретного словаря. */
     data class PerDictionaryComponents(val dictionaryId: Long) : AppScreen
 

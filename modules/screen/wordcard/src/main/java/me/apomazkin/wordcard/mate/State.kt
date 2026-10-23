@@ -43,9 +43,9 @@ data class WordCardState(
     val nextPristineKey: Long = 1L,
     /** IS493 Э5 (D22): блок групп слова — пикер, чипы, keyed in-flight. */
     val groupsBlock: GroupsBlockState = GroupsBlockState(),
-    /** IS533: в сборке есть ключ сервера — кнопка «Добавить значения из словаря» видна (WCL-08). */
+    /** IS533: в сборке есть ключ сервера — кнопка «Добавить лексемы-кандидаты» видна (WCL-08). */
     val canAddFromDictionary: Boolean = false,
-    /** IS533: открытый диалог значений из словаря или null (WCL). */
+    /** IS533/IS536: открытый диалог лексем-кандидатов или null (WCL). */
     val candidates: CandidatesState? = null,
     /** IS533: номер последнего запуска диалога — чужие ответы отсекаются (WCL-11.4). */
     val candidatesRun: Long = 0L,

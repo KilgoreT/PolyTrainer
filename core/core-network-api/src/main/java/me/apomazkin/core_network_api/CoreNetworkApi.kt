@@ -1,35 +1,34 @@
 package me.apomazkin.core_network_api
 
-import me.apomazkin.core_network_api.entity.LookupRequest
+import me.apomazkin.core_network_api.entity.LookupRequestApiEntity
 import me.apomazkin.core_network_api.entity.LookupResult
 
 /**
- * Слой сети приложения: разговор с сервером слов `lexeme`
- * (контракт `backend/api/openapi.yaml`, спека `backend/spec/words-from-text.md`).
+ * Слой сети приложения: разговор с сервером слов
+ * (контракт `backend/api/openapi.yaml`, спека
+ * `backend/docs/handbook/specs/words-from-text/spec.md`).
  *
  * Устроен как слой базы ([me.apomazkin.core_db_api.CoreDbApi]): этот модуль —
  * публичный язык слоя, реализация в `:core:core-network-impl`, фасад с
  * Dagger-компонентом в `:core:core-network`. Экраны этого модуля не видят,
- * их `UseCase` в `app` соединяет распознавание, словарь и сеть.
+ * их порты в `app` соединяют распознавание, словарь и сеть.
  *
- * Словарь имён (IS529, бриф Д3):
- * - **запрос** — [LookupRequest]: изучаемый язык, язык перевода и токены
- *   как распознаны на устройстве (Ш6);
- * - **токен** — [me.apomazkin.core_network_api.entity.TokenQuery]: текст,
+ * Словарь имён (IS529, IS536):
+ * - **запрос** — [LookupRequestApiEntity]: языки словаря, токены как
+ *   распознаны на устройстве и дерево компонентов словаря (WFT-78);
+ * - **токен** — [me.apomazkin.core_network_api.entity.TokenApiEntity]: текст,
  *   уверенность распознавания, язык по мнению распознавания или null;
  * - **результат** — [LookupResult]: ровно один из трёх исходов, исключений
  *   наружу слой не выпускает (WFT-23, WFT-63);
- * - **слово** — [me.apomazkin.core_network_api.entity.WordResult]: слово
- *   ответа со статусом найдено / не найдено / ошибка источника и
- *   кандидатами (Ш10);
- * - **кандидат** — [me.apomazkin.core_network_api.entity.Candidate]: лемма,
- *   часть речи, пометка формы, значения;
+ * - **слово** — [me.apomazkin.core_network_api.entity.WordApiEntity]: слово
+ *   ответа со статусом, леммами и замечаниями; у леммы —
+ *   лексемы-кандидаты с сопоставлением (WFT-87);
  * - **номер запуска** — `runId`, уходит на сервер заголовком `X-Run-Id` и
  *   связывает строки лога устройства и сервера (термин «Запуск»).
  */
 interface CoreNetworkApi {
 
-    /** Адреса сервера слов. Пока один — `lookupWords` (Ш6 → Ш10). */
+    /** Адреса сервера слов. Пока один — `lookupWords`. */
     interface WordsApi {
 
         /**
@@ -38,6 +37,6 @@ interface CoreNetworkApi {
          * [LookupResult.Denied] с [me.apomazkin.core_network_api.entity.DenyReason.NO_ACCESS_KEY]
          * без обращения к сети (WFT-19).
          */
-        suspend fun lookup(request: LookupRequest, runId: Long): LookupResult
+        suspend fun lookup(request: LookupRequestApiEntity, runId: Long): LookupResult
     }
 }

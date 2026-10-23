@@ -4,51 +4,47 @@ import androidx.annotation.StringRes
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.ReducerResult
 import io.github.kilgoret.mate.begin
+import me.apomazkin.candidates.AddFailureUi
+import me.apomazkin.candidates.CandidatesSheetUi
+import me.apomazkin.candidates.ComponentRefUi
+import me.apomazkin.candidates.DictionaryFormUi
+import me.apomazkin.candidates.LemmaCardUiItem
 import me.apomazkin.candidates.LemmaWordChoice
-import me.apomazkin.candidates.PhotoAddFailure
-import me.apomazkin.candidates.PhotoDataKind
-import me.apomazkin.candidates.PhotoDictionaryForm
-import me.apomazkin.candidates.PhotoFormError
-import me.apomazkin.candidates.PhotoLookupOutcome
-import me.apomazkin.candidates.PhotoMapping
-import me.apomazkin.candidates.PhotoSheet
-import me.apomazkin.candidates.PhotoTarget
-import me.apomazkin.candidates.PhotoTextField
-import me.apomazkin.candidates.PhotoWordStatus
+import me.apomazkin.candidates.ValueRefUi
 import me.apomazkin.candidates.buildCandidateCards
 import me.apomazkin.candidates.cardOf
-import me.apomazkin.candidates.choose
+import me.apomazkin.candidates.componentMatchLinesOf
 import me.apomazkin.candidates.deletingCard
-import me.apomazkin.candidates.deletingExample
 import me.apomazkin.candidates.deletingLexeme
-import me.apomazkin.candidates.droppingEmptyExamples
-import me.apomazkin.candidates.errorResOf
+import me.apomazkin.candidates.deletingValue
+import me.apomazkin.candidates.droppingEmptyTexts
 import me.apomazkin.candidates.existingOf
-import me.apomazkin.candidates.resolveMapping
-import me.apomazkin.candidates.revalidate
+import me.apomazkin.candidates.remarksOf
 import me.apomazkin.candidates.sameValuesOf
 import me.apomazkin.candidates.summaryOf
-import me.apomazkin.candidates.togglingCard
+import me.apomazkin.candidates.textOf
+import me.apomazkin.candidates.withActiveValues
 import me.apomazkin.candidates.withCoreMarks
 import me.apomazkin.candidates.withExistsMarks
 import me.apomazkin.candidates.withLemmaExistsMarks
-import me.apomazkin.candidates.withPartOfSpeech
+import me.apomazkin.candidates.withOption
 import me.apomazkin.candidates.withTextEdit
 import me.apomazkin.candidates.withTextReset
+import me.apomazkin.candidates.withoutComponent
 import me.apomazkin.candidates.wordsBatchForTransfer
 import me.apomazkin.candidates.wordsBatchForWord
-import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.wordTextKey
 import me.apomazkin.logger.LexemeLogger
 
 internal typealias CandidatesResult = ReducerResult<WordCardState, Effect>
 
 /**
- * ###### Атомы диалога «значения из словаря» (WCL, конвенция §Reducer-
+ * ###### Атомы диалога лексем-кандидатов (WCL, конвенция §Reducer-
  * конвенция): один атом — один шаг над [WordCardState.candidates], каждый
  * логируется [logStep], атом без своих данных — [noOp]. Переходы над
- * карточками — общие функции модуля candidates, те же, что у окна снимка.
- * Цепочки и guard'ы — в ветках [WordCardReducer]. ######
+ * карточками и сборка пометок — общие функции модуля candidates, те же, что
+ * у окна снимка. Цепочки и проверка номера запуска — в ветках
+ * [WordCardReducer]. ######
  */
 abstract class CandidatesAtoms(
     logger: LexemeLogger,
@@ -67,55 +63,83 @@ abstract class CandidatesAtoms(
         if (candidates != null) return noOp("openCandidates: already open")
         val requestId = candidatesRun + 1
         logStep("openCandidates", "wordId" to loaded.id, "requestId" to requestId)
-        val dialog = CandidatesState(wordId = loaded.id, text = loaded.value, dictionaryId = loaded.dictionaryId, requestId = requestId)
+        val dialog = CandidatesState(
+            wordId = loaded.id,
+            text = loaded.value,
+            dictionaryId = loaded.dictionaryId,
+            requestId = requestId,
+        )
         return copy(candidatesRun = requestId, candidates = dialog) to setOf(
             DatasourceEffect.LookupCandidates(wordId = loaded.id, requestId = requestId),
         )
     }
 
     /**
-     * Принять ответ сервера (WCL-04, WCL-11): есть лемма с лексемами — слова
-     * в state и эффект формы с текстами лемм-форм (их слова в словаре —
-     * получатели переноса, WCL-15); иначе текст причины. null — слова уже нет.
+     * Принять слово ответа (WCL-04): слово и рекомендации в state и эффект
+     * формы с текстами лемм-форм — лемм с лексемами, чей текст не текст
+     * слова диалога; их слова в словаре — получатели переноса (WCL-15).
      */
-    fun WordCardState.applyCandidatesLookup(outcome: PhotoLookupOutcome?): CandidatesResult {
-        val dialog = candidates ?: return noOp("applyCandidatesLookup: no dialog")
-        return when (outcome) {
-            null -> showCandidatesError(R.string.candidates_word_missing)
-            is PhotoLookupOutcome.Denied -> showCandidatesError(errorResOf(outcome.reason))
-            PhotoLookupOutcome.Unavailable -> showCandidatesError(R.string.photo_words_error_server)
-            is PhotoLookupOutcome.Words -> {
-                val word = outcome.words.firstOrNull()
-                val found = word != null && word.status == PhotoWordStatus.FOUND && word.lemmas.any { it.lexemes.isNotEmpty() }
-                if (!found) {
-                    showCandidatesError(R.string.candidates_not_found)
-                } else {
-                    val ownKey = wordTextKey(dialog.text)
-                    val formLemmas = word!!.lemmas.filter { it.lexemes.isNotEmpty() && wordTextKey(it.text) != ownKey }.map { it.text }
-                    logStep("startCandidatesForm", "wordId" to dialog.wordId, "lemmas" to word.lemmas.size, "formLemmas" to formLemmas.size)
-                    copy(candidates = dialog.copy(words = outcome.words)) to setOf(
-                        DatasourceEffect.LoadCandidatesForm(wordId = dialog.wordId, lemmaTexts = formLemmas, requestId = dialog.requestId),
-                    )
-                }
-            }
-        }
+    fun WordCardState.startCandidatesForm(found: Msg.CandidatesFound): CandidatesResult {
+        val dialog = candidates ?: return noOp("startCandidatesForm: no dialog")
+        val ownKey = wordTextKey(dialog.text)
+        val formLemmas = found
+            .word
+            .lemmas
+            .filter { it.lexemes.isNotEmpty() && wordTextKey(it.text) != ownKey }
+            .map { it.text }
+        logStep(
+            "startCandidatesForm",
+            "wordId" to dialog.wordId,
+            "lemmas" to found.word.lemmas.size,
+            "formLemmas" to formLemmas.size,
+            "recommendations" to found.recommendations.size,
+        )
+        return copy(
+            candidates = dialog.copy(
+                words = listOf(found.word),
+                recommendations = found.recommendations,
+            ),
+        ) to setOf(
+            DatasourceEffect.LoadCandidatesForm(
+                wordId = dialog.wordId,
+                lemmaTexts = formLemmas,
+                requestId = dialog.requestId,
+            ),
+        )
     }
 
-    /** Текст причины вместо разделов (В1, WCL-11). Эффектов нет. */
-    fun WordCardState.showCandidatesError(@StringRes errorRes: Int): CandidatesResult {
-        logStep("showCandidatesError", "errorRes" to errorRes)
-        return withCandidates { it.copy(phase = CandidatesPhase.ERROR, errorRes = errorRes, isAdding = false) }.begin()
+    /** Текст причины вместо разделов, «Повторить» нет (В1, WCL-11). Эффектов нет. */
+    fun WordCardState.showCandidatesError(@StringRes errorRes: Int): CandidatesResult =
+        showError("showCandidatesError", errorRes, hasRetryButton = false)
+
+    /** Текст причины вместо разделов и «Повторить» рядом с «Закрыть» (WCL-11.9). Эффектов нет. */
+    fun WordCardState.showCandidatesRetryableError(@StringRes errorRes: Int): CandidatesResult =
+        showError("showCandidatesRetryableError", errorRes, hasRetryButton = true)
+
+    /**
+     * «Повторить» (WCL-11.9): запрос заново с тем же словом под новым номером
+     * запуска — ответ прежнего запуска отбрасывается; признак загрузки.
+     */
+    fun WordCardState.retryCandidatesLookup(): CandidatesResult {
+        val dialog = candidates ?: return noOp("retryCandidatesLookup: no dialog")
+        val requestId = candidatesRun + 1
+        logStep("retryCandidatesLookup", "wordId" to dialog.wordId, "requestId" to requestId)
+        val loading = dialog.copy(
+            requestId = requestId,
+            phase = CandidatesPhase.LOADING,
+            errorRes = null,
+            hasRetryButton = false,
+        )
+        return copy(candidatesRun = requestId, candidates = loading) to setOf(
+            DatasourceEffect.LookupCandidates(wordId = dialog.wordId, requestId = requestId),
+        )
     }
 
     /**
      * Принять форму (Ш1 → Ш2): разделы лемм — прямая первой, формы с
-     * пометкой (WCL-04); соответствия — запомненные с умолчаниями (AWP-06).
-     * Пометки и сводка — следующие атомы цепочки.
+     * пометкой (WCL-04). Остальное — следующие атомы цепочки.
      */
-    fun WordCardState.applyCandidatesForm(
-        form: PhotoDictionaryForm,
-        remembered: PhotoMapping?,
-    ): CandidatesResult {
+    fun WordCardState.applyCandidatesForm(form: DictionaryFormUi): CandidatesResult {
         val dialog = candidates ?: return noOp("applyCandidatesForm: no dialog")
         val word = dialog.words.firstOrNull() ?: return noOp("applyCandidatesForm: no words")
         val cards = buildCandidateCards(word, dialog.text, form)
@@ -125,28 +149,55 @@ abstract class CandidatesAtoms(
                 phase = CandidatesPhase.READY,
                 errorRes = null,
                 form = form,
-                mapping = form.resolveMapping(remembered),
                 cards = cards,
             ),
         ).begin()
     }
 
-    /** Форма не загрузилась (В1): словарь удалён или чтение упало. Эффектов нет. */
-    fun WordCardState.showCandidatesFormError(error: PhotoFormError): CandidatesResult {
-        logStep("showCandidatesFormError", "error" to error)
-        val errorRes = when (error) {
-            PhotoFormError.DICTIONARY_MISSING -> R.string.photo_add_dictionary_missing
-            PhotoFormError.LOAD_FAILED -> R.string.photo_add_form_failed
-        }
-        return showCandidatesError(errorRes)
+    /**
+     * Строки «Замечаний» из замечаний слова и рекомендаций ответа (WCL-16,
+     * AWP-30). No-op без формы.
+     */
+    fun WordCardState.applyCandidatesRemarks(): CandidatesResult {
+        val dialog = candidates ?: return noOp("applyCandidatesRemarks: no dialog")
+        val form = dialog.form ?: return noOp("applyCandidatesRemarks: no form")
+        val remarks = remarksOf(dialog.words, dialog.recommendations, form)
+        logStep("applyCandidatesRemarks", "remarks" to remarks.size)
+        return copy(candidates = dialog.copy(remarks = remarks)).begin()
     }
 
-    /** Пометки «есть» по лексемам слова диалога для всех разделов (WCL-06); слова лемм-форм не в счёт. No-op без формы. */
+    /**
+     * Строки «Сопоставления» по сопоставлениям слова, без повторов (WCL-17,
+     * AWP-31). No-op без формы.
+     */
+    fun WordCardState.applyCandidatesComponentMatchLines(): CandidatesResult {
+        val dialog = candidates ?: return noOp("applyCandidatesComponentMatchLines: no dialog")
+        val form = dialog.form ?: return noOp("applyCandidatesComponentMatchLines: no form")
+        val lines = componentMatchLinesOf(dialog.words, form)
+        logStep("applyCandidatesComponentMatchLines", "lines" to lines.size)
+        return copy(candidates = dialog.copy(componentMatchLines = lines)).begin()
+    }
+
+    /** Активность значений по зависимостям компонентов формы (AWP-17.6). No-op без формы. */
+    fun WordCardState.refreshCandidatesActiveValues(): CandidatesResult {
+        val dialog = candidates ?: return noOp("refreshCandidatesActiveValues: no dialog")
+        val form = dialog.form ?: return noOp("refreshCandidatesActiveValues: no form")
+        val cards = dialog.cards.withActiveValues(form)
+        val values = cards.flatMap { card -> card.lexemes.flatMap { it.values } }
+        logStep("refreshCandidatesActiveValues", "inactive" to values.count { !it.isActive })
+        return copy(candidates = dialog.copy(cards = cards)).begin()
+    }
+
+    /**
+     * Пометки «есть» по лексемам слова диалога для всех разделов (WCL-06);
+     * слова лемм-форм не в счёт. No-op без формы.
+     */
     fun WordCardState.refreshCandidatesExists(): CandidatesResult {
         val dialog = candidates ?: return noOp("refreshCandidatesExists: no dialog")
         val form = dialog.form ?: return noOp("refreshCandidatesExists: no form")
-        val cards = dialog.cards.withExistsMarks(dialog.ownLexemeKeys(form))
-        logStep("refreshCandidatesExists", "exists" to cards.sumOf { card -> card.lexemes.count { it.exists } })
+        val cards = dialog.cards.withExistsMarks(dialog.ownLexemeKeys(form), form)
+        val exists = cards.flatMap { it.lexemes }.count { it.exists }
+        logStep("refreshCandidatesExists", "exists" to exists)
         return copy(candidates = dialog.copy(cards = cards)).begin()
     }
 
@@ -160,7 +211,11 @@ abstract class CandidatesAtoms(
         val form = dialog.form ?: return noOp("refreshCandidatesLemmaExists: no form")
         val cards = dialog.cards.withLemmaExistsMarks(form)
         val sameValues = sameValuesOf(cards, form, ownKeys = dialog.ownLexemeKeys(form))
-        logStep("refreshCandidatesLemmaExists", "existsInLemma" to cards.sumOf { card -> card.lexemes.count { it.existsInLemma } }, "sameValues" to sameValues)
+        logStep(
+            "refreshCandidatesLemmaExists",
+            "existsInLemma" to cards.sumOf { card -> card.lexemes.count { it.existsInLemma } },
+            "sameValues" to sameValues,
+        )
         return copy(candidates = dialog.copy(cards = cards, sameValues = sameValues)).begin()
     }
 
@@ -168,8 +223,9 @@ abstract class CandidatesAtoms(
     fun WordCardState.refreshCandidatesCore(): CandidatesResult {
         val dialog = candidates ?: return noOp("refreshCandidatesCore: no dialog")
         val form = dialog.form ?: return noOp("refreshCandidatesCore: no form")
-        val cards = dialog.cards.withCoreMarks(dialog.mapping, form)
-        logStep("refreshCandidatesCore", "lacksCore" to cards.sumOf { card -> card.lexemes.count { it.lacksCore } })
+        val cards = dialog.cards.withCoreMarks(form)
+        val lacksCore = cards.flatMap { it.lexemes }.count { it.lacksCore }
+        logStep("refreshCandidatesCore", "lacksCore" to lacksCore)
         return copy(candidates = dialog.copy(cards = cards)).begin()
     }
 
@@ -180,15 +236,18 @@ abstract class CandidatesAtoms(
      */
     fun WordCardState.refreshCandidatesSummary(): CandidatesResult {
         val dialog = candidates ?: return noOp("refreshCandidatesSummary: no dialog")
-        val summary = summaryOf(dialog.cardsForSummary(), dialog.mapping, dialog.form)
-        logStep("refreshCandidatesSummary", "lexemes" to summary.lexemeCount, "existing" to summary.existingCount, "lacksCore" to summary.lacksCoreCount, "enabled" to summary.isEnabled)
+        val summary = summaryOf(dialog.cardsForSummary())
+        logStep(
+            "refreshCandidatesSummary",
+            "lexemes" to summary.lexemeCount,
+            "existing" to summary.existingCount,
+            "lacksCore" to summary.lacksCoreCount,
+            "enabled" to summary.isEnabled,
+        )
         return copy(candidates = dialog.copy(summary = summary)).begin()
     }
 
     /** ###### Ш3: ДЕЙСТВИЯ ###### */
-
-    fun WordCardState.toggleCandidateCard(lemma: String): CandidatesResult =
-        cardsStep("toggleCandidateCard", "lemma" to lemma) { it.togglingCard(lemma) }
 
     fun WordCardState.deleteCandidateCard(lemma: String): CandidatesResult =
         cardsStep("deleteCandidateCard", "lemma" to lemma) { it.deletingCard(lemma) }
@@ -196,52 +255,50 @@ abstract class CandidatesAtoms(
     fun WordCardState.deleteCandidateLexeme(
         lemma: String,
         key: String,
-    ): CandidatesResult = cardsStep("deleteCandidateLexeme", "lemma" to lemma, "key" to key) { it.deletingLexeme(lemma, key) }
+    ): CandidatesResult =
+        cardsStep("deleteCandidateLexeme", "lemma" to lemma, "key" to key) {
+            it.deletingLexeme(lemma, key)
+        }
 
-    fun WordCardState.deleteCandidateExample(
-        lemma: String,
-        key: String,
-        index: Int,
-    ): CandidatesResult = cardsStep("deleteCandidateExample", "lemma" to lemma, "key" to key, "index" to index) { it.deletingExample(lemma, key, index) }
+    /**
+     * Одно значение компонента прочь (AWP-15.2, 15.7); ядро без значений
+     * остаётся пустым (AWP-11.5).
+     */
+    fun WordCardState.deleteCandidateValue(ref: ValueRefUi): CandidatesResult =
+        formStep("deleteCandidateValue", "ref" to ref) { cards, form ->
+            cards.deletingValue(ref, form)
+        }
 
+    /** Правка текста значения с обрезанными краями (AWP-16). */
     fun WordCardState.applyCandidateTextEdit(
-        lemma: String,
-        key: String,
-        field: PhotoTextField,
+        ref: ValueRefUi,
         text: String,
-    ): CandidatesResult = cardsStep("applyCandidateTextEdit", "lemma" to lemma, "key" to key, "field" to field, "length" to text.trim().length) {
-        it.withTextEdit(lemma, key, field, text)
-    }
+    ): CandidatesResult =
+        cardsStep("applyCandidateTextEdit", "ref" to ref, "length" to text.trim().length) {
+            it.withTextEdit(ref, text)
+        }
 
-    fun WordCardState.dropCandidateEmptyExamples(
-        lemma: String,
-        key: String,
-    ): CandidatesResult = cardsStep("dropCandidateEmptyExamples", "lemma" to lemma, "key" to key) { it.droppingEmptyExamples(lemma, key) }
+    /**
+     * Стёртые тексты прочь: у параметра пустой текст — удалённый, у ядра
+     * единственный остаётся (AWP-16.5).
+     */
+    fun WordCardState.dropCandidateEmptyTexts(ref: ValueRefUi): CandidatesResult =
+        formStep("dropCandidateEmptyTexts", "ref" to ref) { cards, form ->
+            cards.droppingEmptyTexts(ref, form)
+        }
 
-    fun WordCardState.resetCandidateText(
-        lemma: String,
-        key: String,
-        field: PhotoTextField,
-    ): CandidatesResult = cardsStep("resetCandidateText", "lemma" to lemma, "key" to key, "field" to field) { it.withTextReset(lemma, key, field) }
+    /** Текст ответа обратно (AWP-16.6). */
+    fun WordCardState.resetCandidateText(ref: ValueRefUi): CandidatesResult =
+        cardsStep("resetCandidateText", "ref" to ref) { it.withTextReset(ref) }
 
-    fun WordCardState.setCandidatePartOfSpeech(
-        lemma: String,
-        key: String,
-        optionId: Long?,
-    ): CandidatesResult = cardsStep("setCandidatePartOfSpeech", "lemma" to lemma, "key" to key, "optionId" to optionId) { it.withPartOfSpeech(lemma, key, optionId) }
-
-    /** Цель вида данных (AWP-09, AWP-28); запоминается для словаря эффектом (WCL-09.4). */
-    fun WordCardState.setCandidatesMapping(
-        kind: PhotoDataKind,
-        target: PhotoTarget,
-    ): CandidatesResult {
-        val dialog = candidates ?: return noOp("setCandidatesMapping: no dialog")
-        val mapping = dialog.mapping.choose(kind, target)
-        logStep("setCandidatesMapping", "kind" to kind, "target" to target)
-        return copy(candidates = dialog.copy(mapping = mapping)) to setOf(
-            DatasourceEffect.SaveCandidatesMapping(dictionaryId = dialog.dictionaryId, mapping = mapping),
-        )
-    }
+    /** Опция «Выбора» у одной лексемы-кандидата; null — «без значения» (AWP-17). */
+    fun WordCardState.setCandidateOption(
+        ref: ComponentRefUi,
+        option: Long?,
+    ): CandidatesResult =
+        formStep("setCandidateOption", "ref" to ref, "option" to option) { cards, form ->
+            cards.withOption(ref, option, form)
+        }
 
     /**
      * Что сделать со словом диалога при записи (WCL-15): переименовать в
@@ -251,27 +308,50 @@ abstract class CandidatesAtoms(
      */
     fun WordCardState.toggleCandidatesLemmaWord(choice: LemmaWordChoice): CandidatesResult {
         val dialog = candidates ?: return noOp("toggleCandidatesLemmaWord: no dialog")
-        val card = dialog.cards.cardOf(choice.lemma) ?: return noOp("toggleCandidatesLemmaWord: no card ${choice.lemma}")
-        if (card.formNote == null) return noOp("toggleCandidatesLemmaWord: direct lemma ${choice.lemma}")
+        val card = dialog.cards.cardOf(choice.lemma)
+            ?: return noOp("toggleCandidatesLemmaWord: no card ${choice.lemma}")
+        if (card.formNote == null) {
+            return noOp("toggleCandidatesLemmaWord: direct lemma ${choice.lemma}")
+        }
         if (choice is LemmaWordChoice.Transfer) {
-            val known = dialog.form?.existingOf(choice.lemma).orEmpty().any { it.wordId == choice.wordId }
-            if (!known) return noOp("toggleCandidatesLemmaWord: no word ${choice.wordId} for ${choice.lemma}")
+            val words = dialog.form?.existingOf(choice.lemma).orEmpty()
+            if (words.none { it.wordId == choice.wordId }) {
+                return noOp("toggleCandidatesLemmaWord: no word ${choice.wordId}")
+            }
         }
         val next = if (dialog.lemmaWordChoice == choice) null else choice
         logStep("toggleCandidatesLemmaWord", "choice" to next)
         return copy(candidates = dialog.copy(lemmaWordChoice = next)).begin()
     }
 
-    fun WordCardState.toggleCandidatesMapping(): CandidatesResult {
-        val dialog = candidates ?: return noOp("toggleCandidatesMapping: no dialog")
-        logStep("toggleCandidatesMapping", "expanded" to !dialog.isMappingExpanded)
-        return copy(candidates = dialog.copy(isMappingExpanded = !dialog.isMappingExpanded)).begin()
+    /**
+     * Раскрыть или свернуть «Сопоставление» (AWP-31.4); вопроса при закрытии
+     * не даёт (WCL-12.6).
+     */
+    fun WordCardState.toggleCandidatesComponentMatches(): CandidatesResult {
+        val dialog = candidates ?: return noOp("toggleCandidatesComponentMatches: no dialog")
+        val expanded = !dialog.isComponentMatchesExpanded
+        logStep("toggleCandidatesComponentMatches", "expanded" to expanded)
+        return copy(candidates = dialog.copy(isComponentMatchesExpanded = expanded)).begin()
     }
 
-    fun WordCardState.openCandidatesSheet(sheet: PhotoSheet): CandidatesResult {
+    /**
+     * Открыть лист. У правки текста черновик — текущий текст значения, а
+     * «сбросить» доступен, если он отличается от текста ответа (AWP-16.8):
+     * считает атом, UI тексты не сравнивает.
+     */
+    fun WordCardState.openCandidatesSheet(sheet: CandidatesSheetUi): CandidatesResult {
         val dialog = candidates ?: return noOp("openCandidatesSheet: no dialog")
-        logStep("openCandidatesSheet", "sheet" to sheet::class.simpleName)
-        return copy(candidates = dialog.copy(sheet = sheet)).begin()
+        val opened = when (sheet) {
+            is CandidatesSheetUi.TextEdit -> {
+                val item = dialog.cards.textOf(sheet.ref)
+                    ?: return noOp("openCandidatesSheet: no text ${sheet.ref}")
+                sheet.copy(draft = item.text, canReset = item.isEdited)
+            }
+            else -> sheet
+        }
+        logStep("openCandidatesSheet", "sheet" to opened::class.simpleName)
+        return copy(candidates = dialog.copy(sheet = opened)).begin()
     }
 
     fun WordCardState.closeCandidatesSheet(): CandidatesResult {
@@ -281,14 +361,23 @@ abstract class CandidatesAtoms(
         return copy(candidates = dialog.copy(sheet = null)).begin()
     }
 
+    /**
+     * Ввод в листе правки: «сбросить» доступен, пока ввод с обрезанными краями
+     * отличается от текста ответа — «Сохранить» всё равно обрежет (AWP-16.6).
+     */
     fun WordCardState.updateCandidatesDraft(text: String): CandidatesResult {
         val dialog = candidates ?: return noOp("updateCandidatesDraft: no dialog")
-        val sheet = dialog.sheet as? PhotoSheet.TextEdit ?: return noOp("updateCandidatesDraft: no text edit")
-        logStep("updateCandidatesDraft", "length" to text.length)
-        return copy(candidates = dialog.copy(sheet = sheet.copy(draft = text))).begin()
+        val sheet = dialog.sheet as? CandidatesSheetUi.TextEdit
+            ?: return noOp("updateCandidatesDraft: no text edit")
+        val original = dialog.cards.textOf(sheet.ref)?.original
+        val canReset = original != null && text.trim() != original
+        logStep("updateCandidatesDraft", "length" to text.length, "canReset" to canReset)
+        return copy(
+            candidates = dialog.copy(sheet = sheet.copy(draft = text, canReset = canReset)),
+        ).begin()
     }
 
-    /** Флаг «были изменения» (WCL-12): удаление, правка, смена части речи. */
+    /** Флаг «были изменения» (WCL-12): удаление, правка, смена опции. */
     fun WordCardState.markCandidatesDirty(): CandidatesResult {
         val dialog = candidates ?: return noOp("markCandidatesDirty: no dialog")
         if (dialog.isDirty) return noOp("markCandidatesDirty: already dirty")
@@ -313,19 +402,21 @@ abstract class CandidatesAtoms(
                 targetText = choice.lemma,
                 absorbWordId = dialog.wordId,
                 cards = dialog.cards,
-                mapping = dialog.mapping,
                 form = form,
             )
             else -> wordsBatchForWord(
                 wordId = dialog.wordId,
                 text = dialog.text,
                 cards = dialog.cards,
-                mapping = dialog.mapping,
                 form = form,
                 renameTo = (choice as? LemmaWordChoice.Rename)?.lemma,
             )
         }
-        logStep("startAddingCandidates", "lexemes" to batch.words.sumOf { it.lexemes.size }, "choice" to choice)
+        logStep(
+            "startAddingCandidates",
+            "lexemes" to batch.words.sumOf { it.lexemes.size },
+            "choice" to choice,
+        )
         return copy(candidates = dialog.copy(isAdding = true, addFailure = null)) to setOf(
             DatasourceEffect.AddCandidates(
                 batch = batch,
@@ -336,7 +427,7 @@ abstract class CandidatesAtoms(
         )
     }
 
-    fun WordCardState.showCandidatesAddFailure(failure: PhotoAddFailure): CandidatesResult {
+    fun WordCardState.showCandidatesAddFailure(failure: AddFailureUi): CandidatesResult {
         val dialog = candidates ?: return noOp("showCandidatesAddFailure: no dialog")
         logStep("showCandidatesAddFailure", "failure" to failure)
         return copy(candidates = dialog.copy(isAdding = false, addFailure = failure)).begin()
@@ -349,13 +440,17 @@ abstract class CandidatesAtoms(
         return copy(candidates = dialog.copy(addFailure = null)).begin()
     }
 
-    /** Выключенный компонент (WCL-13.3): из формы прочь, его цели — к умолчаниям. */
+    /**
+     * Выключенный компонент (WCL-13.3, AWP-21.6): из формы прочь и из значений
+     * всех лексем-кандидатов.
+     */
     fun WordCardState.dropCandidatesComponent(typeId: Long): CandidatesResult {
         val dialog = candidates ?: return noOp("dropCandidatesComponent: no dialog")
         val form = dialog.form ?: return noOp("dropCandidatesComponent: no form")
         val narrowed = form.copy(components = form.components.filterNot { it.id == typeId })
+        val cards = dialog.cards.withoutComponent(typeId)
         logStep("dropCandidatesComponent", "typeId" to typeId)
-        return copy(candidates = dialog.copy(form = narrowed, mapping = narrowed.revalidate(dialog.mapping))).begin()
+        return copy(candidates = dialog.copy(form = narrowed, cards = cards)).begin()
     }
 
     /** ###### В2: ЗАКРЫТИЕ ###### */
@@ -373,7 +468,10 @@ abstract class CandidatesAtoms(
         return copy(candidates = dialog.copy(isConfirmingClose = false)).begin()
     }
 
-    /** Закрыть диалог: любым путём и после записи; номер запуска остаётся в [WordCardState.candidatesRun]. */
+    /**
+     * Закрыть диалог: любым путём и после записи; номер запуска остаётся в
+     * [WordCardState.candidatesRun].
+     */
     fun WordCardState.hideCandidates(): CandidatesResult {
         val dialog = candidates ?: return noOp("hideCandidates: no dialog")
         logStep("hideCandidates", "requestId" to dialog.requestId)
@@ -382,17 +480,40 @@ abstract class CandidatesAtoms(
 
     /** ###### ВНУТРЕННИЕ ХЕЛПЕРЫ ###### */
 
-    private fun WordCardState.withCandidates(change: (CandidatesState) -> CandidatesState): WordCardState =
-        candidates?.let { copy(candidates = change(it)) } ?: this
+    /**
+     * Фаза «ошибка»: текст причины вместо разделов, запись не идёт;
+     * «Повторить» по [hasRetryButton].
+     */
+    private fun WordCardState.showError(
+        step: String,
+        @StringRes errorRes: Int,
+        hasRetryButton: Boolean,
+    ): CandidatesResult {
+        val dialog = candidates ?: return noOp("$step: no dialog")
+        logStep(step, "errorRes" to errorRes)
+        return copy(
+            candidates = dialog.copy(
+                phase = CandidatesPhase.ERROR,
+                errorRes = errorRes,
+                hasRetryButton = hasRetryButton,
+                isAdding = false,
+            ),
+        ).begin()
+    }
 
     /** Ключи текстов лексем самого слова диалога (WCL-06): слова лемм-форм в форме — не оно. */
-    private fun CandidatesState.ownLexemeKeys(form: PhotoDictionaryForm): Set<String> =
-        form.existingLemmas.filter { it.wordId == wordId }.flatMapTo(HashSet()) { it.lexemeTextKeys }
+    private fun CandidatesState.ownLexemeKeys(form: DictionaryFormUi): Set<String> = form
+        .existingLemmas
+        .filter { it.wordId == wordId }
+        .flatMapTo(HashSet()) { it.lexemeTextKeys }
 
     /** Карточки для сводки: при переносе «есть в слове-получателе» = «есть» (WCL-15.4). */
-    private fun CandidatesState.cardsForSummary(): List<me.apomazkin.candidates.PhotoCard> =
+    private fun CandidatesState.cardsForSummary(): List<LemmaCardUiItem> =
         if (lemmaWordChoice is LemmaWordChoice.Transfer) {
-            cards.map { card -> card.copy(lexemes = card.lexemes.map { it.copy(exists = it.exists || it.existsInLemma) }) }
+            cards.map { card ->
+                val lexemes = card.lexemes.map { it.copy(exists = it.exists || it.existsInLemma) }
+                card.copy(lexemes = lexemes)
+            }
         } else {
             cards
         }
@@ -401,10 +522,23 @@ abstract class CandidatesAtoms(
     private fun WordCardState.cardsStep(
         step: String,
         vararg attrs: Pair<String, Any?>,
-        change: (List<me.apomazkin.candidates.PhotoCard>) -> List<me.apomazkin.candidates.PhotoCard>?,
+        change: (List<LemmaCardUiItem>) -> List<LemmaCardUiItem>?,
     ): CandidatesResult {
         val dialog = candidates ?: return noOp("$step: no dialog")
         val cards = change(dialog.cards) ?: return noOp("$step: nothing to change")
+        logStep(step, *attrs)
+        return copy(candidates = dialog.copy(cards = cards)).begin()
+    }
+
+    /** То же, когда переход решает по форме словаря («ядро или параметр», «несколько»). */
+    private fun WordCardState.formStep(
+        step: String,
+        vararg attrs: Pair<String, Any?>,
+        change: (List<LemmaCardUiItem>, DictionaryFormUi) -> List<LemmaCardUiItem>?,
+    ): CandidatesResult {
+        val dialog = candidates ?: return noOp("$step: no dialog")
+        val form = dialog.form ?: return noOp("$step: no form")
+        val cards = change(dialog.cards, form) ?: return noOp("$step: nothing to change")
         logStep(step, *attrs)
         return copy(candidates = dialog.copy(cards = cards)).begin()
     }

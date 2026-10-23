@@ -2,6 +2,7 @@ package me.apomazkin.main
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.lifecycle.SavedStateHandle
 
 /**
  * Сборка экранов вкладок app-слоем. Навигационных лямбд здесь больше
@@ -12,11 +13,20 @@ import androidx.compose.runtime.Stable
  */
 @Stable
 interface CompositionRoot {
+    /**
+     * Вкладки «Слова | Группы». [savedStateHandle] — записи вкладки в стеке
+     * навигации: через него экран лексем-кандидатов возвращает счёт
+     * записанного, когда закрывается (AWP-23).
+     */
     @Composable
-    fun VocabularyHostDep()
+    fun VocabularyHostDep(savedStateHandle: SavedStateHandle)
 
     @Composable
     fun WordCardScreenDep(wordId: Long)
+
+    /** Экран лексем-кандидатов со снимка; [uri] — файл снимка строкой. */
+    @Composable
+    fun ScanCandidatesScreenDep(uri: String)
 
     @Composable
     fun QuizTabScreenDep()

@@ -2,9 +2,12 @@ package me.apomazkin.polytrainer.uiDeps
 
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.SavedStateHandle
+import kotlinx.coroutines.flow.filterNotNull
 import me.apomazkin.dictionaryappbar.DictionaryAppBar
 import me.apomazkin.dictionaryappbar.DictionaryAppBarViewModel
 import me.apomazkin.wordstab.ui.WordsTabViewModel
@@ -17,11 +20,15 @@ import me.apomazkin.per_dictionary_components.PerDictionaryComponentsScreen
 import me.apomazkin.per_dictionary_components.PerDictionaryComponentsViewModel
 import me.apomazkin.polytrainer.LogTags
 import me.apomazkin.polytrainer.env.EnvParams
+import me.apomazkin.polytrainer.navigation.SCAN_CANDIDATES_ADDED
+import me.apomazkin.polytrainer.navigation.toScanCandidatesAdded
 import me.apomazkin.quiz.chat.ChatScreen
 import me.apomazkin.quiz.chat.ChatViewModel
 import me.apomazkin.quiztab.QuizTabScreen
 import me.apomazkin.quiztab.QuizTabViewModel
 import me.apomazkin.quiztab.deps.QuizTabUiDeps
+import me.apomazkin.scancandidates.ScanCandidatesScreen
+import me.apomazkin.scancandidates.ScanCandidatesViewModel
 import me.apomazkin.settingstab.AboutAppScreen
 import me.apomazkin.settingstab.SettingsTabScreen
 import me.apomazkin.settingstab.SettingsTabViewModel
@@ -47,6 +54,7 @@ import me.apomazkin.wordcard.WordCardViewModel
 @Stable
 class CompositionRootImpl(
     private val wordCardViewModelFactory: WordCardViewModel.Factory,
+    private val scanCandidatesViewModelFactory: ScanCandidatesViewModel.Factory,
     private val chatViewModelFactory: ChatViewModel.Factory,
     private val appBarViewModelFactory: DictionaryAppBarViewModel.Factory,
     private val wordstabViewModelFactory: WordsTabViewModel.Factory,
@@ -65,10 +73,26 @@ class CompositionRootImpl(
      * [rememberWordsTabHandle], здесь только сборка TabSpec'ов в remember.
      */
     @Composable
-    override fun VocabularyHostDep() {
+    override fun VocabularyHostDep(savedStateHandle: SavedStateHandle) {
         val words = rememberWordsTabHandle(
             factory = wordstabViewModelFactory,
         )
+        // Экран лексем-кандидатов закрылся после записи и оставил счёт в записи
+        // вкладки (AppNavigationExecutor): сообщение вкладке «Слова» и стереть
+        // ключ, чтобы счёт не показался дважды (AWP-23).
+        LaunchedEffect(savedStateHandle, words) {
+            savedStateHandle
+                .getStateFlow<LongArray?>(SCAN_CANDIDATES_ADDED, null)
+                .filterNotNull()
+                .collect { counts ->
+                    val added = counts.toScanCandidatesAdded()
+                    words.onScanCandidatesAdded(
+                        lexemeCount = added.lexemeCount,
+                        wordCount = added.wordCount,
+                    )
+                    savedStateHandle[SCAN_CANDIDATES_ADDED] = null
+                }
+        }
         // IS493 Э3 (D16): handle групп — по образцу words; VM живёт внутри
         // модуля, мост получает FAB-читалки и Content.
         val groups = rememberGroupsTabHandle(
@@ -140,6 +164,14 @@ class CompositionRootImpl(
         WordCardScreen(
             wordId = wordId,
             factory = wordCardViewModelFactory,
+        )
+    }
+
+    @Composable
+    override fun ScanCandidatesScreenDep(uri: String) {
+        ScanCandidatesScreen(
+            uri = uri,
+            factory = scanCandidatesViewModelFactory,
         )
     }
 

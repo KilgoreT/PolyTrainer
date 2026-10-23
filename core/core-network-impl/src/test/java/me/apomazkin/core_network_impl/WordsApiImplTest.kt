@@ -1,10 +1,12 @@
 package me.apomazkin.core_network_impl
 
 import kotlinx.coroutines.test.runTest
+import me.apomazkin.core_network_api.entity.ComponentNodeApiEntity
+import me.apomazkin.core_network_api.entity.ComponentOptionNodeApiEntity
 import me.apomazkin.core_network_api.entity.DenyReason
-import me.apomazkin.core_network_api.entity.LookupRequest
+import me.apomazkin.core_network_api.entity.LookupRequestApiEntity
 import me.apomazkin.core_network_api.entity.LookupResult
-import me.apomazkin.core_network_api.entity.TokenQuery
+import me.apomazkin.core_network_api.entity.TokenApiEntity
 import me.apomazkin.core_network_api.entity.WordStatus
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
@@ -23,9 +25,10 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Слой сети против поддельного сервера (Ш6: WFT-19…23, В5: WFT-63, WFT-05).
- * Адреса строк спеки в именах — `WFT-NN_k` (точка в имени метода JVM
- * запрещена; скрипт покрытия понимает оба разделителя).
+ * Слой сети против поддельного сервера: запрос (WFT-19…23, WFT-78), отказ
+ * (WFT-63, WFT-05), ответ по контракту 0.3.0 (разделы 5.1–5.7). Адреса
+ * строк спеки в именах — `WFT-NN_k` (точка в имени метода JVM запрещена;
+ * скрипт покрытия понимает оба разделителя).
  */
 class WordsApiImplTest {
 
@@ -47,13 +50,14 @@ class WordsApiImplTest {
         server.close()
     }
 
-    // === Ш6: запрос ===
+    // === Ш1: запрос ===
 
     @Test
-    fun `WFT-20_1 request carries tokens in order with confidence language dictionary languages and bearer header`() = runTest {
+    fun `WFT-20_1 WFT-20_3 request carries tokens in order with repeats confidence language dictionary languages and bearer header`() = runTest {
         server.enqueue(MockResponse(code = 200, body = EMPTY_RESPONSE))
+        val texts = listOf("Las", "nubes", "corrían", "por", "el", "cielo.", "El", "perro", "duerme", "en", "el", "jardín.")
 
-        api().lookup(requestOf(token("corrían", 0.97f, "es"), token("fuera,", 0.91f, "es")), runId = 7)
+        api().lookup(requestOf(tokens = texts.map { token(it, 0.97f, "es") }), runId = 7)
 
         val recorded = server.takeRequest()
         assertEquals("POST", recorded.method)
@@ -63,10 +67,8 @@ class WordsApiImplTest {
         val body = recorded.body?.utf8() ?: ""
         assertTrue(body, body.contains("\"learningLanguage\":\"es\""))
         assertTrue(body, body.contains("\"translationLanguage\":\"ru\""))
-        assertTrue(
-                body,
-                body.indexOf("\"text\":\"corrían\"") < body.indexOf("\"text\":\"fuera,\""),
-        )
+        val sent = Regex("\"text\":\"([^\"]+)\"").findAll(body).map { it.groupValues[1] }.toList()
+        assertEquals(texts, sent)
         assertTrue(body, body.contains("\"confidence\":0.97"))
         assertTrue(body, body.contains("\"language\":\"es\""))
     }
@@ -79,6 +81,35 @@ class WordsApiImplTest {
 
         val body = server.takeRequest().body?.utf8() ?: ""
         assertTrue(body, body.contains("\"language\":null"))
+    }
+
+    @Test
+    fun `WFT-20_4 WFT-78_1 WFT-78_2 WFT-78_3 the tree goes as in the contract - built-in keys own option without key and the dependent component inside the option`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = EMPTY_RESPONSE))
+
+        api().lookup(requestOf(token("perro", 1f, "es"), components = contractTree()), runId = 1)
+
+        val body = server.takeRequest().body?.utf8() ?: ""
+        val expectedTree = """"components":[""" +
+            """{"id":1,"key":"translation","name":"Перевод","template":"text","core":true,"multiple":false},""" +
+            """{"id":2,"key":"part_of_speech","name":"Часть речи","template":"choice","core":false,"multiple":false,"options":[""" +
+            """{"id":21,"key":"noun","label":"существительное","children":[""" +
+            """{"id":5,"key":null,"name":"Род","template":"choice","core":false,"multiple":false,"options":[""" +
+            """{"id":51,"key":null,"label":"м.р."},{"id":52,"key":null,"label":"ж.р."}]}]},""" +
+            """{"id":22,"key":"verb","label":"глагол"}]},""" +
+            """{"id":3,"key":"example","name":"Пример","template":"captioned_text","core":false,"multiple":true},""" +
+            """{"id":4,"key":null,"name":"Толкование","template":"text","core":false,"multiple":false}]"""
+        assertTrue(body, body.contains(expectedTree))
+    }
+
+    @Test
+    fun `WFT-78_7 a dictionary without components sends no components field`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = EMPTY_RESPONSE))
+
+        api().lookup(requestOf(token("perro"), components = emptyList()), runId = 1)
+
+        val body = server.takeRequest().body?.utf8() ?: ""
+        assertFalse(body, body.contains("components"))
     }
 
     @Test
@@ -101,7 +132,7 @@ class WordsApiImplTest {
         assertEquals(0, server.requestCount)
     }
 
-    // === Ш6: ожидание ===
+    // === Ш1: ожидание ===
 
     @Test
     fun `WFT-22_1 silent server past the call timeout is unavailable`() = runTest {
@@ -115,11 +146,11 @@ class WordsApiImplTest {
     @Test
     fun `WFT-22_2 answer after the call timeout is dropped as unavailable`() = runTest {
         server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .headersDelay(900, TimeUnit.MILLISECONDS)
-                    .body(EMPTY_RESPONSE)
-                    .build(),
+            MockResponse.Builder()
+                .code(200)
+                .headersDelay(900, TimeUnit.MILLISECONDS)
+                .body(EMPTY_RESPONSE)
+                .build(),
         )
 
         val result = api(callTimeout = 300.milliseconds).lookup(requestOf(token("perro")), runId = 1)
@@ -142,11 +173,11 @@ class WordsApiImplTest {
     @Test
     fun `WFT-22_3 answer within the call timeout is a success`() = runTest {
         server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .headersDelay(200, TimeUnit.MILLISECONDS)
-                    .body(EMPTY_RESPONSE)
-                    .build(),
+            MockResponse.Builder()
+                .code(200)
+                .headersDelay(200, TimeUnit.MILLISECONDS)
+                .body(EMPTY_RESPONSE)
+                .build(),
         )
 
         val result = api(callTimeout = 2.seconds).lookup(requestOf(token("perro")), runId = 1)
@@ -154,7 +185,7 @@ class WordsApiImplTest {
         assertTrue(result.toString(), result is LookupResult.Success)
     }
 
-    // === Ш6: сервер недоступен или не по контракту ===
+    // === Ш1: сервер недоступен или не по контракту ===
 
     @Test
     fun `WFT-23_1 refused connection is unavailable`() = runTest {
@@ -184,7 +215,25 @@ class WordsApiImplTest {
         assertTrue(result.toString(), result is LookupResult.Unavailable)
     }
 
-    // === В5: отказ ===
+    @Test
+    fun `WFT-23_4 status 400 invalid_request is our bug and is unavailable`() = runTest {
+        server.enqueue(MockResponse(code = 400, body = errorBody("invalid_request")))
+
+        val result = api().lookup(requestOf(token("perro")), runId = 1)
+
+        assertTrue(result.toString(), result is LookupResult.Unavailable)
+    }
+
+    @Test
+    fun `WFT-23_5 status 503 with a body off the error schema is unavailable`() = runTest {
+        server.enqueue(MockResponse(code = 503, body = "<html>Service Unavailable</html>"))
+
+        val result = api().lookup(requestOf(token("perro")), runId = 1)
+
+        assertTrue(result.toString(), result is LookupResult.Unavailable)
+    }
+
+    // === В1, В2: отказ ===
 
     @Test
     fun `WFT-63_1 status 401 is denied as unauthorized`() = runTest {
@@ -223,12 +272,12 @@ class WordsApiImplTest {
     }
 
     @Test
-    fun `WFT-23_2 status 400 invalid_request is our bug and is unavailable`() = runTest {
-        server.enqueue(MockResponse(code = 400, body = errorBody("invalid_request")))
+    fun `WFT-63_5 status 503 llm_unavailable is denied as llm unavailable`() = runTest {
+        server.enqueue(MockResponse(code = 503, body = errorBody("llm_unavailable")))
 
         val result = api().lookup(requestOf(token("perro")), runId = 1)
 
-        assertTrue(result.toString(), result is LookupResult.Unavailable)
+        assertEquals(LookupResult.Denied(DenyReason.LLM_UNAVAILABLE), result)
     }
 
     // === Инвариант: ключ не утекает ===
@@ -243,67 +292,138 @@ class WordsApiImplTest {
         assertTrue(logLines.toString(), logLines.none { it.contains(ACCESS_KEY) })
     }
 
-    // === Ш10 → Ш11: ответ сервера, записанный с прода 2026-10-10 ===
+    // === Ш8: ответ по контракту 0.3.0 (разделы 5.1–5.6) ===
 
     @Test
-    fun `WFP-16_1 recorded response gives words in response order with attribution`() = runTest {
-        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
+    fun `WFT-49_1 WFT-50_1 contract response gives words in response order with attribution and recommendations`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_10_es.json")))
 
         val result = api().lookup(requestOf(token("corrían")), runId = 1) as LookupResult.Success
 
         assertEquals("Wiktionary, CC BY-SA 4.0", result.attribution)
-        assertEquals(listOf("corrían", "fuera", "accorc", "los"), result.words.map { it.text })
+        assertEquals(listOf("corrían", "perro", "zarpó", "accorc", "llave"), result.words.map { it.text })
+        val recommendation = result.recommendations.single()
+        assertEquals("Род", recommendation.name)
+        assertEquals("choice", recommendation.template)
+        assertEquals(listOf("м.р.", "ж.р."), recommendation.options)
     }
 
     @Test
-    fun `WFP-16_7 recorded corrian is found with first candidate correr verb and a form note`() = runTest {
-        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
+    fun `WFT-90_1 WFT-87_2 corrian keeps the selection order and the component matches of every lexeme`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_10_es.json")))
 
         val result = api().lookup(requestOf(token("corrían")), runId = 1) as LookupResult.Success
 
         val corrian = result.words.first { it.text == "corrían" }
         assertEquals(WordStatus.FOUND, corrian.status)
-        assertEquals("correr", corrian.candidates.first().lemma)
-        assertEquals("verb", corrian.candidates.first().partOfSpeech)
-        assertEquals("third-person plural imperfect indicative", corrian.candidates.first().formNote)
-        assertEquals("to run, to jog", corrian.candidates.first().senses.first().gloss)
+        assertTrue(corrian.remarks.isEmpty())
+        val correr = corrian.lemmas.single()
+        assertEquals("correr", correr.text)
+        assertEquals("third-person plural imperfect indicative", correr.formNote)
+        assertEquals(listOf("ruwiktionary/1.verb.3", "ruwiktionary/1.verb.1", "ruwiktionary/1.verb.5"), correr.lexemes.map { it.key })
+        val first = correr.lexemes.first()
+        assertEquals(listOf(1L, 2L, 4L), first.componentMatches.map { it.componentId })
+        assertEquals(listOf(null, 22L, null), first.componentMatches.map { it.optionId })
+        assertEquals(listOf("translations", null, "gloss"), first.componentMatches.map { it.field })
+        assertEquals("to flow", first.gloss)
     }
 
     @Test
-    fun `WFP-16_8 recorded fuera keeps four candidates in article order`() = runTest {
-        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
+    fun `WFT-87_1 WFT-81_1 perro carries grammar pronunciation examples and the option matches`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_10_es.json")))
 
-        val result = api().lookup(requestOf(token("fuera")), runId = 1) as LookupResult.Success
+        val result = api().lookup(requestOf(token("perro")), runId = 1) as LookupResult.Success
 
-        val fuera = result.words.first { it.text == "fuera" }
-        assertEquals(
-                listOf("fuera/adverb", "fuera/interjection", "ser/verb", "ir/verb"),
-                fuera.candidates.map { "${it.lemma}/${it.partOfSpeech}" },
-        )
-        assertNull(fuera.candidates.first().formNote)
+        val perro = result.words.first { it.text == "perro" }.lemmas.single()
+        assertEquals(listOf("/ˈpero/"), perro.pronunciations)
+        val noun = perro.lexemes.first()
+        assertEquals(mapOf("gender" to "masculine"), noun.grammar)
+        assertEquals(listOf("perro callejero"), noun.examples)
+        assertEquals(listOf(1L, 2L, 5L, 3L, 4L), noun.componentMatches.map { it.componentId })
+        assertEquals(51L, noun.componentMatches[2].optionId)
+        assertEquals(listOf("разг."), perro.lexemes[1].notes)
+        assertNull(perro.lexemes[2].gloss)
     }
 
     @Test
-    fun `WFP-16_3 recorded accorc is not found with no candidates`() = runTest {
-        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
+    fun `WFT-91_1 WFT-81_3 zarpo carries two no_translation remarks level synonyms and antonyms`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_10_es.json")))
+
+        val result = api().lookup(requestOf(token("zarpó")), runId = 1) as LookupResult.Success
+
+        val zarpo = result.words.first { it.text == "zarpó" }
+        assertEquals(listOf("no_translation", "no_translation"), zarpo.remarks.map { it.code })
+        assertEquals(listOf("enwiktionary/1.verb.1", "enwiktionary/2.verb.1"), zarpo.remarks.map { it.lexemeKey })
+        assertTrue(zarpo.remarks.all { it.lemma == "zarpar" && it.componentId == null })
+        val embark = zarpo.lemmas.single().lexemes.first()
+        assertTrue(embark.translations.isEmpty())
+        assertEquals("B1", embark.level)
+        assertEquals(listOf("salir"), embark.synonyms)
+        assertEquals(listOf("atracar"), embark.antonyms)
+        assertEquals(mapOf("transitivity" to "intransitive"), embark.grammar)
+    }
+
+    @Test
+    fun `WFT-50_2 WFT-81_2 WFT-81_4 not found and error words have no lemmas and empty grammar or pronunciations parse as empty`() = runTest {
+        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_10_es.json")))
 
         val result = api().lookup(requestOf(token("accorc")), runId = 1) as LookupResult.Success
 
         val accorc = result.words.first { it.text == "accorc" }
+        val llave = result.words.first { it.text == "llave" }
         assertEquals(WordStatus.NOT_FOUND, accorc.status)
-        assertTrue(accorc.candidates.isEmpty())
+        assertEquals(WordStatus.ERROR, llave.status)
+        assertTrue(accorc.lemmas.isEmpty() && llave.lemmas.isEmpty())
+        val correr = result.words.first { it.text == "corrían" }.lemmas.single()
+        assertTrue(correr.pronunciations.isEmpty())
+        assertTrue(correr.lexemes.first().grammar.isEmpty())
+        assertNull(correr.lexemes.first().level)
     }
 
-    // === Ш10: леммы ответа с лексемами-кандидатами, записано с прода v0.1.9 (IS532) ===
+    @Test
+    fun `WFT-88_1 a component_unclear remark carries the component id`() = runTest {
+        server.enqueue(
+            MockResponse(
+                code = 200,
+                body = """{"attribution":"Wiktionary, CC BY-SA 4.0","recommendations":[],"words":[{"text":"perro","status":"found","remarks":[{"code":"component_unclear","componentId":7}],"lemmas":[]}]}""",
+            ),
+        )
+
+        val result = api().lookup(requestOf(token("perro")), runId = 1) as LookupResult.Success
+
+        val remark = result.words.single().remarks.single()
+        assertEquals("component_unclear", remark.code)
+        assertEquals(7L, remark.componentId)
+        assertNull(remark.lemma)
+    }
 
     @Test
-    fun `WFT-50_2 old recorded response without lemmas parses with empty lemmas`() = runTest {
+    fun `WFT-90_8 an unknown remark code and an unknown recommendation template stay strings`() = runTest {
+        server.enqueue(
+            MockResponse(
+                code = 200,
+                body = """{"attribution":"Wiktionary, CC BY-SA 4.0","recommendations":[{"code":"component_recommended","name":"Картинка","template":"image"}],"words":[{"text":"perro","status":"found","remarks":[{"code":"new_code"}],"lemmas":[]}]}""",
+            ),
+        )
+
+        val result = api().lookup(requestOf(token("perro")), runId = 1) as LookupResult.Success
+
+        assertEquals("new_code", result.words.single().remarks.single().code)
+        assertEquals("image", result.recommendations.single().template)
+        assertTrue(result.recommendations.single().options.isEmpty())
+    }
+
+    // === Ш8: ответы прода v0.1.9 (IS532) — лишние поля пропускаются, новых нет ===
+
+    @Test
+    fun `WFT-50_3 old recorded response without lemmas parses with empty lemmas and remarks`() = runTest {
         server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_sample.json")))
 
         val result = api().lookup(requestOf(token("corrían")), runId = 1) as LookupResult.Success
 
-        assertTrue(result.words.all { it.lemmas.isEmpty() })
+        assertTrue(result.words.all { it.lemmas.isEmpty() && it.remarks.isEmpty() })
         assertEquals(4, result.words.size)
+        assertTrue(result.recommendations.isEmpty())
     }
 
     @Test
@@ -321,7 +441,7 @@ class WordsApiImplTest {
     }
 
     @Test
-    fun `WFT-71_1 WFT-72_1 recorded run carries 130 lexemes with key source and part of speech key`() = runTest {
+    fun `WFT-71_1 WFT-72_1 recorded run carries 130 lexemes with key source and part of speech key and empty matches`() = runTest {
         server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_en.json")))
 
         val result = api().lookup(requestOf(token("run")), runId = 1) as LookupResult.Success
@@ -329,45 +449,10 @@ class WordsApiImplTest {
         val run = result.words.first { it.text == "run" }.lemmas.first { it.text == "run" }
         assertEquals(130, run.lexemes.size)
         assertEquals(71, run.lexemes.count { it.partOfSpeechKey == "verb" })
-        assertEquals(54, run.lexemes.count { it.partOfSpeechKey == "noun" })
-        assertEquals(5, run.lexemes.count { it.partOfSpeechKey == "adjective" })
         assertEquals(setOf("ruwiktionary", "enwiktionary"), run.lexemes.map { it.source }.toSet())
         assertEquals(130, run.lexemes.map { it.key }.toSet().size)
         assertEquals(listOf("бежать, бегать"), run.lexemes.first().translations)
-        val london = result.words.first { it.text == "london" }.lemmas.single()
-        assertEquals("noun", london.lexemes.first { it.source == "ruwiktionary" }.partOfSpeechKey)
-    }
-
-    @Test
-    fun `WFT-71_11 WFT-71_3 recorded russian lexeme of London has null gloss caption parent key and keeps its example`() = runTest {
-        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_en.json")))
-
-        val result = api().lookup(requestOf(token("London")), runId = 1) as LookupResult.Success
-
-        val lexeme = result.words.first { it.text == "london" }.lemmas.single().lexemes.first()
-        assertEquals("ruwiktionary", lexeme.source)
-        assertEquals(listOf("Лондон (город в Великобритании)"), lexeme.translations)
-        assertNull(lexeme.gloss)
-        assertNull(lexeme.caption)
-        assertNull(lexeme.parentKey)
-        assertFalse(lexeme.parent)
-        assertEquals(listOf("Eventually, she got a job and moved to London."), lexeme.examples)
-        assertTrue(lexeme.notes.isEmpty())
-    }
-
-    @Test
-    fun `WFT-71_8 recorded run has parent lexemes and children pointing at them`() = runTest {
-        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_en.json")))
-
-        val result = api().lookup(requestOf(token("run")), runId = 1) as LookupResult.Success
-
-        val run = result.words.first { it.text == "run" }.lemmas.first { it.text == "run" }
-        val parent = run.lexemes.first { it.parent }
-        assertEquals("To move swiftly.", parent.gloss)
-        assertNull(parent.parentKey)
-        val child = run.lexemes.first { it.parentKey == parent.key }
-        assertEquals("enwiktionary", child.source)
-        assertTrue(child.gloss!!.startsWith("To move forward quickly upon two feet"))
+        assertTrue(run.lexemes.all { it.componentMatches.isEmpty() })
     }
 
     @Test
@@ -381,30 +466,15 @@ class WordsApiImplTest {
         assertEquals("third-person plural imperfect indicative", correr.formNote)
         assertEquals(27, correr.lexemes.size)
         assertEquals(15, correr.lexemes.count { it.source == "ruwiktionary" })
-        assertTrue(correr.lexemes.all { it.partOfSpeechKey == "verb" })
-    }
-
-    @Test
-    fun `WFT-76_3 WFT-73_1 recorded fuera gives three lemmas and amigo ends with the russian adjective`() = runTest {
-        server.enqueue(MockResponse(code = 200, body = fixture("lookup_response_v0_1_9_es.json")))
-
-        val result = api().lookup(requestOf(token("fuera")), runId = 1) as LookupResult.Success
-
-        val fuera = result.words.first { it.text == "fuera" }
-        assertEquals(listOf("fuera", "ser", "ir"), fuera.lemmas.map { it.text })
-        assertEquals(setOf("adverb", "interjection"), fuera.lemmas[0].lexemes.map { it.partOfSpeechKey }.toSet())
-        val amigo = result.words.first { it.text == "amigo" }.lemmas.first { it.text == "amigo" }
-        assertEquals("adjective", amigo.lexemes.last().partOfSpeechKey)
-        assertEquals(listOf("дружественный; дружеский, приятельский"), amigo.lexemes.last().translations)
     }
 
     @Test
     fun `unknown source part of speech key and extra fields keep the lexeme and the response stays a success`() = runTest {
         server.enqueue(
-                MockResponse(
-                        code = 200,
-                        body = """{"attribution":"Wiktionary, CC BY-SA 4.0","served":"cache","words":[{"text":"run","status":"found","candidates":[],"lemmas":[{"text":"run","formNote":null,"lexemes":[{"key":"cambridge/1","partOfSpeechKey":"gerund","source":"cambridge","translations":["бег"],"level":"B1"}]}]}]}""",
-                )
+            MockResponse(
+                code = 200,
+                body = """{"attribution":"Wiktionary, CC BY-SA 4.0","served":"cache","words":[{"text":"run","status":"found","lemmas":[{"text":"run","formNote":null,"lexemes":[{"key":"cambridge/1","partOfSpeechKey":"gerund","source":"cambridge","translations":["бег"],"level":"B1","extra":1}]}]}]}""",
+            ),
         )
 
         val result = api().lookup(requestOf(token("run")), runId = 1)
@@ -414,6 +484,7 @@ class WordsApiImplTest {
         assertEquals("cambridge", lexeme.source)
         assertEquals("gerund", lexeme.partOfSpeechKey)
         assertEquals(listOf("бег"), lexeme.translations)
+        assertEquals("B1", lexeme.level)
         assertNull(lexeme.gloss)
         assertTrue(lexeme.examples.isEmpty())
     }
@@ -421,10 +492,10 @@ class WordsApiImplTest {
     @Test
     fun `lexeme without key or source is off the schema and makes the response unavailable`() = runTest {
         server.enqueue(
-                MockResponse(
-                        code = 200,
-                        body = """{"attribution":"x","words":[{"text":"run","status":"found","candidates":[],"lemmas":[{"text":"run","lexemes":[{"translations":["бег"]}]}]}]}""",
-                )
+            MockResponse(
+                code = 200,
+                body = """{"attribution":"x","words":[{"text":"run","status":"found","lemmas":[{"text":"run","lexemes":[{"translations":["бег"]}]}]}]}""",
+            ),
         )
 
         val result = api().lookup(requestOf(token("run")), runId = 1)
@@ -435,31 +506,84 @@ class WordsApiImplTest {
     // === обвязка ===
 
     private fun api(
-            baseUrl: String = server.url("/").toString(),
-            accessKey: String = ACCESS_KEY,
-            callTimeout: kotlin.time.Duration = 5.seconds,
-            requireHttps: Boolean = false,
+        baseUrl: String = server.url("/").toString(),
+        accessKey: String = ACCESS_KEY,
+        callTimeout: kotlin.time.Duration = 5.seconds,
+        requireHttps: Boolean = false,
     ): WordsApiImpl {
         val options = NetworkOptions(
-                baseUrl = baseUrl,
-                accessKey = accessKey,
-                callTimeout = callTimeout,
-                requireHttps = requireHttps,
+            baseUrl = baseUrl,
+            accessKey = accessKey,
+            callTimeout = callTimeout,
+            requireHttps = requireHttps,
         )
         return WordsApiImpl(
-                service = LexemeServiceFactory.create(options, logger),
-                options = options,
+            service = LexemeServiceFactory.create(options, logger),
+            options = options,
         )
     }
 
-    private fun requestOf(vararg tokens: TokenQuery) = LookupRequest(
-            learningLanguage = "es",
-            translationLanguage = "ru",
-            tokens = tokens.toList(),
+    private fun requestOf(
+        vararg tokens: TokenApiEntity,
+        components: List<ComponentNodeApiEntity> = contractTree(),
+    ) = requestOf(tokens = tokens.toList(), components = components)
+
+    private fun requestOf(
+        tokens: List<TokenApiEntity>,
+        components: List<ComponentNodeApiEntity> = contractTree(),
+    ) = LookupRequestApiEntity(
+        learningLanguage = "es",
+        translationLanguage = "ru",
+        tokens = tokens,
+        components = components,
     )
 
     private fun token(text: String, confidence: Float = 0.9f, language: String? = "es") =
-        TokenQuery(text = text, confidence = confidence, language = language)
+        TokenApiEntity(text = text, confidence = confidence, language = language)
+
+    /** Дерево словаря из контракта: «Перевод», «Часть речи» с «Родом» под «существительное», «Пример», «Толкование». */
+    private fun contractTree(): List<ComponentNodeApiEntity> = listOf(
+        component(1L, "translation", "Перевод", "text", core = true),
+        component(
+            2L, "part_of_speech", "Часть речи", "choice",
+            options = listOf(
+                ComponentOptionNodeApiEntity(
+                    id = 21L, key = "noun", label = "существительное",
+                    children = listOf(
+                        component(
+                            5L, null, "Род", "choice",
+                            options = listOf(
+                                ComponentOptionNodeApiEntity(51L, null, "м.р.", emptyList()),
+                                ComponentOptionNodeApiEntity(52L, null, "ж.р.", emptyList()),
+                            ),
+                        ),
+                    ),
+                ),
+                ComponentOptionNodeApiEntity(22L, "verb", "глагол", emptyList()),
+            ),
+        ),
+        component(3L, "example", "Пример", "captioned_text", multiple = true),
+        component(4L, null, "Толкование", "text"),
+    )
+
+    private fun component(
+        id: Long,
+        key: String?,
+        name: String,
+        template: String,
+        core: Boolean = false,
+        multiple: Boolean = false,
+        options: List<ComponentOptionNodeApiEntity> = emptyList(),
+    ) = ComponentNodeApiEntity(
+        id = id,
+        key = key,
+        name = name,
+        template = template,
+        core = core,
+        multiple = multiple,
+        options = options,
+        children = emptyList(),
+    )
 
     private fun errorBody(code: String) = """{"code":"$code","message":"test"}"""
 
@@ -470,6 +594,6 @@ class WordsApiImplTest {
 
     private companion object {
         const val ACCESS_KEY = "test-access-key-0123456789abcdefghijklmnopqrstuvwxyz"
-        const val EMPTY_RESPONSE = """{"attribution":"Wiktionary, CC BY-SA 4.0","words":[]}"""
+        const val EMPTY_RESPONSE = """{"attribution":"Wiktionary, CC BY-SA 4.0","words":[],"recommendations":[]}"""
     }
 }

@@ -1,15 +1,5 @@
 package me.apomazkin.wordstab.logic
 
-import me.apomazkin.candidates.PhotoAddFailure
-import me.apomazkin.candidates.PhotoAddSummary
-import me.apomazkin.candidates.PhotoCard
-import me.apomazkin.candidates.PhotoDictionaryForm
-import me.apomazkin.candidates.PhotoFormError
-import me.apomazkin.candidates.PhotoMapping
-import me.apomazkin.candidates.PhotoNotAdded
-import me.apomazkin.candidates.PhotoSheet
-import me.apomazkin.candidates.PhotoWord
-import me.apomazkin.candidates.choose
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.paging.PagingData
@@ -35,7 +25,7 @@ data class WordsTabState(
         val addWordDialogState: AddWordDialogState = AddWordDialogState(),
         val snackbarState: SnackbarState = SnackbarState(),
         val confirmWordDeleteDialogState: ConfirmWordDeleteDialogState = ConfirmWordDeleteDialogState(),
-        val photoWordsState: PhotoWordsState = PhotoWordsState(),
+        val scanDialogState: ScanDialogState = ScanDialogState(),
 )
 
 @Immutable
@@ -91,66 +81,13 @@ data class ConfirmWordDeleteDialogState(
 )
 
 /**
- * IS527/IS529/IS532: диалог «слова с фото» явными флагами: выбор источника
- * ([isChoosingSource]) → индикатор с подписью фазы ([phase], WFT-16) →
- * ответ сервера ([words]) и признак загрузки формы ([phase] = FORM) →
- * окно-черновик ([cards], AWP-03), «слов не найдено» ([isEmptyResult],
- * WFT-60) или ошибка ([errorRes], WFT-61, WFT-63; [formError], AWP-24).
- * Закрыт — флаги в умолчаниях. [requestId] — номер запуска (термин
- * «Запуск», WFT-01…03): растёт на каждое открытие выбора и на каждый
- * снимок, переживает закрытие диалога; результат распознавания, ответ
- * сервера, форма и итог записи с чужим id отбрасываются (WFT-62,
- * AWP-24.2). Уходит на сервер как `X-Run-Id`.
- *
- * Окно (Ш2): [dictionaryId] — словарь снимка (AWP-01), [form] — форма
- * словаря (`data: T? = null`), [mapping] — соответствия, [commonGroupId] —
- * общая группа (null — «Все»), [cards] и [notAdded] — список, [summary]
- * — кнопка; [isDirty] — были удаления, правки текста или смены части
- * речи (AWP-19); [isAdding] — запись идёт (AWP-13.4); [addFailure] — В3;
- * вопросы [isConfirmingAdd], [isConfirmingClose]; [sheet] — открытый лист.
+ * Диалог выбора источника снимка: камера или галерея (WFP-06). [isOpen] —
+ * диалог виден; [errorRes] — текст причины, если камера не запустилась
+ * (WFP-07): вместо кнопок источника в диалоге текст и «Закрыть». Закрыт —
+ * умолчания; после гибели процесса диалог не восстанавливается.
  */
 @Immutable
-data class PhotoWordsState(
-        val isOpen: Boolean = false,
-        val isChoosingSource: Boolean = false,
-        val phase: PhotoPhase = PhotoPhase.IDLE,
-        val words: List<PhotoWord> = emptyList(),
-        val isEmptyResult: Boolean = false,
-        @StringRes val errorRes: Int? = null,
-        val requestId: Long = 0L,
-        val dictionaryId: Long? = null,
-        val form: PhotoDictionaryForm? = null,
-        val formError: PhotoFormError? = null,
-        val mapping: PhotoMapping = PhotoMapping.NONE,
-        val commonGroupId: Long? = null,
-        val cards: List<PhotoCard> = emptyList(),
-        val notAdded: List<PhotoNotAdded> = emptyList(),
-        val summary: PhotoAddSummary = PhotoAddSummary(),
-        val isDirty: Boolean = false,
-        val isAdding: Boolean = false,
-        val addFailure: PhotoAddFailure? = null,
-        val isConfirmingAdd: Boolean = false,
-        val isConfirmingClose: Boolean = false,
-        val isMappingExpanded: Boolean = false,
-        val isNotAddedExpanded: Boolean = false,
-        val sheet: PhotoSheet? = null,
-) {
-    /** Индикатор виден, пока идёт распознавание, ожидание ответа или сборка окна (WFT-16, AWP-24). */
-    val isBusy: Boolean
-        get() = phase != PhotoPhase.IDLE
-
-    /** Окно-черновик собрано: форма есть, ошибок нет (Ш2). */
-    val isWindowReady: Boolean
-        get() = form != null && formError == null
-}
-
-/** Фаза запуска; подпись индикатора выбирается по ней (WFT-16.1, 16.2; AWP-24). */
-enum class PhotoPhase {
-    IDLE,
-    RECOGNIZING,
-    LOOKING,
-    FORM,
-}
+data class ScanDialogState(val isOpen: Boolean = false, @StringRes val errorRes: Int? = null)
 
 fun WordsTabState.showLoading(): WordsTabState =
         this.copy(isLoading = true)
@@ -352,16 +289,6 @@ fun WordsTabState.hideConfirmDeleteDialog(): WordsTabState {
             )
     )
 }
-
-/**
- * ###### PHOTO WORDS DIALOG (IS527/IS532) ######
- * Шаги диалога — атомы `logic/photo/PhotoStateAtoms`; здесь только предикат.
- */
-
-/** Результат относится к текущему открытому диалогу, а не к прошлому снимку. */
-fun WordsTabState.isCurrentPhotoRequest(
-        requestId: Long,
-): Boolean = photoWordsState.isOpen && photoWordsState.requestId == requestId
 
 fun <STATE, EFFECT> STATE.choose(
         check: (STATE) -> Boolean,

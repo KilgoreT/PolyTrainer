@@ -157,6 +157,13 @@ class AppNavigationExecutor @Inject constructor(
             is AppScreen.WordCard ->
                 tabs.navigateGated(MainRoutes.wordCard(screen.wordId)) { launchSingleTop = true }
 
+            is AppScreen.ScanCandidates ->
+                tabs.navigateGated(MainRoutes.scanCandidates(screen.uri)) {
+                    launchSingleTop = true
+                }
+
+            is AppScreen.ScanCandidatesAdded -> returnWithScanResult(tabs, screen)
+
             is AppScreen.PerDictionaryComponents ->
                 tabs.navigateGated(MainRoutes.perDictionaryComponents(screen.dictionaryId)) {
                     launchSingleTop = true
@@ -171,6 +178,23 @@ class AppNavigationExecutor @Inject constructor(
             is AppScreen.WebView ->
                 tabs.navigateGated(MainRoutes.webView(screen.pageKey)) { launchSingleTop = true }
         }
+    }
+
+    /**
+     * Результат экрана лексем-кандидатов (AWP-23): счёт кладётся в
+     * `SavedStateHandle` записи под ним — вкладки «Слова» — и экран снимается.
+     * Вкладка читает ключ, показывает сообщение и стирает его. Вернуть результат
+     * иначе (`popWithResult`) библиотека mate не умеет: у неё только `push` и
+     * `pop`.
+     */
+    private fun returnWithScanResult(
+        tabs: NavHostController,
+        screen: AppScreen.ScanCandidatesAdded,
+    ) {
+        tabs.previousBackStackEntry
+            ?.savedStateHandle
+            ?.set(SCAN_CANDIDATES_ADDED, screen.toSavedState())
+        tabs.popBackStack()
     }
 
     /**

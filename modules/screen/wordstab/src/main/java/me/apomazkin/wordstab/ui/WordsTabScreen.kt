@@ -1,6 +1,5 @@
 package me.apomazkin.wordstab.ui
 
-import android.content.ActivityNotFoundException
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -10,6 +9,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
@@ -38,10 +38,7 @@ import me.apomazkin.wordstab.ui.widget.ConfirmDeleteWordWidget
 import me.apomazkin.wordstab.ui.widget.EmptyWidget
 import me.apomazkin.wordstab.ui.widget.WordListWidget
 import me.apomazkin.wordstab.ui.widget.addWordBottom.AddWordPanelWidget
-import me.apomazkin.candidates.ui.PhotoAddWindow
-import me.apomazkin.wordstab.ui.widget.photo.toCandidatesView
-import me.apomazkin.wordstab.ui.widget.photo.toMsg
-import me.apomazkin.wordstab.ui.widget.photo.PhotoWordsDialog
+import me.apomazkin.wordstab.ui.widget.scan.ScanDialog
 import me.apomazkin.wordstab.ui.widget.topBar.ActionTopBarWidget
 import me.apomazkin.mate.EMPTY_STRING
 import me.apomazkin.theme.AppTheme
@@ -88,7 +85,7 @@ class WordsTabHandle internal constructor(
         viewModel.accept(Msg.OpenAddWordDialog())
     }
 
-    /** IS527: кнопка-камера над «+» — слова с фото. */
+    /** Кнопка-камера над «+» — лексемы-кандидаты со снимка (WFP-04). */
     @DrawableRes
     val photoFabIconRes: Int = R.drawable.ic_photo_camera
 
@@ -96,7 +93,20 @@ class WordsTabHandle internal constructor(
     val photoFabDescriptionRes: Int = R.string.photo_words_title
 
     fun onPhotoFabClick() {
-        viewModel.accept(Msg.OpenPhotoSourceChooser)
+        viewModel.accept(Msg.OpenScanDialog)
+    }
+
+    /**
+     * Экран скана закрылся после записи: мост `app` передаёт счёт, вкладка
+     * показывает сообщение «Добавлено N значений в M слов» (AWP-23).
+     */
+    fun onScanCandidatesAdded(lexemeCount: Int, wordCount: Int) {
+        viewModel.accept(
+            Msg.ScanCandidatesAdded(
+                lexemeCount = lexemeCount,
+                wordCount = wordCount,
+            ),
+        )
     }
 
     fun onExitSelectionMode() {
@@ -116,9 +126,22 @@ class WordsTabHandle internal constructor(
         LifecycleEventHandler(action = {
             viewModel.accept(UiMsg.LifecycleEvent(it.toMateEvent()))
         })
+        // Launcher'ы регистрируются всегда, не под `if`: после гибели процесса в
+        // камере диалог закрыт, а снимок должен дойти (WFP-22).
+        val photoPicker = rememberPhotoPicker(
+            onPicked = { uri -> viewModel.accept(Msg.ImagePicked(uri = uri.toString())) },
+            logger = viewModel.logger,
+        )
+        // VM живёт дольше Activity: PhotoPicker привязывается к её держателю
+        // запуска заново с каждой композицией.
+        DisposableEffect(photoPicker) {
+            viewModel.scanLauncher.bind(photoPicker)
+            onDispose { viewModel.scanLauncher.unbind() }
+        }
         WordsTabContent(
             state = stateProvider.value,
             snackbarHostState = snackbarHostState,
+            isCameraAvailable = photoPicker::isCameraAvailable,
         ) { viewModel.accept(it) }
     }
 }
@@ -127,11 +150,15 @@ class WordsTabHandle internal constructor(
  * Контент вкладки «Слова» без Scaffold-обвязки: список/диалоги/BackHandler.
  * Padding и background применяет host; snackbar показывается через host'овый
  * [SnackbarHostState].
+ *
+ * @param isCameraAvailable есть ли приложение камеры; спрашивается при
+ * открытии диалога выбора источника (WFP-06.3).
  */
 @Composable
 internal fun WordsTabContent(
     state: WordsTabState,
     snackbarHostState: SnackbarHostState,
+    isCameraAvailable: () -> Boolean,
     sendMessage: (Msg) -> Unit,
 ) {
     LaunchedEffect(state.snackbarState.show) {
@@ -215,42 +242,15 @@ internal fun WordsTabContent(
                 sendMessage = sendMessage,
             )
         }
-        // IS527: launcher'ы регистрируются всегда, не под `if`: после смерти
-        // процесса в камере диалог закрыт, а результат должен дойти.
-        val photoPicker = rememberPhotoPicker(
-            onPicked = { uri -> sendMessage(Msg.PhotoPicked(uri = uri.toString())) },
-            onCancelled = { sendMessage(Msg.PhotoPickCancelled) },
-        )
-        // IS532: собранное окно добавления — на весь экран (AWP-14); до него и
-        // при ошибках — диалог запуска.
-        if (state.photoWordsState.isWindowReady) {
-            PhotoAddWindow(
-                state = state.photoWordsState.toCandidatesView(),
-                onAction = { action -> sendMessage(action.toMsg()) },
-            )
-        } else if (state.photoWordsState.isOpen) {
+        if (state.scanDialogState.isOpen) {
             // Наличие камеры — на открытие диалога, не на каждую рекомпозицию.
-            val isCameraAvailable = remember { photoPicker.isCameraAvailable() }
-            val cameraError = Msg.RecognitionFailed(
-                errorRes = R.string.photo_words_error_camera,
-                requestId = state.photoWordsState.requestId,
-            )
-            PhotoWordsDialog(
-                state = state.photoWordsState,
-                isCameraAvailable = isCameraAvailable,
-                onCamera = {
-                    // Камеру могли отключить между проверкой и запуском;
-                    // SecurityException — если CAMERA объявит чужая библиотека.
-                    try {
-                        photoPicker.launchCamera()
-                    } catch (e: ActivityNotFoundException) {
-                        sendMessage(cameraError)
-                    } catch (e: SecurityException) {
-                        sendMessage(cameraError)
-                    }
-                },
-                onGallery = photoPicker::launchGallery,
-                onDismiss = { sendMessage(Msg.ClosePhotoWords) },
+            val hasCamera = remember { isCameraAvailable() }
+            ScanDialog(
+                state = state.scanDialogState,
+                isCameraAvailable = hasCamera,
+                onCamera = { sendMessage(Msg.ChooseCamera) },
+                onGallery = { sendMessage(Msg.ChooseGallery) },
+                onDismiss = { sendMessage(Msg.CloseScanDialog) },
             )
         }
     }
@@ -263,6 +263,7 @@ private fun PreviewLoading() {
         WordsTabContent(
             state = DataHelper.State.loading,
             snackbarHostState = remember { SnackbarHostState() },
+            isCameraAvailable = { true },
         ) {}
     }
 }
@@ -274,6 +275,7 @@ private fun PreviewEmpty() {
         WordsTabContent(
             state = DataHelper.State.empty,
             snackbarHostState = remember { SnackbarHostState() },
+            isCameraAvailable = { true },
         ) {}
     }
 }
@@ -285,6 +287,7 @@ private fun PreviewLoaded() {
         WordsTabContent(
             state = DataHelper.State.loaded,
             snackbarHostState = remember { SnackbarHostState() },
+            isCameraAvailable = { true },
         ) {}
     }
 }
