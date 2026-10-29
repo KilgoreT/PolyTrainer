@@ -21,10 +21,11 @@ import me.apomazkin.theme.formTextTertiary
 
 /**
  * Шапка окна: общая группа на все леммы (AWP-08) — «Все» или группа словаря;
- * нажатие открывает лист выбора. Соответствий в шапке нет.
+ * нажатие открывает лист выбора. Соответствий в шапке нет. Публична: её зовёт
+ * окно снимка из своего модуля.
  */
 @Composable
-internal fun CommonGroupHeader(
+fun CommonGroupHeader(
     view: CandidatesView,
     form: DictionaryFormUi,
     onAction: (CandidateAction) -> Unit,

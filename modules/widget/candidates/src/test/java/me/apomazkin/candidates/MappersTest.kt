@@ -196,6 +196,8 @@ class MappersTest {
                     coreValues = listOf("управлять"),
                     lexemeTextKeys = setOf("управлять", "бежать"),
                     groupNames = listOf("Finance"),
+                    addedAt = 0L,
+                    lexemes = emptyList(),
                 ),
             ),
         )
@@ -234,6 +236,8 @@ class MappersTest {
                         coreValues = listOf("управлять"),
                         lexemeTextKeys = setOf("управлять", "бежать"),
                         groupNames = listOf("Finance"),
+                        addedAt = 0L,
+                        lexemes = emptyList(),
                     ),
                 ),
             ),

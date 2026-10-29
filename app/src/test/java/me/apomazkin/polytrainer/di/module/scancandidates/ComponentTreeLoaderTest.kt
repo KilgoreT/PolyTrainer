@@ -22,7 +22,7 @@ import org.junit.Test
 import java.util.Date
 
 /**
- * Дерево компонентов словаря для запроса (WFT-78) на словаре из контракта:
+ * Дерево компонентов словаря для запроса (LFL-78) на словаре из контракта:
  * «Перевод», «Часть речи», «Пример» и свои «Род» под опцией «существительное» и
  * «Толкование». Порядок обхода — он же порядок компонентов формы окна.
  */
@@ -145,7 +145,7 @@ class ComponentTreeLoaderTest {
         single { it.id == id }
 
     @Test
-    fun `WFT-78_1 dictionary of the contract - gender under the option noun, gloss in the root`() = runTest {
+    fun `LFL-78_1 dictionary of the contract - gender under the option noun, gloss in the root`() = runTest {
         val tree = loader(dictionary).treeOf(DICT)
 
         val expected = listOf(
@@ -190,7 +190,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78_2 built-in translation has its key, core and template`() = runTest {
+    fun `LFL-78_2 built-in translation has its key, core and template`() = runTest {
         val node = loader(dictionary).treeOf(DICT).node(1L)
 
         assertEquals("translation", node.key)
@@ -200,7 +200,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78_3 own option has no key and its text for the label`() = runTest {
+    fun `LFL-78_3 own option has no key and its text for the label`() = runTest {
         val tree = loader(dictionary).treeOf(DICT)
 
         val genderNode = tree.node(2L).options.first { it.id == 21L }.children.single()
@@ -211,7 +211,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78_4 disabled example is not in the tree, the rest stays`() = runTest {
+    fun `LFL-78_4 disabled example is not in the tree, the rest stays`() = runTest {
         val disabled = example.copy(enabled = false)
 
         val tree = loader(listOf(translation, partOfSpeech, disabled, gloss, gender)).treeOf(DICT)
@@ -221,7 +221,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78_6 disabled part of speech takes the gender under its option with it`() = runTest {
+    fun `LFL-78_6 disabled part of speech takes the gender under its option with it`() = runTest {
         val disabled = partOfSpeech.copy(enabled = false)
 
         val tree = loader(listOf(translation, disabled, example, gloss, gender)).treeOf(DICT)
@@ -231,7 +231,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78_7 no enabled components gives an empty tree`() = runTest {
+    fun `LFL-78_7 no enabled components gives an empty tree`() = runTest {
         val off = listOf(translation.copy(enabled = false), gloss.copy(enabled = false))
 
         assertTrue(loader(off).treeOf(DICT).isEmpty())
@@ -239,7 +239,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78 roots go built-in first, then by position, then by id`() = runTest {
+    fun `LFL-78 roots go built-in first, then by position, then by id`() = runTest {
         val ownFirst = type(10L, name = "Первое своё", position = 0)
         val ownSecond = type(11L, name = "Второе своё", position = 0)
         val ownLate = type(9L, name = "Позднее своё", position = 5)
@@ -251,7 +251,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78 a component depending on another component sits in its children`() = runTest {
+    fun `LFL-78 a component depending on another component sits in its children`() = runTest {
         val note = type(7L, name = "Заметка", dependsOn = DependencyTarget.Component(ComponentTypeId(1L)))
         val deeper = type(8L, name = "Ещё глубже", dependsOn = DependencyTarget.Component(ComponentTypeId(7L)))
 
@@ -263,7 +263,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78 options of a choice go by position, a removed option is not there with its dependents`() = runTest {
+    fun `LFL-78 options of a choice go by position, a removed option is not there with its dependents`() = runTest {
         val onVerb = type(7L, name = "Переходность", dependsOn = DependencyTarget.Option(22L))
         val options = listOf(
             option(23L, 2L, key = "adjective", position = 2),
@@ -279,7 +279,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78 built-in option label is its resource, renamed built-in option keeps the text`() = runTest {
+    fun `LFL-78 built-in option label is its resource, renamed built-in option keeps the text`() = runTest {
         val options = listOf(
             option(21L, 2L, key = "noun", position = 0),
             option(22L, 2L, key = "verb", label = "Глагол!", position = 1),
@@ -299,7 +299,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78 options are read only for enabled choices`() = runTest {
+    fun `LFL-78 options are read only for enabled choices`() = runTest {
         val lexemeApi = mockk<CoreDbApi.LexemeApi>()
         coEvery { lexemeApi.getComponentTypes(DICT) } returns
             listOf(translation, partOfSpeech.copy(enabled = false))
@@ -310,7 +310,7 @@ class ComponentTreeLoaderTest {
     }
 
     @Test
-    fun `WFT-78 flat order of the form - component, then dependents of its options, then its own`() = runTest {
+    fun `LFL-78 flat order of the form - component, then dependents of its options, then its own`() = runTest {
         val note = type(7L, name = "Заметка", dependsOn = DependencyTarget.Component(ComponentTypeId(2L)))
 
         val flat = loader(listOf(translation, partOfSpeech, example, gloss, gender, note))

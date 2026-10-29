@@ -14,8 +14,8 @@ fun NavGraphBuilder.vocabulary(
     navController: NavHostController,
     compositionRoot: CompositionRoot,
 ) {
-    tabComposable(TabPoint.VOCABULARY) { navBackStackEntry ->
-        compositionRoot.VocabularyHostDep(savedStateHandle = navBackStackEntry.savedStateHandle)
+    tabComposable(TabPoint.VOCABULARY) {
+        compositionRoot.VocabularyHostDep()
     }
 
     composable(

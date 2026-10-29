@@ -8,10 +8,10 @@ import me.apomazkin.wordstab.deps.ScanLauncher
 sealed interface UiEffect : Effect {
     data class ShowNotification(val message: String) : UiEffect
 
-    /** Открыть системную камеру, снимок — в файл в кеше приложения (WFP-06.1). */
+    /** Открыть системную камеру, снимок — в файл в кеше приложения (TFP-06.1). */
     data object LaunchCamera : UiEffect
 
-    /** Открыть системный выбор снимка (WFP-06.2). */
+    /** Открыть системный выбор снимка (TFP-06.2). */
     data object LaunchGallery : UiEffect
 }
 

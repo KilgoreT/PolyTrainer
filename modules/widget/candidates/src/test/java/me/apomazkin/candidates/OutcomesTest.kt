@@ -5,9 +5,9 @@ import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.ComponentRecommendation
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.FormOutcome
+import me.apomazkin.lexeme.LexemesOutcome
 import me.apomazkin.lexeme.LookupDenyReason
 import me.apomazkin.lexeme.LookupLemma
-import me.apomazkin.lexeme.LookupOutcome
 import me.apomazkin.lexeme.LookupWord
 import me.apomazkin.lexeme.LookupWordStatus
 import me.apomazkin.lexeme.WordLookupOutcome
@@ -46,23 +46,22 @@ class OutcomesTest {
     }
 
     @Test
-    fun `lookup outcomes are described for the log`() {
-        val words = listOf(
-            LookupWord("run", LookupWordStatus.FOUND, listOf(lemma, lemma), emptyList()),
-            LookupWord("ran", LookupWordStatus.FOUND, listOf(lemma), emptyList()),
-        )
+    fun `lexemes outcomes are described for the log`() {
+        val word = LookupWord("run", LookupWordStatus.FOUND, listOf(lemma, lemma), emptyList())
         val recommendation = ComponentRecommendation("Род", ComponentTemplate.CHOICE, emptyList())
 
         assertEquals(
-            "dict=3 words=2 lemmas=3 recommendations=1",
-            LookupOutcome.Words(3, words, listOf(recommendation)).describe(),
+            "found lemmas=2 recommendations=1 existing=0",
+            LexemesOutcome.Found(word, listOf(recommendation)).describe(),
         )
-        assertEquals("no words", LookupOutcome.NoWords.describe())
+        assertEquals("not found", LexemesOutcome.NotFound.describe())
+        assertEquals("no lexemes", LexemesOutcome.NoLexemes.describe())
         assertEquals(
             "denied=RATE_LIMITED",
-            LookupOutcome.Denied(LookupDenyReason.RATE_LIMITED).describe(),
+            LexemesOutcome.Denied(LookupDenyReason.RATE_LIMITED).describe(),
         )
-        assertEquals("unavailable", LookupOutcome.Unavailable.describe())
+        assertEquals("unavailable", LexemesOutcome.Unavailable.describe())
+        assertEquals("word failed", LexemesOutcome.WordFailed.describe())
     }
 
     @Test

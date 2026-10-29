@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import me.apomazkin.candidates.AddSummaryUi
 import me.apomazkin.candidates.CandidateValueUiItem
 import me.apomazkin.candidates.CardLexemeUiItem
 import me.apomazkin.candidates.CardOwnGroupUi
@@ -13,19 +12,23 @@ import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.candidates.DictionaryFormUi
 import me.apomazkin.candidates.EditableTextUiItem
 import me.apomazkin.candidates.FormComponentUi
+import me.apomazkin.candidates.FormGroupUi
 import me.apomazkin.candidates.LemmaCardUiItem
-import me.apomazkin.candidates.ui.ScanCandidatesContent
 import me.apomazkin.core_resources.R
 import me.apomazkin.di.viewModelFactory
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.DependencyTarget
+import me.apomazkin.scancandidates.mate.CardPhase
 import me.apomazkin.scancandidates.mate.Msg
 import me.apomazkin.scancandidates.mate.ScanCandidatesState
 import me.apomazkin.scancandidates.mate.ScanPhase
-import me.apomazkin.scancandidates.mate.toView
+import me.apomazkin.scancandidates.mate.ScanWordListsUi
+import me.apomazkin.scancandidates.mate.ScanWordUiItem
+import me.apomazkin.scancandidates.mate.WordCardUi
 import me.apomazkin.scancandidates.ui.MessagePanel
 import me.apomazkin.scancandidates.ui.ProgressPanel
+import me.apomazkin.scancandidates.ui.ScanWordListsContent
 import me.apomazkin.scancandidates.ui.toMsg
 import me.apomazkin.theme.AppTheme
 import me.apomazkin.theme.formBackground
@@ -33,8 +36,8 @@ import me.apomazkin.ui.SystemBarsWidget
 import me.apomazkin.ui.preview.PreviewScreen
 
 /**
- * Экран лексем-кандидатов со снимка: от распознавания до записи. Живёт один
- * снимок, ViewModel — по ключу снимка.
+ * Экран снимка: от распознавания до окна со списками словарных форм и
+ * карточками под словами. Живёт один снимок, ViewModel — по ключу снимка.
  */
 @Composable
 fun ScanCandidatesScreen(
@@ -55,7 +58,9 @@ fun ScanCandidatesScreen(
 /**
  * Что на экране решает фаза стейта: индикатор с подписью и «Отменить», «слов
  * нет», ошибка с «Закрыть» и, по флагу, «Повторить», окно. Системный «назад» —
- * `RequestClose` в любой фазе; во время записи он не действует (AWP-19.5).
+ * `RequestClose` в любой фазе: во время записи его гасит редьюсер (AWP-51.12),
+ * при недобавленных словах — вопрос (AWP-51), иначе окно закрывается сразу
+ * (AWP-60).
  */
 @Composable
 internal fun ScanCandidatesScreen(
@@ -63,36 +68,38 @@ internal fun ScanCandidatesScreen(
     sendMessage: (Msg) -> Unit,
 ) {
     SystemBarsWidget(color = formBackground)
-    BackHandler { if (!state.isAdding) sendMessage(Msg.RequestClose) }
+    BackHandler { sendMessage(Msg.RequestClose) }
 
     when (state.phase) {
         ScanPhase.RECOGNIZING -> ProgressPanel(
             captionRes = R.string.photo_words_recognizing,
             onCancel = { sendMessage(Msg.RequestClose) },
         )
-        ScanPhase.LOOKING -> ProgressPanel(
-            captionRes = R.string.photo_words_looking,
+        ScanPhase.ANALYZING -> ProgressPanel(
+            captionRes = R.string.scan_analyzing,
             onCancel = { sendMessage(Msg.RequestClose) },
         )
         ScanPhase.FORM_LOADING -> ProgressPanel(
             captionRes = R.string.photo_add_form_loading,
             onCancel = { sendMessage(Msg.RequestClose) },
         )
-        ScanPhase.WINDOW -> ScanCandidatesContent(
-            view = state.toView(),
+        ScanPhase.WINDOW -> ScanWordListsContent(
+            state = state,
             onAction = { sendMessage(it.toMsg()) },
+            onWordAction = { sendMessage(it.toMsg()) },
+            onToggleTranslation = { sendMessage(Msg.ToggleTranslation) },
         )
         ScanPhase.NO_WORDS -> MessagePanel(
             textRes = R.string.photo_words_empty,
             hasRetryButton = false,
-            onRetry = { sendMessage(Msg.RetryLookup) },
+            onRetry = { sendMessage(Msg.RetryLemmas) },
             onClose = { sendMessage(Msg.RequestClose) },
         )
         ScanPhase.ERROR -> state.errorRes?.let { errorRes ->
             MessagePanel(
                 textRes = errorRes,
                 hasRetryButton = state.hasRetryButton,
-                onRetry = { sendMessage(Msg.RetryLookup) },
+                onRetry = { sendMessage(Msg.RetryLemmas) },
                 onClose = { sendMessage(Msg.RequestClose) },
             )
         }
@@ -117,32 +124,48 @@ private val previewForm = DictionaryFormUi(
         ),
     ),
     options = emptyMap(),
-    groups = emptyList(),
+    groups = listOf(FormGroupUi(id = 7L, name = "Harry Potter 1")),
     existingLemmas = emptyList(),
 )
 
-private val previewCard = LemmaCardUiItem(
-    lemma = "perro",
-    sourceWords = listOf("perro"),
-    lexemes = listOf(
-        CardLexemeUiItem(
-            key = "ruwiktionary/1.noun.1",
-            source = "ruwiktionary",
-            values = listOf(
-                CandidateValueUiItem.Text(
-                    componentId = 1L,
-                    texts = listOf(EditableTextUiItem.of("собака; пёс")),
-                    field = "translations",
+private val previewCard = WordCardUi(
+    phase = CardPhase.CANDIDATES,
+    lemma = LemmaCardUiItem(
+        lemma = "correr",
+        sourceWords = listOf("corrían"),
+        lexemes = listOf(
+            CardLexemeUiItem(
+                key = "ruwiktionary/1.verb.3",
+                source = "ruwiktionary",
+                values = listOf(
+                    CandidateValueUiItem.Text(
+                        componentId = 1L,
+                        texts = listOf(EditableTextUiItem.of("течь, литься, струиться (о жидкости)")),
+                        field = "translations",
+                    ),
                 ),
+                isEnglishFallback = false,
+                exists = false,
+                lacksCore = false,
+                isInContext = true,
             ),
-            isEnglishFallback = false,
-            exists = false,
-            lacksCore = false,
         ),
+        existingCount = 0,
+        target = CardTargetUi.NewWord,
+        ownGroup = CardOwnGroupUi.AsCommon,
+        formNote = "third-person plural imperfect indicative",
     ),
-    existingCount = 0,
-    target = CardTargetUi.NewWord,
-    ownGroup = CardOwnGroupUi.AsCommon,
+    canAdd = true,
+)
+
+private val previewLists = ScanWordListsUi(
+    lexical = listOf(
+        ScanWordUiItem("nube"),
+        ScanWordUiItem("correr", card = previewCard, isExpanded = true),
+        ScanWordUiItem("cielo", isInDictionary = true),
+    ),
+    function = listOf(ScanWordUiItem("el"), ScanWordUiItem("por")),
+    unparsed = listOf(ScanWordUiItem("sh")),
 )
 
 @PreviewScreen
@@ -158,10 +181,10 @@ private fun PreviewRecognizing() {
 
 @PreviewScreen
 @Composable
-private fun PreviewLooking() {
+private fun PreviewAnalyzing() {
     AppTheme {
         ScanCandidatesScreen(
-            state = ScanCandidatesState(uri = PREVIEW_URI, phase = ScanPhase.LOOKING),
+            state = ScanCandidatesState(uri = PREVIEW_URI, phase = ScanPhase.ANALYZING),
             sendMessage = {},
         )
     }
@@ -212,7 +235,7 @@ private fun PreviewRetryableError() {
             state = ScanCandidatesState(
                 uri = PREVIEW_URI,
                 phase = ScanPhase.ERROR,
-                errorRes = R.string.scan_server_unavailable,
+                errorRes = R.string.scan_analysis_unavailable,
                 hasRetryButton = true,
             ),
             sendMessage = {},
@@ -228,9 +251,11 @@ private fun PreviewWindow() {
             state = ScanCandidatesState(
                 uri = PREVIEW_URI,
                 phase = ScanPhase.WINDOW,
+                text = "Las nubes corrían por el cielo.",
+                translation = "Облака бежали по небу.",
+                isTranslationExpanded = true,
+                lists = previewLists,
                 form = previewForm,
-                cards = listOf(previewCard),
-                summary = AddSummaryUi(lexemeCount = 1, wordCount = 1, isEnabled = true),
             ),
             sendMessage = {},
         )

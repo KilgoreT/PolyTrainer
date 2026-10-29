@@ -44,11 +44,8 @@ class RemarksTest {
     // AWP-30 — раздел «Замечания»
 
     @Test
-    fun `AWP-30_1 unclear component of two words is one line`() {
-        val words = listOf(
-            Fx.perro.copy(remarks = listOf(unclear(Fx.UNCLEAR))),
-            Fx.corrian.copy(remarks = listOf(unclear(Fx.UNCLEAR))),
-        )
+    fun `AWP-30_15 unclear component of the word is one line`() {
+        val words = listOf(Fx.perro.copy(remarks = listOf(unclear(Fx.UNCLEAR))))
 
         val lines = remarksOf(words, emptyList(), formWithUnclear)
 
@@ -56,7 +53,7 @@ class RemarksTest {
     }
 
     @Test
-    fun `AWP-30_1 unclear component not in the form gives no line`() {
+    fun `AWP-30_15 unclear component not in the form gives no line`() {
         val words = listOf(Fx.perro.copy(remarks = listOf(unclear(99L))))
 
         assertTrue(remarksOf(words, emptyList(), form).isEmpty())
@@ -196,15 +193,14 @@ class RemarksTest {
     // AWP-31 — раздел «Сопоставление»
 
     @Test
-    fun `AWP-31_1 perro and corrian give lines in the order of the dictionary components`() {
-        val lines = componentMatchLinesOf(listOf(Fx.perro, Fx.corrian), form)
+    fun `AWP-31_6 perro gives lines in the order of the dictionary components`() {
+        val lines = componentMatchLinesOf(listOf(Fx.perro), form)
 
         assertEquals(
             listOf(
                 "translations → Перевод",
                 "Часть речи: существительное",
                 "Часть речи: прилагательное",
-                "Часть речи: глагол",
                 "Род: м.р.",
                 "examples → Пример",
                 "gloss → Толкование",

@@ -3,7 +3,7 @@ package me.apomazkin.lexeme
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Исход запроса одного слова из исхода запроса (WCL-04.7, WCL-11). */
+/** Исход запроса одного слова из исхода запроса по лемме (WCL-04.7, WCL-11). */
 class LookupTest {
 
     private fun lexeme(key: String) = LookupLexeme(
@@ -28,48 +28,37 @@ class LookupTest {
         vararg lemmas: LookupLemma,
     ) = LookupWord(text = text, status = status, lemmas = lemmas.toList(), remarks = emptyList())
 
-    private fun words(vararg words: LookupWord) =
-        LookupOutcome.Words(dictionaryId = 1L, words = words.toList(), recommendations = emptyList())
-
     @Test
     fun `WCL-04_8 a found word with lexemes is found with its recommendations`() {
         val perro = word("perro", LookupWordStatus.FOUND, LookupLemma("perro", null, emptyList(), listOf(lexeme("ruwiktionary/1.noun.1"))))
         val recommendation = ComponentRecommendation(name = "Род", template = ComponentTemplate.CHOICE, options = listOf("м.р.", "ж.р."))
 
-        val outcome = wordLookupOf(words(perro).copy(recommendations = listOf(recommendation)))
+        val outcome = wordLookupOf(LexemesOutcome.Found(word = perro, recommendations = listOf(recommendation)))
 
         assertEquals(WordLookupOutcome.Found(perro, listOf(recommendation)), outcome)
     }
 
     @Test
-    fun `WCL-11_1 WCL-04_7 not found and found without lexemes have no candidate lexemes`() {
-        val notFound = word("qwrtzk", LookupWordStatus.NOT_FOUND)
-        val emptyLemmas = word("bank", LookupWordStatus.FOUND)
-        val lemmaWithoutLexemes = word("bank", LookupWordStatus.FOUND, LookupLemma("bank", null, emptyList(), emptyList()))
-
-        assertEquals(WordLookupOutcome.NotFound, wordLookupOf(words(notFound)))
-        assertEquals(WordLookupOutcome.NotFound, wordLookupOf(words(emptyLemmas)))
-        assertEquals(WordLookupOutcome.NotFound, wordLookupOf(words(lemmaWithoutLexemes)))
-        assertEquals(WordLookupOutcome.NotFound, wordLookupOf(LookupOutcome.NoWords))
+    fun `WCL-11_1 WCL-04_7 not found and no lexemes have no candidate lexemes`() {
+        assertEquals(WordLookupOutcome.NotFound, wordLookupOf(LexemesOutcome.NotFound))
+        assertEquals(WordLookupOutcome.NotFound, wordLookupOf(LexemesOutcome.NoLexemes))
     }
 
     @Test
-    fun `WCL-11_7 an error word means the server failed on it`() {
-        val error = word("perro", LookupWordStatus.ERROR)
-
-        assertEquals(WordLookupOutcome.WordFailed, wordLookupOf(words(error)))
+    fun `WCL-11_7 a failed word means the server failed on it`() {
+        assertEquals(WordLookupOutcome.WordFailed, wordLookupOf(LexemesOutcome.WordFailed))
     }
 
     @Test
     fun `WCL-11_2 WCL-11_3 WCL-11_6 denials and unavailable pass through`() {
         assertEquals(
             WordLookupOutcome.Denied(LookupDenyReason.LLM_UNAVAILABLE),
-            wordLookupOf(LookupOutcome.Denied(LookupDenyReason.LLM_UNAVAILABLE)),
+            wordLookupOf(LexemesOutcome.Denied(LookupDenyReason.LLM_UNAVAILABLE)),
         )
         assertEquals(
             WordLookupOutcome.Denied(LookupDenyReason.RATE_LIMITED),
-            wordLookupOf(LookupOutcome.Denied(LookupDenyReason.RATE_LIMITED)),
+            wordLookupOf(LexemesOutcome.Denied(LookupDenyReason.RATE_LIMITED)),
         )
-        assertEquals(WordLookupOutcome.Unavailable, wordLookupOf(LookupOutcome.Unavailable))
+        assertEquals(WordLookupOutcome.Unavailable, wordLookupOf(LexemesOutcome.Unavailable))
     }
 }

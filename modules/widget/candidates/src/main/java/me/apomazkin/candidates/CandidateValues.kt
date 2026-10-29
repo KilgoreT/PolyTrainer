@@ -9,7 +9,7 @@ import me.apomazkin.lexeme.DependencyTarget
  * UI-типами.
  */
 
-/** Поля ответа, которые нейронка кладёт в текстовые компоненты (WFT-87, «Связи»). */
+/** Поля ответа, которые нейронка кладёт в текстовые компоненты (LFL-87, «Связи»). */
 private const val FIELD_TRANSLATIONS = "translations"
 private const val FIELD_GLOSS = "gloss"
 private const val FIELD_EXAMPLES = "examples"

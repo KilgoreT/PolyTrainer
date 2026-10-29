@@ -9,7 +9,7 @@ package me.apomazkin.lexeme
 
 /**
  * Токен запроса: [text] как распознан, [confidence] 0…1, [language] по
- * мнению распознавания или язык словаря у карточки слова (WFT-20).
+ * мнению распознавания или язык словаря у карточки слова (LFL-20).
  */
 data class LookupToken(
     val text: String,
@@ -17,7 +17,7 @@ data class LookupToken(
     val language: String?,
 )
 
-/** Исход распознавания снимка (WFP Ш4–Ш5): токены как распознаны или пусто. */
+/** Исход распознавания снимка (TFP Ш4–Ш5): токены как распознаны или пусто. */
 sealed interface RecognitionOutcome {
     data class Text(
         val tokens: List<LookupToken>,
@@ -27,27 +27,49 @@ sealed interface RecognitionOutcome {
 }
 
 /**
- * Исход запроса слов (WFT Ш1…Ш8): слова есть, ответ без слов, отказ с
- * причиной, сервер не ответил.
+ * Контекст леммы из ответа `lemmas/from-tokens` (LFL Ш1 А): исправленный
+ * [text] снимка и его [translation].
  */
-sealed interface LookupOutcome {
-    /** [dictionaryId] — словарь снимка (AWP-01), [words] в порядке ответа, [recommendations] ко всему ответу. */
-    data class Words(
-        val dictionaryId: Long,
-        val words: List<LookupWord>,
-        val recommendations: List<ComponentRecommendation>,
-    ) : LookupOutcome
+data class LemmaContext(
+    val text: String,
+    val translation: String,
+)
 
-    data object NoWords : LookupOutcome
+/**
+ * Исход запроса значений леммы (LFL Ш8, Д114): слово ответа с леммой и
+ * лексемами, словарной формы в базе нет, найдено, но нейронка ничего не
+ * выбрала, отказ с причиной, сервер не ответил, слово ответа «ошибка».
+ */
+sealed interface LexemesOutcome {
+    /**
+     * [word] — слово ответа; [existing] — леммы словаря снимка с текстом леммы
+     * ответа, когда она не та, что просили («children» → «child»), иначе пусто
+     * (AWP-43.7): маппер слоя сети словаря не знает, их добавляет юзкейс.
+     */
+    data class Found(
+        val word: LookupWord,
+        val recommendations: List<ComponentRecommendation>,
+        val existing: List<ExistingLemma> = emptyList(),
+    ) : LexemesOutcome
+
+    /** Словарной формы в базе нет ни у слова, ни по связям (LFL-50.2). */
+    data object NotFound : LexemesOutcome
+
+    /** `found` с пустыми леммами: нейронка ничего не выбрала (LFL-100.2, AWP-55.7). */
+    data object NoLexemes : LexemesOutcome
 
     data class Denied(
         val reason: LookupDenyReason,
-    ) : LookupOutcome
+    ) : LexemesOutcome
 
-    data object Unavailable : LookupOutcome
+    /** Сети нет или сервер не ответил (LFL-23). */
+    data object Unavailable : LexemesOutcome
+
+    /** Слово ответа `error`: сервер ответил, но по слову не справился (LFL-97). */
+    data object WordFailed : LexemesOutcome
 }
 
-/** Слово ответа (WFT-50): текст, статус, леммы, замечания по слову. */
+/** Слово ответа (LFL-50): текст, статус, леммы, замечания по слову. */
 data class LookupWord(
     val text: String,
     val status: LookupWordStatus,
@@ -55,7 +77,10 @@ data class LookupWord(
     val remarks: List<WordRemark>,
 )
 
-/** Лемма ответа (WFT-76): текст, пометка формы, транскрипции записи, лексемы-кандидаты в порядке отбора. */
+/**
+ * Лемма ответа (LFL-76): текст, пометка формы, транскрипции записи,
+ * лексемы-кандидаты в порядке отбора.
+ */
 data class LookupLemma(
     val text: String,
     val formNote: String?,
@@ -64,8 +89,8 @@ data class LookupLemma(
 )
 
 /**
- * Лексема-кандидат (WFT-71): данные записи целиком и сопоставление с
- * компонентами словаря (WFT-87); [key] уникален в лемме, [source] и
+ * Лексема-кандидат (LFL-71): данные записи целиком и сопоставление с
+ * компонентами словаря (LFL-87); [key] уникален в лемме, [source] и
  * [partOfSpeechKey] — строки как у сервера.
  */
 data class LookupLexeme(
@@ -82,6 +107,8 @@ data class LookupLexeme(
     val synonyms: List<String>,
     val antonyms: List<String>,
     val componentMatches: List<ComponentMatch>,
+    /** Употреблена в тексте снимка (LFL-113): `true` только у первой лексемы по тапу, без контекста `false`. */
+    val inContext: Boolean = false,
 )
 
 /** Строка сопоставления: компонент словаря и опция «Выбора» или поле ответа (контракт, 5.1). */
@@ -93,26 +120,29 @@ data class ComponentMatch(
 
 /** Замечание по слову (контракт, 5.6). */
 sealed interface WordRemark {
-    /** Назначение компонента нейронке непонятно, он оставлен пустым (WFT-88). */
+    /** Назначение компонента нейронке непонятно, он оставлен пустым (LFL-88). */
     data class ComponentUnclear(
         val componentId: Long,
     ) : WordRemark
 
-    /** У лексемы-кандидата нет переводов на язык перевода, показано английское толкование (WFT-91). */
+    /**
+     * У лексемы-кандидата нет переводов на язык перевода, показано английское
+     * толкование (LFL-91).
+     */
     data class NoTranslation(
         val lemma: String,
         val lexemeKey: String,
     ) : WordRemark
 }
 
-/** Рекомендация завести компонент — ко всему ответу (WFT-89). */
+/** Рекомендация завести компонент — ко всему ответу (LFL-89). */
 data class ComponentRecommendation(
     val name: String,
     val template: ComponentTemplate,
     val options: List<String>,
 )
 
-/** Причина отказа; текст выбирает экран (WFT-63). */
+/** Причина отказа; текст выбирает экран (LFL-63). */
 enum class LookupDenyReason {
     NO_ACCESS_KEY,
     UNAUTHORIZED,
@@ -120,7 +150,7 @@ enum class LookupDenyReason {
     REQUEST_TOO_LARGE,
     UNSUPPORTED_LANGUAGE,
 
-    /** 503: вызовы нейронки были, и ни один не ответил (WFT-63.5). */
+    /** 503: вызовы нейронки были, и ни один не ответил (LFL-63.5). */
     LLM_UNAVAILABLE,
 }
 
@@ -157,22 +187,35 @@ sealed interface WordLookupOutcome {
 }
 
 /**
- * Исход запроса одного слова из исхода запроса (WCL-04.7, WCL-11): слово
- * ответа `error` — сервер по нему не справился (WCL-11.7); `not_found`,
- * пустой ответ или леммы без лексем — лексем-кандидатов нет; иначе
- * найдено.
+ * Исход запроса одного слова из исхода запроса по лемме (WCL-04.7, WCL-11):
+ * слово ответа `error` — сервер по нему не справился (WCL-11.7); не найдено
+ * и «значений нет» — лексем-кандидатов нет; иначе найдено.
  */
-fun wordLookupOf(outcome: LookupOutcome): WordLookupOutcome = when (outcome) {
-    is LookupOutcome.Words -> {
-        val word = outcome.words.firstOrNull()
-        when {
-            word == null -> WordLookupOutcome.NotFound
-            word.status == LookupWordStatus.ERROR -> WordLookupOutcome.WordFailed
-            word.lemmas.none { it.lexemes.isNotEmpty() } -> WordLookupOutcome.NotFound
-            else -> WordLookupOutcome.Found(word = word, recommendations = outcome.recommendations)
-        }
-    }
-    LookupOutcome.NoWords -> WordLookupOutcome.NotFound
-    is LookupOutcome.Denied -> WordLookupOutcome.Denied(outcome.reason)
-    LookupOutcome.Unavailable -> WordLookupOutcome.Unavailable
+fun wordLookupOf(outcome: LexemesOutcome): WordLookupOutcome = when (outcome) {
+    is LexemesOutcome.Found -> WordLookupOutcome.Found(
+        word = outcome.word,
+        recommendations = outcome.recommendations,
+    )
+    LexemesOutcome.NotFound,
+    LexemesOutcome.NoLexemes,
+    -> WordLookupOutcome.NotFound
+    is LexemesOutcome.Denied -> WordLookupOutcome.Denied(outcome.reason)
+    LexemesOutcome.Unavailable -> WordLookupOutcome.Unavailable
+    LexemesOutcome.WordFailed -> WordLookupOutcome.WordFailed
+}
+
+/**
+ * Исход с леммами словаря по лемме ответа (AWP-43.7): у найденного слова
+ * лемма ответа с другим текстом, чем просили (ключ текста, AWP-39), —
+ * леммы словаря с этим текстом через [load] («children» → «child»); та же
+ * лемма или не найдено — исход как есть.
+ */
+suspend fun LexemesOutcome.withExistingOf(
+    requested: String,
+    load: suspend (String) -> List<ExistingLemma>,
+): LexemesOutcome {
+    if (this !is LexemesOutcome.Found) return this
+    val answered = word.lemmas.firstOrNull { it.lexemes.isNotEmpty() }?.text ?: return this
+    if (wordTextKey(answered) == wordTextKey(requested)) return this
+    return copy(existing = load(answered))
 }

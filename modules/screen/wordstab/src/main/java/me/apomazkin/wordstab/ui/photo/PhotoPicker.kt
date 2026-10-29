@@ -31,7 +31,7 @@ private const val PHOTOS_DIR = "photos"
  * кеше через FileProvider) и фотопикер (`PickVisualMedia`, без разрешений).
  * Запускает их эффект вкладки через [ScanLauncher]; снимок уходит колбэком
  * наружу, дальше — сообщение mate. Отмена в камере или галерее ничего не
- * шлёт: диалог выбора остаётся как был (WFP-18).
+ * шлёт: диалог выбора остаётся как был (TFP-18).
  */
 @Stable
 class PhotoPicker internal constructor(
@@ -48,7 +48,7 @@ class PhotoPicker internal constructor(
     /**
      * Камеру могли отключить между проверкой и запуском; SecurityException —
      * если CAMERA объявит чужая библиотека. Файл под снимок не создался (нет
-     * места) — тоже false, камера не открывается (WFP-07.2).
+     * места) — тоже false, камера не открывается (TFP-07.2).
      */
     override fun launchCamera(): Boolean {
         val uri = newPhotoUri(context) ?: return false
@@ -144,7 +144,7 @@ private fun discardPhoto(context: Context, uri: Uri) {
 
 /**
  * Закрепить доступ к картинке галереи до отправки сообщения: он должен
- * пережить гибель процесса, пока экран читает снимок (WFP-22.4). Не вышло —
+ * пережить гибель процесса, пока экран читает снимок (TFP-22.4). Не вышло —
  * в лог, экран покажет ошибку чтения.
  */
 private fun keepReadAccess(context: Context, uri: Uri, logger: LexemeLogger) {

@@ -23,7 +23,7 @@ abstract class ScanDialogAtoms(
 
     /**
      * Открыть диалог выбора источника, без ошибки. Диалог один: повторный
-     * вызов при открытом диалоге второго не открывает (WFP-06.5), прежний
+     * вызов при открытом диалоге второго не открывает (TFP-06.5), прежний
      * текст ошибки сбрасывается. Меняет [WordsTabState.scanDialogState].
      * Эффектов нет.
      */
@@ -35,7 +35,7 @@ abstract class ScanDialogAtoms(
     /**
      * Закрыть диалог: всё в умолчаниях, ошибка снята. Зовётся по «Отмена» и
      * «Закрыть» и когда снимок получен — в том числе при уже закрытом диалоге
-     * (WFP-22). Меняет [WordsTabState.scanDialogState]. Эффектов нет.
+     * (TFP-22). Меняет [WordsTabState.scanDialogState]. Эффектов нет.
      */
     fun WordsTabState.hideScanDialog(): ReducerResult<WordsTabState, Effect> {
         logStep("hideScanDialog")
@@ -43,7 +43,7 @@ abstract class ScanDialogAtoms(
     }
 
     /**
-     * Показать в диалоге причину, по которой камера не запустилась (WFP-07):
+     * Показать в диалоге причину, по которой камера не запустилась (TFP-07):
      * вместо кнопок источника — текст и «Закрыть». Диалог остаётся открытым.
      * Меняет [WordsTabState.scanDialogState]. Эффектов нет.
      * @param errorRes строка причины.

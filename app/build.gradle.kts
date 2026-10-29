@@ -44,7 +44,7 @@ android {
 
         // IS529 (Д2): ключ доступа к серверу слов — из local.properties
         // (он в .gitignore) или -PLEXEME_ACCESS_KEY; без него пустая строка,
-        // и приложение не ходит на сервер («нет доступа», WFT-19).
+        // и приложение не ходит на сервер («нет доступа», ACC-19).
         buildConfigField("String", "LEXEME_ACCESS_KEY", "\"${getLexemeAccessKey()}\"")
         buildConfigField("String", "LEXEME_BASE_URL", "\"https://api.lexeme.pro\"")
     }

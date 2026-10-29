@@ -60,8 +60,8 @@ class WordsBatchesTest {
                 component(Fx.TRANSLATION, text("собака; пёс (также ругательство)")),
                 component(Fx.PART_OF_SPEECH, choice(Fx.NOUN)),
                 component(Fx.GENDER, choice(Fx.MASCULINE)),
-                component(Fx.EXAMPLE, sourced("perro callejero")),
                 component(Fx.GLOSS, text("dog (the species Canis familiaris …)")),
+                component(Fx.EXAMPLE, sourced("perro callejero")),
             ),
             lexeme.components,
         )
@@ -178,7 +178,7 @@ class WordsBatchesTest {
         val lexeme = batchOf(cards).firstLexeme()
 
         assertEquals(
-            listOf(Fx.TRANSLATION, Fx.PART_OF_SPEECH, Fx.EXAMPLE, Fx.GLOSS),
+            listOf(Fx.TRANSLATION, Fx.PART_OF_SPEECH, Fx.GLOSS, Fx.EXAMPLE),
             lexeme.typeIds(),
         )
         assertEquals(
@@ -207,6 +207,33 @@ class WordsBatchesTest {
     }
 
     @Test
+    fun `AWP-32_13 sister with three examples writes three examples with the source caption in the order of the entry`() {
+        val examples = listOf(
+            "Emily is Sophie's younger sister.",
+            "They kissed her and spoke gently…",
+            "Brother and sister conversed…",
+        )
+        val sister = Fx.lexeme(
+            key = "ruwiktionary/1.noun.1",
+            translations = listOf("сестра"),
+            examples = examples,
+            partOfSpeechKey = "noun",
+            matches = listOf(
+                Fx.byField(Fx.TRANSLATION, "translations"),
+                Fx.byOption(Fx.PART_OF_SPEECH, Fx.NOUN),
+                Fx.byField(Fx.EXAMPLE, "examples"),
+            ),
+        )
+        val cards = Fx.cards(Fx.word("sister", Fx.lemma("sister", listOf(sister))))
+
+        val written = batchOf(cards).firstLexeme().components
+            .filter { it.typeId == Fx.EXAMPLE }
+            .map { it.data }
+
+        assertEquals(examples.map { sourced(it) }, written)
+    }
+
+    @Test
     fun `AWP-29_12 a component switched off after the request is not written`() {
         val withoutGloss = Fx.form(components = Fx.tree.filterNot { it.id == Fx.GLOSS })
         val cards = Fx.cards(Fx.perro, form = withoutGloss)
@@ -226,7 +253,7 @@ class WordsBatchesTest {
 
         val lexeme = batchOf(cards, withoutPartOfSpeech).firstLexeme()
 
-        assertEquals(listOf(Fx.TRANSLATION, Fx.EXAMPLE, Fx.GLOSS), lexeme.typeIds())
+        assertEquals(listOf(Fx.TRANSLATION, Fx.GLOSS, Fx.EXAMPLE), lexeme.typeIds())
     }
 
     // AWP-16 — правка текста доходит до записи

@@ -8,15 +8,18 @@ import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.candidates.ComponentRecommendationUi
 import me.apomazkin.candidates.ComponentRefUi
 import me.apomazkin.candidates.DictionaryFormUi
+import me.apomazkin.candidates.ExistingLemmaUi
 import me.apomazkin.candidates.LookupWordUi
 import me.apomazkin.candidates.ValueRefUi
 import me.apomazkin.lexeme.LookupToken
 
 /**
- * Сообщения экрана лексем-кандидатов. Сначала ответы эффектов: хендлер
- * разбирает исход юзкейса и шлёт сообщение на каждый случай, редьюсер исходов
- * не видит. Затем действия пользователя. Номера запуска нет: экран живёт один
- * снимок, закрыли экран — ответу некуда прийти.
+ * Сообщения экрана снимка. Сначала ответы эффектов: хендлер разбирает исход
+ * юзкейса и шлёт сообщение на каждый случай, редьюсер исходов не видит. Затем
+ * действия пользователя. Адрес слова — его текст в списках; адрес правки —
+ * лемма карточки, как у общих виджетов. Номера запуска нет: экран живёт один
+ * снимок, закрыли экран — ответу некуда прийти; слово удалено — ответу некуда
+ * лечь (AWP-48).
  */
 sealed interface Msg {
     // ===== От эффектов: снимок, запрос, форма =====
@@ -35,31 +38,33 @@ sealed interface Msg {
     ) : Msg
 
     /**
-     * Исход запроса `Words`: слова ответа с лексемами-кандидатами и рекомендации
-     * ко всему ответу.
+     * Исход запроса `Found`: ответ сервера на токены (LFT-14) — [dictionaryId]
+     * словаря снимка, исправленный [text], его [translation] и четыре списка
+     * [lists] словами.
      */
-    data class WordsFound(
+    data class LemmasFound(
         val dictionaryId: Long,
-        val words: List<LookupWordUi>,
-        val recommendations: List<ComponentRecommendationUi>,
+        val text: String,
+        val translation: String,
+        val lists: ScanWordListsUi,
     ) : Msg
 
-    /** Исход запроса `NoWords`: сервер слов не нашёл. */
-    data object WordsEmpty : Msg
+    /** Исход запроса `NoWords`: в ответе ни словарной формы, ни «не разобрано». */
+    data object LemmasEmpty : Msg
 
     /**
-     * Исход запроса `Denied`, кроме недоступной нейронки: отказ по ключу или
-     * лимиту, «Повторить» нет.
+     * Исход запроса `Denied`, кроме недоступной нейронки: отказ по ключу,
+     * лимиту, размеру или языку, «Повторить» нет (AWP-53).
      */
-    data class LookupDenied(
+    data class LemmasDenied(
         @param:StringRes val errorRes: Int,
     ) : Msg
 
     /**
-     * Сети нет или сервер недоступен: исход `Unavailable`, отказ 503 или сбой
-     * эффекта, «Повторить» есть.
+     * Сети нет, сервер не ответил, отказ 503 или сбой эффекта: «Повторить»
+     * есть (AWP-53.1, AWP-53.5).
      */
-    data class LookupUnavailable(
+    data class LemmasUnavailable(
         @param:StringRes val errorRes: Int,
     ) : Msg
 
@@ -73,65 +78,147 @@ sealed interface Msg {
         @param:StringRes val errorRes: Int,
     ) : Msg
 
-    // ===== От эффектов: запись =====
+    // ===== От эффектов: значения слова =====
 
-    /** Исход записи `Added`: сколько значений записано и в сколько слов. */
-    data class AddFinished(
-        val lexemeCount: Int,
-        val wordCount: Int,
+    /**
+     * Исход запроса по лемме `Found`: [text] — слово списка, [word] — слово
+     * ответа с леммой и замечаниями, [recommendations] — советы завести
+     * компонент, [existing] — леммы словаря с текстом леммы ответа, когда она
+     * не из списков («children» → «child»); пусто, если лемма та же (AWP-43.7).
+     */
+    data class LexemesFound(
+        val text: String,
+        val word: LookupWordUi,
+        val recommendations: List<ComponentRecommendationUi>,
+        val existing: List<ExistingLemmaUi>,
     ) : Msg
 
-    /** Отказ записи: группа слова удалена. */
+    /**
+     * Исходы `NotFound` и `NoLexemes`: словарной формы в базе нет или нейронка
+     * ничего не выбрала, [textRes] — «Не найдено» или «Значений нет» (AWP-55).
+     */
+    data class LexemesNotFound(
+        val text: String,
+        @param:StringRes val textRes: Int,
+    ) : Msg
+
+    /** Исход `Denied`, кроме нейронки: отказ по ключу, лимиту, размеру или языку, «Повторить» нет (AWP-61). */
+    data class LexemesDenied(
+        val text: String,
+        @param:StringRes val errorRes: Int,
+    ) : Msg
+
+    /**
+     * Сети нет, сервер не ответил, нейронка недоступна или по слову не
+     * справилась, сбой эффекта: «Повторить» есть (AWP-61.1, 61.2, 61.5).
+     */
+    data class LexemesUnavailable(
+        val text: String,
+        @param:StringRes val errorRes: Int,
+    ) : Msg
+
+    // ===== От эффектов: запись =====
+
+    /** Исход записи `Added`: слово [text] записано, строки прочь (AWP-47). */
+    data class WordAdded(
+        val text: String,
+    ) : Msg
+
+    /** Отказ записи: группа слова удалена (AWP-21.3, 21.5). */
     data class AddGroupGone(
+        val text: String,
         val failure: AddFailureUi.GroupMissing,
     ) : Msg
 
-    /** Отказ записи: выбранное слово словаря удалено. */
+    /** Отказ записи: выбранная лемма словаря удалена (AWP-21.4). */
     data class AddWordGone(
+        val text: String,
         val failure: AddFailureUi.WordMissing,
     ) : Msg
 
-    /** Отказ записи: компонент выключили. */
+    /** Отказ записи: компонент выключили (AWP-21.6). */
     data class AddComponentGone(
+        val text: String,
         val failure: AddFailureUi.TypeUnavailable,
     ) : Msg
 
-    /** Остальные отказы и сбой записи: причина как есть для панели. */
+    /** Остальные отказы и сбой записи: причина как есть под словом (AWP-21.1). */
     data class AddFailed(
+        val text: String,
         val failure: AddFailureUi,
     ) : Msg
 
-    // ===== От экрана: запрос и закрытие =====
+    // ===== От экрана: запрос, перевод, закрытие =====
 
-    /** «Повторить» на ошибке: запрос заново с теми же токенами (Д53). */
-    data object RetryLookup : Msg
+    /** «Повторить» на ошибке: запрос заново с теми же токенами (TFP-26). */
+    data object RetryLemmas : Msg
 
-    /** Крестик или системный «назад». */
+    /** Тап по блоку перевода (AWP-41). */
+    data object ToggleTranslation : Msg
+
+    /** Крестик, системный «назад» или «Отменить» на индикаторе. */
     data object RequestClose : Msg
 
-    /** «Закрыть» в вопросе. */
+    /** «Закрыть» в вопросе (AWP-51.4). */
     data object ConfirmClose : Msg
 
-    /** «Остаться» в вопросе. */
+    /** «Остаться» в вопросе (AWP-51.3). */
     data object Stay : Msg
 
-    // ===== От экрана: карточки и значения =====
+    // ===== От экрана: слово =====
 
-    data class DeleteCard(
-        val lemma: String,
+    /**
+     * Тап по новому слову без карточки, «Проверить по тексту» у слова «в
+     * словаре» или «Повторить» на ошибке слова: запрос значений (AWP-43,
+     * AWP-49, AWP-61.7).
+     */
+    data class LoadLexemes(
+        val text: String,
     ) : Msg
+
+    /** Тап по слову «в словаре» без карточки: сохранённые лексемы (AWP-46). */
+    data class OpenSavedCard(
+        val text: String,
+    ) : Msg
+
+    /** Повторный тап по слову с карточкой: свернуть или раскрыть (AWP-42). */
+    data class ToggleCard(
+        val text: String,
+    ) : Msg
+
+    /** «Удалить» у слова (AWP-48). */
+    data class DeleteWord(
+        val text: String,
+    ) : Msg
+
+    /** «Добавить» у слова (AWP-02, AWP-47). */
+    data class AddWord(
+        val text: String,
+    ) : Msg
+
+    /** «Повторить» под словом после «не добавилось» (AWP-26). */
+    data class RetryAdd(
+        val text: String,
+    ) : Msg
+
+    /** Заголовок «Сопоставления» в карточке слова (AWP-31.4). */
+    data class ToggleComponentMatches(
+        val text: String,
+    ) : Msg
+
+    // ===== От экрана: правки карточки =====
 
     data class DeleteLexeme(
         val lemma: String,
         val key: String,
     ) : Msg
 
-    /** Крестик у значения компонента. */
+    /** Крестик у значения компонента (AWP-15.2, 15.7). */
     data class DeleteValue(
         val ref: ValueRefUi,
     ) : Msg
 
-    /** «Сохранить» в листе правки: адрес и текст из листа, сообщение самодостаточно. */
+    /** «Сохранить» в листе правки: адрес и текст из листа, сообщение самодостаточно (AWP-16). */
     data class SubmitText(
         val ref: ValueRefUi,
         val text: String,
@@ -141,19 +228,11 @@ sealed interface Msg {
         val ref: ValueRefUi,
     ) : Msg
 
-    /** Опция «Выбора» у лексемы-кандидата, null — «без значения». */
+    /** Опция «Выбора» у лексемы-кандидата, null — «без значения» (AWP-17). */
     data class SetOption(
         val ref: ComponentRefUi,
         val option: Long?,
     ) : Msg
-
-    // ===== От экрана: листы, группы, куда класть =====
-
-    data class OpenSheet(
-        val sheet: CandidatesSheetUi,
-    ) : Msg
-
-    data object CloseSheet : Msg
 
     /** Ввод в листе правки, каждое изменение. */
     data class UpdateDraft(
@@ -170,31 +249,19 @@ sealed interface Msg {
         val group: CardOwnGroupUi,
     ) : Msg
 
+    // ===== От экрана: общая группа и листы =====
+
+    data class OpenSheet(
+        val sheet: CandidatesSheetUi,
+    ) : Msg
+
+    data object CloseSheet : Msg
+
     /** Общая группа окна, null — «Все». */
     data class SetCommonGroup(
         val groupId: Long?,
     ) : Msg
 
-    // ===== От экрана: показ =====
-
-    data object ToggleComponentMatches : Msg
-
-    data object ToggleNotAdded : Msg
-
-    // ===== От экрана: запись =====
-
-    /** Кнопка «Добавить». */
-    data object RequestAdd : Msg
-
-    /** «Да» в вопросе о добавлении. */
-    data object ConfirmAdd : Msg
-
-    /** «Отмена» в вопросе о добавлении. */
-    data object CancelAdd : Msg
-
-    /** «Повторить» в «не добавилось». */
-    data object RetryAdd : Msg
-
-    /** Действие, которого у экрана снимка нет. */
+    /** Действие общих виджетов, которого у экрана снимка нет. */
     data object NoOperation : Msg
 }

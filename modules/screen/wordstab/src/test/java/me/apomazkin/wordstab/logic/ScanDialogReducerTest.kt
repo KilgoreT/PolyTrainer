@@ -15,8 +15,8 @@ import org.junit.Test
 
 /**
  * Вход в скан глазами reducer'а: диалог выбора источника, запуск камеры и
- * галереи эффектом, переход на экран со снимком, сообщение после возврата.
- * Адреса строк спеки в именах — `WFP-NN_k`, `AWP-NN_k`.
+ * галереи эффектом, переход на экран со снимком.
+ * Адреса строк спеки в именах — `TFP-NN_k`, `AWP-NN_k`.
  */
 class ScanDialogReducerTest {
 
@@ -35,7 +35,7 @@ class ScanDialogReducerTest {
     // ===== Ш2: кнопка-камера и выбор способа =====
 
     @Test
-    fun `button opens the chooser without an error and without effects`() {
+    fun `AWP-37_1 button opens the chooser without an error and without effects`() {
         val result = reducer.testReduce(base, Msg.OpenScanDialog)
 
         assertEquals(chooser, result.state().scanDialogState)
@@ -43,7 +43,7 @@ class ScanDialogReducerTest {
     }
 
     @Test
-    fun `WFP-06_1 choose camera sends LaunchCamera and leaves the dialog as it was`() {
+    fun `TFP-06_1 choose camera sends LaunchCamera and leaves the dialog as it was`() {
         val shown = opened()
 
         val result = reducer.testReduce(shown, Msg.ChooseCamera)
@@ -53,7 +53,7 @@ class ScanDialogReducerTest {
     }
 
     @Test
-    fun `WFP-06_2 choose gallery sends LaunchGallery and leaves the dialog as it was`() {
+    fun `TFP-06_2 choose gallery sends LaunchGallery and leaves the dialog as it was`() {
         val shown = opened()
 
         val result = reducer.testReduce(shown, Msg.ChooseGallery)
@@ -63,7 +63,7 @@ class ScanDialogReducerTest {
     }
 
     @Test
-    fun `WFP-06_4 closing the chooser changes only the dialog and sends nothing`() {
+    fun `AWP-37_3 TFP-06_4 closing the chooser changes only the dialog and sends nothing`() {
         val result = reducer.testReduce(opened(), Msg.CloseScanDialog)
 
         assertEquals(base, result.state())
@@ -71,7 +71,7 @@ class ScanDialogReducerTest {
     }
 
     @Test
-    fun `WFP-06_5 second press of the camera button keeps one chooser`() {
+    fun `AWP-37_2 second press of the camera button keeps one chooser`() {
         val first = reducer.testReduce(base, Msg.OpenScanDialog)
 
         val second = reducer.testReduce(first.state(), Msg.OpenScanDialog)
@@ -83,7 +83,7 @@ class ScanDialogReducerTest {
     // ===== Ш3: камера не запустилась =====
 
     @Test
-    fun `WFP-07_1 WFP-07_2 camera unavailable puts the reason into the open dialog`() {
+    fun `TFP-07_1 TFP-07_2 camera unavailable puts the reason into the open dialog`() {
         val result = reducer.testReduce(
             opened(),
             Msg.CameraUnavailable(errorRes = R.string.photo_words_error_camera),
@@ -114,7 +114,7 @@ class ScanDialogReducerTest {
     // ===== В1: возврат без снимка =====
 
     @Test
-    fun `WFP-18_1 WFP-18_2 cancel sends nothing, the chooser stays with both sources`() {
+    fun `TFP-18_1 TFP-18_2 cancel sends nothing, the chooser stays with both sources`() {
         val steps = reducer.testScenario(
             base,
             Msg.OpenScanDialog,
@@ -143,7 +143,7 @@ class ScanDialogReducerTest {
     // ===== В5: перезапуск при открытой камере или галерее =====
 
     @Test
-    fun `WFP-22_1 WFP-22_2 image picked with the chooser closed still opens the scan screen`() {
+    fun `TFP-22_1 TFP-22_2 image picked with the chooser closed still opens the scan screen`() {
         val result = reducer.testReduce(base, Msg.ImagePicked(uri = "content://photo/2"))
 
         assertEquals(base, result.state())
@@ -153,7 +153,7 @@ class ScanDialogReducerTest {
     }
 
     @Test
-    fun `WFP-22_3 cancel in the camera after process death sends nothing, the tab has no dialog`() {
+    fun `TFP-22_3 cancel in the camera after process death sends nothing, the tab has no dialog`() {
         // Отмена сообщения не шлёт (PhotoPicker): у свежей вкладки диалога нет.
         assertEquals(ScanDialogState(), base.scanDialogState)
     }
@@ -161,26 +161,11 @@ class ScanDialogReducerTest {
     // ===== В6: перезапуск во время запуска =====
 
     @Test
-    fun `WFP-23_1 fresh tab after process death shows no dialog`() {
+    fun `TFP-23_1 fresh tab after process death shows no dialog`() {
         val fresh = WordsTabState()
 
         assertFalse(fresh.scanDialogState.isOpen)
         assertNull(fresh.scanDialogState.errorRes)
-    }
-
-    // ===== Ш5: сообщение после записи =====
-
-    @Test
-    fun `AWP-23_1 result of the scan screen shows the added message and leaves the state`() {
-        val result = reducer.testReduce(
-            base,
-            Msg.ScanCandidatesAdded(lexemeCount = 3, wordCount = 2),
-        )
-
-        assertEquals(base, result.state())
-        result.assertEffects(
-            setOf<Effect>(UiEffect.ShowNotification(message = "Добавлено 3 значения в 2 слова")),
-        )
     }
 
     // ===== Сценарий целиком =====

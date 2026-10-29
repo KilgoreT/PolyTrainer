@@ -1,7 +1,6 @@
 package me.apomazkin.scancandidates.mate
 
 import io.github.kilgoret.mate.Effect
-import io.github.kilgoret.mate.NavigationEffect
 import io.github.kilgoret.mate.RecoverableEffect
 import me.apomazkin.candidates.AddFailureUi
 import me.apomazkin.core_resources.R
@@ -15,7 +14,7 @@ import me.apomazkin.lexeme.WordsBatch
  * `toString` — счётчиками.
  */
 sealed interface DatasourceEffect : Effect {
-    /** Распознать текст по файлу снимка [uri] (WFP Ш4). Первый эффект экрана. */
+    /** Распознать текст по файлу снимка [uri] (TFP Ш4). Первый эффект экрана. */
     data class RecognizeText(
         val uri: String,
     ) : DatasourceEffect,
@@ -25,19 +24,23 @@ sealed interface DatasourceEffect : Effect {
         )
     }
 
-    /** Запрос слов на сервер одним списком токенов (WFP Ш6). */
-    data class LookupWords(
+    /**
+     * Один запрос лемм текста на сервер списком токенов как распознаны, с
+     * повторами (TFP Ш6, LFT-02). Сбой эффекта — «Сервер не ответил» с
+     * «Повторить».
+     */
+    data class ExtractLemmas(
         val tokens: List<LookupToken>,
     ) : DatasourceEffect,
         RecoverableEffect<Msg> {
-        override fun onFail(error: Throwable) = Msg.LookupUnavailable(
+        override fun onFail(error: Throwable) = Msg.LemmasUnavailable(
             errorRes = R.string.photo_words_error_server,
         )
 
-        override fun toString(): String = "LookupWords(tokens=${tokens.size})"
+        override fun toString(): String = "ExtractLemmas(tokens=${tokens.size})"
     }
 
-    /** Форма словаря снимка и его леммы с текстами лемм ответа [lemmaTexts] (AWP Ш1). */
+    /** Форма словаря снимка и его леммы с текстами слов списков [lemmaTexts] (AWP Ш4). */
     data class LoadForm(
         val dictionaryId: Long,
         val lemmaTexts: List<String>,
@@ -51,29 +54,47 @@ sealed interface DatasourceEffect : Effect {
             "LoadForm(dictionaryId=$dictionaryId, lemmas=${lemmaTexts.size})"
     }
 
-    /** Пакет окна одной транзакцией (AWP Ш4). Исключение — сбой записи, транзакция откачена. */
-    data class AddWords(
+    /**
+     * Запрос значений слова (AWP Ш6, Ш8, LFL-103): [word] — слово списка,
+     * адрес карточки; [lemma] — что ищет сервер, текст слова как есть;
+     * [dictionaryId] — словарь снимка: языки и дерево; [text] и
+     * [translation] — исправленный текст снимка и его перевод, контекст.
+     * Сбой эффекта — «Сервер не ответил» с «Повторить». В лог — счётчиками:
+     * длина текста, не сам текст.
+     */
+    data class LookupLemma(
+        val word: String,
+        val lemma: String,
+        val dictionaryId: Long,
+        val text: String,
+        val translation: String,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.LexemesUnavailable(
+            text = word,
+            errorRes = R.string.photo_words_error_server,
+        )
+
+        override fun toString(): String =
+            "LookupLemma(word=$word, lemma=$lemma, dictionaryId=$dictionaryId, text=${text.length})"
+    }
+
+    /**
+     * Запись одного слова одной транзакцией (AWP Ш9): [word] — слово списка,
+     * адрес карточки; [batch] — пакет из одного слова. Сбой эффекта — «не
+     * добавилось» у слова. В лог — слово и число лексем.
+     */
+    data class AddWord(
+        val word: String,
         val batch: WordsBatch,
     ) : DatasourceEffect,
         RecoverableEffect<Msg> {
-        override fun onFail(error: Throwable) = Msg.AddFailed(failure = AddFailureUi.Failed)
+        override fun onFail(error: Throwable) = Msg.AddFailed(
+            text = word,
+            failure = AddFailureUi.Failed,
+        )
 
-        override fun toString(): String {
-            val lexemes = batch.words.sumOf { it.lexemes.size }
-            return "AddWords(dictionaryId=${batch.dictionaryId}, " +
-                "words=${batch.words.size}, lexemes=$lexemes)"
-        }
+        override fun toString(): String =
+            "AddWord(word=$word, lexemes=${batch.words.sumOf { it.lexemes.size }})"
     }
-}
-
-/**
- * Переходы экрана. Закрытие без результата — `NavigationEffect.Back` из
- * библиотеки.
- */
-sealed interface ScanNavigationEffect : NavigationEffect {
-    /** Назад на вкладку «Слова» со счётом записанного (AWP-23). */
-    data class CloseWithResult(
-        val lexemeCount: Int,
-        val wordCount: Int,
-    ) : ScanNavigationEffect
 }

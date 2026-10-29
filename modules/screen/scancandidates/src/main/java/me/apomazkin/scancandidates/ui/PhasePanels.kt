@@ -28,8 +28,8 @@ import me.apomazkin.ui.btn.CancelButtonWidget
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 
 /**
- * Панели экрана до окна: индикатор с подписью фазы (WFP-13, AWP-24) и текст с
- * кнопками — «слов нет» (WFP-19), ошибка (WFP-20, WFP-26). Цвета явные, парой
+ * Панели экрана до окна: индикатор с подписью фазы (TFP-13, AWP-24) и текст с
+ * кнопками — «слов нет» (TFP-19), ошибка (TFP-20, TFP-26). Цвета явные, парой
  * из диалога выбора источника: фон formBackground, текст formTextTertiary,
  * акцент LexemeColor.primary. Что показать и какие кнопки, решает стейт.
  */

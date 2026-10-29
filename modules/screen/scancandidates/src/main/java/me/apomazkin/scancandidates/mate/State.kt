@@ -7,37 +7,32 @@ import me.apomazkin.candidates.AddSummaryUi
 import me.apomazkin.candidates.CandidatesSheetUi
 import me.apomazkin.candidates.CandidatesView
 import me.apomazkin.candidates.ComponentMatchLineUiItem
-import me.apomazkin.candidates.ComponentRecommendationUi
-import me.apomazkin.candidates.ComponentRefUi
 import me.apomazkin.candidates.DictionaryFormUi
 import me.apomazkin.candidates.LemmaCardUiItem
-import me.apomazkin.candidates.LookupWordUi
-import me.apomazkin.candidates.NotAddedWordUiItem
 import me.apomazkin.candidates.RemarkUiItem
-import me.apomazkin.candidates.ValueRefUi
-import me.apomazkin.candidates.textOf
-import me.apomazkin.candidates.valueOf
-import me.apomazkin.candidates.withOption
+import me.apomazkin.candidates.SavedLexemeUi
 import me.apomazkin.lexeme.LookupToken
 
 /**
- * Состояние экрана лексем-кандидатов со снимка: от распознавания до записи в
- * словарь. Экран живёт один снимок. Всё показанное лежит явными полями,
+ * Состояние экрана снимка: от распознавания до окна со списками и карточками
+ * под словами. Экран живёт один снимок. Всё показанное лежит явными полями,
  * composable ничего не толкует. Исход юзкейса и домен сюда не попадают: только
  * UI-типы и значения.
  *
  * Запуск: [uri] — файл снимка, [phase] — что на экране, [tokens] — токены
- * снимка для повтора запроса, [dictionaryId], [words] и [recommendations] —
- * ответ сервера, [errorRes] и [hasRetryButton] — ошибка и кнопка «Повторить».
+ * снимка для повтора запроса, [dictionaryId] — словарь снимка, [errorRes] и
+ * [hasRetryButton] — ошибка и кнопка «Повторить».
+ *
+ * Ответ сервера (LFT-14): [text] — исправленный текст, [translation] — его
+ * перевод, [isTranslationExpanded] — блок перевода раскрыт (AWP-41), [lists] —
+ * четыре списка слов с пометками «в словаре» (AWP-39) и карточками под словами
+ * (AWP-42).
  *
  * Окно: [form] — форма словаря снимка, [commonGroupId] — общая группа (null —
- * «Все»), [cards], [notAdded], [remarks], [componentMatchLines] — что показано,
- * [summary] — кнопка «добавить», [sheet] — открытый лист.
- *
- * Флаги: [isDirty] — были удаления, правки текста или смена опций (AWP-19),
- * [isAdding] — идёт запись, [addFailure] — запись не удалась,
- * [isConfirmingAdd] и [isConfirmingClose] — открытые вопросы,
- * [isComponentMatchesExpanded] и [isNotAddedExpanded] — раскрытые разделы.
+ * «Все»), [sheet] — открытый лист, [isAdding] — идёт запись хотя бы одного
+ * слова: крестик и «назад» не действуют (AWP-51.12), [isConfirmingClose] —
+ * вопрос «Закрыть без добавления?» открыт, [pendingWords] — число
+ * недобавленных слов в вопросе (AWP-51).
  */
 @Immutable
 data class ScanCandidatesState(
@@ -45,34 +40,28 @@ data class ScanCandidatesState(
     val phase: ScanPhase = ScanPhase.RECOGNIZING,
     val tokens: List<LookupToken> = emptyList(),
     val dictionaryId: Long? = null,
-    val words: List<LookupWordUi> = emptyList(),
-    val recommendations: List<ComponentRecommendationUi> = emptyList(),
+    val text: String = "",
+    val translation: String = "",
+    val isTranslationExpanded: Boolean = false,
+    val lists: ScanWordListsUi = ScanWordListsUi(),
     @param:StringRes val errorRes: Int? = null,
     val hasRetryButton: Boolean = false,
     val form: DictionaryFormUi? = null,
     val commonGroupId: Long? = null,
-    val cards: List<LemmaCardUiItem> = emptyList(),
-    val notAdded: List<NotAddedWordUiItem> = emptyList(),
-    val remarks: List<RemarkUiItem> = emptyList(),
-    val componentMatchLines: List<ComponentMatchLineUiItem> = emptyList(),
-    val summary: AddSummaryUi = AddSummaryUi(),
-    val isDirty: Boolean = false,
-    val isAdding: Boolean = false,
-    val addFailure: AddFailureUi? = null,
-    val isConfirmingAdd: Boolean = false,
-    val isConfirmingClose: Boolean = false,
-    val isComponentMatchesExpanded: Boolean = false,
-    val isNotAddedExpanded: Boolean = false,
     val sheet: CandidatesSheetUi? = null,
+    val isAdding: Boolean = false,
+    val isConfirmingClose: Boolean = false,
+    val pendingWords: Int = 0,
 )
 
 /**
- * Что на экране: три фазы с индикатором и подписью (WFP-13, AWP-24), окно,
- * «слов нет» (WFP-19) и ошибка (WFP-20).
+ * Что на экране: три фазы с индикатором и подписью — «Распознаю текст…»,
+ * «Анализирую текст…» (AWP-38), «Собираю окно…» (AWP-24), окно, «слов нет»
+ * (TFP-19, AWP-54) и ошибка (AWP-53).
  */
 enum class ScanPhase {
     RECOGNIZING,
-    LOOKING,
+    ANALYZING,
     FORM_LOADING,
     WINDOW,
     NO_WORDS,
@@ -80,54 +69,88 @@ enum class ScanPhase {
 }
 
 /**
- * Вид для общих виджетов окна: поля диалога карточки, которых у экрана нет,
- * остаются в умолчаниях.
+ * Четыре списка окна в порядке показа: [lexical] — смысловые в порядке текста,
+ * [proper] — имена собственные, [function] — служебные, [unparsed] — «не
+ * разобрано», как прислал сервер. Пустой список на экране не рисуется
+ * (AWP-40.7).
  */
-fun ScanCandidatesState.toView(): CandidatesView = CandidatesView(
-    form = form,
-    cards = cards,
-    summary = summary,
-    sheet = sheet,
-    isAdding = isAdding,
-    addFailure = addFailure,
-    isConfirmingClose = isConfirmingClose,
-    remarks = remarks,
-    componentMatchLines = componentMatchLines,
-    isComponentMatchesExpanded = isComponentMatchesExpanded,
-    notAdded = notAdded,
-    isNotAddedExpanded = isNotAddedExpanded,
-    commonGroupId = commonGroupId,
-    isConfirmingAdd = isConfirmingAdd,
+@Immutable
+data class ScanWordListsUi(
+    val lexical: List<ScanWordUiItem> = emptyList(),
+    val proper: List<ScanWordUiItem> = emptyList(),
+    val function: List<ScanWordUiItem> = emptyList(),
+    val unparsed: List<ScanWordUiItem> = emptyList(),
 )
 
 /**
- * Текст значения по адресу отличается от ввода с обрезанными краями; значения
- * нет — false. Условие флага правок при «сохранить» (AWP-19.9).
+ * Слово списка: [text] — словарная форма или токен из «не разобрано»,
+ * [isInDictionary] — в словаре снимка есть лемма с тем же текстом (AWP-39),
+ * [card] — карточка под словом, null — не открывали, [isExpanded] — карточка
+ * раскрыта (AWP-42). Слово с одним текстом в двух списках несёт одну и ту же
+ * карточку в обеих строках.
  */
-fun ScanCandidatesState.textChanged(
-    ref: ValueRefUi,
-    draft: String,
-): Boolean {
-    val current = cards.textOf(ref) ?: return false
-    return current.text != draft.trim()
+@Immutable
+data class ScanWordUiItem(
+    val text: String,
+    val isInDictionary: Boolean = false,
+    val card: WordCardUi? = null,
+    val isExpanded: Boolean = false,
+)
+
+/**
+ * Карточка под словом (AWP-42): [phase] — что в карточке, [lemma] — лемма с
+ * лексемами-кандидатами, «куда класть», своей группой и пометкой формы, у
+ * слова «в словаре» до проверки — без лексем; [saved] — сохранённые лексемы
+ * леммы словаря из «куда класть» (AWP-46), у нового слова пусто; [remarks] —
+ * строки «Замечаний» (AWP-30); [componentMatchLines] — строки «Сопоставления»
+ * (AWP-31), [isComponentMatchesExpanded] — раздел раскрыт; [canAdd] —
+ * «Добавить» активна: есть лексема без «уже в словаре» и ни одной без ядра
+ * (AWP-47.2, 47.3); [errorRes] — «Не найдено», «Значений нет» или причина
+ * ошибки, [hasRetryButton] — у ошибки есть «Повторить»; [isAdding] — идёт
+ * запись этого слова, кнопки неактивны (AWP-02); [addFailure] — запись не
+ * удалась, причина (AWP-21).
+ */
+@Immutable
+data class WordCardUi(
+    val phase: CardPhase,
+    val lemma: LemmaCardUiItem,
+    val saved: List<SavedLexemeUi> = emptyList(),
+    val remarks: List<RemarkUiItem> = emptyList(),
+    val componentMatchLines: List<ComponentMatchLineUiItem> = emptyList(),
+    val isComponentMatchesExpanded: Boolean = false,
+    val canAdd: Boolean = false,
+    @param:StringRes val errorRes: Int? = null,
+    val hasRetryButton: Boolean = false,
+    val isAdding: Boolean = false,
+    val addFailure: AddFailureUi? = null,
+)
+
+/**
+ * Что показано в карточке: сохранённые лексемы слова «в словаре» и «Проверить
+ * по тексту» (AWP-46), запрос значений идёт (AWP-57), лексемы-кандидаты с
+ * сервера (AWP-43), «Не найдено» или «Значений нет» (AWP-55), ошибка или отказ
+ * на слове (AWP-61).
+ */
+enum class CardPhase {
+    SAVED,
+    LOADING,
+    CANDIDATES,
+    NOT_FOUND,
+    ERROR,
 }
 
 /**
- * Текст значения по адресу правлен руками — отличается от текста ответа;
- * значения нет — false. Условие флага правок при «сбросить» (AWP-19.9).
+ * Вид для общих виджетов окна: форма, общая группа, лист, карточки лемм всех
+ * слов — для листов правки и «куда класть», — запись и вопрос закрытия; сводки
+ * кнопки и общего «не добавилось» у экрана нет — они у карточек слов.
  */
-fun ScanCandidatesState.textEdited(ref: ValueRefUi): Boolean = cards.textOf(ref)?.isEdited == true
-
-/**
- * Выбор [option] поменяет значение «Выбора» по адресу: у компонента с одним
- * значением — другая опция, у «несколько» — набор опций; значения нет — false.
- * Условие флага правок при выборе опции (AWP-19.9).
- */
-fun ScanCandidatesState.optionChanged(
-    ref: ComponentRefUi,
-    option: Long?,
-): Boolean {
-    val form = form ?: return false
-    val changed = cards.withOption(ref, option, form) ?: return false
-    return changed.valueOf(ref) != cards.valueOf(ref)
-}
+fun ScanCandidatesState.toView(): CandidatesView = CandidatesView(
+    form = form,
+    cards = lists.allLemmaCards(),
+    summary = AddSummaryUi(),
+    sheet = sheet,
+    isAdding = isAdding,
+    addFailure = null,
+    isConfirmingClose = isConfirmingClose,
+    commonGroupId = commonGroupId,
+)

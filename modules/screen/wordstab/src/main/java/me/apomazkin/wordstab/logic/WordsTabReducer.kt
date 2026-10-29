@@ -1,6 +1,5 @@
 package me.apomazkin.wordstab.logic
 
-import me.apomazkin.candidates.addedMessage
 import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.MateReducer
 import io.github.kilgoret.mate.ReducerResult
@@ -160,11 +159,11 @@ class WordsTabReducer(
 
             // ===== Скан снимка: диалог выбора источника, запуск, переход на экран =====
 
-            // Повторное нажатие диалог не дублирует: он один (WFP-06.5).
+            // Повторное нажатие диалог не дублирует: он один (TFP-06.5).
             Msg.OpenScanDialog -> state.showScanDialog()
 
             // Диалог остаётся открытым: отмена в системном приложении ничего не
-            // шлёт, пользователь снова видит «Камера» и «Галерея» (WFP-18).
+            // шлёт, пользователь снова видит «Камера» и «Галерея» (TFP-18).
             Msg.ChooseCamera -> state
                 .begin<WordsTabState, Effect>()
                 .withEffect(UiEffect.LaunchCamera)
@@ -174,7 +173,7 @@ class WordsTabReducer(
                 .withEffect(UiEffect.LaunchGallery)
 
             // Принимается и при закрытом диалоге: система могла убить процесс,
-            // пока была открыта камера или галерея — снимок идёт в экран (WFP-22).
+            // пока была открыта камера или галерея — снимок идёт в экран (TFP-22).
             is Msg.ImagePicked -> state
                 .hideScanDialog()
                 .withEffect(WordsNavigationEffect.OpenScanCandidates(message.uri))
@@ -182,15 +181,6 @@ class WordsTabReducer(
             is Msg.CameraUnavailable -> state.showScanDialogError(message.errorRes)
 
             Msg.CloseScanDialog -> state.hideScanDialog()
-
-            // Экран закрылся после записи: сообщение со счётом, стейт не меняется (AWP-23).
-            is Msg.ScanCandidatesAdded -> state
-                .begin<WordsTabState, Effect>()
-                .withEffect(
-                    UiEffect.ShowNotification(
-                        message = addedMessage(message.lexemeCount, message.wordCount),
-                    ),
-                )
 
             is UiMsg -> processUiMessage(state, message)
             Msg.NoOperation -> state to emptySet()

@@ -33,7 +33,7 @@ import me.apomazkin.ui.btn.CancelButtonWidget
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
 import me.apomazkin.ui.dialog.base.LexemeDialog
 
-/** Страница лицензии данных источника (WFT-57.2). */
+/** Страница лицензии данных источника (LFL-57.2). */
 private const val LICENSE_URL = "https://creativecommons.org/licenses/by-sa/4.0/"
 
 /**
@@ -190,9 +190,9 @@ internal fun CloseConfirmDialog(onAction: (CandidateAction) -> Unit) {
     }
 }
 
-/** «Данные: Wiktionary, CC BY-SA 4.0», нажатие открывает лицензию (WFT-57). */
+/** «Данные: Wiktionary, CC BY-SA 4.0», нажатие открывает лицензию (LFL-54, AWP-45). */
 @Composable
-internal fun Attribution() {
+fun Attribution() {
     val uriHandler = LocalUriHandler.current
     Text(
         text = stringResource(id = R.string.photo_words_attribution),

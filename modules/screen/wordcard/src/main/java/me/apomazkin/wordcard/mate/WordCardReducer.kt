@@ -930,7 +930,6 @@ class WordCardReducer(
 
             CandidateAction.ConfirmAdd,
             CandidateAction.CancelAdd,
-            CandidateAction.ToggleNotAdded,
             is CandidateAction.SetCardTarget,
             is CandidateAction.SetCardGroup,
             is CandidateAction.SetCommonGroup,

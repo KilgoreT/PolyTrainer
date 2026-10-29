@@ -43,6 +43,7 @@ fun LookupLexeme.toUi(): LookupLexemeUi = LookupLexemeUi(
     synonyms = synonyms,
     antonyms = antonyms,
     componentMatches = componentMatches.map { it.toUi() },
+    inContext = inContext,
 )
 
 fun ComponentMatch.toUi(): ComponentMatchUi = ComponentMatchUi(

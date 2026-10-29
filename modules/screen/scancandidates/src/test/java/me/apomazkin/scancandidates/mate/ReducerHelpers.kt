@@ -4,17 +4,16 @@ import io.github.kilgoret.mate.Effect
 import io.github.kilgoret.mate.effects
 import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.testReduce
-import me.apomazkin.candidates.CardLexemeUiItem
 import me.apomazkin.candidates.ComponentRecommendationUi
 import me.apomazkin.candidates.DictionaryFormUi
-import me.apomazkin.candidates.LemmaCardUiItem
+import me.apomazkin.candidates.ExistingLemmaUi
 import me.apomazkin.candidates.LookupWordUi
 import me.apomazkin.lexeme.LookupToken
 import me.apomazkin.lexeme.WordsBatch
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.logger.LogLevel
 
-/** Обвязка message-тестов: редьюсер с пустым логгером и путь до собранного окна. */
+/** Обвязка message-тестов: редьюсер с пустым логгером и путь до собранного окна и карточки. */
 internal object NoopLogger : LexemeLogger {
     override fun log(
         level: LogLevel,
@@ -45,68 +44,47 @@ internal fun ScanCandidatesReducer.effectsOf(
     message: Msg,
 ): Set<Effect> = testReduce(state, message).effects()
 
-/** Токены распознаны: индикатор «ищу слова». */
+/** Токены распознаны: индикатор «анализирую текст». */
 internal fun ScanCandidatesReducer.recognized(
     tokens: List<LookupToken> = Fx.tokens,
 ): ScanCandidatesState = step(fresh(), Msg.TextRecognized(tokens))
 
-/** Ответ сервера со словами: индикатор «собираю окно». */
+/** Ответ сервера со списками: индикатор «собираю окно». */
 internal fun ScanCandidatesReducer.answered(
-    vararg words: LookupWordUi,
-    recommendations: List<ComponentRecommendationUi> = emptyList(),
-): ScanCandidatesState = step(
-    recognized(),
-    Msg.WordsFound(Fx.DICT, words.toList(), recommendations),
-)
+    found: Msg.LemmasFound = Fx.found(),
+): ScanCandidatesState = step(recognized(), found)
 
 /** Собранное окно: ответ и форма. */
 internal fun ScanCandidatesReducer.window(
-    vararg words: LookupWordUi,
+    found: Msg.LemmasFound = Fx.found(),
     form: DictionaryFormUi = Fx.form(),
+): ScanCandidatesState = step(answered(found), Msg.FormLoaded(form))
+
+/** Окно со списком из одних смысловых слов [texts]. */
+internal fun ScanCandidatesReducer.windowOf(
+    vararg texts: String,
+    form: DictionaryFormUi = Fx.form(),
+): ScanCandidatesState = window(found = Fx.found(lists = Fx.lists(lexical = texts.toList())), form = form)
+
+/**
+ * Окно с раскрытой карточкой слова [text] по ответу [word]: тап и ответ
+ * сервера; списки — одно это слово, если не заданы.
+ */
+internal fun ScanCandidatesReducer.withCard(
+    text: String,
+    word: LookupWordUi,
+    form: DictionaryFormUi = Fx.form(),
+    lists: ScanWordListsUi = Fx.lists(lexical = listOf(text)),
     recommendations: List<ComponentRecommendationUi> = emptyList(),
-): ScanCandidatesState = step(
-    answered(*words, recommendations = recommendations),
-    Msg.FormLoaded(form),
+    existing: List<ExistingLemmaUi> = emptyList(),
+): ScanCandidatesState = steps(
+    window(found = Fx.found(lists = lists), form = form),
+    Msg.LoadLexemes(text),
+    Fx.lexemes(text, word, recommendations, existing),
 )
 
-/** Пакет, который уйдёт по «да» в вопросе о добавлении. */
-internal fun ScanCandidatesReducer.batchOf(state: ScanCandidatesState): WordsBatch {
-    val asking = step(state, Msg.RequestAdd)
-    val effect = effectsOf(asking, Msg.ConfirmAdd).single() as DatasourceEffect.AddWords
-    return effect.batch
-}
-
-internal fun ScanCandidatesState.card(lemma: String): LemmaCardUiItem =
-    cards.first { it.lemma == lemma }
-
-internal fun ScanCandidatesState.lexeme(
-    lemma: String,
-    key: String,
-): CardLexemeUiItem = card(lemma).lexemes.first { it.key == key }
-
-/** Что видит пользователь у лексемы-кандидата: значения компонентов строками. */
-internal fun ScanCandidatesState.shown(
-    lemma: String,
-    key: String,
-): List<String> = lexeme(lemma, key).shown(requireNotNull(form))
-
-/** Тексты компонента у лексемы-кандидата, по умолчанию «Перевод». */
-internal fun ScanCandidatesState.texts(
-    lemma: String,
-    key: String,
-    componentId: Long = Fx.TRANSLATION,
-): List<String> = lexeme(lemma, key).texts(componentId)
-
-/** Значение компонента у лексемы-кандидата активно: его зависимость выполнена (AWP-17.6). */
-internal fun ScanCandidatesState.isActive(
-    lemma: String,
-    key: String,
-    componentId: Long,
-): Boolean = lexeme(lemma, key).values.first { it.componentId == componentId }.isActive
-
-/** Опции «Выбора» у лексемы-кандидата. */
-internal fun ScanCandidatesState.chosen(
-    lemma: String,
-    key: String,
-    componentId: Long,
-): List<Long> = lexeme(lemma, key).chosen(componentId)
+/** Пакет записи слова из эффекта «Добавить». */
+internal fun ScanCandidatesReducer.batchOf(
+    state: ScanCandidatesState,
+    text: String,
+): WordsBatch = (effectsOf(state, Msg.AddWord(text)).single() as DatasourceEffect.AddWord).batch

@@ -65,13 +65,12 @@ class CardTransitionsTest {
     }
 
     @Test
-    fun `AWP-15_4 deleting the run card keeps the running card and the not added words`() {
-        val build = buildLemmaCards(listOf(Fx.ran, Fx.running, Fx.accorc), form)
+    fun `AWP-15_4 deleting the run card keeps the bank card`() {
+        val cards = Fx.cards(Fx.ran, Fx.bank)
 
-        val after = build.cards.deletingCard("run")!!
+        val after = cards.deletingCard("run")!!
 
-        assertEquals(listOf("running"), after.map { it.lemma })
-        assertEquals(listOf("accorc"), build.notAdded.map { it.text })
+        assertEquals(listOf("bank"), after.map { it.lemma })
     }
 
     @Test

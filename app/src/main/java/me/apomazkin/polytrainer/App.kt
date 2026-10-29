@@ -48,7 +48,7 @@ class App : Application() {
                     )
                     .build(),
                 // IS529 (Д2, Д3): сервер слов; ключ из local.properties через
-                // BuildConfig, пустой — приложение на сервер не ходит (WFT-19).
+                // BuildConfig, пустой — приложение на сервер не ходит (ACC-19).
                 coreNetworkProvider = CoreNetworkComponent.init(
                     baseUrl = BuildConfig.LEXEME_BASE_URL,
                     accessKey = BuildConfig.LEXEME_ACCESS_KEY,

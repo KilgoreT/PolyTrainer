@@ -15,8 +15,10 @@ import me.apomazkin.candidates.AddFailureUi
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.FormOutcome
+import me.apomazkin.lexeme.LemmaContext
+import me.apomazkin.lexeme.LemmasOutcome
+import me.apomazkin.lexeme.LexemesOutcome
 import me.apomazkin.lexeme.LookupDenyReason
-import me.apomazkin.lexeme.LookupOutcome
 import me.apomazkin.lexeme.RecognitionOutcome
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -26,7 +28,9 @@ import org.junit.Test
 /**
  * Хендлер эффектов: исход юзкейса → сообщение на каждый случай (`when` в ветке
  * эффекта), доступ к файлу галереи отпускается в любом исходе (Д52), провал
- * эффекта объявлен в нём самом (`onFail`). Юзкейс — лямбдами.
+ * эффекта объявлен в нём самом (`onFail`). Тексты отказов — AWP-53 до окна,
+ * AWP-55 и AWP-61 на слове; запрос по лемме — LFL-103; исход записи — AWP-21.
+ * Юзкейс — лямбдами.
  */
 class DatasourceEffectHandlerTest {
     private val uri = Fx.URI
@@ -40,6 +44,16 @@ class DatasourceEffectHandlerTest {
         runBlocking { handler.runEffect(effect) { messages += it } }
         return messages
     }
+
+    private val lookupRun = DatasourceEffect.LookupLemma(
+        word = "run",
+        lemma = "run",
+        dictionaryId = Fx.DICT,
+        text = Fx.TEXTBOOK_TEXT,
+        translation = Fx.TEXTBOOK_TRANSLATION,
+    )
+
+    private val addLink = DatasourceEffect.AddWord(word = "link", batch = DomainFx.batch("link"))
 
     // ===== Распознавание =====
 
@@ -99,47 +113,40 @@ class DatasourceEffectHandlerTest {
         assertTrue(released)
     }
 
-    // ===== Запрос слов =====
+    // ===== Запрос лемм =====
 
     @Test
-    fun `LookupWords with words sends them in UI types with the dictionary and advice`() {
+    fun `ExtractLemmas with lemmas sends the text, the translation and the lists in UI types with the dictionary`() {
         val useCase = FakeUseCase(
-            lookupImpl = {
-                LookupOutcome.Words(
-                    dictionaryId = Fx.DICT,
-                    words = listOf(DomainFx.perro),
-                    recommendations = listOf(DomainFx.genderRecommendation),
-                )
+            lemmasImpl = {
+                LemmasOutcome.Found(dictionaryId = Fx.DICT, lemmas = DomainFx.sentence)
             },
         )
 
-        val messages = run(useCase, DatasourceEffect.LookupWords(Fx.tokens))
+        val messages = run(useCase, DatasourceEffect.ExtractLemmas(Fx.tokens))
 
-        val found = messages.single() as Msg.WordsFound
+        val found = messages.single() as Msg.LemmasFound
         assertEquals(Fx.DICT, found.dictionaryId)
-        assertEquals(listOf("perro"), found.words.map { it.text })
-        val lexeme = found.words.single().lemmas.single().lexemes.single()
-        assertEquals("ruwiktionary/1.noun.1", lexeme.key)
-        assertEquals(
-            listOf(DomainFx.TRANSLATION, DomainFx.PART_OF_SPEECH),
-            lexeme.componentMatches.map { it.componentId },
-        )
-        assertEquals(1, found.words.single().remarks.size)
-        assertEquals(listOf("Род"), found.recommendations.map { it.name })
-        assertEquals(listOf(Fx.tokens), useCase.lookedUp)
+        assertEquals("Las nubes corrían por el cielo.", found.text)
+        assertEquals("Облака бежали по небу.", found.translation)
+        assertEquals(listOf("nube", "correr", "cielo"), found.lists.lexical.texts())
+        assertEquals(listOf("el", "por"), found.lists.function.texts())
+        assertTrue(found.lists.proper.isEmpty() && found.lists.unparsed.isEmpty())
+        assertEquals(0, found.lists.countInDictionary())
+        assertEquals(listOf(Fx.tokens), useCase.extracted)
     }
 
     @Test
-    fun `LookupWords without words sends WordsEmpty`() {
-        val useCase = FakeUseCase(lookupImpl = { LookupOutcome.NoWords })
+    fun `ExtractLemmas without words sends LemmasEmpty`() {
+        val useCase = FakeUseCase(lemmasImpl = { LemmasOutcome.NoWords })
 
-        val messages = run(useCase, DatasourceEffect.LookupWords(Fx.tokens))
+        val messages = run(useCase, DatasourceEffect.ExtractLemmas(Fx.tokens))
 
-        assertEquals(listOf<Msg>(Msg.WordsEmpty), messages)
+        assertEquals(listOf<Msg>(Msg.LemmasEmpty), messages)
     }
 
     @Test
-    fun `LookupWords denied by key or limit sends the text of the reason without a retry`() {
+    fun `AWP-53_2 AWP-53_3 AWP-53_4 AWP-53_8 ExtractLemmas denied by key limit size or language sends the text of the reason without a retry`() {
         val expected = mapOf(
             LookupDenyReason.NO_ACCESS_KEY to R.string.photo_words_error_no_access,
             LookupDenyReason.UNAUTHORIZED to R.string.photo_words_error_no_access,
@@ -149,49 +156,49 @@ class DatasourceEffectHandlerTest {
         )
 
         expected.forEach { (reason, errorRes) ->
-            val useCase = FakeUseCase(lookupImpl = { LookupOutcome.Denied(reason) })
+            val useCase = FakeUseCase(lemmasImpl = { LemmasOutcome.Denied(reason) })
 
-            val messages = run(useCase, DatasourceEffect.LookupWords(Fx.tokens))
+            val messages = run(useCase, DatasourceEffect.ExtractLemmas(Fx.tokens))
 
-            assertEquals(reason.name, listOf<Msg>(Msg.LookupDenied(errorRes)), messages)
+            assertEquals(reason.name, listOf<Msg>(Msg.LemmasDenied(errorRes)), messages)
         }
     }
 
     @Test
-    fun `LookupWords with an unavailable model sends the server unavailable text with a retry`() {
+    fun `AWP-53_1 ExtractLemmas with an unavailable model sends the analysis unavailable text with a retry`() {
         val useCase = FakeUseCase(
-            lookupImpl = { LookupOutcome.Denied(LookupDenyReason.LLM_UNAVAILABLE) },
+            lemmasImpl = { LemmasOutcome.Denied(LookupDenyReason.LLM_UNAVAILABLE) },
         )
 
-        val messages = run(useCase, DatasourceEffect.LookupWords(Fx.tokens))
+        val messages = run(useCase, DatasourceEffect.ExtractLemmas(Fx.tokens))
 
         assertEquals(
-            listOf<Msg>(Msg.LookupUnavailable(R.string.scan_server_unavailable)),
+            listOf<Msg>(Msg.LemmasUnavailable(R.string.scan_analysis_unavailable)),
             messages,
         )
     }
 
     @Test
-    fun `LookupWords with no answer from the server sends the did not respond text with retry`() {
-        val useCase = FakeUseCase(lookupImpl = { LookupOutcome.Unavailable })
+    fun `AWP-53_5 ExtractLemmas with no answer from the server sends the did not respond text with a retry`() {
+        val useCase = FakeUseCase(lemmasImpl = { LemmasOutcome.Unavailable })
 
-        val messages = run(useCase, DatasourceEffect.LookupWords(Fx.tokens))
+        val messages = run(useCase, DatasourceEffect.ExtractLemmas(Fx.tokens))
 
         assertEquals(
-            listOf<Msg>(Msg.LookupUnavailable(R.string.photo_words_error_server)),
+            listOf<Msg>(Msg.LemmasUnavailable(R.string.photo_words_error_server)),
             messages,
         )
     }
 
     @Test
-    fun `LookupWords that throws goes to onFail with the server did not respond text`() {
-        val useCase = FakeUseCase(lookupImpl = { throw IllegalStateException("no dictionary") })
-        val effect = DatasourceEffect.LookupWords(Fx.tokens)
+    fun `ExtractLemmas that throws goes to onFail with the server did not respond text`() {
+        val useCase = FakeUseCase(lemmasImpl = { throw IllegalStateException("no dictionary") })
+        val effect = DatasourceEffect.ExtractLemmas(Fx.tokens)
 
         assertThrows(IllegalStateException::class.java) { run(useCase, effect) }
 
         assertEquals(
-            Msg.LookupUnavailable(R.string.photo_words_error_server),
+            Msg.LemmasUnavailable(R.string.photo_words_error_server),
             effect.onFail(IllegalStateException()),
         )
     }
@@ -199,10 +206,10 @@ class DatasourceEffectHandlerTest {
     // ===== Форма словаря =====
 
     @Test
-    fun `LoadForm with a form sends it in UI types and asks it by dictionary and lemmas`() {
+    fun `LoadForm with a form sends it in UI types and asks it by dictionary and lemma texts`() {
         val useCase = FakeUseCase(loadFormImpl = { _, _ -> FormOutcome.Loaded(DomainFx.form) })
 
-        val messages = run(useCase, DatasourceEffect.LoadForm(Fx.DICT, listOf("perro")))
+        val messages = run(useCase, DatasourceEffect.LoadForm(Fx.DICT, listOf("study")))
 
         val loaded = messages.single() as Msg.FormLoaded
         assertEquals(Fx.DICT, loaded.form.dictionaryId)
@@ -213,8 +220,8 @@ class DatasourceEffectHandlerTest {
         val options = loaded.form.options.getValue(DomainFx.PART_OF_SPEECH)
         assertEquals(listOf(DomainFx.NOUN), options.map { it.id })
         assertEquals(listOf(DomainFx.GROUP), loaded.form.groups.map { it.id })
-        assertEquals(listOf(DomainFx.PERRO_WORD), loaded.form.existingLemmas.map { it.wordId })
-        assertEquals(listOf(Fx.DICT to listOf("perro")), useCase.formRequests)
+        assertEquals(listOf(DomainFx.STUDY_WORD), loaded.form.existingLemmas.map { it.wordId })
+        assertEquals(listOf(Fx.DICT to listOf("study")), useCase.formRequests)
     }
 
     @Test
@@ -251,81 +258,164 @@ class DatasourceEffectHandlerTest {
         )
     }
 
-    // ===== Запись =====
+    // ===== Значения слова (LFL-103, AWP-55, AWP-61) =====
 
     @Test
-    fun `AddWords written sends the counts of lexemes and words`() {
-        val added = AddWordsBatchOutcome.Added(
-            wordIds = listOf(1L, 2L),
-            lexemeIds = listOf(10L, 11L, 12L),
+    fun `LFL-103_1 LookupLemma asks the lemma with the context of the photo at its dictionary and sends the found word in UI types`() {
+        val useCase = FakeUseCase(
+            lexemesImpl = { _, _, _ ->
+                LexemesOutcome.Found(
+                    word = DomainFx.lookupWord("run", translation = "бежать"),
+                    recommendations = listOf(DomainFx.recommendation),
+                    existing = listOf(DomainFx.existingChild),
+                )
+            },
         )
-        val useCase = FakeUseCase(addImpl = { added })
 
-        val messages = run(useCase, DatasourceEffect.AddWords(DomainFx.batch))
+        val messages = run(useCase, lookupRun)
 
-        assertEquals(listOf<Msg>(Msg.AddFinished(lexemeCount = 3, wordCount = 2)), messages)
-        assertEquals(listOf(DomainFx.batch), useCase.batches)
-    }
-
-    @Test
-    fun `AddWords rejected by a dead group, word or component sends one message each`() {
-        val group = FakeUseCase(addImpl = { AddWordsBatchOutcome.Rejected.GroupMissing(701L) })
-        val word = FakeUseCase(addImpl = { AddWordsBatchOutcome.Rejected.WordMissing(5L) })
-        val type = FakeUseCase(addImpl = { AddWordsBatchOutcome.Rejected.TypeUnavailable(4L) })
-
-        val effect = DatasourceEffect.AddWords(DomainFx.batch)
-
+        val found = messages.single() as Msg.LexemesFound
+        assertEquals("run", found.text)
+        assertEquals("run", found.word.lemmas.single().text)
+        assertEquals(listOf("бежать"), found.word.lemmas.single().lexemes.single().translations)
+        assertTrue(found.word.lemmas.single().lexemes.single().inContext)
+        assertEquals(listOf("Род"), found.recommendations.map { it.name })
+        assertEquals(listOf(DomainFx.CHILD_WORD), found.existing.map { it.wordId })
+        assertEquals(listOf(Fx.saved(9L, "ребёнок")), found.existing.single().lexemes)
         assertEquals(
-            listOf<Msg>(Msg.AddGroupGone(AddFailureUi.GroupMissing(701L))),
-            run(group, effect),
-        )
-        assertEquals(
-            listOf<Msg>(Msg.AddWordGone(AddFailureUi.WordMissing(5L))),
-            run(word, effect),
-        )
-        assertEquals(
-            listOf<Msg>(Msg.AddComponentGone(AddFailureUi.TypeUnavailable(4L))),
-            run(type, effect),
+            listOf(Triple(Fx.DICT, "run", LemmaContext(Fx.TEXTBOOK_TEXT, Fx.TEXTBOOK_TRANSLATION))),
+            useCase.lexemeRequests,
         )
     }
 
     @Test
-    fun `AddWords rejected without a core or for a deleted dictionary sends AddFailed`() {
-        val core = FakeUseCase(addImpl = { AddWordsBatchOutcome.Rejected.NoCoreValue(0, 1) })
-        val dictionary = FakeUseCase(addImpl = { AddWordsBatchOutcome.Rejected.DictionaryMissing })
+    fun `AWP-55_1 AWP-55_7 LookupLemma not found or without lexemes sends the text under the word`() {
+        val notFound = run(FakeUseCase(lexemesImpl = { _, _, _ -> LexemesOutcome.NotFound }), lookupRun)
+        val noLexemes = run(FakeUseCase(lexemesImpl = { _, _, _ -> LexemesOutcome.NoLexemes }), lookupRun)
 
-        val effect = DatasourceEffect.AddWords(DomainFx.batch)
-
-        assertEquals(listOf<Msg>(Msg.AddFailed(AddFailureUi.NoCoreValue)), run(core, effect))
-        assertEquals(
-            listOf<Msg>(Msg.AddFailed(AddFailureUi.DictionaryMissing)),
-            run(dictionary, effect),
-        )
+        assertEquals(listOf<Msg>(Msg.LexemesNotFound("run", R.string.scan_not_found)), notFound)
+        assertEquals(listOf<Msg>(Msg.LexemesNotFound("run", R.string.scan_no_lexemes)), noLexemes)
     }
 
     @Test
-    fun `AddWords that throws goes to onFail with the failed reason`() {
-        val useCase = FakeUseCase(addImpl = { throw IllegalStateException("rolled back") })
-        val effect = DatasourceEffect.AddWords(DomainFx.batch)
+    fun `AWP-61_1 AWP-61_2 AWP-61_5 LookupLemma with an unavailable model, no answer or a failed word sends the reason with a retry`() {
+        val model = run(
+            FakeUseCase(lexemesImpl = { _, _, _ -> LexemesOutcome.Denied(LookupDenyReason.LLM_UNAVAILABLE) }),
+            lookupRun,
+        )
+        val server = run(FakeUseCase(lexemesImpl = { _, _, _ -> LexemesOutcome.Unavailable }), lookupRun)
+        val word = run(FakeUseCase(lexemesImpl = { _, _, _ -> LexemesOutcome.WordFailed }), lookupRun)
 
-        assertThrows(IllegalStateException::class.java) { run(useCase, effect) }
+        assertEquals(listOf<Msg>(Msg.LexemesUnavailable("run", R.string.scan_server_unavailable)), model)
+        assertEquals(listOf<Msg>(Msg.LexemesUnavailable("run", R.string.photo_words_error_server)), server)
+        assertEquals(listOf<Msg>(Msg.LexemesUnavailable("run", R.string.scan_server_unavailable)), word)
+    }
 
-        assertEquals(Msg.AddFailed(AddFailureUi.Failed), effect.onFail(IllegalStateException()))
+    @Test
+    fun `AWP-61_3 AWP-61_4 AWP-61_6 AWP-61_8 LookupLemma denied by limit key language or size sends the text of the reason without a retry`() {
+        val expected = mapOf(
+            LookupDenyReason.NO_ACCESS_KEY to R.string.photo_words_error_no_access,
+            LookupDenyReason.UNAUTHORIZED to R.string.photo_words_error_no_access,
+            LookupDenyReason.RATE_LIMITED to R.string.photo_words_error_rate_limited,
+            LookupDenyReason.REQUEST_TOO_LARGE to R.string.photo_words_error_too_many,
+            LookupDenyReason.UNSUPPORTED_LANGUAGE to R.string.photo_words_error_language,
+        )
+
+        expected.forEach { (reason, errorRes) ->
+            val useCase = FakeUseCase(lexemesImpl = { _, _, _ -> LexemesOutcome.Denied(reason) })
+
+            val messages = run(useCase, lookupRun)
+
+            assertEquals(reason.name, listOf<Msg>(Msg.LexemesDenied("run", errorRes)), messages)
+        }
+    }
+
+    @Test
+    fun `LookupLemma that throws goes to onFail with the server did not respond text under the word`() {
+        val useCase = FakeUseCase(lexemesImpl = { _, _, _ -> throw IllegalStateException("no dictionary") })
+
+        assertThrows(IllegalStateException::class.java) { run(useCase, lookupRun) }
+
+        assertEquals(
+            Msg.LexemesUnavailable("run", R.string.photo_words_error_server),
+            lookupRun.onFail(IllegalStateException()),
+        )
+    }
+
+    // ===== Запись слова (AWP-21) =====
+
+    @Test
+    fun `AddWord written sends WordAdded for the word of the effect`() {
+        val useCase = FakeUseCase(
+            addWordImpl = { AddWordsBatchOutcome.Added(wordIds = listOf(7L), lexemeIds = listOf(70L)) },
+        )
+
+        val messages = run(useCase, addLink)
+
+        assertEquals(listOf<Msg>(Msg.WordAdded("link")), messages)
+        assertEquals(listOf(DomainFx.batch("link")), useCase.batches)
+    }
+
+    @Test
+    fun `AWP-21_3 AWP-21_4 AWP-21_6 AddWord rejected by group word or component sends its own message with the id`() {
+        val group = run(
+            FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.GroupMissing(Fx.POTTER) }),
+            addLink,
+        )
+        val word = run(
+            FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.WordMissing(Fx.BANK_1) }),
+            addLink,
+        )
+        val component = run(
+            FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.TypeUnavailable(Fx.GLOSS) }),
+            addLink,
+        )
+
+        assertEquals(listOf<Msg>(Msg.AddGroupGone("link", AddFailureUi.GroupMissing(Fx.POTTER))), group)
+        assertEquals(listOf<Msg>(Msg.AddWordGone("link", AddFailureUi.WordMissing(Fx.BANK_1))), word)
+        assertEquals(listOf<Msg>(Msg.AddComponentGone("link", AddFailureUi.TypeUnavailable(Fx.GLOSS))), component)
+    }
+
+    @Test
+    fun `AWP-21_1 AddWord rejected without a core or without the dictionary sends the failure as is`() {
+        val core = run(
+            FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.NoCoreValue(wordIndex = 0, lexemeIndex = 0) }),
+            addLink,
+        )
+        val dictionary = run(
+            FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.DictionaryMissing }),
+            addLink,
+        )
+
+        assertEquals(listOf<Msg>(Msg.AddFailed("link", AddFailureUi.NoCoreValue)), core)
+        assertEquals(listOf<Msg>(Msg.AddFailed("link", AddFailureUi.DictionaryMissing)), dictionary)
+    }
+
+    @Test
+    fun `AWP-21_1 AddWord that throws goes to onFail with the failed write under the word`() {
+        val useCase = FakeUseCase(addWordImpl = { throw IllegalStateException("db closed") })
+
+        assertThrows(IllegalStateException::class.java) { run(useCase, addLink) }
+
+        assertEquals(Msg.AddFailed("link", AddFailureUi.Failed), addLink.onFail(IllegalStateException()))
     }
 
     // ===== Эффекты =====
 
     @Test
     fun `heavy effects print counts instead of the payload`() {
-        assertEquals("LookupWords(tokens=2)", DatasourceEffect.LookupWords(Fx.tokens).toString())
+        val extract = DatasourceEffect.ExtractLemmas(Fx.tokens)
+
+        assertEquals("ExtractLemmas(tokens=2)", extract.toString())
         assertEquals(
             "LoadForm(dictionaryId=1, lemmas=2)",
             DatasourceEffect.LoadForm(Fx.DICT, listOf("run", "bank")).toString(),
         )
         assertEquals(
-            "AddWords(dictionaryId=1, words=1, lexemes=1)",
-            DatasourceEffect.AddWords(DomainFx.batch).toString(),
+            "LookupLemma(word=run, lemma=run, dictionaryId=1, text=${Fx.TEXTBOOK_TEXT.length})",
+            lookupRun.toString(),
         )
+        assertEquals("AddWord(word=link, lexemes=1)", addLink.toString())
     }
 
     @Test

@@ -7,7 +7,6 @@ import me.apomazkin.dictionary.list.ListNavigationEffect
 import me.apomazkin.dictionaryappbar.DictionaryAppBarNavigationEffect
 import me.apomazkin.groupstab.logic.GroupsNavigationEffect
 import me.apomazkin.quiztab.QuizTabNavigationEffect
-import me.apomazkin.scancandidates.mate.ScanNavigationEffect
 import me.apomazkin.settingstab.SettingsNavigationEffect
 import me.apomazkin.splash.SplashNavigationEffect
 import me.apomazkin.wordstab.ui.WordsNavigationEffect
@@ -38,13 +37,8 @@ val appNavTable: NavTable = navTable {
     on<WordsNavigationEffect.OpenWordCard> { push(AppScreen.WordCard(it.wordId)) }
     on<GroupsNavigationEffect.OpenWordCard> { push(AppScreen.WordCard(it.wordId)) }
 
-    // Снимок получен → экран лексем-кандидатов. Закрылся после записи → счёт
-    // уезжает вкладке «Слова» через псевдоэкран (результата у таблицы нет);
-    // закрытие без записи — общий Back.
+    // Снимок получен → экран снимка; его закрытие — общий Back.
     on<WordsNavigationEffect.OpenScanCandidates> { push(AppScreen.ScanCandidates(it.uri)) }
-    on<ScanNavigationEffect.CloseWithResult> {
-        push(AppScreen.ScanCandidatesAdded(it.lexemeCount, it.wordCount))
-    }
 
     // Квиз.
     on<QuizTabNavigationEffect.OpenChat> { push(AppScreen.ChatQuiz(it.quizType)) }

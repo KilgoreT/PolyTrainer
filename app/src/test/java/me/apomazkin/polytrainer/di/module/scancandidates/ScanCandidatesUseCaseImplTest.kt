@@ -32,21 +32,27 @@ import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.core_db_api.entity.WordApiEntity
 import me.apomazkin.core_db_api.entity.WordTextApiEntity
 import me.apomazkin.core_network_api.CoreNetworkApi
-import me.apomazkin.core_network_api.entity.DenyReason
-import me.apomazkin.core_network_api.entity.LookupRequestApiEntity
-import me.apomazkin.core_network_api.entity.LookupResult
+import me.apomazkin.core_network_api.entity.CandidateLexemeApiEntity
+import me.apomazkin.core_network_api.entity.LemmaApiEntity
+import me.apomazkin.core_network_api.entity.LemmasRequestApiEntity
+import me.apomazkin.core_network_api.entity.LemmasResult
+import me.apomazkin.core_network_api.entity.LexemesRequestApiEntity
+import me.apomazkin.core_network_api.entity.LexemesResult
 import me.apomazkin.core_network_api.entity.WordStatus
 import me.apomazkin.lexeme.AddWordsBatchOutcome
+import me.apomazkin.lexeme.BatchComponent
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ChoiceValues
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.FormOutcome
-import me.apomazkin.lexeme.LookupDenyReason
-import me.apomazkin.lexeme.LookupOutcome
+import me.apomazkin.lexeme.LemmaContext
+import me.apomazkin.lexeme.LemmasOutcome
+import me.apomazkin.lexeme.LexemesOutcome
 import me.apomazkin.lexeme.LookupToken
 import me.apomazkin.lexeme.Primitive
 import me.apomazkin.lexeme.RecognitionOutcome
+import me.apomazkin.lexeme.SavedLexeme
 import me.apomazkin.lexeme.TemplateValues
 import me.apomazkin.lexeme.TextValues
 import me.apomazkin.lexeme.WordsBatch
@@ -70,10 +76,12 @@ import java.util.Date
 import me.apomazkin.core_network_api.entity.WordApiEntity as NetWordApiEntity
 
 /**
- * Порт экрана лексем-кандидатов (Д51): распознавание и файл снимка (WFP-08,
- * WFP-09, WFP-15, WFP-25), доступ к картинке галереи (Д52, WFP-22), запрос слов
- * с деревом компонентов текущего словаря (WFT-20, WFT-78), форма словаря и леммы
- * «есть» (AWP-07, AWP-09, AWP-18, AWP-24), запись пакета (AWP-20).
+ * Порт экрана снимка (Д51): распознавание и файл снимка (TFP-08, TFP-09, TFP-15,
+ * TFP-25), доступ к картинке галереи (Д52, TFP-22), запрос лемм текста с языками
+ * текущего словаря (TFP-28, TFP-01, LFT-02, AWP-01), значения слова по лемме с
+ * деревом словаря снимка (LFL-103, AWP-01, AWP-43.7), форма словаря и леммы
+ * с датой и сохранёнными лексемами (AWP-07, AWP-09, AWP-18, AWP-24, AWP-46),
+ * запись пакета (AWP-20).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScanCandidatesUseCaseImplTest {
@@ -143,10 +151,10 @@ class ScanCandidatesUseCaseImplTest {
         val tree = ComponentTreeLoader(lexemeApi, resources)
         useCase = ScanCandidatesUseCaseImpl(
             dictionaryApi = dictionaryApi,
-            wordsBatchApi = wordsBatchApi,
             currentDictionaryProvider = CurrentDictionaryProvider(dictionaryApi, prefsProvider),
             textRecognizer = textRecognizer,
             wordsApi = wordsApi,
+            wordsBatchApi = wordsBatchApi,
             componentTree = tree,
             formLoader = CandidatesFormLoader(groupApi, termApi, wordsBatchApi, tree),
             appContext = appContext,
@@ -172,7 +180,7 @@ class ScanCandidatesUseCaseImplTest {
     // ===== Распознавание =====
 
     @Test
-    fun `WFP-25_1 tokens go as recognized - same order, repeats, case, confidence and language`() = runTest {
+    fun `TFP-25_1 tokens go as recognized - same order, repeats, case, confidence and language`() = runTest {
         val texts = listOf(
             "Las", "nubes", "corrían", "por", "el", "cielo.", "El", "perro", "duerme", "en", "el", "jardín.",
         )
@@ -188,14 +196,14 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-25_2 a blank token is dropped, the rest keep their order`() = runTest {
+    fun `TFP-25_2 a blank token is dropped, the rest keep their order`() = runTest {
         recognized(listOf(word("Las"), word("  "), word("nubes"), word("")))
 
         assertEquals(listOf("Las", "nubes"), tokensOf(useCase.recognize(GALLERY)).map { it.text })
     }
 
     @Test
-    fun `WFP-25_3 the same text twice goes twice, each with its own confidence`() = runTest {
+    fun `TFP-25_3 the same text twice goes twice, each with its own confidence`() = runTest {
         recognized(listOf(word("the", confidence = 0.4f), word("the", confidence = 0.9f)))
 
         val tokens = tokensOf(useCase.recognize(GALLERY))
@@ -205,7 +213,7 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-25_5 the order of recognition is not corrected`() = runTest {
+    fun `TFP-25_5 the order of recognition is not corrected`() = runTest {
         val texts = listOf("observarlo.", "Nemec", "emocionado", "se", "puso", "a")
         recognized(texts.map { word(it) })
 
@@ -213,21 +221,21 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-25_6 tokens of spaces only give no words and nothing for the server`() = runTest {
+    fun `TFP-25_6 tokens of spaces only give no words and nothing for the server`() = runTest {
         recognized(listOf(word(" "), word("   ")))
 
         assertEquals(RecognitionOutcome.Empty, useCase.recognize(GALLERY))
     }
 
     @Test
-    fun `WFP-19_1 a photo without text gives no words`() = runTest {
+    fun `TFP-19_1 a photo without text gives no words`() = runTest {
         recognized(emptyList())
 
         assertEquals(RecognitionOutcome.Empty, useCase.recognize(GALLERY))
     }
 
     @Test
-    fun `WFP-25_7 blank tokens leave before the cut - 2001 tokens with a blank one give 2000`() = runTest {
+    fun `TFP-25_7 blank tokens leave before the cut - 2001 tokens with a blank one give 2000`() = runTest {
         recognized((1..2001).map { word(if (it == 1000) "   " else "w$it") })
 
         val tokens = tokensOf(useCase.recognize(GALLERY))
@@ -237,7 +245,7 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-15_1 2001 tokens are cut to the first 2000`() = runTest {
+    fun `TFP-15_1 2001 tokens are cut to the first 2000`() = runTest {
         recognized((1..2001).map { word("w$it") })
 
         val tokens = tokensOf(useCase.recognize(GALLERY))
@@ -248,14 +256,14 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-15_2 exactly 2000 tokens all go`() = runTest {
+    fun `TFP-15_2 exactly 2000 tokens all go`() = runTest {
         recognized((1..2000).map { word("w$it") })
 
         assertEquals(2000, tokensOf(useCase.recognize(GALLERY)).size)
     }
 
     @Test
-    fun `WFP-08_1 the camera file is deleted after recognition`() = runTest {
+    fun `TFP-08_1 the camera file is deleted after recognition`() = runTest {
         recognized(listOf(word("hello")))
 
         useCase.recognize(CAMERA)
@@ -264,7 +272,7 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-08_2 the camera file is deleted when recognition failed`() = runTest {
+    fun `TFP-08_2 the camera file is deleted when recognition failed`() = runTest {
         coEvery { textRecognizer.recognize(any()) } throws IOException("Cannot decode image")
 
         val failure = runCatching { useCase.recognize(CAMERA) }.exceptionOrNull()
@@ -274,7 +282,7 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-08_3 the camera file is deleted when the screen is closed during recognition`() = runTest {
+    fun `TFP-08_3 the camera file is deleted when the screen is closed during recognition`() = runTest {
         coEvery { textRecognizer.recognize(any()) } coAnswers { awaitCancellation() }
 
         val job = launch { useCase.recognize(CAMERA) }
@@ -287,7 +295,7 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-08 a camera file that cannot be deleted does not spoil the recognized text`() = runTest {
+    fun `TFP-08 a camera file that cannot be deleted does not spoil the recognized text`() = runTest {
         recognized(listOf(word("hello")))
         every { resolver.delete(any(), null, null) } throws SecurityException("no")
 
@@ -295,7 +303,7 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-09_1 a gallery image is not deleted or changed`() = runTest {
+    fun `TFP-09_1 a gallery image is not deleted or changed`() = runTest {
         recognized(listOf(word("hello")))
 
         useCase.recognize(GALLERY)
@@ -306,7 +314,7 @@ class ScanCandidatesUseCaseImplTest {
     // ===== Доступ к картинке галереи =====
 
     @Test
-    fun `WFP-22_4 access to a gallery image is released`() = runTest {
+    fun `TFP-22_4 access to a gallery image is released`() = runTest {
         useCase.releaseImageAccess(GALLERY)
 
         verify(exactly = 1) {
@@ -318,14 +326,14 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `WFP-22_4 a camera file has no access to release`() = runTest {
+    fun `TFP-22_4 a camera file has no access to release`() = runTest {
         useCase.releaseImageAccess(CAMERA)
 
         verify(exactly = 0) { resolver.releasePersistableUriPermission(any(), any()) }
     }
 
     @Test
-    fun `WFP-22_4 release can be repeated and never throws, even when the system has no grant`() = runTest {
+    fun `TFP-22_4 release can be repeated and never throws, even when the system has no grant`() = runTest {
         var calls = 0
         every { resolver.releasePersistableUriPermission(galleryUri, any()) } answers {
             calls++
@@ -339,7 +347,7 @@ class ScanCandidatesUseCaseImplTest {
         assertEquals(3, calls)
     }
 
-    // ===== Запрос слов =====
+    // ===== Компоненты словаря для формы =====
 
     private val translation = type(1L, BuiltInComponent.TRANSLATION, core = true)
     private val partOfSpeech = type(
@@ -409,116 +417,211 @@ class ScanCandidatesUseCaseImplTest {
         )
     }
 
+    // ===== Запрос лемм текста (IS537) =====
+
+    private val lemmasOk = LemmasResult.Success(
+        text = "Las nubes corrían por el cielo.",
+        translation = "Облака бежали по небу.",
+        lexical = listOf("nube", "correr", "cielo"),
+        proper = emptyList(),
+        function = listOf("el", "por"),
+        unparsed = emptyList(),
+    )
+
     @Test
-    fun `WFT-20_1 WFT-78_1 AWP-01_1 lookup asks with the languages, tokens and component tree of the current dictionary`() = runTest {
-        stubDictionaryComponents(translation, partOfSpeech, example, gloss, gender)
-        val request = slot<LookupRequestApiEntity>()
-        coEvery { wordsApi.lookup(capture(request), any()) } returns
-            LookupResult.Success("Wiktionary, CC BY-SA 4.0", emptyList(), emptyList())
-        val tokens = listOf(
-            LookupToken("corrían", 0.93f, "es"),
-            LookupToken("corrían", 0.5f, null),
-        )
+    fun `TFP-28_1 LFT-02_1 lemmas asks exactly once with the languages of the current dictionary and the tokens as they came`() = runTest {
+        val request = slot<LemmasRequestApiEntity>()
+        coEvery { wordsApi.lemmasFromTokens(capture(request), any()) } returns lemmasOk
+        val texts = listOf("Las", "nubes", "corrían", "por", "el", "cielo.", "El", "perro", "duerme", "en", "el", "jardín.")
+        val tokens = texts.mapIndexed { index, text ->
+            LookupToken(text, confidence = 1f - index / 20f, language = if (index == 5) null else "es")
+        }
 
-        useCase.lookupWords(tokens)
+        useCase.lemmasFromTokens(tokens)
 
+        coVerify(exactly = 1) { wordsApi.lemmasFromTokens(any(), any()) }
         assertEquals("es", request.captured.learningLanguage)
         assertEquals("ru", request.captured.translationLanguage)
-        assertEquals(listOf("corrían", "corrían"), request.captured.tokens.map { it.text })
-        assertEquals(listOf(0.93f, 0.5f), request.captured.tokens.map { it.confidence })
-        assertEquals(listOf("es", null), request.captured.tokens.map { it.language })
-        assertEquals(listOf(1L, 2L, 3L, 4L), request.captured.components.map { it.id })
-        assertEquals(
-            5L,
-            request.captured.components[1].options.first { it.id == 21L }.children.single().id,
-        )
+        assertEquals(texts, request.captured.tokens.map { it.text })
+        assertEquals(tokens.map { it.confidence }, request.captured.tokens.map { it.confidence })
+        assertEquals(tokens.map { it.language }, request.captured.tokens.map { it.language })
     }
 
     @Test
-    fun `WFT-78_7 dictionary without enabled components asks without a tree`() = runTest {
-        stubDictionaryComponents(translation.copy(enabled = false))
-        val request = slot<LookupRequestApiEntity>()
-        coEvery { wordsApi.lookup(capture(request), any()) } returns
-            LookupResult.Unavailable("offline")
+    fun `AWP-01_1 the lemmas answer carries the id of the dictionary of the photo and the lists`() = runTest {
+        coEvery { wordsApi.lemmasFromTokens(any(), any()) } returns lemmasOk
 
-        useCase.lookupWords(listOf(LookupToken("perro", 0.9f, "es")))
+        val outcome = useCase.lemmasFromTokens(listOf(LookupToken("Las", 0.9f, "es")))
 
-        assertTrue(request.captured.components.isEmpty())
-    }
-
-    @Test
-    fun `AWP-01_1 the answer carries the id of the dictionary of the photo`() = runTest {
-        stubDictionaryComponents(translation)
-        coEvery { wordsApi.lookup(any(), any()) } returns
-            LookupResult.Success("Wiktionary", listOf(wordOf("perro")), emptyList())
-
-        val outcome = useCase.lookupWords(listOf(LookupToken("perro", 0.9f, "es")))
-
-        outcome as LookupOutcome.Words
+        outcome as LemmasOutcome.Found
         assertEquals(1L, outcome.dictionaryId)
-        assertEquals(listOf("perro"), outcome.words.map { it.text })
+        assertEquals(listOf("nube", "correr", "cielo"), outcome.lemmas.lexical)
+        assertEquals("Облака бежали по небу.", outcome.lemmas.translation)
     }
 
     @Test
-    fun `WFP-19_2 an answer without words is no words`() = runTest {
-        stubDictionaryComponents(translation)
-        coEvery { wordsApi.lookup(any(), any()) } returns
-            LookupResult.Success("Wiktionary", emptyList(), emptyList())
-
-        assertEquals(
-            LookupOutcome.NoWords,
-            useCase.lookupWords(listOf(LookupToken("accorc", 0.4f, null))),
-        )
-    }
-
-    @Test
-    fun `WFT-63_5 WFT-23_1 a denial gives its reason, no answer gives unavailable`() = runTest {
-        stubDictionaryComponents(translation)
-        val tokens = listOf(LookupToken("perro", 0.9f, "es"))
-
-        coEvery { wordsApi.lookup(any(), any()) } returns LookupResult.Denied(DenyReason.LLM_UNAVAILABLE)
-        val denied = useCase.lookupWords(tokens)
-        coEvery { wordsApi.lookup(any(), any()) } returns LookupResult.Unavailable("offline")
-        val unavailable = useCase.lookupWords(tokens)
-
-        assertEquals(LookupOutcome.Denied(LookupDenyReason.LLM_UNAVAILABLE), denied)
-        assertEquals(LookupOutcome.Unavailable, unavailable)
-    }
-
-    @Test
-    fun `WFP-01_1 every request has a run number greater than any before`() = runTest {
-        stubDictionaryComponents(translation)
+    fun `TFP-01_1 every request has a run number greater than any before`() = runTest {
         val runIds = mutableListOf<Long>()
-        coEvery { wordsApi.lookup(any(), capture(runIds)) } returns
-            LookupResult.Unavailable("offline")
+        coEvery { wordsApi.lemmasFromTokens(any(), capture(runIds)) } returns LemmasResult.Unavailable("offline")
         val tokens = listOf(LookupToken("perro", 0.9f, "es"))
 
-        useCase.lookupWords(tokens)
-        useCase.lookupWords(tokens)
-        useCase.lookupWords(tokens)
+        useCase.lemmasFromTokens(tokens)
+        useCase.lemmasFromTokens(tokens)
+        useCase.lemmasFromTokens(tokens)
 
         assertEquals(3, runIds.size)
         assertTrue(runIds[0] < runIds[1] && runIds[1] < runIds[2])
     }
 
     @Test
-    fun `lookup without a current dictionary is a program error`() = runTest {
+    fun `lemmas without a current dictionary is a program error`() = runTest {
         every { dictionaryApi.flowDictionaryList() } returns flowOf(emptyList())
 
         val failure = runCatching {
-            useCase.lookupWords(listOf(LookupToken("perro", 0.9f, "es")))
+            useCase.lemmasFromTokens(listOf(LookupToken("perro", 0.9f, "es")))
         }.exceptionOrNull()
 
         assertTrue(failure is IllegalStateException)
-        coVerify(exactly = 0) { wordsApi.lookup(any(), any()) }
+        coVerify(exactly = 0) { wordsApi.lemmasFromTokens(any(), any()) }
     }
 
-    private fun wordOf(text: String) = NetWordApiEntity(
-        text = text,
-        status = WordStatus.NOT_FOUND,
-        lemmas = emptyList(),
-        remarks = emptyList(),
+    // ===== Значения слова по лемме (IS538) =====
+
+    private val photoContext = LemmaContext(
+        text = "Las nubes corrían por el cielo.",
+        translation = "Облака бежали по небу.",
     )
+
+    private fun candidate(key: String) = CandidateLexemeApiEntity(
+        key = key,
+        partOfSpeechKey = "verb",
+        source = "ruwiktionary",
+        translations = listOf("бегать; бежать"),
+        gloss = null,
+        caption = null,
+        notes = emptyList(),
+        examples = emptyList(),
+        grammar = emptyMap(),
+        level = null,
+        synonyms = emptyList(),
+        antonyms = emptyList(),
+        componentMatches = emptyList(),
+        inContext = true,
+    )
+
+    /** Ответ одним словом [text] с леммой [lemma] и одной лексемой. */
+    private fun answer(text: String, lemma: String, formNote: String? = null) = LexemesResult.Success(
+        attribution = "Wiktionary, CC BY-SA 4.0",
+        word = NetWordApiEntity(
+            text = text,
+            status = WordStatus.FOUND,
+            lemmas = listOf(LemmaApiEntity(lemma, formNote, emptyList(), listOf(candidate("ruwiktionary/1.verb.1")))),
+            remarks = emptyList(),
+        ),
+        recommendations = emptyList(),
+    )
+
+    @Test
+    fun `LFL-103_1 AWP-01_1 lexemes asks once with the lemma the text and its translation the languages and the component tree of the dictionary of the photo`() = runTest {
+        coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEs
+        stubDictionaryComponents(translation, partOfSpeech, example, gloss, gender)
+        val request = slot<LexemesRequestApiEntity>()
+        coEvery { wordsApi.lexemesFromLemma(capture(request), any()) } returns answer("correr", "correr")
+
+        val outcome = useCase.lexemesFromLemma(1L, "correr", photoContext)
+
+        coVerify(exactly = 1) { wordsApi.lexemesFromLemma(any(), any()) }
+        assertEquals("correr", request.captured.lemma)
+        assertEquals("Las nubes corrían por el cielo.", request.captured.context?.text)
+        assertEquals("Облака бежали по небу.", request.captured.context?.translation)
+        assertEquals("es", request.captured.learningLanguage)
+        assertEquals("ru", request.captured.translationLanguage)
+        assertEquals(listOf(1L, 2L, 3L, 4L), request.captured.components.map { it.id })
+        assertEquals(listOf(5L), request.captured.components[1].options[0].children.map { it.id })
+        assertTrue(outcome is LexemesOutcome.Found)
+    }
+
+    @Test
+    fun `LFL-103_2 the lemma goes as given - an unparsed token too`() = runTest {
+        coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEs
+        stubDictionaryComponents(translation)
+        val request = slot<LexemesRequestApiEntity>()
+        coEvery { wordsApi.lexemesFromLemma(capture(request), any()) } returns LexemesResult.Unavailable("down")
+
+        useCase.lexemesFromLemma(1L, "destibrg", photoContext)
+
+        assertEquals("destibrg", request.captured.lemma)
+        assertEquals("Las nubes corrían por el cielo.", request.captured.context?.text)
+    }
+
+    @Test
+    fun `TFP-01_1 every lexemes request has a run number greater than any before`() = runTest {
+        coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEs
+        stubDictionaryComponents(translation)
+        val runIds = mutableListOf<Long>()
+        coEvery { wordsApi.lexemesFromLemma(any(), capture(runIds)) } returns LexemesResult.Unavailable("down")
+
+        useCase.lexemesFromLemma(1L, "perro", photoContext)
+        useCase.lexemesFromLemma(1L, "perro", photoContext)
+
+        assertEquals(2, runIds.size)
+        assertTrue(runIds[0] < runIds[1])
+    }
+
+    @Test
+    fun `AWP-43_7 an answer with another lemma brings the dictionary lemmas of that text`() = runTest {
+        coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEs
+        stubDictionaryComponents(translation)
+        coEvery { wordsApi.lexemesFromLemma(any(), any()) } returns answer("children", "child", formNote = "plural")
+        coEvery { wordsBatchApi.getWordTexts(1L) } returns listOf(
+            WordTextApiEntity(10L, "child"),
+            WordTextApiEntity(11L, "children"),
+        )
+        coEvery { termApi.getTermsByIds(listOf(10L)) } returns listOf(
+            term(10L, "child", lexeme(1L, value(1L, translation, text("ребёнок")))),
+        )
+        every { groupApi.wordGroups(10L) } returns flowOf(
+            listOf(GroupApiEntity(id = 8L, dictionaryId = 1L, parentGroupId = null, name = "Family")),
+        )
+
+        val outcome = useCase.lexemesFromLemma(1L, "children", photoContext) as LexemesOutcome.Found
+
+        assertEquals("child", outcome.word.lemmas.single().text)
+        val existing = outcome.existing.single()
+        assertEquals(10L, existing.wordId)
+        assertEquals("child", existing.text)
+        assertEquals(listOf("ребёнок"), existing.coreValues)
+        assertEquals(listOf("Family"), existing.groupNames)
+    }
+
+    @Test
+    fun `AWP-43_7 the lemma that was asked for brings no dictionary lemmas`() = runTest {
+        coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEs
+        stubDictionaryComponents(translation)
+        coEvery { wordsApi.lexemesFromLemma(any(), any()) } returns answer("correr", "Correr")
+
+        val outcome = useCase.lexemesFromLemma(1L, "correr", photoContext) as LexemesOutcome.Found
+
+        assertTrue(outcome.existing.isEmpty())
+        coVerify(exactly = 0) { wordsBatchApi.getWordTexts(any()) }
+    }
+
+    @Test
+    fun `lexemes without the dictionary of the photo is unavailable and asks nothing`() = runTest {
+        coEvery { dictionaryApi.getDictionaryById(1L) } returns null
+
+        assertEquals(LexemesOutcome.Unavailable, useCase.lexemesFromLemma(1L, "perro", photoContext))
+        coVerify(exactly = 0) { wordsApi.lexemesFromLemma(any(), any()) }
+    }
+
+    @Test
+    fun `addWord writes the batch as it is through the batch api`() = runTest {
+        val batch = WordsBatch(dictionaryId = 1L, words = emptyList())
+        val added = AddWordsBatchOutcome.Added(wordIds = listOf(7L), lexemeIds = listOf(1L))
+        coEvery { wordsBatchApi.addWordsBatch(batch) } returns added
+
+        assertEquals(added, useCase.addWord(batch))
+    }
 
     // ===== Форма словаря =====
 
@@ -600,7 +703,7 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `AWP-18_1 AWP-18_7 AWP-07_2 AWP-07_3 existing lemmas - same text ignoring case, newest first, core values, text keys of cores, groups`() = runTest {
+    fun `AWP-18_1 AWP-18_7 AWP-50_1 existing lemmas - same text ignoring case, newest first, core values, text keys of cores, groups`() = runTest {
         val definition = type(8L, name = "Определение", core = true, position = 1)
         coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEs
         coEvery { lexemeApi.getComponentTypes(1L) } returns listOf(translation, definition, partOfSpeech)
@@ -643,7 +746,51 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `AWP-07_11 Д42 text keys come from cores only - a gloss that is not a core is not compared`() = runTest {
+    fun `AWP-18_10 AWP-46_1 AWP-46_4 existing lemma carries the add date of the word and its saved lexemes with live values of enabled components, a word without lexemes has none`() = runTest {
+        val disabled = type(6L, name = "Выключенный", enabled = false)
+        coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEs
+        stubDictionaryComponents(translation, gloss, disabled)
+        every { groupApi.groupTree(1L) } returns flowOf(emptyList())
+        coEvery { wordsBatchApi.getWordTexts(1L) } returns listOf(WordTextApiEntity(10L, "bank"), WordTextApiEntity(11L, "run"))
+        val added = Date(1_700_000_000_000L)
+        coEvery { termApi.getTermsByIds(listOf(10L, 11L)) } returns listOf(
+            TermApiEntity(
+                word = WordApiEntity(id = 10L, dictionaryId = 1L, value = "bank", addDate = added, changeDate = Date(1_800_000_000_000L)),
+                lexemes = listOf(
+                    lexeme(
+                        2L,
+                        value(1L, translation, text("банк")),
+                        value(2L, gloss, text("bank (an institution)")),
+                        value(3L, disabled, text("мимо")),
+                        value(4L, translation, text("удалённое"), removed = true),
+                    ),
+                ),
+            ),
+            term(11L, "run"),
+        )
+        every { groupApi.wordGroups(any()) } returns flowOf(emptyList())
+
+        val form = (useCase.loadForm(1L, listOf("bank", "run")) as FormOutcome.Loaded).form
+
+        val bank = form.existingLemmas.first { it.wordId == 10L }
+        assertEquals(1_700_000_000_000L, bank.addedAt)
+        assertEquals(
+            listOf(
+                SavedLexeme(
+                    id = 2L,
+                    components = listOf(
+                        BatchComponent(typeId = 1L, data = text("банк")),
+                        BatchComponent(typeId = 4L, data = text("bank (an institution)")),
+                    ),
+                ),
+            ),
+            bank.lexemes,
+        )
+        assertTrue(form.existingLemmas.first { it.wordId == 11L }.lexemes.isEmpty())
+    }
+
+    @Test
+    fun `AWP-50_6 Д42 text keys come from cores only - a gloss that is not a core is not compared`() = runTest {
         coEvery { dictionaryApi.getDictionaryById(1L) } returns dictEs
         stubDictionaryComponents(translation, gloss)
         every { groupApi.groupTree(1L) } returns flowOf(emptyList())
@@ -671,7 +818,7 @@ class ScanCandidatesUseCaseImplTest {
     }
 
     @Test
-    fun `AWP-07_5 the value of a disabled core gives no mark, the value of an enabled core does`() = runTest {
+    fun `AWP-50_1 the value of a disabled core gives no mark, the value of an enabled core does`() = runTest {
         // Словарь «только определения»: «Перевод» выключен, но старое значение в нём осталось.
         val disabledTranslation = translation.copy(enabled = false)
         val definition = type(8L, name = "Определение", core = true, position = 1)
@@ -724,35 +871,6 @@ class ScanCandidatesUseCaseImplTest {
             .single()
 
         assertEquals(listOf("собака"), existing.coreValues)
-    }
-
-    // ===== Запись =====
-
-    @Test
-    fun `AWP-20_1 the batch is written as it is by one call`() = runTest {
-        val batch = WordsBatch(dictionaryId = 1L, words = emptyList())
-        val added = AddWordsBatchOutcome.Added(wordIds = listOf(7L), lexemeIds = listOf(1L, 2L))
-        coEvery { wordsBatchApi.addWordsBatch(batch) } returns added
-
-        assertEquals(added, useCase.addWords(batch))
-    }
-
-    @Test
-    fun `AWP-21_1 a rejection of the check comes as an outcome`() = runTest {
-        val batch = WordsBatch(dictionaryId = 1L, words = emptyList())
-        coEvery { wordsBatchApi.addWordsBatch(batch) } returns AddWordsBatchOutcome.Rejected.DictionaryMissing
-
-        assertEquals(AddWordsBatchOutcome.Rejected.DictionaryMissing, useCase.addWords(batch))
-    }
-
-    @Test
-    fun `AWP-21 a failure of the transaction flies to the effect`() = runTest {
-        val batch = WordsBatch(dictionaryId = 1L, words = emptyList())
-        coEvery { wordsBatchApi.addWordsBatch(batch) } throws IllegalStateException("rolled back")
-
-        val failure = runCatching { useCase.addWords(batch) }.exceptionOrNull()
-
-        assertTrue(failure is IllegalStateException)
     }
 
     private companion object {

@@ -274,7 +274,7 @@ class CandidatesReducerTest {
     }
 
     @Test
-    fun `WCL-06_1 AWP-07_10 editing the core of an existing lexeme takes the mark off`() {
+    fun `WCL-06_1 editing the core of an existing lexeme takes the mark off`() {
         val ref = CFx.ref("run", "ru/v2", CFx.TRANSLATION)
         val edited = act(ready(), CandidateAction.SubmitText(ref, "руководить")).state()
         assertFalse(edited.dialog().lexeme("run", "ru/v2").exists)

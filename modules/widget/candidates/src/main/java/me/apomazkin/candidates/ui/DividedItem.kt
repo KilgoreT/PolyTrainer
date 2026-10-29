@@ -12,9 +12,9 @@ import me.apomazkin.theme.lemmaDivider
 /** Толщина полосы между леммами: лемма от леммы отличима с первого взгляда, лексемы внутри — тонкой чертой. */
 private val LEMMA_DIVIDER_THICKNESS = 10.dp
 
-/** Элемент списка с разделителем под ним: один корень, порядок не зависит от раскладки списка. */
+/** Элемент списка с разделителем под ним: один корень, порядок не зависит от раскладки списка. Публичен: его зовёт окно снимка. */
 @Composable
-internal fun DividedItem(content: @Composable () -> Unit) {
+fun DividedItem(content: @Composable () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         content()
         HorizontalDivider(color = cardDivider)

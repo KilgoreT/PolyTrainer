@@ -2,11 +2,14 @@ package me.apomazkin.scancandidates.mate
 
 import me.apomazkin.candidates.CandidateValueUiItem
 import me.apomazkin.candidates.CardLexemeUiItem
+import me.apomazkin.candidates.CardOwnGroupUi
+import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.candidates.ComponentMatchLineUiItem
 import me.apomazkin.candidates.ComponentMatchUi
 import me.apomazkin.candidates.ComponentRecommendationUi
 import me.apomazkin.candidates.ComponentRefUi
 import me.apomazkin.candidates.DictionaryFormUi
+import me.apomazkin.candidates.EditableTextUiItem
 import me.apomazkin.candidates.ExistingLemmaUi
 import me.apomazkin.candidates.FormComponentUi
 import me.apomazkin.candidates.FormGroupUi
@@ -15,10 +18,10 @@ import me.apomazkin.candidates.LemmaCardUiItem
 import me.apomazkin.candidates.LookupLemmaUi
 import me.apomazkin.candidates.LookupLexemeUi
 import me.apomazkin.candidates.LookupWordUi
+import me.apomazkin.candidates.SavedLexemeUi
 import me.apomazkin.candidates.ValueRefUi
 import me.apomazkin.candidates.WordRemarkUi
 import me.apomazkin.candidates.componentOf
-import me.apomazkin.candidates.lexemeOf
 import me.apomazkin.lexeme.BuiltInComponent
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.DependencyTarget
@@ -27,13 +30,16 @@ import me.apomazkin.lexeme.LookupWordStatus
 import me.apomazkin.lexeme.lexemeTextKey
 
 /**
- * Фикстуры экрана на UI-типах. Дерево компонентов и ответы сервера — из
- * контракта `backend/docs/handbook/specs/words-from-text/contract.md`:
+ * Фикстуры экрана на UI-типах. Ответ на токены — абзац учебника из контрольного
+ * набора `backend/docs/features/IS536_llm_values/control_set.md` (24 смысловых,
+ * 4 имени, 13 служебных, LFT-14.1) и «не разобрано» плотной страницы
+ * `es_dense_screenshot` (LFT-13.1). Дерево компонентов и ответы по лемме — из
+ * контракта `backend/docs/handbook/specs/lexemes-from-lemma/contract.md`:
  * «Перевод» (1), «Часть речи» (2) с опциями noun/verb/adjective (21–23), «Род»
  * (5) под опцией «существительное» с опциями 51–53, «Пример» (3, текст с
- * подписью, несколько), «Толкование» (4); слова «corrían», «perro», «zarpó»,
- * «accorc», «llave», «banco». Слова английского словаря («ran», «running»,
- * «bank», «tiempo», «llegar» …) — из примеров спеки AWP.
+ * подписью, несколько), «Толкование» (4); слова «corrían», «perro», «zarpó»;
+ * слова английского словаря («ran», «run», «children», «bank», «tiempo»,
+ * «llegar») — из примеров спеки AWP. Группы «Harry Potter 1» и «Finance».
  */
 object Fx {
     const val DICT = 1L
@@ -67,12 +73,86 @@ object Fx {
     const val RUN_WORD = 100L
     const val BANK_1 = 101L
     const val BANK_2 = 102L
+    const val STUDY_WORD = 103L
+    const val CHILD_WORD = 104L
 
     // Токены снимка
 
     val tokens = listOf(
         LookupToken(text = "perro", confidence = 0.9f, language = "es"),
         LookupToken(text = "corrían", confidence = 0.8f, language = "es"),
+    )
+
+    // Ответ на токены: абзац учебника
+
+    const val TEXTBOOK_TEXT =
+        "Study links early friendships with high-quality sibling relationships " +
+        "Children who experience a rewarding friendship before the birth of a sibling are likely " +
+        "to have a better relationship with that brother or sister that endures throughout their " +
+        "childhood, said Laurie Kramer in a University of Illinois study published in December's " +
+        "Journal of Family Psychology."
+
+    const val TEXTBOOK_TRANSLATION = "Исследование связывает раннюю дружбу с качественными " +
+        "отношениями между братьями и сёстрами."
+
+    val textbookLexical = listOf(
+        "study", "link", "early", "friendship", "high-quality", "sibling", "relationship", "child",
+        "experience", "rewarding", "birth", "likely", "have", "good", "brother", "sister", "endure",
+        "childhood", "say", "university", "publish", "journal", "family", "psychology",
+    )
+
+    val textbookProper = listOf("Laurie", "Kramer", "Illinois", "December")
+
+    val textbookFunction = listOf(
+        "with", "who", "a", "before", "the", "of", "be", "to", "that", "or", "throughout",
+        "their", "in",
+    )
+
+    /** «Не разобрано» плотной страницы, в порядке текста (LFT-13.1). */
+    val denseUnparsed = listOf("sh", "e", "ier", "destibrg")
+
+    fun lists(
+        lexical: List<String> = emptyList(),
+        proper: List<String> = emptyList(),
+        function: List<String> = emptyList(),
+        unparsed: List<String> = emptyList(),
+    ) = ScanWordListsUi(
+        lexical = lexical.map { ScanWordUiItem(it) },
+        proper = proper.map { ScanWordUiItem(it) },
+        function = function.map { ScanWordUiItem(it) },
+        unparsed = unparsed.map { ScanWordUiItem(it) },
+    )
+
+    fun textbookLists() = lists(
+        lexical = textbookLexical,
+        proper = textbookProper,
+        function = textbookFunction,
+    )
+
+    /** Ответ на токены сообщением хендлера; по умолчанию — абзац учебника. */
+    fun found(
+        lists: ScanWordListsUi = textbookLists(),
+        text: String = TEXTBOOK_TEXT,
+        translation: String = TEXTBOOK_TRANSLATION,
+        dictionaryId: Long = DICT,
+    ) = Msg.LemmasFound(
+        dictionaryId = dictionaryId,
+        text = text,
+        translation = translation,
+        lists = lists,
+    )
+
+    /** Ответ по лемме сообщением хендлера: слово списка [text] и слово ответа [word]. */
+    fun lexemes(
+        text: String,
+        word: LookupWordUi,
+        recommendations: List<ComponentRecommendationUi> = emptyList(),
+        existing: List<ExistingLemmaUi> = emptyList(),
+    ) = Msg.LexemesFound(
+        text = text,
+        word = word,
+        recommendations = recommendations,
+        existing = existing,
     )
 
     // Компоненты
@@ -170,18 +250,87 @@ object Fx {
         ),
     )
 
-    val groups = listOf(FormGroupUi(POTTER, "Harry Potter 1"), FormGroupUi(FINANCE, "Finance"))
+    val potter = FormGroupUi(id = POTTER, name = "Harry Potter 1")
+    val finance = FormGroupUi(id = FINANCE, name = "Finance")
 
-    // Слова словаря
+    // Леммы словаря
 
-    val runExisting = existing(RUN_WORD, "run", listOf("управлять"), groups = listOf("Finance"))
-    val bank1 = existing(BANK_1, "bank", listOf("банк", "банкомёт"), groups = listOf("Finance"))
-    val bank2 = existing(BANK_2, "bank", listOf("берег"))
+    /**
+     * Лемма словаря с текстом [text] и первыми значениями ядра [values]; для
+     * пометки «в словаре» важен только текст, для карточки «в словаре» —
+     * сохранённые лексемы [lexemes] и день добавления [addedAt].
+     */
+    fun existing(
+        wordId: Long,
+        text: String,
+        values: List<String> = emptyList(),
+        groups: List<String> = emptyList(),
+        addedAt: Long = 0L,
+        lexemes: List<SavedLexemeUi> = emptyList(),
+    ): ExistingLemmaUi = ExistingLemmaUi(
+        wordId = wordId,
+        text = text,
+        lexemeCount = values.size,
+        coreValues = values,
+        lexemeTextKeys = values.mapTo(HashSet()) { lexemeTextKey(it) },
+        groupNames = groups,
+        addedAt = addedAt,
+        lexemes = lexemes,
+    )
+
+    /** Сохранённая лексема словаря с одним текстом «Перевода». */
+    fun saved(
+        id: Long,
+        translation: String,
+    ): SavedLexemeUi = SavedLexemeUi(
+        id = id,
+        values = listOf(
+            CandidateValueUiItem.Text(
+                componentId = TRANSLATION,
+                texts = listOf(EditableTextUiItem.of(translation)),
+                field = null,
+            ),
+        ),
+    )
+
+    val run1 = existing(RUN_WORD, "run")
+    val study1 = existing(STUDY_WORD, "study")
+
+    val runExisting = existing(
+        RUN_WORD,
+        "run",
+        listOf("управлять"),
+        groups = listOf("Finance"),
+        addedAt = 1_758_000_000_000L,
+        lexemes = listOf(saved(1L, "управлять")),
+    )
+    val bank1 = existing(
+        BANK_1,
+        "bank",
+        listOf("банк", "банкомёт"),
+        groups = listOf("Finance"),
+        addedAt = 1_760_000_000_000L,
+        lexemes = listOf(saved(2L, "банк"), saved(3L, "банкомёт")),
+    )
+    val bank2 = existing(
+        BANK_2,
+        "bank",
+        listOf("берег"),
+        addedAt = 1_756_000_000_000L,
+        lexemes = listOf(saved(4L, "берег")),
+    )
+    val childExisting = existing(
+        CHILD_WORD,
+        "child",
+        listOf("ребёнок"),
+        addedAt = 1_759_000_000_000L,
+        lexemes = listOf(saved(9L, "ребёнок")),
+    )
 
     fun form(
         components: List<FormComponentUi> = tree,
         options: Map<Long, List<FormOptionUi>> = this.options,
-        groups: List<FormGroupUi> = this.groups,
+        groups: List<FormGroupUi> = listOf(potter, finance),
         existing: List<ExistingLemmaUi> = emptyList(),
         translationLanguage: String = "ru",
     ): DictionaryFormUi = DictionaryFormUi(
@@ -192,6 +341,9 @@ object Fx {
         groups = groups,
         existingLemmas = existing,
     )
+
+    /** Форма со «Стилем» (выбор, несколько) после «Перевода». */
+    fun formWithStyle(): DictionaryFormUi = form(components = listOf(translation, style))
 
     fun component(
         id: Long,
@@ -213,21 +365,7 @@ object Fx {
         dependsOn = dependsOn,
     )
 
-    fun existing(
-        wordId: Long,
-        text: String,
-        values: List<String>,
-        groups: List<String> = emptyList(),
-    ): ExistingLemmaUi = ExistingLemmaUi(
-        wordId = wordId,
-        text = text,
-        lexemeCount = values.size,
-        coreValues = values,
-        lexemeTextKeys = values.mapTo(HashSet()) { lexemeTextKey(it) },
-        groupNames = groups,
-    )
-
-    // Построители ответа
+    // Построители ответа по лемме
 
     fun byField(
         componentId: Long,
@@ -248,6 +386,7 @@ object Fx {
         grammar: Map<String, String> = emptyMap(),
         partOfSpeechKey: String? = null,
         matches: List<ComponentMatchUi> = emptyList(),
+        inContext: Boolean = false,
     ): LookupLexemeUi = LookupLexemeUi(
         key = key,
         partOfSpeechKey = partOfSpeechKey,
@@ -262,6 +401,7 @@ object Fx {
         synonyms = emptyList(),
         antonyms = emptyList(),
         componentMatches = matches,
+        inContext = inContext,
     )
 
     fun lemma(
@@ -286,17 +426,9 @@ object Fx {
         remarks = remarks,
     )
 
-    fun notFound(text: String): LookupWordUi = bare(text, LookupWordStatus.NOT_FOUND)
-
-    fun failed(text: String): LookupWordUi = bare(text, LookupWordStatus.ERROR)
-
-    /** Найденное слово без лемм (WFT-100.2). */
-    fun foundWithoutLemmas(text: String): LookupWordUi = bare(text, LookupWordStatus.FOUND)
-
-    private fun bare(
-        text: String,
-        status: LookupWordStatus,
-    ): LookupWordUi = LookupWordUi(text, status, lemmas = emptyList(), remarks = emptyList())
+    /** Найденное слово без лемм (LFL-100.2). */
+    fun foundWithoutLemmas(text: String): LookupWordUi =
+        LookupWordUi(text, LookupWordStatus.FOUND, lemmas = emptyList(), remarks = emptyList())
 
     fun noTranslation(
         lemma: String,
@@ -310,7 +442,7 @@ object Fx {
         byField(GLOSS, "gloss"),
     )
 
-    // «corrían», контракт 5.1: лемма «correr», три значения Русского Викисловаря
+    // «corrían», контракт 2.1: лемма «correr», три значения, первое «в тексте»
 
     val corrianVerb3 = lexeme(
         key = "ruwiktionary/1.verb.3",
@@ -318,6 +450,7 @@ object Fx {
         gloss = "to flow",
         partOfSpeechKey = "verb",
         matches = verbMatches(),
+        inContext = true,
     )
     val corrianVerb1 = lexeme(
         key = "ruwiktionary/1.verb.1",
@@ -342,7 +475,7 @@ object Fx {
         ),
     )
 
-    // «perro», контракт 5.2: существительное с родом, прилагательное, второе существительное
+    // «perro», контракт 2.2: существительное с родом, прилагательное, второе существительное
 
     val perroNoun1 = lexeme(
         key = "ruwiktionary/1.noun.1",
@@ -358,6 +491,7 @@ object Fx {
             byField(EXAMPLE, "examples"),
             byField(GLOSS, "gloss"),
         ),
+        inContext = true,
     )
     val perroAdjective1 = lexeme(
         key = "ruwiktionary/2.adjective.1",
@@ -383,7 +517,7 @@ object Fx {
     )
     val perro = word("perro", lemma("perro", listOf(perroNoun1, perroAdjective1, perroNoun2)))
 
-    // «zarpó», контракт 5.4: русского значения нет, английское с пометкой
+    // «zarpó», контракт 2.4: русского значения нет, английское с пометкой
 
     val zarpoVerb1 = lexeme(
         key = "enwiktionary/1.verb.1",
@@ -394,6 +528,7 @@ object Fx {
             byOption(PART_OF_SPEECH, VERB),
             byField(GLOSS, "gloss"),
         ),
+        inContext = true,
     )
     val zarpoVerb2 = lexeme(
         key = "enwiktionary/2.verb.1",
@@ -418,13 +553,7 @@ object Fx {
         ),
     )
 
-    // Контракт 5.5 и 5.3: не найдено, ошибка источника, нейронка упала на вызове
-
-    val accorc = notFound("accorc")
-    val llave = failed("llave")
-    val banco = failed("banco")
-
-    /** Рекомендация ответа, контракт 5.6: завести «Род» с опциями. */
+    /** Рекомендация ответа, контракт 2.6: завести «Род» с опциями. */
     val genderRecommendation = ComponentRecommendationUi(
         name = "Род",
         template = ComponentTemplate.CHOICE,
@@ -438,6 +567,7 @@ object Fx {
         translations = listOf("бежать, бегать"),
         partOfSpeechKey = "verb",
         matches = listOf(byField(TRANSLATION, "translations"), byOption(PART_OF_SPEECH, VERB)),
+        inContext = true,
     )
     val runVerb2 = lexeme(
         key = "ruwiktionary/1.verb.2",
@@ -450,34 +580,12 @@ object Fx {
             byField(EXAMPLE, "examples"),
         ),
     )
-
-    /** Тот же ключ `1.verb.1`, но другие данные: у «running» он не перебивает «ran» (AWP-04.8). */
-    val runVerb1FromRunning = lexeme(
-        key = "ruwiktionary/1.verb.1",
-        translations = listOf("бегущий"),
-        partOfSpeechKey = "adjective",
-        matches = listOf(
-            byField(TRANSLATION, "translations"),
-            byOption(PART_OF_SPEECH, ADJECTIVE),
-        ),
-    )
     val runMachine = lexeme(
         key = "enwiktionary/1.verb.37",
         translations = listOf("работать", "функционировать", "идти"),
         gloss = "Of a machine, including computer programs, to be operating or working normally.",
         partOfSpeechKey = "verb",
         matches = verbMatches(),
-    )
-    val runningNoun = lexeme(
-        key = "enwiktionary/1.noun.1",
-        translations = listOf("бег"),
-        gloss = "The action of the verb to run.",
-        partOfSpeechKey = "noun",
-        matches = listOf(
-            byField(TRANSLATION, "translations"),
-            byOption(PART_OF_SPEECH, NOUN),
-            byField(GLOSS, "gloss"),
-        ),
     )
 
     /** Существительное «run» рядом с глаголом: одна лемма, разная часть речи (AWP-20.3). */
@@ -488,56 +596,44 @@ object Fx {
         matches = listOf(byField(TRANSLATION, "translations"), byOption(PART_OF_SPEECH, NOUN)),
     )
 
+    /** «ran» — форма «run» с двумя лексемами. */
     val ran = word("ran", lemma("run", listOf(runVerb1, runVerb2), formNote = "simple past"))
-    val running = word(
-        "running",
-        lemma(
-            text = "run",
-            lexemes = listOf(runVerb1FromRunning, runMachine),
-            formNote = "present participle and gerund",
-        ),
-        lemma("running", listOf(runningNoun)),
-    )
 
-    /** Тот же «run» из ещё одного слова с теми же лексемами (AWP-04.3). */
-    val runs = word(
-        "runs",
-        lemma("run", listOf(runVerb1, runVerb2), formNote = "third-person singular"),
-    )
+    /** «run» само: прямая лемма без пометки формы, как у проверки по тексту (AWP-49). */
+    val run = word("run", lemma("run", listOf(runVerb1, runVerb2)))
 
-    /** Три лексемы-кандидата в одной карточке «run» (AWP-13.5). */
+    /** Три лексемы-кандидата в одной карточке «run» (AWP-15.1, AWP-03.1). */
     val runThree = word("run", lemma("run", listOf(runVerb1, runVerb2, runMachine)))
 
     /** Глагол и существительное в одной карточке «run» (AWP-20.3). */
     val runVerbAndNoun = word("run", lemma("run", listOf(runVerb1, runNoun)))
+
+    /** «children» → лемма «child» с пометкой формы (AWP-43.7): одно значение словаря, одно новое. */
+    val childNoun1 = lexeme(
+        key = "ruwiktionary/1.noun.1",
+        translations = listOf("ребёнок"),
+        partOfSpeechKey = "noun",
+        matches = listOf(byField(TRANSLATION, "translations"), byOption(PART_OF_SPEECH, NOUN)),
+        inContext = true,
+    )
+    val childNoun2 = lexeme(
+        key = "ruwiktionary/1.noun.2",
+        translations = listOf("дитя"),
+        partOfSpeechKey = "noun",
+        matches = listOf(byField(TRANSLATION, "translations"), byOption(PART_OF_SPEECH, NOUN)),
+    )
+    val children = word("children", lemma("child", listOf(childNoun1, childNoun2), formNote = "plural"))
 
     val bankNoun = lexeme(
         key = "ruwiktionary/1.noun.1",
         translations = listOf("банк (финансовое учреждение)"),
         partOfSpeechKey = "noun",
         matches = listOf(byField(TRANSLATION, "translations"), byOption(PART_OF_SPEECH, NOUN)),
+        inContext = true,
     )
     val bank = word("bank", lemma("bank", listOf(bankNoun)))
 
-    val london = word(
-        "London",
-        lemma(
-            text = "London",
-            lexemes = listOf(
-                lexeme(
-                    key = "enwiktionary/1.noun.1",
-                    translations = listOf("Лондон"),
-                    partOfSpeechKey = "noun",
-                    matches = listOf(
-                        byField(TRANSLATION, "translations"),
-                        byOption(PART_OF_SPEECH, NOUN),
-                    ),
-                ),
-            ),
-        ),
-    )
-
-    /** «tiempo», `ruwiktionary/1.noun.3` «погода» с тремя примерами (AWP-15.2, AWP-29.6). */
+    /** «tiempo», `ruwiktionary/1.noun.3` «погода» с тремя примерами (AWP-15.2, AWP-03.2). */
     val tiempoExamples = listOf(
         "¡Hoy hace un tiempo de perro!",
         "¿Qué tiempo hace?",
@@ -558,12 +654,13 @@ object Fx {
                         byOption(PART_OF_SPEECH, NOUN),
                         byField(EXAMPLE, "examples"),
                     ),
+                    inContext = true,
                 ),
             ),
         ),
     )
 
-    /** «llegar»: «Стиль» с несколькими значениями «перен.» и «разг.» (AWP-15.7, AWP-32.8). */
+    /** «llegar»: «Стиль» с несколькими значениями «перен.» и «разг.» (AWP-15.7). */
     val llegar = word(
         "llegar",
         lemma(
@@ -578,23 +675,11 @@ object Fx {
                         byOption(STYLE, FIGURATIVE),
                         byOption(STYLE, COLLOQUIAL),
                     ),
+                    inContext = true,
                 ),
             ),
         ),
     )
-
-    /** Форма со «Стилем» (выбор, несколько) после «Перевода». */
-    fun formWithStyle(): DictionaryFormUi = form(components = listOf(translation, style))
-
-    /** «run», `enwiktionary/1.verb.1`: переводы списком в «Перевод» (AWP-29.9). */
-    val runEnglishVerb = lexeme(
-        key = "enwiktionary/1.verb.1",
-        translations = listOf("бегать", "побегать", "бежать", "побежать"),
-        gloss = "To move forward quickly upon two feet by alternately making a short jump.",
-        partOfSpeechKey = "verb",
-        matches = listOf(byField(TRANSLATION, "translations")),
-    )
-    val runEnglish = word("run", lemma("run", listOf(runEnglishVerb)))
 
     // Адреса
 
@@ -611,15 +696,80 @@ object Fx {
         key: String,
         componentId: Long,
     ): ComponentRefUi = ComponentRefUi(lemma = lemma, key = key, componentId = componentId)
+
+    // Карточки для тестов списков
+
+    /** Карточка леммы без значений: по лексеме на флаг «уже в словаре» из [exists]. */
+    fun lemmaCard(
+        lemma: String,
+        vararg exists: Boolean,
+    ): LemmaCardUiItem = LemmaCardUiItem(
+        lemma = lemma,
+        sourceWords = listOf(lemma),
+        lexemes = exists.mapIndexed { index, flag ->
+            CardLexemeUiItem(
+                key = "ruwiktionary/1.verb.${index + 1}",
+                source = "ruwiktionary",
+                values = emptyList(),
+                isEnglishFallback = false,
+                exists = flag,
+                lacksCore = false,
+            )
+        },
+        existingCount = 0,
+        target = CardTargetUi.NewWord,
+        ownGroup = CardOwnGroupUi.AsCommon,
+    )
 }
 
 // Чтение результата в тестах
 
-/** Лексема-кандидат карточки по лемме и ключу. */
-fun List<LemmaCardUiItem>.candidate(
-    lemma: String,
+internal fun List<ScanWordUiItem>.texts(): List<String> = map { it.text }
+
+internal fun List<ScanWordUiItem>.marked(): List<String> =
+    filter { it.isInDictionary }.map { it.text }
+
+/** Слово списков по тексту; нет — ошибка теста. */
+internal fun ScanCandidatesState.word(text: String): ScanWordUiItem =
+    lists.wordOf(text) ?: error("no word $text")
+
+/** Карточка под словом; нет — ошибка теста. */
+internal fun ScanCandidatesState.card(text: String): WordCardUi = word(text).card ?: error("no card $text")
+
+internal fun ScanCandidatesState.lemmaCard(text: String): LemmaCardUiItem = card(text).lemma
+
+/** Лексема-кандидат карточки слова по ключу. */
+internal fun ScanCandidatesState.lexeme(
+    text: String,
     key: String,
-): CardLexemeUiItem = lexemeOf(lemma, key) ?: error("no lexeme $lemma / $key")
+): CardLexemeUiItem = lemmaCard(text).lexemes.firstOrNull { it.key == key } ?: error("no lexeme $text / $key")
+
+/** Что видит пользователь у лексемы-кандидата карточки слова. */
+internal fun ScanCandidatesState.shown(
+    text: String,
+    key: String,
+): List<String> = lexeme(text, key).shown(requireNotNull(form))
+
+/** Тексты значения-текста компонента у лексемы-кандидата карточки слова. */
+internal fun ScanCandidatesState.texts(
+    text: String,
+    key: String,
+    componentId: Long = Fx.TRANSLATION,
+): List<String> = lexeme(text, key).texts(componentId)
+
+/** Опции значения-выбора компонента у лексемы-кандидата карточки слова. */
+internal fun ScanCandidatesState.chosen(
+    text: String,
+    key: String,
+    componentId: Long,
+): List<Long> = lexeme(text, key).chosen(componentId)
+
+/** Значение компонента у лексемы-кандидата активно. */
+internal fun ScanCandidatesState.isActive(
+    text: String,
+    key: String,
+    componentId: Long,
+): Boolean = lexeme(text, key).values.first { it.componentId == componentId }.isActive
 
 /** Тексты значения-текста компонента у лексемы. */
 fun CardLexemeUiItem.texts(componentId: Long): List<String> {
@@ -633,31 +783,29 @@ fun CardLexemeUiItem.chosen(componentId: Long): List<Long> {
     return (value as CandidateValueUiItem.Choice).options
 }
 
-/** Компоненты, у которых лексема показывает значение (активные), в порядке показа. */
-fun CardLexemeUiItem.shownComponents(): List<Long> = values
-    .filter { it.isActive }
-    .map { it.componentId }
-
 /**
  * Что видит пользователь у лексемы: активные значения строками «Имя: значение»
- * в порядке компонентов, как в карточке слова (AWP-29); у «Выбора» без
- * значения — «без значения».
+ * в порядке карточки (AWP-29, AWP-44); у «Выбора» без значения — «без значения».
  */
 fun CardLexemeUiItem.shown(form: DictionaryFormUi): List<String> = values
     .filter { it.isActive }
-    .flatMap { value ->
-        val component = form.componentOf(value.componentId)
-            ?: error("no component ${value.componentId}")
-        val name = nameOf(component)
-        when (value) {
-            is CandidateValueUiItem.Text -> value.texts.map { "$name: ${it.text}" }
-            is CandidateValueUiItem.Choice -> if (value.options.isEmpty()) {
-                listOf("$name: без значения")
-            } else {
-                value.options.map { "$name: ${optionName(form, it)}" }
-            }
+    .flatMap { it.shown(form) }
+
+/** Сохранённая лексема словаря строками «Имя: значение» (AWP-46). */
+fun SavedLexemeUi.shown(form: DictionaryFormUi): List<String> = values.flatMap { it.shown(form) }
+
+private fun CandidateValueUiItem.shown(form: DictionaryFormUi): List<String> {
+    val component = form.componentOf(componentId) ?: error("no component $componentId")
+    val name = nameOf(component)
+    return when (this) {
+        is CandidateValueUiItem.Text -> texts.map { "$name: ${it.text}" }
+        is CandidateValueUiItem.Choice -> if (options.isEmpty()) {
+            listOf("$name: без значения")
+        } else {
+            options.map { "$name: ${optionName(form, it)}" }
         }
     }
+}
 
 /**
  * Строка раздела «Сопоставление» так, как её видит пользователь (AWP-31):

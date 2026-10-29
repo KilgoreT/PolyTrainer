@@ -137,7 +137,7 @@
     <string name="photo_words_close">Close</string>
     <string name="photo_words_error_camera">Camera is not available</string>
     <string name="photo_words_error_recognition">Could not recognize text</string>
-    <!-- IS529: list marks, attribution and server errors (WFT-56, 57, 61, 63) -->
+    <!-- IS529: list marks, attribution and server errors (LFL-56, 57, 61, 63) -->
     <string name="photo_words_not_found_mark">not found</string>
     <string name="photo_words_error_mark">failed to load</string>
     <string name="photo_words_attribution">Data: Wiktionary, CC BY-SA 4.0</string>
@@ -418,20 +418,15 @@
     <string name="photo_add_group">Group:</string>
     <string name="photo_add_new_word">new word</string>
     <string name="photo_add_target_title">Where to add the meanings of «%1$s»</string>
-    <string name="photo_add_target_existing">into «%1$s»: %2$s</string>
+    <string name="photo_add_target_existing">%1$s · %2$s · %3$s · %4$s</string>
     <string name="photo_add_target_new">new word «%1$s»</string>
-    <string name="photo_add_target_groups">groups: %1$s</string>
-    <string name="photo_add_target_no_groups">no groups</string>
+    <string name="photo_add_target_no_groups">All</string>
     <string name="photo_add_target_group_hint">The word joins the group «%1$s» together with its %2$s</string>
     <string name="photo_add_old_lexemes">old meanings</string>
     <string name="photo_add_english_mark">eng.</string>
     <string name="photo_add_exists_mark">exists</string>
     <string name="photo_add_no_core_mark">no core</string>
     <string name="photo_add_edited_mark">edited</string>
-    <string name="photo_add_not_added">Not to add: %1$d</string>
-    <string name="photo_add_not_found">not found</string>
-    <string name="photo_add_error">did not load</string>
-    <string name="photo_add_no_lexemes">no meanings</string>
     <string name="photo_add_nothing">Nothing to add</string>
     <string name="photo_add_button">Add %1$s</string>
     <string name="photo_add_button_plain">Add</string>
@@ -465,6 +460,24 @@
     <string name="candidates_exists_in_lemma">in «%1$s»</string>
     <!-- IS536: candidate lexemes through the neural network: remarks, component matches, option choice -->
     <string name="scan_server_unavailable">The server is unavailable right now, try again later</string>
+    <!-- IS537: окно снимка со списками словарных форм (AWP-38, AWP-39, AWP-40, AWP-41, AWP-53) -->
+    <string name="scan_analyzing">Analyzing text…</string>
+    <string name="scan_analysis_unavailable">Text analysis is unavailable right now, try again later</string>
+    <string name="scan_translation">Translation</string>
+    <string name="scan_list_lexical">Content words</string>
+    <string name="scan_list_proper">Proper names</string>
+    <string name="scan_list_function">Function words</string>
+    <string name="scan_list_unparsed">Unparsed</string>
+    <string name="scan_in_dictionary">in dictionary</string>
+    <string name="scan_in_context">in the text</string>
+    <string name="scan_exists_mark">already in dictionary</string>
+    <string name="scan_saved_title">In the dictionary</string>
+    <string name="scan_check_by_text">Check against the text</string>
+    <string name="scan_not_found">Not found</string>
+    <string name="scan_no_lexemes">No meanings</string>
+    <string name="scan_add">Add</string>
+    <string name="scan_delete_word">Delete</string>
+    <string name="scan_close_pending">Words not added: %1$d</string>
     <string name="candidates_remarks_title">Remarks</string>
     <string name="candidates_component_matches_title">Component matches</string>
     <string name="candidates_expand">expand</string>

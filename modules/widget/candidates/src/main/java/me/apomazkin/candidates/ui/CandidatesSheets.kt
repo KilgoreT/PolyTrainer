@@ -17,6 +17,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -30,9 +31,9 @@ import me.apomazkin.candidates.ComponentRefUi
 import me.apomazkin.candidates.DictionaryFormUi
 import me.apomazkin.candidates.LemmaCardUiItem
 import me.apomazkin.candidates.componentOf
-import me.apomazkin.candidates.existingOf
 import me.apomazkin.candidates.groupIdOr
 import me.apomazkin.candidates.optionsOf
+import me.apomazkin.candidates.targetRowsOf
 import me.apomazkin.candidates.textOf
 import me.apomazkin.candidates.valueOf
 import me.apomazkin.core_resources.R
@@ -45,6 +46,8 @@ import me.apomazkin.theme.formTextSecondary
 import me.apomazkin.theme.formTextTertiary
 import me.apomazkin.ui.btn.CancelButtonWidget
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
+import java.text.DateFormat
+import java.util.Date
 
 /**
  * Нижние листы окна и диалога: общая и своя группа (AWP-08), «куда класть»
@@ -53,7 +56,7 @@ import me.apomazkin.ui.btn.PrimaryFullButtonWidget
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CandidatesSheets(
+fun CandidatesSheets(
     view: CandidatesView,
     onAction: (CandidateAction) -> Unit,
 ) {
@@ -202,8 +205,10 @@ private fun CardGroupSheet(
 }
 
 /**
- * Куда класть (AWP-18): леммы словаря с этим текстом и «новое слово»; подсказка
- * о группе (AWP-18.5).
+ * Куда класть (AWP-18): по строке на лемму словаря с этим текстом — значения
+ * ядра, число лексем, группы или «Все», день добавления в коротком формате
+ * локали — и «новое слово»; подсказка о группе (AWP-18.5). Лист только
+ * рисует строки `targetRowsOf`.
  */
 @Composable
 private fun CardTargetSheet(
@@ -213,28 +218,26 @@ private fun CardTargetSheet(
     onAction: (CandidateAction) -> Unit,
 ) {
     val card = view.cards.firstOrNull { it.lemma == lemma } ?: return
+    val dateFormat = remember { DateFormat.getDateInstance(DateFormat.SHORT) }
     SheetTitle(text = stringResource(id = R.string.photo_add_target_title, lemma))
-    form.existingOf(lemma).forEach { existing ->
-        val values = existing.coreValues.joinToString(", ")
-        val lexemes = lexemesCount(existing.lexemeCount)
+    form.targetRowsOf(lemma).forEach { row ->
+        val groups = if (row.groupNames.isEmpty()) {
+            stringResource(id = R.string.photo_add_target_no_groups)
+        } else {
+            row.groupNames.joinToString(", ")
+        }
         SheetRow(
             text = stringResource(
                 id = R.string.photo_add_target_existing,
-                existing.text,
-                "$values · $lexemes",
+                row.coreValues.joinToString(", "),
+                lexemesCount(row.lexemeCount),
+                groups,
+                dateFormat.format(Date(row.addedAt)),
             ),
-            selected = card.target == CardTargetUi.Existing(existing.wordId),
+            selected = card.target == CardTargetUi.Existing(row.wordId),
             onClick = {
-                val target = CardTargetUi.Existing(existing.wordId)
+                val target = CardTargetUi.Existing(row.wordId)
                 onAction(CandidateAction.SetCardTarget(lemma, target))
-            },
-            subtitle = if (existing.groupNames.isEmpty()) {
-                stringResource(id = R.string.photo_add_target_no_groups)
-            } else {
-                stringResource(
-                    id = R.string.photo_add_target_groups,
-                    existing.groupNames.joinToString(", "),
-                )
             },
         )
     }

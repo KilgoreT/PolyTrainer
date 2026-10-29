@@ -8,7 +8,7 @@ import me.apomazkin.lexeme.lexemeTextKey
 
 /**
  * Фикстуры окна лексем-кандидатов. Дерево компонентов и ответы сервера — из
- * контракта `backend/docs/handbook/specs/words-from-text/contract.md`:
+ * контракта `backend/docs/handbook/specs/lexemes-from-lemma/contract.md`:
  * «Перевод» (1), «Часть речи» (2) с опциями noun/verb/adjective (21–23),
  * «Род» (5) под опцией «существительное» с опциями 51–53, «Пример» (3, текст
  * с подписью, несколько), «Толкование» (4); слова «corrían», «perro»,
@@ -215,6 +215,8 @@ object Fx {
         text: String,
         values: List<String>,
         groups: List<String> = emptyList(),
+        addedAt: Long = 0L,
+        lexemes: List<SavedLexemeUi> = emptyList(),
     ): ExistingLemmaUi = ExistingLemmaUi(
         wordId = wordId,
         text = text,
@@ -222,6 +224,23 @@ object Fx {
         coreValues = values,
         lexemeTextKeys = values.mapTo(HashSet()) { lexemeTextKey(it) },
         groupNames = groups,
+        addedAt = addedAt,
+        lexemes = lexemes,
+    )
+
+    /** Сохранённая лексема словаря с одним текстом «Перевода» — для карточки «в словаре» (AWP-46). */
+    fun saved(
+        id: Long,
+        translation: String,
+    ): SavedLexemeUi = SavedLexemeUi(
+        id = id,
+        values = listOf(
+            CandidateValueUiItem.Text(
+                componentId = TRANSLATION,
+                texts = listOf(EditableTextUiItem.of(translation)),
+                field = null,
+            ),
+        ),
     )
 
     // Построители ответа
@@ -289,7 +308,7 @@ object Fx {
 
     fun failed(text: String): LookupWordUi = bare(text, LookupWordStatus.ERROR)
 
-    /** Найденное слово без лемм (WFT-100.2). */
+    /** Найденное слово без лемм (LFL-100.2). */
     fun foundWithoutLemmas(text: String): LookupWordUi = bare(text, LookupWordStatus.FOUND)
 
     private fun bare(
@@ -655,14 +674,19 @@ object Fx {
 
     // Сборка
 
-    /** Карточки, как их собирает цепочка атомов экрана: сборка, активность, «есть», ядро. */
+    /**
+     * Карточки, как их собирает цепочка атомов экрана по слову: пустая карточка
+     * леммы → карточка из ответа → активность, «уже в словаре» по выбранной
+     * лемме словаря (AWP-50), ядро. Слово — одна карточка его первой леммы с
+     * лексемами.
+     */
     fun cards(
         vararg words: LookupWordUi,
         form: DictionaryFormUi = Fx.form(),
-    ): List<LemmaCardUiItem> = buildLemmaCards(words.toList(), form)
-        .cards
+    ): List<LemmaCardUiItem> = words
+        .map { word -> lemmaCardOf(word, emptyLemmaCard(word.text, form), form) }
         .withActiveValues(form)
-        .withExistsMarks(form)
+        .map { card -> listOf(card).withExistsMarks(form.lexemeKeysOf(card.target), form).single() }
         .withCoreMarks(form)
 
     /** Адрес значения: лемма, ключ лексемы, компонент, номер значения. */

@@ -1,42 +1,59 @@
 package me.apomazkin.core_network_api
 
-import me.apomazkin.core_network_api.entity.LookupRequestApiEntity
-import me.apomazkin.core_network_api.entity.LookupResult
+import me.apomazkin.core_network_api.entity.LemmasRequestApiEntity
+import me.apomazkin.core_network_api.entity.LemmasResult
+import me.apomazkin.core_network_api.entity.LexemesRequestApiEntity
+import me.apomazkin.core_network_api.entity.LexemesResult
 
 /**
  * Слой сети приложения: разговор с сервером слов
- * (контракт `backend/api/openapi.yaml`, спека
- * `backend/docs/handbook/specs/words-from-text/spec.md`).
+ * (контракт `backend/api/openapi.yaml`, спеки
+ * `backend/docs/handbook/specs/lexemes-from-lemma/spec.md` и
+ * `backend/docs/handbook/specs/lemmas-from-text/spec.md`).
  *
  * Устроен как слой базы ([me.apomazkin.core_db_api.CoreDbApi]): этот модуль —
  * публичный язык слоя, реализация в `:core:core-network-impl`, фасад с
  * Dagger-компонентом в `:core:core-network`. Экраны этого модуля не видят,
  * их порты в `app` соединяют распознавание, словарь и сеть.
  *
- * Словарь имён (IS529, IS536):
- * - **запрос** — [LookupRequestApiEntity]: языки словаря, токены как
- *   распознаны на устройстве и дерево компонентов словаря (WFT-78);
+ * Словарь имён (IS529, IS536, IS537, IS538):
+ * - **запрос по лемме** — [LexemesRequestApiEntity]: языки словаря, лемма,
+ *   контекст снимка или null и дерево компонентов словаря (LFL-103,
+ *   LFL-104, LFL-78);
+ * - **запрос лемм** — [LemmasRequestApiEntity]: языки словаря и токены
+ *   снимка без дерева (LFT-02);
  * - **токен** — [me.apomazkin.core_network_api.entity.TokenApiEntity]: текст,
  *   уверенность распознавания, язык по мнению распознавания или null;
- * - **результат** — [LookupResult]: ровно один из трёх исходов, исключений
- *   наружу слой не выпускает (WFT-23, WFT-63);
+ * - **исход по лемме** — [LexemesResult]: ровно один из трёх исходов,
+ *   исключений наружу слой не выпускает (LFL-23); успех — одно слово ответа
+ *   и рекомендации (контракт, раздел 2);
+ * - **исход лемм** — [LemmasResult]: так же ровно один из трёх; успех —
+ *   текст, перевод и четыре списка строк (LFT-14);
  * - **слово** — [me.apomazkin.core_network_api.entity.WordApiEntity]: слово
  *   ответа со статусом, леммами и замечаниями; у леммы —
- *   лексемы-кандидаты с сопоставлением (WFT-87);
+ *   лексемы-кандидаты с сопоставлением (LFL-87);
  * - **номер запуска** — `runId`, уходит на сервер заголовком `X-Run-Id` и
  *   связывает строки лога устройства и сервера (термин «Запуск»).
  */
 interface CoreNetworkApi {
 
-    /** Адреса сервера слов. Пока один — `lookupWords`. */
+    /** Адреса сервера слов: `lexemesFromLemma` и `lemmasFromTokens`. */
     interface WordsApi {
 
         /**
-         * Один запрос `lookupWords` (WFT-20). Ждёт ответ до 180 секунд
-         * (WFT-22), ходит только по HTTPS (WFT-21). Пустой ключ доступа —
-         * [LookupResult.Denied] с [me.apomazkin.core_network_api.entity.DenyReason.NO_ACCESS_KEY]
-         * без обращения к сети (WFT-19).
+         * Один запрос `lexemesFromLemma` (LFL-103, LFL-104): лемма с контекстом
+         * снимка или без него, одно слово в ответе. Ждёт ответ до 180 секунд
+         * (LFL-22), ходит только по HTTPS (LFL-21); пустой ключ доступа —
+         * [LexemesResult.Denied] с [me.apomazkin.core_network_api.entity.DenyReason.NO_ACCESS_KEY]
+         * без обращения к сети (ACC-19).
          */
-        suspend fun lookup(request: LookupRequestApiEntity, runId: Long): LookupResult
+        suspend fun lexemesFromLemma(request: LexemesRequestApiEntity, runId: Long): LexemesResult
+
+        /**
+         * Один запрос `lemmasFromTokens` (LFT-02). Ждёт ответ до 180 секунд,
+         * ходит только по HTTPS; пустой ключ доступа — [LemmasResult.Denied]
+         * без обращения к сети (ACC-19).
+         */
+        suspend fun lemmasFromTokens(request: LemmasRequestApiEntity, runId: Long): LemmasResult
     }
 }

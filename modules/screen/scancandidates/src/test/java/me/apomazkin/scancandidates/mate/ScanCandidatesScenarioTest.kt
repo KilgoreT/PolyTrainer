@@ -12,15 +12,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
-import me.apomazkin.candidates.AddFailureUi
-import me.apomazkin.candidates.CardOwnGroupUi
-import me.apomazkin.candidates.CardTargetUi
-import me.apomazkin.candidates.RemarkUiItem
-import me.apomazkin.candidates.countPhrase
 import me.apomazkin.core_resources.R
-import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.FormOutcome
-import me.apomazkin.lexeme.LookupOutcome
+import me.apomazkin.lexeme.LemmasOutcome
+import me.apomazkin.lexeme.LexemesOutcome
 import me.apomazkin.lexeme.RecognitionOutcome
 import me.apomazkin.scancandidates.ScanCandidatesAssembly
 import org.junit.Assert.assertEquals
@@ -40,100 +35,60 @@ class ScanCandidatesScenarioTest {
     // ===== Цепочки сообщений =====
 
     @Test
-    fun `scenario - photo to window to write closes the screen with the counts`() {
-        val window = reducer.window(Fx.ran, Fx.bank, form = Fx.form(existing = listOf(Fx.bank1)))
-        val grouped = reducer.step(window, Msg.SetCommonGroup(Fx.POTTER))
-        val asking = reducer.step(grouped, Msg.RequestAdd)
+    fun `scenario - photo to window by the textbook paragraph with the dictionary marks`() {
+        val analyzing = reducer.recognized()
+        val loading = reducer.step(analyzing, Fx.found())
 
-        val adding = reducer.testReduce(asking, Msg.ConfirmAdd)
-        val batch = (adding.effects().single() as DatasourceEffect.AddWords).batch
-        val done = reducer.testReduce(adding.state(), Msg.AddFinished(3, 2))
+        val window = reducer.step(loading, Msg.FormLoaded(Fx.form(existing = listOf(Fx.study1))))
 
-        assertEquals(
-            "3 значения в 2 слова",
-            countPhrase(asking.summary.lexemeCount, asking.summary.wordCount),
-        )
-        assertTrue(adding.state().isAdding)
-        assertEquals(listOf("run", "bank"), batch.words.map { it.text })
-        assertEquals(setOf<Effect>(ScanNavigationEffect.CloseWithResult(3, 2)), done.effects())
+        assertEquals(ScanPhase.ANALYZING, analyzing.phase)
+        assertEquals(ScanPhase.FORM_LOADING, loading.phase)
+        assertEquals(ScanPhase.WINDOW, window.phase)
+        assertEquals(41, window.lists.allTexts().size)
+        assertEquals(listOf("study"), window.lists.lexical.marked())
+        assertEquals(Fx.TEXTBOOK_TRANSLATION, window.translation)
+        assertFalse(window.isTranslationExpanded)
+        assertNull(window.errorRes)
     }
 
     @Test
     fun `scenario - no network then retry then the answer builds the window`() {
         val unavailable = reducer.step(
             reducer.recognized(),
-            Msg.LookupUnavailable(R.string.photo_words_error_server),
+            Msg.LemmasUnavailable(R.string.photo_words_error_server),
         )
 
-        val retried = reducer.testReduce(unavailable, Msg.RetryLookup)
-        val answered = reducer.step(
-            retried.state(),
-            Msg.WordsFound(Fx.DICT, listOf(Fx.perro), emptyList()),
-        )
+        val retried = reducer.testReduce(unavailable, Msg.RetryLemmas)
+        val answered = reducer.step(retried.state(), Fx.found())
         val window = reducer.step(answered, Msg.FormLoaded(Fx.form()))
 
-        assertEquals(ScanPhase.LOOKING, retried.state().phase)
-        assertEquals(setOf<Effect>(DatasourceEffect.LookupWords(Fx.tokens)), retried.effects())
+        assertEquals(ScanPhase.ANALYZING, retried.state().phase)
+        assertEquals(setOf<Effect>(DatasourceEffect.ExtractLemmas(Fx.tokens)), retried.effects())
         assertEquals(ScanPhase.WINDOW, window.phase)
-        assertEquals(listOf("perro"), window.cards.map { it.lemma })
+        assertEquals(Fx.textbookLexical, window.lists.lexical.texts())
         assertNull(window.errorRes)
         assertFalse(window.hasRetryButton)
     }
 
     @Test
-    fun `scenario - rejected by a dead group, group reset, retry succeeds`() {
-        val window = reducer.step(reducer.window(Fx.ran), Msg.SetCommonGroup(Fx.POTTER))
-        val adding = reducer.step(reducer.step(window, Msg.RequestAdd), Msg.ConfirmAdd)
-        val rejected = reducer.step(
-            adding,
-            Msg.AddGroupGone(AddFailureUi.GroupMissing(Fx.POTTER)),
-        )
+    fun `scenario - AWP-43_1 AWP-47_1 AWP-62_1 tap, card, add, the row is gone`() {
+        val two = Fx.lists(lexical = listOf("ran", "bank"))
+        val window = reducer.window(found = Fx.found(lists = two))
 
-        val retry = reducer.testReduce(rejected, Msg.RetryAdd)
-        val done = reducer.testReduce(retry.state(), Msg.AddFinished(2, 1))
+        val loading = reducer.testReduce(window, Msg.LoadLexemes("ran"))
+        val loaded = reducer.step(loading.state(), Fx.lexemes("ran", Fx.ran))
+        val adding = reducer.testReduce(loaded, Msg.AddWord("ran"))
+        val added = reducer.step(adding.state(), Msg.WordAdded("ran"))
 
-        val batch = (retry.effects().single() as DatasourceEffect.AddWords).batch
-        assertTrue(batch.words.all { it.groupId == null })
-        assertTrue(retry.state().isAdding)
-        assertNull(retry.state().addFailure)
-        assertEquals(setOf<Effect>(ScanNavigationEffect.CloseWithResult(2, 1)), done.effects())
-    }
-
-    @Test
-    fun `scenario - deletions then back asks, stay keeps, close leaves without a write`() {
-        val window = reducer.window(Fx.ran, Fx.bank)
-        val edited = reducer.step(
-            reducer.step(window, Msg.DeleteCard("bank")),
-            Msg.DeleteLexeme("run", "ruwiktionary/1.verb.1"),
-        )
-        val asked = reducer.step(edited, Msg.RequestClose)
-        val stayed = reducer.step(asked, Msg.Stay)
-
-        val closed = reducer.testReduce(reducer.step(stayed, Msg.RequestClose), Msg.ConfirmClose)
-
-        assertTrue(asked.isConfirmingClose)
-        assertEquals(listOf("run"), stayed.cards.map { it.lemma })
-        assertEquals(1, stayed.card("run").lexemes.size)
-        assertFalse(stayed.isConfirmingClose)
-        assertEquals(setOf<Effect>(NavigationEffect.Back), closed.effects())
-    }
-
-    @Test
-    fun `scenario - one window with a new word, a lexeme into an old word, a whole word`() {
-        val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
-        val window = reducer.window(Fx.ran, Fx.bank, Fx.perro, form = form)
-        val trimmed = reducer.step(window, Msg.DeleteLexeme("run", "ruwiktionary/1.verb.2"))
-        val secondBank = CardTargetUi.Existing(Fx.BANK_2)
-        val moved = reducer.step(trimmed, Msg.SetCardTarget("bank", secondBank))
-        val finance = CardOwnGroupUi.Group(Fx.FINANCE)
-        val grouped = reducer.step(moved, Msg.SetCardGroup("perro", finance))
-
-        val batch = reducer.batchOf(grouped)
-
-        assertEquals(listOf("run", "bank", "perro"), batch.words.map { it.text })
-        assertEquals(listOf<Long?>(null, Fx.BANK_2, null), batch.words.map { it.wordId })
-        assertEquals(listOf(1, 1, 3), batch.words.map { it.lexemes.size })
-        assertEquals(listOf<Long?>(null, null, Fx.FINANCE), batch.words.map { it.groupId })
+        assertEquals(CardPhase.LOADING, loading.state().card("ran").phase)
+        assertTrue(loading.effects().single() is DatasourceEffect.LookupLemma)
+        assertEquals(CardPhase.CANDIDATES, loaded.card("ran").phase)
+        assertTrue(loaded.card("ran").canAdd)
+        assertTrue(adding.state().card("ran").isAdding)
+        assertTrue(adding.effects().single() is DatasourceEffect.AddWord)
+        assertEquals(listOf("bank"), added.lists.lexical.texts())
+        assertFalse(added.isAdding)
+        assertEquals(ScanPhase.WINDOW, added.phase)
     }
 
     // ===== Весь цикл Mate =====
@@ -152,16 +107,21 @@ class ScanCandidatesScenarioTest {
 
     private fun answeringUseCase() = FakeUseCase(
         recognizeImpl = { RecognitionOutcome.Text(Fx.tokens) },
-        lookupImpl = {
-            LookupOutcome.Words(
-                dictionaryId = Fx.DICT,
-                words = listOf(DomainFx.perro),
-                recommendations = listOf(DomainFx.genderRecommendation),
-            )
-        },
+        lemmasImpl = { LemmasOutcome.Found(dictionaryId = Fx.DICT, lemmas = DomainFx.textbook) },
         loadFormImpl = { _, _ -> FormOutcome.Loaded(DomainFx.form) },
-        addImpl = { AddWordsBatchOutcome.Added(wordIds = listOf(100L), lexemeIds = listOf(1000L)) },
+        lexemesImpl = { _, lemma, _ -> LexemesOutcome.Found(DomainFx.lookupWord(lemma), emptyList()) },
     )
+
+    /** Отвечающий юзкейс, у которого значения слова ждут ворот [gate]. */
+    private fun gatedUseCase(gate: CompletableDeferred<LexemesOutcome>): FakeUseCase {
+        val answering = answeringUseCase()
+        return FakeUseCase(
+            recognizeImpl = answering.recognizeImpl,
+            lemmasImpl = answering.lemmasImpl,
+            loadFormImpl = answering.loadFormImpl,
+            lexemesImpl = { _, _, _ -> gate.await() },
+        )
+    }
 
     private fun TestScope.assemble(
         useCase: FakeUseCase,
@@ -177,36 +137,105 @@ class ScanCandidatesScenarioTest {
     )
 
     @Test
-    fun `loop - from the photo to the result on the navigation`() = runMateTest { scope ->
+    fun `loop - from the photo to the window with the lists and the marks, then close`() = runMateTest { scope ->
         val useCase = answeringUseCase()
         val navigation = RecordingNavigation()
         val mate = assemble(useCase, navigation, scope)
 
         testScheduler.advanceUntilIdle()
         val window = mate.state.value
-        mate.accept(Msg.RequestAdd)
-        mate.accept(Msg.ConfirmAdd)
+        mate.accept(Msg.RequestClose)
         testScheduler.advanceUntilIdle()
 
         assertEquals(ScanPhase.WINDOW, window.phase)
-        assertEquals(listOf("perro"), window.cards.map { it.lemma })
-        assertEquals(CardTargetUi.Existing(DomainFx.PERRO_WORD), window.card("perro").target)
-        assertEquals(2, window.remarks.size)
-        assertTrue(window.remarks.last() is RemarkUiItem.ComponentRecommended)
+        assertEquals(Fx.textbookLexical, window.lists.lexical.texts())
+        assertEquals(Fx.textbookProper, window.lists.proper.texts())
+        assertEquals(Fx.textbookFunction, window.lists.function.texts())
+        assertEquals(listOf("study"), window.lists.lexical.marked())
+        assertEquals(Fx.TEXTBOOK_TEXT, window.text)
         assertEquals(
-            listOf("recognize:${Fx.URI}", "release:${Fx.URI}", "lookup:2", "form:1", "add:1"),
+            listOf("recognize:${Fx.URI}", "release:${Fx.URI}", "lemmas:2", "form:1"),
             useCase.calls,
         )
-        assertEquals(listOf("perro"), useCase.formRequests.single().second)
-        assertEquals(DomainFx.PERRO_WORD, useCase.batches.single().words.single().wordId)
-        assertEquals(
-            listOf<NavigationEffect>(ScanNavigationEffect.CloseWithResult(1, 1)),
-            navigation.effects,
-        )
+        assertEquals(41, useCase.formRequests.single().second.size)
+        assertEquals(listOf<NavigationEffect>(NavigationEffect.Back), navigation.effects)
     }
 
     @Test
-    fun `loop - WFP-11_2 an unread photo shows the error, no retry, file released`() =
+    fun `loop - AWP-43_1 AWP-62_1 a tap loads the card of the word, add writes it and its row leaves the list`() =
+        runMateTest { scope ->
+            val useCase = answeringUseCase()
+            val mate = assemble(useCase, RecordingNavigation(), scope)
+            testScheduler.advanceUntilIdle()
+
+            mate.accept(Msg.LoadLexemes("link"))
+            testScheduler.advanceUntilIdle()
+            val loaded = mate.state.value
+            mate.accept(Msg.AddWord("link"))
+            testScheduler.advanceUntilIdle()
+
+            assertEquals(CardPhase.CANDIDATES, loaded.card("link").phase)
+            assertTrue(loaded.card("link").canAdd)
+            assertEquals(
+                listOf("Перевод: перевод", "Часть речи: существительное"),
+                loaded.shown("link", "ruwiktionary/1.noun.1"),
+            )
+            assertEquals(Fx.textbookLexical - "link", mate.state.value.lists.lexical.texts())
+            assertEquals("link", useCase.batches.single().words.single().text)
+            assertTrue(useCase.calls.containsAll(listOf("lexemes:link", "add:link")))
+            assertFalse(mate.state.value.isAdding)
+        }
+
+    @Test
+    fun `loop - AWP-43_6 AWP-14_3 the state survives a re-read while loading and after an edit, one request only`() =
+        runMateTest { scope ->
+            val gate = CompletableDeferred<LexemesOutcome>()
+            val useCase = gatedUseCase(gate)
+            val mate = assemble(useCase, RecordingNavigation(), scope)
+            testScheduler.advanceUntilIdle()
+
+            mate.accept(Msg.LoadLexemes("link"))
+            testScheduler.advanceUntilIdle()
+            val loading = mate.state.value
+            // Поворот экрана: UI пересоздан и читает стейт заново — тот же, второго запроса нет.
+            val reread = mate.state.value
+            gate.complete(LexemesOutcome.Found(DomainFx.lookupWord("link"), emptyList()))
+            testScheduler.advanceUntilIdle()
+            mate.accept(Msg.DeleteLexeme("link", "ruwiktionary/1.noun.1"))
+            testScheduler.advanceUntilIdle()
+            val edited = mate.state.value
+
+            assertEquals(CardPhase.LOADING, loading.card("link").phase)
+            assertEquals(loading, reread)
+            assertEquals(1, useCase.lexemeRequests.size)
+            assertEquals(CardPhase.CANDIDATES, edited.card("link").phase)
+            assertTrue(edited.lemmaCard("link").lexemes.isEmpty())
+            assertEquals(edited, mate.state.value)
+        }
+
+    @Test
+    fun `loop - AWP-48_4 a word deleted while loading does not come back with the late answer`() =
+        runMateTest { scope ->
+            val gate = CompletableDeferred<LexemesOutcome>()
+            val useCase = gatedUseCase(gate)
+            val mate = assemble(useCase, RecordingNavigation(), scope)
+            testScheduler.advanceUntilIdle()
+
+            mate.accept(Msg.LoadLexemes("link"))
+            testScheduler.advanceUntilIdle()
+            mate.accept(Msg.DeleteWord("link"))
+            testScheduler.advanceUntilIdle()
+            val deleted = mate.state.value
+            gate.complete(LexemesOutcome.Found(DomainFx.lookupWord("link"), emptyList()))
+            testScheduler.advanceUntilIdle()
+
+            assertNull(deleted.lists.wordOf("link"))
+            assertEquals(deleted, mate.state.value)
+            assertEquals(0, mate.state.value.lists.countPending())
+        }
+
+    @Test
+    fun `loop - TFP-11_1 TFP-11_2 an unread photo shows the error, no retry, file released`() =
         runMateTest { scope ->
             val useCase = FakeUseCase(recognizeImpl = { error("not an image") })
             val navigation = RecordingNavigation()
@@ -223,25 +252,26 @@ class ScanCandidatesScenarioTest {
         }
 
     @Test
-    fun `loop - a photo without text shows no words and asks no server`() = runMateTest { scope ->
-        val useCase = FakeUseCase(recognizeImpl = { RecognitionOutcome.Empty })
-        val mate = assemble(useCase, RecordingNavigation(), scope)
+    fun `loop - TFP-19_1 AWP-54_1 a photo without text shows no words and asks no server`() =
+        runMateTest { scope ->
+            val useCase = FakeUseCase(recognizeImpl = { RecognitionOutcome.Empty })
+            val mate = assemble(useCase, RecordingNavigation(), scope)
 
-        testScheduler.advanceUntilIdle()
+            testScheduler.advanceUntilIdle()
 
-        assertEquals(ScanPhase.NO_WORDS, mate.state.value.phase)
-        assertEquals(listOf("recognize:${Fx.URI}", "release:${Fx.URI}"), useCase.calls)
-    }
+            assertEquals(ScanPhase.NO_WORDS, mate.state.value.phase)
+            assertEquals(listOf("recognize:${Fx.URI}", "release:${Fx.URI}"), useCase.calls)
+        }
 
     @Test
-    fun `loop - retry after no network asks again with the same tokens`() = runMateTest { scope ->
+    fun `loop - TFP-26_1 retry after no network asks again with the same tokens`() = runMateTest { scope ->
         var attempts = 0
         val answering = answeringUseCase()
         val useCase = FakeUseCase(
             recognizeImpl = answering.recognizeImpl,
-            lookupImpl = { tokens ->
+            lemmasImpl = { tokens ->
                 attempts++
-                if (attempts == 1) LookupOutcome.Unavailable else answering.lookupImpl(tokens)
+                if (attempts == 1) LemmasOutcome.Unavailable else answering.lemmasImpl(tokens)
             },
             loadFormImpl = answering.loadFormImpl,
         )
@@ -249,14 +279,14 @@ class ScanCandidatesScenarioTest {
         testScheduler.advanceUntilIdle()
         val failed = mate.state.value
 
-        mate.accept(Msg.RetryLookup)
+        mate.accept(Msg.RetryLemmas)
         testScheduler.advanceUntilIdle()
 
         assertEquals(ScanPhase.ERROR, failed.phase)
         assertEquals(R.string.photo_words_error_server, failed.errorRes)
         assertTrue(failed.hasRetryButton)
         assertEquals(ScanPhase.WINDOW, mate.state.value.phase)
-        assertEquals(listOf(Fx.tokens, Fx.tokens), useCase.lookedUp)
+        assertEquals(listOf(Fx.tokens, Fx.tokens), useCase.extracted)
     }
 
     @Test
@@ -264,7 +294,7 @@ class ScanCandidatesScenarioTest {
         val answering = answeringUseCase()
         val useCase = FakeUseCase(
             recognizeImpl = answering.recognizeImpl,
-            lookupImpl = { throw IllegalStateException("no dictionary") },
+            lemmasImpl = { throw IllegalStateException("no dictionary") },
         )
         val mate = assemble(useCase, RecordingNavigation(), scope)
 
@@ -276,42 +306,7 @@ class ScanCandidatesScenarioTest {
     }
 
     @Test
-    fun `loop - a failed write shows the failure and retry writes again`() = runMateTest { scope ->
-        var attempts = 0
-        val answering = answeringUseCase()
-        val useCase = FakeUseCase(
-            recognizeImpl = answering.recognizeImpl,
-            lookupImpl = answering.lookupImpl,
-            loadFormImpl = answering.loadFormImpl,
-            addImpl = { batch ->
-                attempts++
-                check(attempts > 1) { "rolled back" }
-                answering.addImpl(batch)
-            },
-        )
-        val navigation = RecordingNavigation()
-        val mate = assemble(useCase, navigation, scope)
-        testScheduler.advanceUntilIdle()
-
-        mate.accept(Msg.RequestAdd)
-        mate.accept(Msg.ConfirmAdd)
-        testScheduler.advanceUntilIdle()
-        val failed = mate.state.value
-        mate.accept(Msg.RetryAdd)
-        testScheduler.advanceUntilIdle()
-
-        assertEquals(AddFailureUi.Failed, failed.addFailure)
-        assertFalse(failed.isAdding)
-        assertEquals(2, useCase.batches.size)
-        assertEquals(useCase.batches[0], useCase.batches[1])
-        assertEquals(
-            listOf<NavigationEffect>(ScanNavigationEffect.CloseWithResult(1, 1)),
-            navigation.effects,
-        )
-    }
-
-    @Test
-    fun `loop - closing an untouched window leaves at once`() = runMateTest { scope ->
+    fun `loop - AWP-60_1 closing the window leaves at once`() = runMateTest { scope ->
         val navigation = RecordingNavigation()
         val mate = assemble(answeringUseCase(), navigation, scope)
         testScheduler.advanceUntilIdle()
@@ -319,33 +314,12 @@ class ScanCandidatesScenarioTest {
         mate.accept(Msg.RequestClose)
         testScheduler.advanceUntilIdle()
 
-        assertFalse(mate.state.value.isConfirmingClose)
+        assertEquals(ScanPhase.WINDOW, mate.state.value.phase)
         assertEquals(listOf<NavigationEffect>(NavigationEffect.Back), navigation.effects)
     }
 
     @Test
-    fun `loop - closing a dirty window asks first, writes nothing`() = runMateTest { scope ->
-        val useCase = answeringUseCase()
-        val navigation = RecordingNavigation()
-        val mate = assemble(useCase, navigation, scope)
-        testScheduler.advanceUntilIdle()
-
-        mate.accept(Msg.DeleteCard("perro"))
-        mate.accept(Msg.RequestClose)
-        testScheduler.advanceUntilIdle()
-        val asking = mate.state.value
-        val askedBefore = navigation.effects.toList()
-        mate.accept(Msg.ConfirmClose)
-        testScheduler.advanceUntilIdle()
-
-        assertTrue(asking.isConfirmingClose)
-        assertTrue(askedBefore.isEmpty())
-        assertEquals(listOf<NavigationEffect>(NavigationEffect.Back), navigation.effects)
-        assertEquals(0, useCase.batches.size)
-    }
-
-    @Test
-    fun `loop - WFP-21_1 a recognition that ends after the screen is closed goes nowhere`() =
+    fun `loop - TFP-21_1 a recognition that ends after the screen is closed goes nowhere`() =
         runMateTest { scope ->
             val gate = CompletableDeferred<RecognitionOutcome>()
             val useCase = FakeUseCase(recognizeImpl = { gate.await() })
@@ -363,7 +337,7 @@ class ScanCandidatesScenarioTest {
         }
 
     @Test
-    fun `loop - WFP-20_2 AWP-24_2 an error after the screen is closed is not shown`() =
+    fun `loop - TFP-11_3 AWP-53_7 an error after the screen is closed is not shown`() =
         runMateTest { scope ->
             val gate = CompletableDeferred<RecognitionOutcome>()
             val useCase = FakeUseCase(recognizeImpl = { gate.await() })
@@ -380,24 +354,67 @@ class ScanCandidatesScenarioTest {
         }
 
     @Test
-    fun `loop - WFP-21_2 an answer after the screen is closed goes nowhere`() =
+    fun `loop - TFP-21_2 an answer after the screen is closed goes nowhere`() =
         runMateTest { scope ->
-            val gate = CompletableDeferred<LookupOutcome>()
+            val gate = CompletableDeferred<LemmasOutcome>()
             val useCase = FakeUseCase(
                 recognizeImpl = { RecognitionOutcome.Text(Fx.tokens) },
-                lookupImpl = { gate.await() },
+                lemmasImpl = { gate.await() },
             )
             val mate = assemble(useCase, RecordingNavigation(), scope)
             testScheduler.advanceUntilIdle()
-            val looking = mate.state.value
+            val analyzing = mate.state.value
 
             scope.cancel()
-            gate.complete(LookupOutcome.Words(Fx.DICT, listOf(DomainFx.perro), emptyList()))
+            gate.complete(LemmasOutcome.Found(Fx.DICT, DomainFx.textbook))
             testScheduler.advanceUntilIdle()
 
-            val calls = listOf("recognize:${Fx.URI}", "release:${Fx.URI}", "lookup:2")
-            assertEquals(ScanPhase.LOOKING, looking.phase)
-            assertEquals(looking, mate.state.value)
+            val calls = listOf("recognize:${Fx.URI}", "release:${Fx.URI}", "lemmas:2")
+            assertEquals(ScanPhase.ANALYZING, analyzing.phase)
+            assertEquals(analyzing, mate.state.value)
             assertEquals(calls, useCase.calls)
         }
+
+    @Test
+    fun `loop - AWP-24_2 a form that fails after the screen is closed changes nothing`() =
+        runMateTest { scope ->
+            val gate = CompletableDeferred<FormOutcome>()
+            val answering = answeringUseCase()
+            val useCase = FakeUseCase(
+                recognizeImpl = answering.recognizeImpl,
+                lemmasImpl = answering.lemmasImpl,
+                loadFormImpl = { _, _ -> gate.await() },
+            )
+            val mate = assemble(useCase, RecordingNavigation(), scope)
+            testScheduler.advanceUntilIdle()
+            val loading = mate.state.value
+
+            scope.cancel()
+            gate.completeExceptionally(IllegalStateException("db closed"))
+            testScheduler.advanceUntilIdle()
+
+            assertEquals(ScanPhase.FORM_LOADING, loading.phase)
+            assertEquals(loading, mate.state.value)
+            assertNull(mate.state.value.errorRes)
+        }
+
+    @Test
+    fun `loop - AWP-24_3 closing while the form loads leaves at once`() = runMateTest { scope ->
+        val gate = CompletableDeferred<FormOutcome>()
+        val answering = answeringUseCase()
+        val useCase = FakeUseCase(
+            recognizeImpl = answering.recognizeImpl,
+            lemmasImpl = answering.lemmasImpl,
+            loadFormImpl = { _, _ -> gate.await() },
+        )
+        val navigation = RecordingNavigation()
+        val mate = assemble(useCase, navigation, scope)
+        testScheduler.advanceUntilIdle()
+
+        mate.accept(Msg.RequestClose)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(ScanPhase.FORM_LOADING, mate.state.value.phase)
+        assertEquals(listOf<NavigationEffect>(NavigationEffect.Back), navigation.effects)
+    }
 }

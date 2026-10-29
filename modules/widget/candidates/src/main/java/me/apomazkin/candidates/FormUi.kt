@@ -58,7 +58,10 @@ data class FormGroupUi(
  * Лемма словаря с текстом леммы ответа (AWP-18): [coreValues] — первые
  * значения лексем в первом включённом ядре шаблона «текст»;
  * [lexemeTextKeys] — ключи значений ядер шаблона «текст» всех её лексем
- * для пометки «есть» (AWP-07); [groupNames] — её группы.
+ * для пометки «уже в словаре» (AWP-50) и «есть» (WCL-06); [groupNames] — её
+ * группы; [addedAt] — день добавления в словарь, миллисекунды (AWP-18.10);
+ * [lexemes] — сохранённые лексемы по компонентам формы для карточки слова
+ * «в словаре» (AWP-46).
  */
 @Immutable
 data class ExistingLemmaUi(
@@ -68,6 +71,19 @@ data class ExistingLemmaUi(
     val coreValues: List<String>,
     val lexemeTextKeys: Set<String>,
     val groupNames: List<String>,
+    val addedAt: Long,
+    val lexemes: List<SavedLexemeUi>,
+)
+
+/**
+ * Сохранённая лексема словаря в карточке под словом (AWP-46): [values] —
+ * значения по компонентам формы в их порядке, как у лексемы-кандидата, без
+ * правок и крестиков.
+ */
+@Immutable
+data class SavedLexemeUi(
+    val id: Long,
+    val values: List<CandidateValueUiItem>,
 )
 
 /** Компонент формы по id; null — его в форме нет. */

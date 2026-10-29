@@ -614,6 +614,8 @@ class DatasourceEffectHandlerTest {
                     coreValues = listOf("управлять"),
                     lexemeTextKeys = setOf("управлять"),
                     groupNames = listOf("Finance"),
+                    addedAt = 0L,
+                    lexemes = emptyList(),
                 ),
             ),
         )

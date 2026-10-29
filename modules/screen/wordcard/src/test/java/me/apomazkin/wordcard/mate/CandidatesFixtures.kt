@@ -29,7 +29,7 @@ import me.apomazkin.lexeme.lexemeTextKey
  * «ran» → «run», «rin», «ran». Сопоставление — на компоненты словаря:
  * «Перевод» 17 (ядро), «Часть речи» 18, «Пример» 19, «Definition» 20 (ядро)
  * и «Заметка» 21 — зависит от «Примера», не от ядра (AWP-17.6). Ответы
- * контракта (`backend/docs/handbook/specs/words-from-text/contract.md`, 5.2 и
+ * контракта (`backend/docs/handbook/specs/lexemes-from-lemma/contract.md`, 5.2 и
  * 5.4) — «perro» и «zarpó» с деревом контракта `contractForm`.
  */
 internal object CFx {
@@ -88,6 +88,8 @@ internal object CFx {
         coreValues = values,
         lexemeTextKeys = values.mapTo(HashSet()) { lexemeTextKey(it) },
         groupNames = emptyList(),
+        addedAt = 0L,
+        lexemes = emptyList(),
     )
 
     val form = DictionaryFormUi(
@@ -334,7 +336,7 @@ internal object CFx {
     /** «qwrtzk» `not_found` (WCL-11.1): лексем-кандидатов нет. */
     val notFoundWord = bareWord("qwrtzk", LookupWordStatus.NOT_FOUND)
 
-    /** «bank» `found` без лемм (WFT-100.2): лексем-кандидатов нет. */
+    /** «bank» `found` без лемм (LFL-100.2): лексем-кандидатов нет. */
     val emptyLemmasWord = bareWord("bank", LookupWordStatus.FOUND)
 
     // Дерево и ответы контракта

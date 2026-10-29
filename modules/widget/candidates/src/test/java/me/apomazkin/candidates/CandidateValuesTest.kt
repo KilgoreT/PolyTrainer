@@ -23,13 +23,13 @@ class CandidateValuesTest {
         form: DictionaryFormUi = this.form,
     ): List<String> = Fx.cards(word, form = form).candidate(lemma, key).shown(form)
 
-    /** Все показанные строки «perro», `ruwiktionary/1.noun.1`, при полном сопоставлении. */
+    /** Все показанные строки «perro», `ruwiktionary/1.noun.1`, при полном сопоставлении, в порядке карточки (AWP-44). */
     private val perroNoun1Shown = listOf(
         "Перевод: собака; пёс (также ругательство)",
         "Часть речи: существительное",
         "Род: м.р.",
-        "Пример: perro callejero",
         "Толкование: dog (the species Canis familiaris …)",
+        "Пример: perro callejero",
     )
 
     @Test
@@ -197,7 +197,7 @@ class CandidateValuesTest {
 
         val shown = shownOf(Fx.perro, "perro", "ruwiktionary/1.noun.1", withoutGloss)
 
-        assertEquals(perroNoun1Shown.dropLast(1), shown)
+        assertEquals(perroNoun1Shown.filterNot { it.startsWith("Толкование") }, shown)
     }
 
     @Test
@@ -250,8 +250,8 @@ class CandidateValuesTest {
         assertEquals(
             listOf(
                 "Перевод: собака; пёс (также ругательство)",
-                "Пример: perro callejero",
                 "Толкование: dog (the species Canis familiaris …)",
+                "Пример: perro callejero",
             ),
             shown,
         )
@@ -270,8 +270,8 @@ class CandidateValuesTest {
             listOf(
                 "Перевод: собака; пёс (также ругательство)",
                 "Часть речи: глагол",
-                "Пример: perro callejero",
                 "Толкование: dog (the species Canis familiaris …)",
+                "Пример: perro callejero",
             ),
             lexeme.shown(form),
         )

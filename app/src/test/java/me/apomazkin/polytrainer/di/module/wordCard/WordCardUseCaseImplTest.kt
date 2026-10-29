@@ -21,9 +21,8 @@ import me.apomazkin.core_network_api.entity.CandidateLexemeApiEntity
 import me.apomazkin.core_network_api.entity.ComponentRecommendationApiEntity
 import me.apomazkin.core_network_api.entity.DenyReason
 import me.apomazkin.core_network_api.entity.LemmaApiEntity
-import me.apomazkin.core_network_api.entity.LookupRequestApiEntity
-import me.apomazkin.core_network_api.entity.LookupResult
-import me.apomazkin.core_network_api.entity.TokenApiEntity
+import me.apomazkin.core_network_api.entity.LexemesRequestApiEntity
+import me.apomazkin.core_network_api.entity.LexemesResult
 import me.apomazkin.core_network_api.entity.WordStatus
 import me.apomazkin.flags.CountryProvider
 import me.apomazkin.lexeme.BuiltInComponent
@@ -407,17 +406,15 @@ class WordCardUseCaseImplTest {
         id = 3L, numericCode = null, name = "EN", addDate = D0, learningLanguage = "en", translationLanguage = "ru",
     )
 
-    /** Ответ сервера с одним словом: слово ответа [text] и его статус. */
+    /** Ответ сервера одним словом: слово ответа [text] и его статус. */
     private fun answer(
         text: String,
         status: WordStatus = WordStatus.FOUND,
         lemmas: List<LemmaApiEntity> = emptyList(),
         recommendations: List<ComponentRecommendationApiEntity> = emptyList(),
-    ) = LookupResult.Success(
+    ) = LexemesResult.Success(
         attribution = "Wiktionary, CC BY-SA 4.0",
-        words = listOf(
-            NetWordApiEntity(text = text, status = status, lemmas = lemmas, remarks = emptyList()),
-        ),
+        word = NetWordApiEntity(text = text, status = status, lemmas = lemmas, remarks = emptyList()),
         recommendations = recommendations,
     )
 
@@ -445,42 +442,43 @@ class WordCardUseCaseImplTest {
     )
 
     @Test
-    fun `WCL-03_1 WCL-03_2 WCL-03_3 lookupWord sends one trimmed token with the dictionary languages and the run id`() = runTest {
+    fun `LFL-104_1 LFL-104_3 WCL-18_2 WCL-18_3 lookupWord sends the trimmed word as the lemma without context with the dictionary languages and the run id`() = runTest {
         coEvery { termApi.getTermById(7L) } returns wordTerm("  give up ")
         coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
-        val request = slot<LookupRequestApiEntity>()
-        coEvery { wordsApi.lookup(capture(request), 4L) } returns LookupResult.Unavailable("down")
+        val request = slot<LexemesRequestApiEntity>()
+        coEvery { wordsApi.lexemesFromLemma(capture(request), 4L) } returns LexemesResult.Unavailable("down")
 
         val outcome = useCase.lookupWord(7L, 4L)
 
         assertEquals(WordLookupOutcome.Unavailable, outcome)
-        assertEquals(listOf(TokenApiEntity("give up", 1f, "en")), request.captured.tokens)
+        assertEquals("give up", request.captured.lemma)
+        assertNull(request.captured.context)
         assertEquals("en", request.captured.learningLanguage)
         assertEquals("ru", request.captured.translationLanguage)
     }
 
     @Test
-    fun `WCL-03_1 the token of a plain word has full confidence and the language of the dictionary`() = runTest {
-        coEvery { termApi.getTermById(7L) } returns wordTerm("run")
+    fun `LFL-104_2 the lemma keeps the case of the record`() = runTest {
+        coEvery { termApi.getTermById(7L) } returns wordTerm("Perro")
         coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
-        val request = slot<LookupRequestApiEntity>()
-        coEvery { wordsApi.lookup(capture(request), any()) } returns LookupResult.Unavailable("down")
+        val request = slot<LexemesRequestApiEntity>()
+        coEvery { wordsApi.lexemesFromLemma(capture(request), any()) } returns LexemesResult.Unavailable("down")
 
         useCase.lookupWord(7L, 1L)
 
-        assertEquals(listOf(TokenApiEntity("run", 1f, "en")), request.captured.tokens)
+        assertEquals("Perro", request.captured.lemma)
     }
 
     @Test
-    fun `WCL-01_1 WCL-03_5 WFT-78_5 the request carries the component tree of the dictionary of the word`() = runTest {
+    fun `WCL-01_1 LFL-78_5 the request carries the component tree of the dictionary of the word`() = runTest {
         coEvery { termApi.getTermById(7L) } returns wordTerm("perro")
         coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
         val translation = typeEntity(50L, TR, core = true)
         val example = typeEntity(52L, ComponentTypeRef.BuiltIn(BuiltInComponent.EXAMPLE), isMultiple = true)
             .copy(template = ComponentTemplate.CAPTIONED_TEXT, position = 2)
         coEvery { lexemeApi.getComponentTypes(3L) } returns listOf(translation, example)
-        val request = slot<LookupRequestApiEntity>()
-        coEvery { wordsApi.lookup(capture(request), any()) } returns LookupResult.Unavailable("down")
+        val request = slot<LexemesRequestApiEntity>()
+        coEvery { wordsApi.lexemesFromLemma(capture(request), any()) } returns LexemesResult.Unavailable("down")
 
         useCase.lookupWord(7L, 1L)
 
@@ -496,25 +494,25 @@ class WordCardUseCaseImplTest {
         coEvery { termApi.getTermById(7L) } returns wordTerm("run")
         coEvery { dictionaryApi.getDictionaryById(3L) } returns null
         assertEquals(WordLookupOutcome.WordMissing, useCase.lookupWord(7L, 1L))
-        coVerify(exactly = 0) { wordsApi.lookup(any(), any()) }
+        coVerify(exactly = 0) { wordsApi.lexemesFromLemma(any(), any()) }
     }
 
     @Test
-    fun `WCL-03_4 a blank word text does not reach the server and gives no lexemes`() = runTest {
+    fun `WCL-18_4 a blank word text does not reach the server and gives no lexemes`() = runTest {
         coEvery { termApi.getTermById(7L) } returns wordTerm("   ")
         coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
 
         val outcome = useCase.lookupWord(7L, 1L)
 
         assertEquals(WordLookupOutcome.NotFound, outcome)
-        coVerify(exactly = 0) { wordsApi.lookup(any(), any()) }
+        coVerify(exactly = 0) { wordsApi.lexemesFromLemma(any(), any()) }
     }
 
     @Test
-    fun `WCL-04_7 the answer with lemmas is found, with recommendations of the whole answer`() = runTest {
+    fun `WCL-04_8 the answer with lemmas is found, with recommendations of the whole answer`() = runTest {
         coEvery { termApi.getTermById(7L) } returns wordTerm("run")
         coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
-        coEvery { wordsApi.lookup(any(), any()) } returns answer(
+        coEvery { wordsApi.lexemesFromLemma(any(), any()) } returns answer(
             text = "run",
             lemmas = listOf(candidateLemma("run")),
             recommendations = listOf(ComponentRecommendationApiEntity("Род", "choice", listOf("м.р."))),
@@ -531,28 +529,24 @@ class WordCardUseCaseImplTest {
     }
 
     @Test
-    fun `WCL-04_7 not found and found without lexemes and an empty answer have no lexemes`() = runTest {
+    fun `WCL-04_7 WCL-11_1 not found and found without lexemes have no lexemes`() = runTest {
         coEvery { termApi.getTermById(7L) } returns wordTerm("qwrtzk")
         coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
 
-        coEvery { wordsApi.lookup(any(), any()) } returns answer("qwrtzk", WordStatus.NOT_FOUND)
+        coEvery { wordsApi.lexemesFromLemma(any(), any()) } returns answer("qwrtzk", WordStatus.NOT_FOUND)
         val notFound = useCase.lookupWord(7L, 1L)
-        coEvery { wordsApi.lookup(any(), any()) } returns answer("qwrtzk", WordStatus.FOUND)
+        coEvery { wordsApi.lexemesFromLemma(any(), any()) } returns answer("qwrtzk", WordStatus.FOUND)
         val noLemmas = useCase.lookupWord(7L, 1L)
-        coEvery { wordsApi.lookup(any(), any()) } returns
-            LookupResult.Success("Wiktionary", emptyList(), emptyList())
-        val noWords = useCase.lookupWord(7L, 1L)
 
         assertEquals(WordLookupOutcome.NotFound, notFound)
         assertEquals(WordLookupOutcome.NotFound, noLemmas)
-        assertEquals(WordLookupOutcome.NotFound, noWords)
     }
 
     @Test
     fun `WCL-11_7 the word the server could not handle is its own outcome`() = runTest {
         coEvery { termApi.getTermById(7L) } returns wordTerm("perro")
         coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
-        coEvery { wordsApi.lookup(any(), any()) } returns answer("perro", WordStatus.ERROR)
+        coEvery { wordsApi.lexemesFromLemma(any(), any()) } returns answer("perro", WordStatus.ERROR)
 
         assertEquals(WordLookupOutcome.WordFailed, useCase.lookupWord(7L, 1L))
     }
@@ -562,9 +556,9 @@ class WordCardUseCaseImplTest {
         coEvery { termApi.getTermById(7L) } returns wordTerm("run")
         coEvery { dictionaryApi.getDictionaryById(3L) } returns dictionary()
 
-        coEvery { wordsApi.lookup(any(), any()) } returns LookupResult.Denied(DenyReason.RATE_LIMITED)
+        coEvery { wordsApi.lexemesFromLemma(any(), any()) } returns LexemesResult.Denied(DenyReason.RATE_LIMITED)
         val limited = useCase.lookupWord(7L, 1L)
-        coEvery { wordsApi.lookup(any(), any()) } returns LookupResult.Denied(DenyReason.LLM_UNAVAILABLE)
+        coEvery { wordsApi.lexemesFromLemma(any(), any()) } returns LexemesResult.Denied(DenyReason.LLM_UNAVAILABLE)
         val llm = useCase.lookupWord(7L, 1L)
 
         assertEquals(WordLookupOutcome.Denied(LookupDenyReason.RATE_LIMITED), limited)
@@ -589,7 +583,7 @@ class WordCardUseCaseImplTest {
     }
 
     @Test
-    fun `WCL-06_1 AWP-07_5 the value of a disabled core of the word gives no mark, the value of an enabled core does`() = runTest {
+    fun `WCL-06_1 the value of a disabled core of the word gives no mark, the value of an enabled core does`() = runTest {
         val definition = ComponentTypeRef.UserDefined("Определение")
         val disabledTranslation = typeEntity(50L, TR, core = true).copy(enabled = false)
         coEvery { termApi.getTermById(7L) } returns wordTerm(

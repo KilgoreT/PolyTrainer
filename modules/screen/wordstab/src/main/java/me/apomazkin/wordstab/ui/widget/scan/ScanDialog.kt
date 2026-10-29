@@ -25,12 +25,12 @@ import me.apomazkin.wordstab.R
 import me.apomazkin.wordstab.logic.ScanDialogState
 
 /**
- * Диалог выбора источника снимка: «Камера» и «Галерея» (WFP-06) или, если
- * камера не запустилась, текст причины и «Закрыть» (WFP-07). Что дальше
+ * Диалог выбора источника снимка: «Камера» и «Галерея» (TFP-06) или, если
+ * камера не запустилась, текст причины и «Закрыть» (TFP-07). Что дальше
  * после снимка — на экране скана, не здесь.
  * Цвета явные, парой из LanguagePickerDialog: фон formBackground, текст
  * formTextTertiary. [isCameraAvailable] false — кнопки «Камера» нет
- * (WFP-06.3).
+ * (TFP-06.3).
  */
 @Composable
 internal fun ScanDialog(

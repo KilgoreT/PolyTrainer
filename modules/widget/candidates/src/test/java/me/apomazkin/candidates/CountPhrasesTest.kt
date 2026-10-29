@@ -3,7 +3,7 @@ package me.apomazkin.candidates
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Русские формы счёта на кнопке, в вопросе и сообщении (AWP-13, AWP-23). */
+/** Русские формы счёта на кнопке и в вопросе (AWP-13). */
 class CountPhrasesTest {
 
     @Test
@@ -17,14 +17,13 @@ class CountPhrasesTest {
     }
 
     @Test
-    fun `AWP-04_6 fifteen hundred lexemes in three hundred words`() {
+    fun `fifteen hundred lexemes in three hundred words`() {
         assertEquals("1500 значений в 300 слов", countPhrase(1500, 300))
     }
 
     @Test
-    fun `AWP-23_1 added message`() {
-        assertEquals("Добавлено 3 значения в 2 слова", addedMessage(3, 2))
-        assertEquals("Добавлено 11 значений в 21 слово", addedMessage(11, 21))
-        assertEquals("Добавлено 1 значение в 1 слово", addedMessage(1, 1))
+    fun `eleven and twenty-one take the many and the one forms`() {
+        assertEquals("11 значений в 21 слово", countPhrase(11, 21))
+        assertEquals("1 значение в 1 слово", countPhrase(1, 1))
     }
 }

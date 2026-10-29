@@ -1,0 +1,65 @@
+digraph TfpPath {
+  // Путь снимка в приложении: откуда запускается, через какие окна
+  // идёт, куда приходит. На ребре — шаг спеки TFP или AWP и что
+  // передаётся. Серый блок — системное приложение, не наше. Синим —
+  // что меняет v2: запрос без дерева, ответ списками, окно со списками.
+  graph [rankdir=TB, newrank=true, remincross=false, splines=ortho,
+         nodesep=0.3, ranksep=0.28, pad=0.08,
+         fontname="Helvetica", fontsize=11, labeljust=c];
+  node  [shape=box, style="filled", fillcolor="white", color="#333333", penwidth=1.2,
+         fontname="Helvetica", fontsize=11, margin="0.10,0.05"];
+  edge  [arrowsize=0.7, color="#333333"];
+
+  S1 [group=s, label="Вкладка «Слова»\n[экран, screen/wordstab]\nкнопка-камера над «+»,\nтолько у сборки с ключом сервера"];
+  S2 [group=s, label="Диалог скана\n[диалог ScanDialog, стейт вкладки]\n«Камера» или «Галерея»;\nнет камеры — только галерея"];
+  S3 [group=s, label="Камера или галерея\n[системное приложение]\nснимок камеры во временный файл;\nкартинка галереи — доступ закреплён",
+      fillcolor="#f3f3f3", color="#888888"];
+  S4 [group=s, label="Экран снимка: «Распознаю текст…»\n[экран screen/scancandidates + эффект RecognizeText]\nML Kit на устройстве, без сети;\nтокены как распознаны, пустые прочь, потолок 2000"];
+  S5 [group=s, label="«Анализирую текст…»\n[тот же экран + эффект ExtractLemmas]\nзапрос: токены и языки словаря;\nдерева компонентов нет",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  BE [label="Бэкенд\n[внешняя система, POST /v1/lemmas/from-tokens]\nLFT Ш1–Ш5: ключ, язык, работа, один вызов\nнейронки, проверка пар, списки",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  S6 [group=s, label="«Собираю окно…»\n[тот же экран + эффект LoadForm]\nформа словаря снимка из Room: группы,\nлеммы с текстами слов — для пометки «в словаре»",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  S7 [group=s, label="Окно снимка\n[тот же экран]\nобщая группа, перевод свёрнутым блоком,\nсписки: смысловые, имена, служебные, «не разобрано»",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  S8 [group=s, label="Вкладка «Слова»\n[экран]\nокно закрыто: леммы словаря как есть,\nснекбара со счётом нет",
+      style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+
+  NOTE [style="filled", fillcolor="#f3f3f3", color="#888888", margin="0.12,0.06",
+        label=<<table border="0" cellpadding="0" cellspacing="2">
+          <tr><td align="left">Ветки [TFP, AWP]</td></tr>
+          <tr><td align="left">В1 без снимка → диалог скана как был</td></tr>
+          <tr><td align="left">В2 токенов нет или в ответе пусто → «Слов не найдено»</td></tr>
+          <tr><td align="left">В3 снимок, распознавание, отказ → текст и «Закрыть»</td></tr>
+          <tr><td align="left">сеть, сервер молчит, 503 → ещё «Повторить» (TFP-26)</td></tr>
+          <tr><td align="left">В4 «Отменить» на индикаторе → экран закрыт, ответ не ждём</td></tr>
+          <tr><td align="left">В5 процесс убит в камере → экран со снимком (TFP-22)</td></tr>
+          <tr><td align="left">В6, В7 процесс убит на экране → вкладка без окна</td></tr>
+          <tr><td align="left">AWP В3 «Не удалось собрать окно»</td></tr>
+          <tr><td align="left">этап 2: тап по слову → карточка под словом</td></tr>
+        </table>>];
+
+  // ----- подписи рёбер: узлы в разрыве линии -----
+  node [shape=box, style="filled", fillcolor="#e8e8e8", color="#e8e8e8", penwidth=0,
+        fontsize=10, margin="0.04,0.02", width=0, height=0];
+  s1 [label=<<b>TFP Ш1</b> нажатие кнопки-камеры>];
+  s2 [label=<<b>Ш2</b> «Камера» или «Галерея» → эффект запуска>];
+  s3 [label=<<b>Ш3</b> снимок, uri файла → ImagePicked,<br/>навигация OpenScanCandidates(uri)>];
+  s4 [label=<<b>Ш4–Ш5</b> токены как распознаны, с повторами,<br/>пустые прочь, потолок 2000>];
+  s5 [label=<<b>Ш6</b> запрос, X-Run-Id>];
+  s6 [label=<ответ: текст, перевод,<br/>четыре списка строк>];
+  s7 [label=<<b>AWP Ш4</b> леммы словаря по текстам слов →<br/>пометка «в словаре»>];
+  s8 [label=<<b>AWP Ш10–Ш11</b> крестик или «назад» →<br/>окно закрыто сразу (этап 1)>];
+
+  { rank=same; S4; NOTE; }
+
+  S1 -> s1 [arrowhead=none]; s1 -> S2;
+  S2 -> s2 [arrowhead=none]; s2 -> S3;
+  S3 -> s3 [arrowhead=none]; s3 -> S4;
+  S4 -> s4 [arrowhead=none]; s4 -> S5;
+  S5 -> s5 [arrowhead=none]; s5 -> BE;
+  BE -> s6 [arrowhead=none]; s6 -> S6;
+  S6 -> s7 [arrowhead=none]; s7 -> S7;
+  S7 -> s8 [arrowhead=none]; s8 -> S8;
+}

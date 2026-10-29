@@ -34,11 +34,12 @@ import org.junit.runner.RunWith
 import java.util.Date
 
 /**
- * IS532, Э4: пакетная запись слов со снимка одной транзакцией (AWP-20),
- * типизированный отказ до первой вставки (AWP-21), тексты словаря для
- * пометки «есть» (AWP-07), option_id у лексемы из addLexemeWithComponents
- * (AWP-22). In-memory Room + bundled driver, Api-impl собираются руками,
- * как в Is486DataLayerTest.
+ * IS532, Э4 и IS538, Э10: пакетная запись слов со снимка одной
+ * транзакцией (AWP-20) — пачкой первой версии и по одному слову (AWP-20.9,
+ * 20.10), типизированный отказ до первой вставки (AWP-21) и повтор после
+ * устранения причины (AWP-21.2), тексты словаря для пометки «в словаре»,
+ * option_id у лексемы из addLexemeWithComponents (AWP-32.9). In-memory Room
+ * + bundled driver, Api-impl собираются руками, как в Is486DataLayerTest.
  */
 @RunWith(AndroidJUnit4::class)
 class Is532WordsBatchTest {
@@ -229,10 +230,62 @@ class Is532WordsBatchTest {
         assertEquals(setOf<TemplateValues>(ChoiceValues(verb), ChoiceValues(noun)), parts.toSet())
     }
 
-    // === AWP-22.1: addLexemeWithComponents хранит option_id ===
+    // === AWP-20.9, AWP-20.10: запись по одному слову — новое и в выбранную лемму ===
 
     @Test
-    fun awp22_1_addLexemeWithComponentsKeepsPartOfSpeechOption() = runBlocking {
+    fun awp20_9_newWordTwoLexemesCommonGroup() = runBlocking {
+        val potter = newGroup("Harry Potter 1")
+        val before = counts()
+
+        val outcome = batchApi.addWordsBatch(
+            WordsBatch(
+                dictionaryId = dictId,
+                words = listOf(
+                    word(
+                        "run", potter, null,
+                        lexeme(translation to text("бежать"), partOfSpeech to ChoiceValues(verb)),
+                        lexeme(translation to text("управлять"), partOfSpeech to ChoiceValues(verb)),
+                    ),
+                ),
+            )
+        )
+
+        val added = outcome as AddWordsBatchOutcome.Added
+        val run = added.wordIds.single()
+        assertEquals(2, added.lexemeIds.size)
+        assertEquals(before.getValue("words") + 1, counts().getValue("words"))
+        assertEquals(2, termApi.getTermById(run)!!.lexemes.size)
+        assertEquals(listOf(potter), groupIdsOf(run))
+    }
+
+    @Test
+    fun awp20_10_lexemeIntoExistingWordKeepsGroups() = runBlocking {
+        val bank = newWord("bank")
+        val finance = newGroup("Finance")
+        val potter = newGroup("Harry Potter 1")
+        val first = batchApi.addWordsBatch(
+            WordsBatch(dictId, listOf(word("bank", finance, bank, lexeme(translation to text("берег")))))
+        ) as AddWordsBatchOutcome.Added
+
+        val outcome = batchApi.addWordsBatch(
+            WordsBatch(
+                dictId,
+                listOf(word("bank", potter, bank, lexeme(translation to text("банк"), partOfSpeech to ChoiceValues(noun)))),
+            )
+        )
+
+        val added = outcome as AddWordsBatchOutcome.Added
+        assertEquals(listOf(bank), added.wordIds)
+        val term = termApi.getTermById(bank)!!
+        assertEquals(2, term.lexemes.size)
+        assertTrue(term.lexemes.any { it.id == first.lexemeIds.single() })
+        assertEquals(setOf(finance, potter), groupIdsOf(bank).toSet())
+    }
+
+    // === AWP-32.9: addLexemeWithComponents хранит option_id ===
+
+    @Test
+    fun awp32_9_addLexemeWithComponentsKeepsPartOfSpeechOption() = runBlocking {
         val wordId = newWord("run")
 
         val lexemeId = lexemeApi.addLexemeWithComponents(
@@ -268,6 +321,27 @@ class Is532WordsBatchTest {
 
         assertEquals(AddWordsBatchOutcome.Rejected.NoCoreValue(wordIndex = 2, lexemeIndex = 0), outcome)
         assertEquals(before, counts())
+    }
+
+    @Test
+    fun awp21_2_retryAfterCauseRemovedWritesOnce() = runBlocking {
+        val group = newGroup("Harry Potter 1")
+        assertEquals(DeleteGroupOutcome.Success, groupApi.deleteGroup(group))
+        val before = counts()
+        val rejected = batchApi.addWordsBatch(
+            WordsBatch(dictId, listOf(word("run", group, null, lexeme(translation to text("бежать")))))
+        )
+
+        val retried = batchApi.addWordsBatch(
+            WordsBatch(dictId, listOf(word("run", null, null, lexeme(translation to text("бежать")))))
+        )
+
+        assertEquals(AddWordsBatchOutcome.Rejected.GroupMissing(group), rejected)
+        assertTrue(retried is AddWordsBatchOutcome.Added)
+        val after = counts()
+        assertEquals(before.getValue("words") + 1, after.getValue("words"))
+        assertEquals(before.getValue("lexemes") + 1, after.getValue("lexemes"))
+        assertEquals(before.getValue("word_groups"), after.getValue("word_groups"))
     }
 
     @Test
@@ -344,10 +418,10 @@ class Is532WordsBatchTest {
         assertEquals(0L, count("lexemes"))
     }
 
-    // === AWP-07: тексты словаря для пометки «есть» ===
+    // === Тексты словаря для пометки «в словаре»: только свой словарь ===
 
     @Test
-    fun awp07_1_getWordTextsReturnsOnlyThisDictionary() = runBlocking {
+    fun getWordTextsReturnsOnlyThisDictionary() = runBlocking {
         val other = dictionaryApi.addDictionary("ES", null, "es", "ru")
         val run = newWord("Run")
         newWord("correr", dictionaryId = other)

@@ -34,7 +34,7 @@ class UiEffectHandlerTest {
     }
 
     @Test
-    fun `WFP-06_1 launch camera opens the camera and sends nothing`() {
+    fun `TFP-06_1 launch camera opens the camera and sends nothing`() {
         val launcher = FakeLauncher(canOpenCamera = true)
 
         val sent = run(launcher, UiEffect.LaunchCamera)
@@ -45,7 +45,7 @@ class UiEffectHandlerTest {
     }
 
     @Test
-    fun `WFP-06_2 launch gallery opens the gallery and sends nothing`() {
+    fun `TFP-06_2 launch gallery opens the gallery and sends nothing`() {
         val launcher = FakeLauncher(canOpenCamera = true)
 
         val sent = run(launcher, UiEffect.LaunchGallery)
@@ -56,7 +56,7 @@ class UiEffectHandlerTest {
     }
 
     @Test
-    fun `WFP-07_1 WFP-07_2 camera that did not open answers CameraUnavailable`() {
+    fun `TFP-07_1 TFP-07_2 AWP-53_6 camera that did not open answers CameraUnavailable`() {
         val launcher = FakeLauncher(canOpenCamera = false)
 
         val sent = run(launcher, UiEffect.LaunchCamera)
@@ -68,16 +68,14 @@ class UiEffectHandlerTest {
     }
 
     @Test
-    fun `AWP-23_1 notification effect becomes the snackbar message`() {
+    fun `notification effect becomes the snackbar message`() {
         val sent = run(
             FakeLauncher(canOpenCamera = true),
-            UiEffect.ShowNotification(message = "Добавлено 3 значения в 2 слова"),
+            UiEffect.ShowNotification(message = "Слово удалено"),
         )
 
         assertEquals(
-            listOf<Msg>(
-                UiMsg.ShowNotification(message = "Добавлено 3 значения в 2 слова", show = true),
-            ),
+            listOf<Msg>(UiMsg.ShowNotification(message = "Слово удалено", show = true)),
             sent,
         )
     }

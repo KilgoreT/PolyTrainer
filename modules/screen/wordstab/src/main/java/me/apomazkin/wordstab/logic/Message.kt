@@ -120,7 +120,7 @@ sealed interface Msg {
     /**
      * PhotoPicker: камера или галерея вернули снимок. Принимается и при закрытом
      * диалоге: система могла убить процесс, пока камера или галерея были открыты
-     * (WFP-22).
+     * (TFP-22).
      * @param uri файл снимка строкой — Android-классы в unit-тестах модуля заглушены;
      * у галереи доступ к файлу уже закреплён.
      */
@@ -128,21 +128,13 @@ sealed interface Msg {
 
     /**
      * UiEffectHandler: камера не запустилась — приложения камеры нет, его
-     * отключили или файл под снимок не создался (WFP-07).
+     * отключили или файл под снимок не создался (TFP-07).
      * @param errorRes текст причины.
      */
     data class CameraUnavailable(@StringRes val errorRes: Int) : Msg
 
     /** UI: «Отмена» или «Закрыть» в диалоге выбора источника. Без данных. */
     data object CloseScanDialog : Msg
-
-    /**
-     * Навигация: экран скана закрылся после записи, мост передал результат вкладке
-     * (AWP-23).
-     * @param lexemeCount сколько значений записано.
-     * @param wordCount в сколько слов.
-     */
-    data class ScanCandidatesAdded(val lexemeCount: Int, val wordCount: Int) : Msg
 
     /**
      * Message indicating no operation is needed after an effect.

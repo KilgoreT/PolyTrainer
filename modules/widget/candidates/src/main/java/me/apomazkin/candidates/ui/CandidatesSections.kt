@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import me.apomazkin.candidates.CandidateAction
 import me.apomazkin.candidates.ComponentMatchLineUiItem
 import me.apomazkin.candidates.DictionaryFormUi
 import me.apomazkin.candidates.RemarkUiItem
@@ -24,12 +23,12 @@ import me.apomazkin.theme.formTextSecondary
 import me.apomazkin.theme.formTextTertiary
 
 /**
- * Раздел «Замечания» под карточками (AWP-30, WCL-16): строка на замечание,
+ * Раздел «Замечания» под карточкой (AWP-30, WCL-16): строка на замечание,
  * текст — по виду строки из ресурсов. Кнопок нет: компонент пользователь
  * заводит сам в конструкторе. Раздел рисуют, когда [remarks] не пуст.
  */
 @Composable
-internal fun RemarksSection(
+fun RemarksSection(
     remarks: List<RemarkUiItem>,
     form: DictionaryFormUi,
 ) {
@@ -58,23 +57,23 @@ internal fun RemarksSection(
 }
 
 /**
- * Раздел «Сопоставление» (AWP-31, WCL-17): один на окно, свёрнут по
- * умолчанию; заголовок шлёт [CandidateAction.ToggleComponentMatches],
- * раскрытие — по [isExpanded]. Раздел рисуют, когда [lines] не пуст.
+ * Раздел «Сопоставление» (AWP-31, WCL-17): один на карточку или диалог,
+ * свёрнут по умолчанию; заголовок зовёт [onToggle], раскрытие — по
+ * [isExpanded]. Раздел рисуют, когда [lines] не пуст.
  */
 @Composable
-internal fun ComponentMatchesSection(
+fun ComponentMatchesSection(
     lines: List<ComponentMatchLineUiItem>,
     form: DictionaryFormUi,
     isExpanded: Boolean,
-    onAction: (CandidateAction) -> Unit,
+    onToggle: () -> Unit,
 ) {
     val toggleRes = if (isExpanded) R.string.candidates_collapse else R.string.candidates_expand
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onAction(CandidateAction.ToggleComponentMatches) }
+                .clickable { onToggle() }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {

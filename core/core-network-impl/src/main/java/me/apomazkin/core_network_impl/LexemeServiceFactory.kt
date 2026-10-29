@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Собирает клиент сервера слов. Доверие только системным центрам
- * сертификации — умолчание OkHttp, своих `TrustManager` здесь нет (WFT-21).
+ * сертификации — умолчание OkHttp, своих `TrustManager` здесь нет (LFL-21).
  */
 internal object LexemeServiceFactory {
 
@@ -28,9 +28,9 @@ internal object LexemeServiceFactory {
             .create(LexemeService::class.java)
 
     /**
-     * Ожидание ответа целиком — [NetworkOptions.callTimeout] (WFT-22). Таймаут
+     * Ожидание ответа целиком — [NetworkOptions.callTimeout] (LFL-22). Таймаут
      * чтения OkHttp по умолчанию 10 секунд, и он сработал бы раньше общего:
-     * сервер думает до 170 секунд (WFT-55), первый прогон на девайсе оборвался
+     * сервер думает до 170 секунд (LFL-55), первый прогон на девайсе оборвался
      * ровно на десятой секунде. Чтение и запись ждут столько же, сколько вызов;
      * соединение — 10 секунд, дольше ждать некого.
      */

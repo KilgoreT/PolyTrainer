@@ -32,9 +32,10 @@ data class LemmaCardUiItem(
 /**
  * Лексема-кандидат в окне: [values] — значения по компонентам словаря в
  * порядке компонентов (AWP-29), [isEnglishFallback] — пометка «англ.» по
- * замечанию сервера (AWP-34), [exists] — «есть» (AWP-07), [lacksCore] —
- * «не попадёт в ядро» (AWP-11), [existsInLemma] — «есть в «correr»» у
- * раздела леммы-формы (WCL-15.4).
+ * замечанию сервера (AWP-34), [exists] — «уже в словаре» (AWP-50) или
+ * «есть» (WCL-06), [lacksCore] — «не попадёт в ядро» (AWP-11),
+ * [existsInLemma] — «есть в «correr»» у раздела леммы-формы (WCL-15.4),
+ * [isInContext] — употреблена в тексте снимка, пометка «в тексте» (AWP-43).
  */
 @Immutable
 data class CardLexemeUiItem(
@@ -45,6 +46,7 @@ data class CardLexemeUiItem(
     val exists: Boolean,
     val lacksCore: Boolean,
     val existsInLemma: Boolean = false,
+    val isInContext: Boolean = false,
 ) {
     /** Хотя бы один показанный текст правлен руками: пометка «изменено» (AWP-16.1). */
     val isEdited: Boolean
@@ -143,24 +145,18 @@ sealed interface CardOwnGroupUi {
     ) : CardOwnGroupUi
 }
 
-/** Слово без добавления (AWP-12): не найдено, не загрузилось, без значений. */
+/**
+ * Строка леммы словаря в листе «куда класть» (AWP-18): значения ядра, число
+ * лексем, группы (пусто — «Все»), день добавления в миллисекундах. Лист
+ * только рисует.
+ */
 @Immutable
-data class NotAddedWordUiItem(
-    val text: String,
-    val reason: NotAddedReason,
-)
-
-enum class NotAddedReason {
-    NOT_FOUND,
-    ERROR,
-    NO_LEXEMES,
-}
-
-/** Карточки и слова без добавления из ответа (AWP-04, AWP-12). */
-@Immutable
-data class CardsBuildUi(
-    val cards: List<LemmaCardUiItem>,
-    val notAdded: List<NotAddedWordUiItem>,
+data class TargetRowUi(
+    val wordId: Long,
+    val coreValues: List<String>,
+    val lexemeCount: Int,
+    val groupNames: List<String>,
+    val addedAt: Long,
 )
 
 /** Открытый лист выбора; один за раз (смена темы пересоздаёт Activity — лист в стейте). */

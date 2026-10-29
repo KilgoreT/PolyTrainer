@@ -10,7 +10,7 @@ import me.apomazkin.lexeme.LookupWordStatus
  * Домен в редьюсер и composable не попадает.
  */
 
-/** Слово ответа (WFT-50): текст, статус, леммы, замечания по слову. */
+/** Слово ответа (LFL-50): текст, статус, леммы, замечания по слову. */
 @Immutable
 data class LookupWordUi(
     val text: String,
@@ -19,7 +19,7 @@ data class LookupWordUi(
     val remarks: List<WordRemarkUi>,
 )
 
-/** Лемма ответа (WFT-76): текст, пометка формы, транскрипции, лексемы-кандидаты в порядке отбора. */
+/** Лемма ответа (LFL-76): текст, пометка формы, транскрипции, лексемы-кандидаты в порядке отбора. */
 @Immutable
 data class LookupLemmaUi(
     val text: String,
@@ -28,7 +28,7 @@ data class LookupLemmaUi(
     val lexemes: List<LookupLexemeUi>,
 )
 
-/** Лексема-кандидат (WFT-71): данные записи целиком и сопоставление с компонентами (WFT-87). */
+/** Лексема-кандидат (LFL-71): данные записи целиком и сопоставление с компонентами (LFL-87). */
 @Immutable
 data class LookupLexemeUi(
     val key: String,
@@ -44,6 +44,8 @@ data class LookupLexemeUi(
     val synonyms: List<String>,
     val antonyms: List<String>,
     val componentMatches: List<ComponentMatchUi>,
+    /** Пометка «в тексте» от сервера (LFL-113): без контекста всегда `false`. */
+    val inContext: Boolean = false,
 )
 
 /** Строка сопоставления: компонент и опция «Выбора» или поле ответа. */
@@ -66,7 +68,7 @@ sealed interface WordRemarkUi {
     ) : WordRemarkUi
 }
 
-/** Рекомендация завести компонент — ко всему ответу (WFT-89). */
+/** Рекомендация завести компонент — ко всему ответу (LFL-89). */
 @Immutable
 data class ComponentRecommendationUi(
     val name: String,

@@ -18,6 +18,9 @@
 #     (через backend/): судятся тезисы «Исполняет: устройство» и «оба»,
 #     тезисы другой стороны пропускаются; без поля «Исполняет» (экранные
 #     спеки) тезис считается своим;
+#   SPEC_KNOWN="spec-v1.md …" — другие версии спеки, чьи адреса тоже
+#     считаются существующими: только для проверки «адреса нет в спеке»,
+#     покрытие считается по SPEC_FILE;
 #   SPEC_WHERE=1 — вместо сводки печатать карту «адрес → файл» по
 #     одной строке на пару (ревью К18: какой тест закрывает строку).
 #
@@ -31,7 +34,7 @@ SIDE="${SPEC_SIDE:-устройство}"
 
 perl -CSDA -Mutf8 -e '
   use strict; use warnings;
-  my ($spec, $root, $prefix, $manuals, $side, $where) = @ARGV;
+  my ($spec, $root, $prefix, $manuals, $side, $where, $known_specs) = @ARGV;
 
   # Адреса спеки: тезис → статус, сторона, список номеров строк.
   open my $fh, "<:encoding(UTF-8)", $spec or die "spec: $!";
@@ -45,6 +48,19 @@ perl -CSDA -Mutf8 -e '
   }
   close $fh;
 
+  # Адреса других версий спеки (SPEC_KNOWN): существуют, но не считаются.
+  my %known;
+  for my $file (grep { length } split /\s+/, $known_specs) {
+    open my $kh, "<:encoding(UTF-8)", $file or die "known spec $file: $!";
+    my $id;
+    while (my $l = <$kh>) {
+      if ($l =~ /^#### ($prefix-\d+) /) { $id = $1; next }
+      next unless defined $id;
+      if ($l =~ /^- \[(\d+)\]/) { $known{"$id.$1"} = 1 }
+    }
+    close $kh;
+  }
+
   # Своя сторона: без поля — своё; «оба» судится каждой стороной целиком.
   my @mine = grep { !exists $who{$_} || $who{$_} eq $side || $who{$_} eq "оба" } @order;
   my $skipped = @order - @mine;
@@ -53,7 +69,7 @@ perl -CSDA -Mutf8 -e '
   my %covered;
   my @files;
   for my $dir ("modules", "app", "core") {
-    push @files, grep { /Test\.kt$/ } split /\n/, qx(grep -rl --include=*Test.kt "$prefix-" "$root/$dir" 2>/dev/null);
+    push @files, grep { /Test\.kt$/ } split /\n/, qx(grep -rli --include=*Test.kt "$prefix-\\?[0-9]" "$root/$dir" 2>/dev/null);
   }
   push @files, grep { length } split /\s+/, $manuals;
   for my $f (@files) {
@@ -86,11 +102,11 @@ perl -CSDA -Mutf8 -e '
   }
 
   # Адреса в тестах, которых нет в спеке (по всем тезисам, не только своим; «снято» — есть).
-  my @stale = sort grep { !$all{$_} } keys %covered;
+  my @stale = sort grep { !$all{$_} && !$known{$_} } keys %covered;
   if (@stale) { $bad = 1; print "\nВ тестах есть адреса, которых нет в спеке: @stale\n" }
 
   printf "\nСторона «%s»: тезисов %d, другой стороны пропущено %d. Строк закрыто %d, открыто %d. %s\n",
     $side, scalar(@mine), $skipped, $closed_total, $open_total,
     $bad ? "ЕСТЬ НАРУШЕНИЯ (!! — реализовано с открытыми строками)" : "нарушений нет";
   exit($bad ? 1 : 0);
-' "$SPEC" "$ROOT" "$PREFIX" "${SPEC_MANUALS:-}" "$SIDE" "${SPEC_WHERE:-}"
+' "$SPEC" "$ROOT" "$PREFIX" "${SPEC_MANUALS:-}" "$SIDE" "${SPEC_WHERE:-}" "${SPEC_KNOWN:-}"

@@ -1,0 +1,124 @@
+digraph C4Awp {
+  // Та же сетка, что у схем бэкенда: remincross=false держит порядок
+  // блоков, splines=ortho — прямые линии, подписи — узлы в разрыве
+  // линии. Под редьюсером в его кластере ничего не стоит: чистые
+  // функции в одной строке с ним.
+  graph [rankdir=TB, newrank=true, remincross=false, splines=ortho,
+         nodesep=0.25, ranksep=0.3, pad=0.08,
+         fontname="Helvetica", fontsize=11, labeljust=c];
+  node  [shape=box, style="filled", fillcolor="white", color="#333333", penwidth=1.2,
+         fontname="Helvetica", fontsize=11, margin="0.10,0.05"];
+  edge  [arrowsize=0.7, color="#333333"];
+
+  // Номера на стрелках — шаги спек AWP и TFP. Слои типов: экран —
+  // UI-типы; порт говорит доменом; app — зеркала в домен; шлюз —
+  // транспорт в зеркала.
+
+  subgraph cluster_L1 {
+    label="Экран (Compose)"; style="filled"; fillcolor="#FDF4FF"; color="#E879F9";
+    UI0 [label="Вкладка «Слова»\n[экран, screen/wordstab]\nдиалог скана, переход на экран;\nснекбар со счётом снят",
+         style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    UI1 [label="Экран снимка\n[экран, screen/scancandidates]\nокно: списки, «в словаре»;\nкарточка под словом",
+         style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    UI3 [label="Виджеты\n[widget/candidates]\nобщая группа; карточка лексем,\nлисты, «куда класть»",
+         style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    { rank=same; UI0 -> UI1 -> UI3 [style=invis, weight=100]; }
+  }
+
+  RESP [style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0", margin="0.12,0.06",
+        label=<<table border="0" cellpadding="0" cellspacing="2">
+          <tr><td align="left">Что видит пользователь</td></tr>
+          <tr><td align="left">[спека AWP]</td></tr>
+          <tr><td align="left">Ш3 «Анализирую текст…» — меняется</td></tr>
+          <tr><td align="left">Ш5 перевод свёрнут, четыре списка,</td></tr>
+          <tr><td align="left">«в словаре» — новое</td></tr>
+          <tr><td align="left">В1 текст причины; сеть, 503 → «Повторить»</td></tr>
+          <tr><td align="left">В2 «Слов не найдено»</td></tr>
+          <tr><td align="left">В3 «Не удалось собрать окно»</td></tr>
+          <tr><td align="left">Ш6 карточка под словом, «в тексте» — новое</td></tr>
+          <tr><td align="left">Ш7 правка; Ш8 проверка по тексту, «уже в словаре»</td></tr>
+          <tr><td align="left">Ш9 «Добавить» — слово ушло из списка</td></tr>
+          <tr><td align="left">Ш10 вопрос с числом недобавленных</td></tr>
+          <tr><td align="left">В4 причина под словом; В5 «не добавилось»</td></tr>
+        </table>>];
+
+  subgraph cluster_L2 {
+    label="Логика (редьюсеры и чистые функции)"; style="filled"; fillcolor="#F0FDFA"; color="#2DD4BF";
+    R0 [label="WordsTabReducer\n[редьюсер]\nдиалог скана, запуск камеры,\nпереход; ветка снекбара снята",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    R1 [label="ScanCandidatesReducer + атомы\n[редьюсер]\nфазы, списки, «в словаре»;\nкарточка слова, правки, запись",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    F1 [label="Чистые функции\n[scancandidates, candidates]\nсписки, «в словаре»;\nкарточка леммы, пометки, пакет",
+        fillcolor="#fff1b8", color="#b58900", penwidth=2];
+    { rank=same; R0 -> R1 -> F1 [style=invis, weight=100]; }
+    R1 -> F1;
+  }
+
+  subgraph cluster_L3 {
+    label="Порты (интерфейсы юзкейсов, говорят доменом)"; style="filled"; fillcolor="#FFF7ED"; color="#FB923C";
+    U1 [label="ScanCandidatesUseCase\n[порт]\nраспознать, леммы текста, форма,\nлексемы леммы, запись слова",
+        style="rounded,filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  }
+
+  subgraph cluster_L4 {
+    label="Реализация юзкейсов и навигация (app)"; style="filled"; fillcolor="#ECFEFF"; color="#22D3EE";
+    A1 [label="ScanCandidatesUseCaseImpl\n[адаптер]\nснимок, сеть, форма с лексемами\nи датой, запись пакета",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    A3 [label="app/mapper\n[мапперы]\nзеркала → домен: леммы текста,\nлексемы леммы, форма",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    A4 [label="AppNavTable\n[навигация]\nOpenScanCandidates(uri),\nназад без результата",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+
+    node [shape=box, style="filled", fillcolor="#e8e8e8", color="#e8e8e8", penwidth=0,
+          fontsize=10, margin="0.04,0.02", width=0, height=0];
+    e8 [label="зеркала"];
+
+    { rank=same; A1 -> A3 -> A4 [style=invis, weight=100]; }
+  }
+
+  subgraph cluster_L5 {
+    label="Шлюзы (core): транспорт → зеркала *ApiEntity"; style="filled"; fillcolor="#F5F3FF"; color="#A78BFA";
+    G1 [label="WordsApi\n[core-network]\nlemmasFromTokens, lexemesFromLemma:\nRetrofit *Net, коды, результаты",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    G2 [label="CoreDbApi\n[core-db, Room *Db]\nформа: компоненты, группы, леммы\nс лексемами и датой; пакет записи",
+        shape=cylinder, fillcolor="#f3f3f3", color="#888888"];
+    G3 [label="ML Kit\n[library/textrecognition]\nтекст со снимка",
+        fillcolor="#f3f3f3", color="#888888"];
+    { rank=same; G1 -> G2 -> G3 [style=invis]; }
+  }
+
+  subgraph cluster_L6 {
+    label="Снаружи"; style="filled"; fillcolor="#F0FDF4"; color="#4ADE80";
+    X1 [label="Бэкенд\n[внешняя система]\nPOST /v1/lemmas/from-tokens\nPOST /v1/lexemes/from-lemma",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  }
+
+  node [shape=box, style="filled", fillcolor="#e8e8e8", color="#e8e8e8", penwidth=0,
+        fontsize=10, margin="0.04,0.02", width=0, height=0];
+  e1 [label="действия диалога скана"];
+  e2 [label=<<b>Ш3, Ш5–Ш10</b> «Отменить», тап,<br/>правки, «Добавить», закрытие>];
+  e4 [label="навигация"];
+  e5 [label=<<b>TFP Ш4–Ш6</b> снимок, запрос;<br/><b>AWP Ш4</b> форма, <b>Ш6</b> лексемы, <b>Ш9</b> запись>];
+  r1 [label="реализован в"];
+  e10 [label="сеть"];
+  e13 [label="форма, запись"];
+  e14 [label="снимок"];
+  rx [label="HTTPS"];
+  { rank=same; e1 -> e2 [style=invis]; }
+  { rank=same; e4 -> e5 [style=invis]; }
+  { rank=same; e10 -> e13 -> e14 [style=invis]; }
+
+  // Сноска «что видит пользователь» — внизу справа, где пусто.
+  { rank=same; X1; RESP; }
+
+  UI0 -> e1 [arrowhead=none]; e1 -> R0;
+  UI1 -> e2 [arrowhead=none]; e2 -> R1;
+  R0 -> e4 [arrowhead=none, minlen=2]; e4 -> A4;
+  R1 -> e5 [arrowhead=none]; e5 -> U1;
+  U1 -> r1 [arrowhead=none]; r1 -> A1;
+  A1 -> e8 [arrowhead=none]; e8 -> A3;
+  A1 -> e10 [arrowhead=none, minlen=3]; e10 -> G1;
+  A1 -> e13 [arrowhead=none, minlen=3]; e13 -> G2;
+  A1 -> e14 [arrowhead=none, minlen=3]; e14 -> G3;
+  G1 -> rx [arrowhead=none]; rx -> X1;
+}

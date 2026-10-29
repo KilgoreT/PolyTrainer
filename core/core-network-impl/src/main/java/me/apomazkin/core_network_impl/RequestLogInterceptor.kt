@@ -6,7 +6,7 @@ import okhttp3.Response
 
 /**
  * Строка лога на запрос: метод, путь, код, время. Заголовков в логе нет —
- * ключ доступа не утекает (WFT-05).
+ * ключ доступа не утекает (ACC-05).
  */
 internal class RequestLogInterceptor(
         private val logger: LexemeLogger,

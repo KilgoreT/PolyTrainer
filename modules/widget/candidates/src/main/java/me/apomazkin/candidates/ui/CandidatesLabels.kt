@@ -9,7 +9,6 @@ import me.apomazkin.candidates.ComponentMatchLineUiItem
 import me.apomazkin.candidates.DictionaryFormUi
 import me.apomazkin.candidates.FormComponentUi
 import me.apomazkin.candidates.FormOptionUi
-import me.apomazkin.candidates.NotAddedReason
 import me.apomazkin.candidates.RemarkUiItem
 import me.apomazkin.candidates.componentOf
 import me.apomazkin.core_resources.R
@@ -169,16 +168,9 @@ internal fun countInWords(
 internal fun lexemesCount(count: Int): String =
     pluralStringResource(id = R.plurals.photo_add_lexemes, count = count, count)
 
-@Composable
-internal fun notAddedReasonLabel(reason: NotAddedReason): String = when (reason) {
-    NotAddedReason.NOT_FOUND -> stringResource(id = R.string.photo_add_not_found)
-    NotAddedReason.ERROR -> stringResource(id = R.string.photo_add_error)
-    NotAddedReason.NO_LEXEMES -> stringResource(id = R.string.photo_add_no_lexemes)
-}
-
 /** Текст «не добавилось» с причиной сброса (AWP-21.3…21.6). */
 @Composable
-internal fun failureLabel(failure: AddFailureUi): String {
+fun failureLabel(failure: AddFailureUi): String {
     val reason = when (failure) {
         is AddFailureUi.GroupMissing -> stringResource(id = R.string.photo_add_failed_group)
         is AddFailureUi.WordMissing -> stringResource(id = R.string.photo_add_failed_word)

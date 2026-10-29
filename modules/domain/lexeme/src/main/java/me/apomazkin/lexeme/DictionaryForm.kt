@@ -64,7 +64,10 @@ data class FormGroup(
  * Лемма словаря с текстом леммы ответа (AWP-18): [coreValues] — первые
  * значения лексем в первом включённом ядре шаблона «текст»;
  * [lexemeTextKeys] — ключи значений ядер шаблона «текст» всех её лексем
- * (`lexemeTextKey`) для пометки «есть» (AWP-07); [groupNames] — её группы.
+ * (`lexemeTextKey`) для пометки «уже в словаре» (AWP-50); [groupNames] — её
+ * группы; [addedAt] — день добавления слова, миллисекунды, правки его не
+ * двигают (AWP-18.10); [lexemes] — сохранённые лексемы с живыми значениями
+ * компонентов формы для карточки «в словаре» (AWP-46).
  */
 data class ExistingLemma(
     val wordId: Long,
@@ -73,4 +76,15 @@ data class ExistingLemma(
     val coreValues: List<String>,
     val lexemeTextKeys: Set<String>,
     val groupNames: List<String>,
+    val addedAt: Long,
+    val lexemes: List<SavedLexeme>,
+)
+
+/**
+ * Сохранённая лексема словаря (AWP-46, Д120): [id] и значения компонентов по
+ * id типов словаря — для карточки слова «в словаре».
+ */
+data class SavedLexeme(
+    val id: Long,
+    val components: List<BatchComponent>,
 )

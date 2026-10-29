@@ -375,7 +375,7 @@ private fun DialogList(
                         lines = view.componentMatchLines,
                         form = form,
                         isExpanded = view.isComponentMatchesExpanded,
-                        onAction = onAction,
+                        onToggle = { onAction(CandidateAction.ToggleComponentMatches) },
                     )
                 }
             }

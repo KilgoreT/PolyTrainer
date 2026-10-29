@@ -6,12 +6,14 @@ import me.apomazkin.core_db_api.entity.ComponentOptionApiEntity
 import me.apomazkin.core_db_api.entity.ComponentTypeApiEntity
 import me.apomazkin.core_db_api.entity.DictionaryApiEntity
 import me.apomazkin.core_db_api.entity.TermApiEntity
+import me.apomazkin.lexeme.BatchComponent
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.DictionaryForm
 import me.apomazkin.lexeme.ExistingLemma
 import me.apomazkin.lexeme.FormComponent
 import me.apomazkin.lexeme.FormGroup
 import me.apomazkin.lexeme.FormOption
+import me.apomazkin.lexeme.SavedLexeme
 import me.apomazkin.lexeme.TextValues
 import me.apomazkin.lexeme.lexemeTextKey
 import me.apomazkin.lexeme.wordTextKey
@@ -32,9 +34,10 @@ data class ServerAccess(
  * Форма словаря для лексем-кандидатов — общая для экрана снимка (AWP: леммы
  * словаря с текстами лемм ответа) и диалога карточки слова (WCL-06: лексемы
  * одного слова): включённые живые компоненты всех зависимостей в порядке дерева,
- * опции каждого «Выбора», группы, леммы с текстами ядра и ключами текстов ядер.
- * Компоненты и их порядок даёт [componentTree] — тот же обход, что строит
- * дерево запроса (WFT-78).
+ * опции каждого «Выбора», группы, леммы с текстами ядра, ключами текстов ядер,
+ * датой добавления и сохранёнными лексемами (AWP-18, AWP-46). Компоненты и
+ * их порядок даёт [componentTree] — тот же обход, что строит дерево запроса
+ * (LFL-78).
  */
 class CandidatesFormLoader @Inject constructor(
     private val groupApi: CoreDbApi.GroupApi,
@@ -48,9 +51,22 @@ class CandidatesFormLoader @Inject constructor(
         lemmaTexts: List<String>,
     ): DictionaryForm {
         val components = componentTree.componentsOf(dictionary.id).flattened()
-        val cores = textCoresOf(components)
-        val existing = existingLemmasOf(dictionary.id, lemmaTexts, cores)
+        val shape = FormShape(components)
+        val existing = existingLemmasOf(dictionary.id, lemmaTexts, shape)
         return baseForm(dictionary, components, existing)
+    }
+
+    /**
+     * Леммы словаря с текстами [lemmaTexts] вне формы — для юзкейса по лемме
+     * ответа, которой не было в списках (AWP-43.7); с группами, как у формы
+     * снимка.
+     */
+    suspend fun lemmasOf(
+        dictionary: DictionaryApiEntity,
+        lemmaTexts: List<String>,
+    ): List<ExistingLemma> {
+        val components = componentTree.componentsOf(dictionary.id).flattened()
+        return existingLemmasOf(dictionary.id, lemmaTexts, FormShape(components))
     }
 
     /**
@@ -64,14 +80,14 @@ class CandidatesFormLoader @Inject constructor(
         lemmaTexts: List<String> = emptyList(),
     ): DictionaryForm {
         val components = componentTree.componentsOf(dictionary.id).flattened()
-        val cores = textCoresOf(components)
+        val shape = FormShape(components)
         val own = listOfNotNull(
-            termApi.getTermById(wordId)?.toExistingLemma(cores, groupNames = emptyList()),
+            termApi.getTermById(wordId)?.toExistingLemma(shape, groupNames = emptyList()),
         )
         val lemmaWords = if (lemmaTexts.isEmpty()) {
             emptyList()
         } else {
-            existingLemmasOf(dictionary.id, lemmaTexts, cores, withGroups = false)
+            existingLemmasOf(dictionary.id, lemmaTexts, shape, withGroups = false)
                 .filterNot { it.wordId == wordId }
         }
         return baseForm(dictionary, components, own + lemmaWords)
@@ -121,7 +137,7 @@ class CandidatesFormLoader @Inject constructor(
     private suspend fun existingLemmasOf(
         dictionaryId: Long,
         lemmaTexts: List<String>,
-        cores: TextCores,
+        shape: FormShape,
         withGroups: Boolean = true,
     ): List<ExistingLemma> {
         val keys = lemmaTexts.mapTo(HashSet()) { wordTextKey(it) }
@@ -139,40 +155,52 @@ class CandidatesFormLoader @Inject constructor(
             } else {
                 emptyList()
             }
-            term.toExistingLemma(cores, groupNames)
+            term.toExistingLemma(shape, groupNames)
         }
     }
 
     private fun TermApiEntity.toExistingLemma(
-        cores: TextCores,
+        shape: FormShape,
         groupNames: List<String>,
     ): ExistingLemma = ExistingLemma(
         wordId = word.id,
         text = word.value,
         lexemeCount = lexemes.size,
-        coreValues = coreValues(cores.firstId),
-        lexemeTextKeys = coreTextKeys(cores.ids),
+        coreValues = coreValues(shape.firstCoreId),
+        lexemeTextKeys = coreTextKeys(shape.coreIds),
         groupNames = groupNames,
+        addedAt = word.addDate.time,
+        lexemes = savedLexemes(shape.componentIds),
     )
 
     /**
-     * Включённые ядра шаблона «текст» формы: [firstId] — первое (встроенные
-     * раньше своих, затем position, затем id; AWP-06, AWP-18.7), [ids] — все.
+     * Лексемы слова с живыми значениями компонентов формы, по id типов, для
+     * карточки слова «в словаре» (AWP-46); значения выключенных компонентов не
+     * идут.
      */
-    private class TextCores(
-        val firstId: Long?,
-        val ids: Set<Long>,
-    )
+    private fun TermApiEntity.savedLexemes(componentIds: Set<Long>): List<SavedLexeme> =
+        lexemes.map { lexeme ->
+            SavedLexeme(
+                id = lexeme.id,
+                components = lexeme.components
+                    .filter { it.removedAt == null && it.type.id in componentIds }
+                    .map { BatchComponent(typeId = it.type.id, data = it.data) },
+            )
+        }
 
-    private fun textCoresOf(components: List<ComponentBranch>): TextCores {
-        val cores = components
+    /**
+     * Очертания формы: [firstCoreId] — первое включённое ядро шаблона «текст»
+     * (встроенные раньше своих, затем position, затем id; AWP-06, AWP-18.7),
+     * [coreIds] — все такие ядра, [componentIds] — все компоненты формы.
+     */
+    private class FormShape(components: List<ComponentBranch>) {
+        private val cores = components
             .map { it.type }
             .filter { it.template == ComponentTemplate.TEXT && it.core }
             .sortedWith(compareBy({ it.systemKey == null }, { it.position }, { it.id }))
-        return TextCores(
-            firstId = cores.firstOrNull()?.id,
-            ids = cores.mapTo(HashSet()) { it.id },
-        )
+        val firstCoreId: Long? = cores.firstOrNull()?.id
+        val coreIds: Set<Long> = cores.mapTo(HashSet()) { it.id }
+        val componentIds: Set<Long> = components.mapTo(HashSet()) { it.type.id }
     }
 
     private fun TermApiEntity.coreValues(coreTypeId: Long?): List<String> =

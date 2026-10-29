@@ -6,14 +6,13 @@ import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_network_api.CoreNetworkApi
 import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.FormOutcome
-import me.apomazkin.lexeme.LookupToken
 import me.apomazkin.lexeme.WordLookupOutcome
 import me.apomazkin.lexeme.WordsBatch
 import me.apomazkin.lexeme.wordLookupOf
 import me.apomazkin.polytrainer.di.module.candidates.CandidatesFormLoader
 import me.apomazkin.polytrainer.di.module.candidates.ServerAccess
 import me.apomazkin.polytrainer.di.module.scancandidates.ComponentTreeLoader
-import me.apomazkin.polytrainer.mapper.lookupRequestOf
+import me.apomazkin.polytrainer.mapper.lexemesRequestOf
 import kotlinx.coroutines.CancellationException
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.flags.CountryProvider
@@ -64,27 +63,26 @@ class WordCardUseCaseImpl @Inject constructor(
 
     override suspend fun hasServerAccess(): Boolean = serverAccess.hasKey
 
-    // WCL-03: один токен — текст слова без краёв, уверенность 1, язык словаря
-    // слова и дерево его компонентов (WCL-03.5). Слова или словаря уже нет —
-    // «слово удалено» (WCL-01.3); пустой текст на сервер не уходит и значений
-    // не даёт (WCL-03.4). Исход запроса в исход по слову превращает правило
-    // домена (WCL-04.7, WCL-11.7).
+    // WCL-18, LFL-104: лемма — текст слова без краёв, в регистре записи, без
+    // контекста, с деревом компонентов словаря слова (LFL-78.5). Слова или
+    // словаря уже нет — «слово удалено» (WCL-01.3); пустой текст на сервер не
+    // уходит и значений не даёт (WCL-18.4). Исход запроса в исход по слову
+    // превращает правило домена (WCL-04.7, WCL-11.7).
     override suspend fun lookupWord(wordId: Long, runId: Long): WordLookupOutcome {
         val term = termApi.getTermById(wordId) ?: return WordLookupOutcome.WordMissing
         val dictionary = dictionaryApi.getDictionaryById(term.word.dictionaryId)
             ?: return WordLookupOutcome.WordMissing
         val text = term.word.value.trim()
         if (text.isEmpty()) return WordLookupOutcome.NotFound
-        val token = LookupToken(
-            text = text,
-            confidence = 1f,
-            language = dictionary.learningLanguage,
+        val request = lexemesRequestOf(
+            dictionary,
+            lemma = text,
+            context = null,
+            components = componentTree.treeOf(dictionary.id),
         )
-        val components = componentTree.treeOf(dictionary.id)
-        val request = lookupRequestOf(dictionary, listOf(token), components)
         val outcome = wordsApi
-            .lookup(request, runId)
-            .toDomain(dictionaryId = dictionary.id)
+            .lexemesFromLemma(request, runId)
+            .toDomain()
         return wordLookupOf(outcome)
     }
 

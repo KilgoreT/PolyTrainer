@@ -40,8 +40,6 @@ sealed interface CandidateAction {
     /** Диалог карточки (WCL-15): переименовать слово в лемму-форму или перенести в её слово при записи; повтор снимает. */
     data class ToggleLemmaWord(val choice: LemmaWordChoice) : CandidateAction
 
-    data object ToggleNotAdded : CandidateAction
-
     data object RequestAdd : CandidateAction
 
     data object ConfirmAdd : CandidateAction
@@ -62,9 +60,10 @@ sealed interface CandidateAction {
 
 /**
  * Что рисуют общие виджеты: поля окна снимка без его запуска. Окно
- * снимка собирает вид из своего состояния, диалог карточки — из своего;
- * поля, которых у диалога нет (группы, «не добавить», вопрос перед
- * записью), остаются в умолчаниях.
+ * снимка собирает вид из своего состояния — карточки лемм всех слов для
+ * листов правки и «куда класть», — диалог карточки — из своего; поля,
+ * которых у диалога нет (группы, вопрос перед записью), остаются в
+ * умолчаниях.
  */
 data class CandidatesView(
     val form: DictionaryFormUi?,
@@ -77,8 +76,6 @@ data class CandidatesView(
     val remarks: List<RemarkUiItem> = emptyList(),
     val componentMatchLines: List<ComponentMatchLineUiItem> = emptyList(),
     val isComponentMatchesExpanded: Boolean = false,
-    val notAdded: List<NotAddedWordUiItem> = emptyList(),
-    val isNotAddedExpanded: Boolean = false,
     val commonGroupId: Long? = null,
     val isConfirmingAdd: Boolean = false,
     /** Диалог карточки (WCL-15): что сделать со словом диалога при записи; null — ничего. */

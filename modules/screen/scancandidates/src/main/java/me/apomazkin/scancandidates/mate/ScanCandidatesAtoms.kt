@@ -7,26 +7,28 @@ import io.github.kilgoret.mate.ReducerResult
 import io.github.kilgoret.mate.begin
 import me.apomazkin.candidates.AddFailureUi
 import me.apomazkin.candidates.CandidatesSheetUi
-import me.apomazkin.candidates.CardLexemeUiItem
 import me.apomazkin.candidates.CardOwnGroupUi
 import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.candidates.ComponentRefUi
 import me.apomazkin.candidates.DictionaryFormUi
 import me.apomazkin.candidates.LemmaCardUiItem
 import me.apomazkin.candidates.ValueRefUi
-import me.apomazkin.candidates.buildLemmaCards
 import me.apomazkin.candidates.componentMatchLinesOf
-import me.apomazkin.candidates.deletingCard
 import me.apomazkin.candidates.deletingLexeme
 import me.apomazkin.candidates.deletingValue
 import me.apomazkin.candidates.droppingEmptyTexts
+import me.apomazkin.candidates.emptyLemmaCard
+import me.apomazkin.candidates.existingOf
+import me.apomazkin.candidates.lemmaCardOf
+import me.apomazkin.candidates.lexemeKeysOf
 import me.apomazkin.candidates.remarksOf
-import me.apomazkin.candidates.summaryOf
+import me.apomazkin.candidates.savedLexemesOf
 import me.apomazkin.candidates.textOf
 import me.apomazkin.candidates.withActiveValues
 import me.apomazkin.candidates.withCardGroup
 import me.apomazkin.candidates.withCardTarget
 import me.apomazkin.candidates.withCoreMarks
+import me.apomazkin.candidates.withExistingLemmas
 import me.apomazkin.candidates.withExistsMarks
 import me.apomazkin.candidates.withOption
 import me.apomazkin.candidates.withTextEdit
@@ -43,13 +45,15 @@ import me.apomazkin.scancandidates.LogTags
 typealias ScanCandidatesResult = ReducerResult<ScanCandidatesState, Effect>
 
 /**
- * Атомы экрана лексем-кандидатов: один атом — один технический шаг, каждый
- * возвращает [ReducerResult] и логируется [logStep]; атом без своих данных —
- * [noOp] с причиной. Тяжёлое в лог идёт счётчиками. Условий в атомах нет: они в
- * ветках [ScanCandidatesReducer], которые ветвятся только по стейту. Переходы над
- * карточками — общие чистые функции `widget/candidates`, те же, что у диалога в
- * карточке слова. Редьюсер и тест атомов наследуют этот класс.
+ * Атомы экрана снимка: один атом — один технический шаг, каждый возвращает
+ * [ReducerResult] и логируется [logStep]; атом без своих данных — [noOp] с
+ * причиной. Тяжёлое в лог идёт счётчиками. Условий в атомах нет: они в ветках
+ * [ScanCandidatesReducer], которые ветвятся только по стейту. Переходы над
+ * карточкой — общие чистые функции `widget/candidates`, те же, что у диалога в
+ * карточке слова; атом только адресует карточку — словом или леммой — и пишет
+ * лог. Редьюсер и тест атомов наследуют этот класс.
  */
+@Suppress("TooManyFunctions", "LargeClass")
 abstract class ScanCandidatesAtoms(
     logger: LexemeLogger,
 ) : ReducerLogging(logger) {
@@ -58,23 +62,23 @@ abstract class ScanCandidatesAtoms(
     // ===== Запуск: токены, запрос, ошибки =====
 
     /**
-     * Токены в стейт, фаза «ищу слова», прежняя ошибка снята; эффект запроса
-     * рождается здесь (WFP Ш6). Зовётся и после распознавания, и по «Повторить»
-     * с токенами из стейта (Д53).
+     * Токены в стейт, фаза «анализирую текст», прежняя ошибка снята; эффект
+     * запроса рождается здесь (TFP Ш6). Зовётся и после распознавания, и по
+     * «Повторить» с токенами из стейта (TFP-26).
      * @param tokens токены как распознаны, с повторами.
      */
-    fun ScanCandidatesState.startLooking(tokens: List<LookupToken>): ScanCandidatesResult {
-        logStep("startLooking", "tokens" to tokens.size)
+    fun ScanCandidatesState.startAnalyzing(tokens: List<LookupToken>): ScanCandidatesResult {
+        logStep("startAnalyzing", "tokens" to tokens.size)
         val next = copy(
-            phase = ScanPhase.LOOKING,
+            phase = ScanPhase.ANALYZING,
             tokens = tokens,
             errorRes = null,
             hasRetryButton = false,
         )
-        return next to setOf(DatasourceEffect.LookupWords(tokens))
+        return next to setOf(DatasourceEffect.ExtractLemmas(tokens))
     }
 
-    /** Фаза «слов нет», только «Закрыть» (WFP-19). Эффектов нет. */
+    /** Фаза «слов нет», только «Закрыть» (TFP-19, AWP-54). Эффектов нет. */
     fun ScanCandidatesState.showNoWords(): ScanCandidatesResult {
         logStep("showNoWords")
         return copy(phase = ScanPhase.NO_WORDS).begin()
@@ -82,8 +86,8 @@ abstract class ScanCandidatesAtoms(
 
     /**
      * Фаза «ошибка» с текстом, без «Повторить»: снимок не прочитался, отказ по
-     * ключу или лимиту, форма не собралась (WFP-20, WFP-26.3, WFP-26.4).
-     * Эффектов нет.
+     * ключу, лимиту, размеру или языку, форма не собралась (TFP-26.3, TFP-26.4,
+     * AWP-24, AWP-53). Эффектов нет.
      */
     fun ScanCandidatesState.showError(
         @StringRes errorRes: Int,
@@ -93,8 +97,8 @@ abstract class ScanCandidatesAtoms(
     }
 
     /**
-     * Фаза «ошибка» с текстом и «Повторить»: сети нет или сервер недоступен
-     * (WFP-26.1, WFP-26.2, Д53). Эффектов нет.
+     * Фаза «ошибка» с текстом и «Повторить»: сети нет, сервер не ответил или
+     * нейронка недоступна (TFP-26.1, TFP-26.2). Эффектов нет.
      */
     fun ScanCandidatesState.showRetryableError(
         @StringRes errorRes: Int,
@@ -105,194 +109,281 @@ abstract class ScanCandidatesAtoms(
 
     /**
      * Ответ сервера в стейт, фаза «собираю окно»; эффект формы рождается здесь —
-     * ему нужны словарь и тексты лемм ответа без повторов (AWP Ш1, AWP-01).
-     * @param found слова и рекомендации ответа со словарём снимка.
+     * ему нужны словарь и тексты всех слов списков без повторов: по ним форма
+     * несёт леммы словаря для пометки «в словаре» (AWP Ш4, AWP-01, AWP-39).
+     * @param found текст, перевод и списки ответа со словарём снимка.
      */
-    fun ScanCandidatesState.startFormLoading(found: Msg.WordsFound): ScanCandidatesResult {
-        val lemmaTexts = found.words
-            .flatMap { word -> word.lemmas.map { it.text } }
-            .distinct()
+    fun ScanCandidatesState.startFormLoading(found: Msg.LemmasFound): ScanCandidatesResult {
+        val lemmaTexts = found.lists.allTexts().distinct()
         logStep(
             "startFormLoading",
             "dictionaryId" to found.dictionaryId,
-            "words" to found.words.size,
-            "lemmas" to lemmaTexts.size,
+            "words" to lemmaTexts.size,
         )
         val next = copy(
             phase = ScanPhase.FORM_LOADING,
             dictionaryId = found.dictionaryId,
-            words = found.words,
-            recommendations = found.recommendations,
+            text = found.text,
+            translation = found.translation,
+            lists = found.lists,
         )
         return next to setOf(DatasourceEffect.LoadForm(found.dictionaryId, lemmaTexts))
     }
 
-    // ===== Окно: форма, карточки, пометки =====
+    // ===== Окно: форма, пометки, перевод =====
 
     /**
-     * Принять форму (Ш1 → Ш2): карточки и «не добавить» из слов ответа по
-     * сопоставлению (AWP-04, AWP-12), общая группа — «Все» (AWP-08.7), блок «не
-     * добавить» раскрыт, если карточек нет (AWP-12.3), фаза «окно». Замечания,
-     * активность, пометки и сводка — следующие атомы цепочки. Эффектов нет.
+     * Принять форму (Ш4 → Ш5): форма в стейт, общая группа — «Все» (AWP-08.7),
+     * перевод свёрнут (AWP-41.2), фаза «окно». Пометки «в словаре» — следующий
+     * атом цепочки. Эффектов нет.
      */
     fun ScanCandidatesState.applyForm(form: DictionaryFormUi): ScanCandidatesResult {
-        val build = buildLemmaCards(words, form)
         logStep(
             "applyForm",
-            "components" to form.components.size,
             "groups" to form.groups.size,
-            "cards" to build.cards.size,
-            "notAdded" to build.notAdded.size,
+            "existing" to form.existingLemmas.size,
         )
         return copy(
             phase = ScanPhase.WINDOW,
             form = form,
             commonGroupId = null,
-            cards = build.cards,
-            notAdded = build.notAdded,
-            isNotAddedExpanded = build.cards.isEmpty(),
+            isTranslationExpanded = false,
         ).begin()
     }
 
     /**
-     * Строки «Замечаний» из замечаний слов и рекомендаций ответа (AWP-30).
-     * No-op без формы. Эффектов нет.
+     * Пометка «в словаре» у слова, чей текст совпал с леммой словаря без учёта
+     * регистра, краёв и формы Unicode (AWP-39). No-op без формы. Эффектов нет.
      */
-    fun ScanCandidatesState.applyRemarks(): ScanCandidatesResult {
-        val form = form ?: return noOp("applyRemarks: no form")
-        val remarks = remarksOf(words, recommendations, form)
-        logStep("applyRemarks", "remarks" to remarks.size)
-        return copy(remarks = remarks).begin()
+    fun ScanCandidatesState.markInDictionary(): ScanCandidatesResult {
+        val form = form ?: return noOp("markInDictionary: no form")
+        val marked = lists.withDictionaryMarks(form.existingLemmas)
+        logStep("markInDictionary", "inDictionary" to marked.countInDictionary())
+        return copy(lists = marked).begin()
     }
 
-    /**
-     * Строки «Сопоставления» по сопоставлениям всех лексем ответа (AWP-31, Д41).
-     * Правки пользователя их не меняют. No-op без формы. Эффектов нет.
-     */
-    fun ScanCandidatesState.applyComponentMatchLines(): ScanCandidatesResult {
-        val form = form ?: return noOp("applyComponentMatchLines: no form")
-        val lines = componentMatchLinesOf(words, form)
-        logStep("applyComponentMatchLines", "lines" to lines.size)
-        return copy(componentMatchLines = lines).begin()
+    /** Блок перевода раскрыт или свёрнут (AWP-41). Эффектов нет. */
+    fun ScanCandidatesState.toggleTranslation(): ScanCandidatesResult {
+        logStep("toggleTranslation", "expanded" to !isTranslationExpanded)
+        return copy(isTranslationExpanded = !isTranslationExpanded).begin()
     }
 
-    /**
-     * Активность значений по зависимостям компонентов (AWP-17.6, 17.7). Зовётся
-     * до пометок: «есть» и «ядро» считаются по активным значениям. No-op без
-     * формы. Эффектов нет.
-     */
-    fun ScanCandidatesState.refreshActiveValues(): ScanCandidatesResult {
-        val form = form ?: return noOp("refreshActiveValues: no form")
-        val cards = cards.withActiveValues(form)
-        logStep("refreshActiveValues", "active" to cards.activeValueCount())
-        return copy(cards = cards).begin()
-    }
+    // ===== Карточка под словом: сохранённые, запрос, ответ =====
 
     /**
-     * Пометки «есть» у лексем-кандидатов по ядрам и леммам словаря (AWP-07, Д42).
-     * Зовётся после сборки и после правки текста. No-op без формы. Эффектов нет.
-     */
-    fun ScanCandidatesState.refreshExistsMarks(): ScanCandidatesResult {
-        val form = form ?: return noOp("refreshExistsMarks: no form")
-        val cards = cards.withExistsMarks(form)
-        logStep("refreshExistsMarks", "exists" to cards.countLexemes { it.exists })
-        return copy(cards = cards).begin()
-    }
-
-    /**
-     * Пометки «не попадёт в ядро» (AWP-11). Зовётся после сборки, правки
-     * текста и удаления значения. No-op без формы. Эффектов нет.
-     */
-    fun ScanCandidatesState.refreshCoreMarks(): ScanCandidatesResult {
-        val form = form ?: return noOp("refreshCoreMarks: no form")
-        val cards = cards.withCoreMarks(form)
-        logStep("refreshCoreMarks", "lacksCore" to cards.countLexemes { it.lacksCore })
-        return copy(cards = cards).begin()
-    }
-
-    /**
-     * Сводка кнопки «добавить» (AWP-13). Последний атом каждой цепочки действия.
+     * Карточка слова «в словаре» без сервера (Ш6 Б, AWP-46): лемма словаря по
+     * умолчанию самая новая (AWP-18.3), её сохранённые лексемы, «куда класть»
+     * и своя группа «как у всех»; раскрыта. No-op без формы и без слова.
      * Эффектов нет.
      */
-    fun ScanCandidatesState.refreshSummary(): ScanCandidatesResult {
-        val summary = summaryOf(cards)
-        logStep(
-            "refreshSummary",
-            "lexemes" to summary.lexemeCount,
-            "words" to summary.wordCount,
-            "existing" to summary.existingCount,
-            "lacksCore" to summary.lacksCoreCount,
-            "enabled" to summary.isEnabled,
+    fun ScanCandidatesState.openSavedCard(text: String): ScanCandidatesResult {
+        val form = form ?: return noOp("openSavedCard: no form")
+        lists.wordOf(text) ?: return noOp("openSavedCard: no word $text")
+        val lemma = emptyLemmaCard(text, form)
+        logStep("openSavedCard", "word" to text, "existing" to lemma.existingCount)
+        val card = WordCardUi(
+            phase = CardPhase.SAVED,
+            lemma = lemma,
+            saved = form.savedLexemesOf(lemma.target),
         )
-        return copy(summary = summary).begin()
-    }
-
-    // ===== Действия в окне =====
-
-    /**
-     * Удалить карточку — лемму со всеми лексемами-кандидатами, безвозвратно
-     * (AWP-15.4). No-op, если карточки нет. Эффектов нет.
-     */
-    fun ScanCandidatesState.deleteCard(lemma: String): ScanCandidatesResult {
-        return cardsStep("deleteCard", "lemma" to lemma) { it.deletingCard(lemma) }
+        return copy(lists = lists.updateWord(text) { it.copy(card = card, isExpanded = true) }).begin()
     }
 
     /**
-     * Удалить лексему-кандидата со всеми значениями (AWP-15.1). No-op, если её
-     * нет. Эффектов нет.
+     * Карточка «загрузка» раскрыта (Ш6 А, Ш8, AWP-57): прежняя ошибка снята,
+     * лемма и сохранённые как были или пустая лемма у нового слова; эффект
+     * запроса — лемма слова с текстом и переводом снимка у словаря снимка
+     * (LFL-103, AWP-01). No-op без формы, без словаря и без слова.
      */
+    fun ScanCandidatesState.startLookup(text: String): ScanCandidatesResult {
+        val form = form ?: return noOp("startLookup: no form")
+        val dictionaryId = dictionaryId ?: return noOp("startLookup: no dictionary")
+        val word = lists.wordOf(text) ?: return noOp("startLookup: no word $text")
+        val lemma = word.card?.lemma ?: emptyLemmaCard(text, form)
+        logStep("startLookup", "word" to text)
+        val card = WordCardUi(
+            phase = CardPhase.LOADING,
+            lemma = lemma,
+            saved = word.card?.saved.orEmpty(),
+        )
+        val next = copy(lists = lists.updateWord(text) { it.copy(card = card, isExpanded = true) })
+        return next to setOf(
+            DatasourceEffect.LookupLemma(
+                word = text,
+                lemma = text,
+                dictionaryId = dictionaryId,
+                text = this.text,
+                translation = translation,
+            ),
+        )
+    }
+
+    /**
+     * Ответ в карточку (Ш6 → карточка, AWP-43): леммы словаря с текстом леммы
+     * ответа, которых в форме не было, — в форму (AWP-43.7); лемма ответа с
+     * лексемами-кандидатами по сопоставлению, первая «в тексте»; «куда класть»
+     * и своя группа — как были у карточки; «Замечания» и «Сопоставление» по
+     * ответу (AWP-29, AWP-30, AWP-31). Активность, пометки и «Добавить» —
+     * следующие атомы цепочки. Слова уже нет — ничего (AWP-48.4). No-op без
+     * формы. Эффектов нет.
+     */
+    fun ScanCandidatesState.applyLexemes(found: Msg.LexemesFound): ScanCandidatesResult {
+        val form = form?.withExistingLemmas(found.existing) ?: return noOp("applyLexemes: no form")
+        val word = lists.wordOf(found.text) ?: return noOp("applyLexemes: no word ${found.text}")
+        val prior = word.card?.lemma ?: emptyLemmaCard(found.text, form)
+        val lemma = lemmaCardOf(found.word, prior, form)
+        logStep(
+            "applyLexemes",
+            "word" to found.text,
+            "lemma" to lemma.lemma,
+            "lexemes" to lemma.lexemes.size,
+        )
+        val card = WordCardUi(
+            phase = CardPhase.CANDIDATES,
+            lemma = lemma,
+            saved = form.savedLexemesOf(lemma.target),
+            remarks = remarksOf(listOf(found.word), found.recommendations, form),
+            componentMatchLines = componentMatchLinesOf(listOf(found.word), form),
+        )
+        return copy(
+            form = form,
+            lists = lists.updateWord(found.text) { it.copy(card = card) },
+        ).begin()
+    }
+
+    /**
+     * Активность значений карточки слова по зависимостям компонентов
+     * (AWP-17.6). Зовётся до пометок: «уже в словаре» и ядро считаются по
+     * активным значениям. No-op без формы и без карточки. Эффектов нет.
+     */
+    fun ScanCandidatesState.refreshCardValues(text: String): ScanCandidatesResult {
+        val form = form ?: return noOp("refreshCardValues: no form")
+        val card = lists.wordOf(text)?.card ?: return noOp("refreshCardValues: no card $text")
+        val lemma = card.lemma.withActiveValues(form)
+        logStep("refreshCardValues", "word" to text, "active" to lemma.activeValueCount())
+        return copy(lists = lists.updateWord(text) { it.copy(card = card.copy(lemma = lemma)) }).begin()
+    }
+
+    /**
+     * Пометки карточки слова: «уже в словаре» по ключам ядер леммы из «куда
+     * класть» (AWP-50), «не попадёт в ядро» (AWP-11), «Добавить» активна,
+     * когда есть лексема без «уже в словаре» и нет лексем без ядра (AWP-47.2,
+     * 47.3). No-op без формы и без карточки. Эффектов нет.
+     */
+    fun ScanCandidatesState.refreshCardMarks(text: String): ScanCandidatesResult {
+        val form = form ?: return noOp("refreshCardMarks: no form")
+        val card = lists.wordOf(text)?.card ?: return noOp("refreshCardMarks: no card $text")
+        val marked = card.withMarks(form)
+        logStep(
+            "refreshCardMarks",
+            "word" to text,
+            "exists" to marked.lemma.lexemes.count { it.exists },
+            "lacksCore" to marked.lemma.lexemes.count { it.lacksCore },
+            "canAdd" to marked.canAdd,
+        )
+        return copy(lists = lists.updateWord(text) { it.copy(card = marked) }).begin()
+    }
+
+    /** Карточка «не найдено» с текстом: без «Добавить», «Удалить» есть (AWP-55). No-op без карточки. */
+    fun ScanCandidatesState.showCardNotFound(
+        text: String,
+        @StringRes textRes: Int,
+    ): ScanCandidatesResult = showCardMessage("showCardNotFound", text, CardPhase.NOT_FOUND, textRes, hasRetryButton = false)
+
+    /** Карточка «ошибка» без «Повторить»: отказ по ключу, лимиту, размеру или языку (AWP-61.3, 61.4, 61.6, 61.8). */
+    fun ScanCandidatesState.showCardError(
+        text: String,
+        @StringRes errorRes: Int,
+    ): ScanCandidatesResult = showCardMessage("showCardError", text, CardPhase.ERROR, errorRes, hasRetryButton = false)
+
+    /** Карточка «ошибка» с «Повторить»: сети нет, сервер не ответил, нейронка недоступна (AWP-61.1, 61.2, 61.5). */
+    fun ScanCandidatesState.showCardRetryableError(
+        text: String,
+        @StringRes errorRes: Int,
+    ): ScanCandidatesResult = showCardMessage("showCardRetryableError", text, CardPhase.ERROR, errorRes, hasRetryButton = true)
+
+    /** Карточка свёрнута или раскрыта такой, какой была (AWP-42). No-op без слова и без карточки. Эффектов нет. */
+    fun ScanCandidatesState.toggleCard(text: String): ScanCandidatesResult {
+        val word = lists.wordOf(text) ?: return noOp("toggleCard: no word $text")
+        word.card ?: return noOp("toggleCard: no card $text")
+        logStep("toggleCard", "word" to text, "expanded" to !word.isExpanded)
+        return copy(lists = lists.updateWord(text) { it.copy(isExpanded = !it.isExpanded) }).begin()
+    }
+
+    /**
+     * «Удалить» у слова: строки прочь из всех списков без записи; ответ,
+     * который придёт позже, некуда класть (AWP-48). No-op без слова. Эффектов
+     * нет.
+     */
+    fun ScanCandidatesState.deleteWord(text: String): ScanCandidatesResult {
+        lists.wordOf(text) ?: return noOp("deleteWord: no word $text")
+        logStep("deleteWord", "word" to text)
+        return copy(lists = lists.removeWord(text)).begin()
+    }
+
+    /** Раздел «Сопоставление» карточки слова раскрыт или свёрнут (AWP-31.4). No-op без карточки. Эффектов нет. */
+    fun ScanCandidatesState.toggleCardMatches(text: String): ScanCandidatesResult {
+        val card = lists.wordOf(text)?.card ?: return noOp("toggleCardMatches: no card $text")
+        val expanded = !card.isComponentMatchesExpanded
+        logStep("toggleCardMatches", "word" to text, "expanded" to expanded)
+        return copy(
+            lists = lists.updateWord(text) { it.copy(card = card.copy(isComponentMatchesExpanded = expanded)) },
+        ).begin()
+    }
+
+    // ===== Правки: адрес — лемма карточки, ложатся во все карточки леммы =====
+
+    /** Лексема-кандидат со всеми значениями прочь (AWP-15.1). No-op, если её нет. Эффектов нет. */
     fun ScanCandidatesState.deleteLexeme(
         lemma: String,
         key: String,
-    ): ScanCandidatesResult {
-        return cardsStep("deleteLexeme", "lemma" to lemma, "key" to key) {
-            it.deletingLexeme(lemma, key)
+    ): ScanCandidatesResult = lemmaStep("deleteLexeme", lemma, "key" to key) { card ->
+        listOf(card).deletingLexeme(lemma, key)?.single()
+    }
+
+    /**
+     * Одно значение компонента прочь (AWP-15.2, 15.7); ушёл последний текст
+     * ядра — уходит вся лексема (AWP-11.5). No-op без формы и без значения.
+     * Эффектов нет.
+     */
+    fun ScanCandidatesState.deleteValue(ref: ValueRefUi): ScanCandidatesResult {
+        val form = form ?: return noOp("deleteValue: no form")
+        return lemmaStep("deleteValue", ref.lemma, *ref.attrs()) { card ->
+            listOf(card).deletingValue(ref, form)?.single()
         }
     }
 
     /**
-     * Удалить одно значение компонента (AWP-15.2, 15.7): ядро без значений
-     * остаётся пустым текстом (AWP-11.5), параметр без значений уходит. No-op
-     * без формы и без значения. Эффектов нет.
-     */
-    fun ScanCandidatesState.deleteValue(ref: ValueRefUi): ScanCandidatesResult {
-        val form = form ?: return noOp("deleteValue: no form")
-        return cardsStep("deleteValue", *ref.attrs()) { it.deletingValue(ref, form) }
-    }
-
-    /**
-     * Принять правку текста значения с обрезанными краями (AWP-16). Пустой текст
-     * параметра убирает следующий атом цепочки ([dropEmptyTexts]). No-op, если
-     * значения нет. Эффектов нет.
+     * Правка текста значения с обрезанными краями (AWP-16). Стёртый текст
+     * убирает следующий атом цепочки ([dropEmptyTexts]). No-op, если значения
+     * нет. Эффектов нет.
      */
     fun ScanCandidatesState.applyTextEdit(
         ref: ValueRefUi,
         text: String,
-    ): ScanCandidatesResult {
-        val length = text.trim().length
-        return cardsStep("applyTextEdit", *ref.attrs(), "length" to length) {
-            it.withTextEdit(ref, text)
-        }
+    ): ScanCandidatesResult = lemmaStep("applyTextEdit", ref.lemma, *ref.attrs(), "length" to text.trim().length) { card ->
+        listOf(card).withTextEdit(ref, text)?.single()
     }
 
     /**
-     * Убрать стёртые тексты значения (AWP-16.5): у параметра пустой текст —
-     * удалённый, у ядра единственный пустой остаётся (AWP-11.5). No-op без
+     * Стёртые тексты значения прочь (AWP-16.5): без текстов уходит значение,
+     * стёрт последний текст ядра — уходит вся лексема (AWP-11.5). No-op без
      * формы, без значения и без пустых текстов. Эффектов нет.
      */
     fun ScanCandidatesState.dropEmptyTexts(ref: ValueRefUi): ScanCandidatesResult {
         val form = form ?: return noOp("dropEmptyTexts: no form")
-        return cardsStep("dropEmptyTexts", *ref.attrs()) { it.droppingEmptyTexts(ref, form) }
+        return lemmaStep("dropEmptyTexts", ref.lemma, *ref.attrs()) { card ->
+            listOf(card).droppingEmptyTexts(ref, form)?.single()
+        }
     }
 
-    /** Вернуть тексту значения текст ответа (AWP-16.6). No-op, если значения нет. Эффектов нет. */
-    fun ScanCandidatesState.resetText(ref: ValueRefUi): ScanCandidatesResult {
-        return cardsStep("resetText", *ref.attrs()) { it.withTextReset(ref) }
-    }
+    /** Текст ответа обратно (AWP-16.6). No-op, если значения нет. Эффектов нет. */
+    fun ScanCandidatesState.resetText(ref: ValueRefUi): ScanCandidatesResult =
+        lemmaStep("resetText", ref.lemma, *ref.attrs()) { card -> listOf(card).withTextReset(ref)?.single() }
 
     /**
-     * Поставить опцию «Выбора» у одной лексемы-кандидата (AWP-17): у компонента с
-     * одним значением замена, у «несколько» переключатель, null — «без значения».
+     * Опция «Выбора» у одной лексемы-кандидата (AWP-17): у компонента с одним
+     * значением замена, у «несколько» переключатель, null — «без значения».
      * Активность зависимых значений — следующий атом цепочки. No-op без формы и
      * без значения. Эффектов нет.
      */
@@ -302,36 +393,64 @@ abstract class ScanCandidatesAtoms(
     ): ScanCandidatesResult {
         val form = form ?: return noOp("setOption: no form")
         val attrs = arrayOf<Pair<String, Any?>>(
-            "lemma" to ref.lemma,
             "key" to ref.key,
             "componentId" to ref.componentId,
             "option" to option,
         )
-        return cardsStep("setOption", *attrs) { it.withOption(ref, option, form) }
+        return lemmaStep("setOption", ref.lemma, *attrs) { card -> listOf(card).withOption(ref, option, form)?.single() }
     }
 
-    /** Выбрать, куда класть лексемы карточки (AWP-18). No-op, если карточки нет. Эффектов нет. */
+    /** «Куда класть» карточки (AWP-18). No-op, если карточки нет. Эффектов нет. */
     fun ScanCandidatesState.setCardTarget(
         lemma: String,
         target: CardTargetUi,
-    ): ScanCandidatesResult {
-        return cardsStep("setCardTarget", "lemma" to lemma, "target" to target) {
-            it.withCardTarget(lemma, target)
-        }
+    ): ScanCandidatesResult = lemmaStep("setCardTarget", lemma, "target" to target) { card ->
+        listOf(card).withCardTarget(lemma, target)?.single()
     }
 
-    /**
-     * Поставить или снять свою группу карточки (AWP-08). No-op, если карточки
-     * нет. Эффектов нет.
-     */
+    /** Своя группа карточки (AWP-08). No-op, если карточки нет. Эффектов нет. */
     fun ScanCandidatesState.setCardGroup(
         lemma: String,
         group: CardOwnGroupUi,
-    ): ScanCandidatesResult {
-        return cardsStep("setCardGroup", "lemma" to lemma, "group" to group) {
-            it.withCardGroup(lemma, group)
-        }
+    ): ScanCandidatesResult = lemmaStep("setCardGroup", lemma, "group" to group) { card ->
+        listOf(card).withCardGroup(lemma, group)?.single()
     }
+
+    /** Активность значений у карточек леммы (AWP-17.6). No-op без формы и без карточки леммы. Эффектов нет. */
+    fun ScanCandidatesState.refreshLemmaValues(lemma: String): ScanCandidatesResult {
+        val form = form ?: return noOp("refreshLemmaValues: no form")
+        return lemmaCardsStep("refreshLemmaValues", lemma) { card -> card.copy(lemma = card.lemma.withActiveValues(form)) }
+    }
+
+    /** Сохранённые лексемы выбранной леммы у карточек леммы (AWP-18.8, AWP-46). No-op без формы и без карточки леммы. */
+    fun ScanCandidatesState.refreshLemmaSaved(lemma: String): ScanCandidatesResult {
+        val form = form ?: return noOp("refreshLemmaSaved: no form")
+        return lemmaCardsStep("refreshLemmaSaved", lemma) { card -> card.copy(saved = form.savedLexemesOf(card.lemma.target)) }
+    }
+
+    /** «Уже в словаре», «не попадёт в ядро» и «Добавить» заново у карточек леммы. No-op без формы и без карточки леммы. */
+    fun ScanCandidatesState.refreshLemmaMarks(lemma: String): ScanCandidatesResult {
+        val form = form ?: return noOp("refreshLemmaMarks: no form")
+        return lemmaCardsStep("refreshLemmaMarks", lemma) { card -> card.withMarks(form) }
+    }
+
+    /**
+     * Сохранённые, счёт лемм словаря, активность и пометки всех карточек заново:
+     * после сброса леммы словаря или компонента. No-op без формы.
+     */
+    fun ScanCandidatesState.refreshAllCards(): ScanCandidatesResult {
+        val form = form ?: return noOp("refreshAllCards: no form")
+        logStep("refreshAllCards", "cards" to lists.allLemmaCards().size)
+        val next = lists.updateCards { card ->
+            val lemma = card.lemma
+                .copy(existingCount = form.existingOf(card.lemma.lemma).size)
+                .withActiveValues(form)
+            card.copy(saved = form.savedLexemesOf(lemma.target), lemma = lemma).withMarks(form)
+        }
+        return copy(lists = next).begin()
+    }
+
+    // ===== Общая группа и листы =====
 
     /**
      * Сменить общую группу (AWP-08): группа словаря или «Все» (null). Не
@@ -342,26 +461,16 @@ abstract class ScanCandidatesAtoms(
         return copy(commonGroupId = groupId).begin()
     }
 
-    /** Раскрыть или свернуть раздел «Сопоставление» (AWP-31.4). Эффектов нет. */
-    fun ScanCandidatesState.toggleComponentMatchesExpanded(): ScanCandidatesResult {
-        logStep("toggleComponentMatchesExpanded", "expanded" to !isComponentMatchesExpanded)
-        return copy(isComponentMatchesExpanded = !isComponentMatchesExpanded).begin()
-    }
-
-    /** Раскрыть или свернуть блок «не добавить» (AWP-12.2). Эффектов нет. */
-    fun ScanCandidatesState.toggleNotAddedExpanded(): ScanCandidatesResult {
-        logStep("toggleNotAddedExpanded", "expanded" to !isNotAddedExpanded)
-        return copy(isNotAddedExpanded = !isNotAddedExpanded).begin()
-    }
-
     /**
      * Открыть лист, один за раз. У правки текста черновик — текущий текст
-     * значения, «сбросить» есть, если текст отличается от текста ответа
-     * (AWP-16.6, AWP-16.8). No-op, если значения под правку нет. Эффектов нет.
+     * значения из карточек по адресу, «сбросить» есть, если текст отличается от
+     * текста ответа (AWP-16.6, AWP-16.8). No-op, если значения под правку нет.
+     * Эффектов нет.
      */
     fun ScanCandidatesState.openSheet(sheet: CandidatesSheetUi): ScanCandidatesResult {
         val opened = if (sheet is CandidatesSheetUi.TextEdit) {
-            val text = cards.textOf(sheet.ref) ?: return noOp("openSheet: no text ${sheet.ref}")
+            val text = lists.allLemmaCards().textOf(sheet.ref)
+                ?: return noOp("openSheet: no text ${sheet.ref}")
             sheet.copy(draft = text.text, canReset = text.isEdited)
         } else {
             sheet
@@ -386,67 +495,68 @@ abstract class ScanCandidatesAtoms(
     fun ScanCandidatesState.updateSheetDraft(text: String): ScanCandidatesResult {
         val edit = sheet as? CandidatesSheetUi.TextEdit
             ?: return noOp("updateSheetDraft: no text edit")
-        val original = cards.textOf(edit.ref)?.original
+        val original = lists.allLemmaCards().textOf(edit.ref)?.original
         logStep("updateSheetDraft", "length" to text.length)
         val next = edit.copy(draft = text, canReset = original != null && text.trim() != original)
         return copy(sheet = next).begin()
     }
 
-    /**
-     * Поднять флаг «были изменения»: удаление, правка текста или смена опции
-     * (AWP-19). Выбор групп и «куда класть» его не ставит (AWP-19.6, 19.8).
-     * Эффектов нет.
-     */
-    fun ScanCandidatesState.markDirty(): ScanCandidatesResult {
-        logStep("markDirty")
-        return copy(isDirty = true).begin()
-    }
-
-    // ===== Добавление: вопрос, запись, сбои =====
-
-    /** Показать вопрос «Добавить N значений в M слов?» (AWP-13). Эффектов нет. */
-    fun ScanCandidatesState.askAddConfirm(): ScanCandidatesResult {
-        logStep("askAddConfirm", "lexemes" to summary.lexemeCount, "words" to summary.wordCount)
-        return copy(isConfirmingAdd = true).begin()
-    }
-
-    /** Убрать вопрос о добавлении («да» или «отмена»). Эффектов нет. */
-    fun ScanCandidatesState.closeAddConfirm(): ScanCandidatesResult {
-        logStep("closeAddConfirm")
-        return copy(isConfirmingAdd = false).begin()
-    }
+    // ===== Запись слова и сбои =====
 
     /**
-     * Начать запись (AWP-13.4, AWP-20): окно неактивно, прежний сбой снят, пакет
-     * из содержимого окна уходит эффектом — он собирается из карточек, формы и
-     * общей группы. No-op без формы.
+     * Запись слова (Ш9, AWP-20, AWP-03): пакет одного слова из карточки — лемма
+     * новая или выбранная, лексемы без «уже в словаре», группа своя или общая;
+     * «идёт запись» у слова и у экрана, прежний сбой снят; эффект записи. No-op
+     * без формы, без карточки и без лексем на запись.
      */
-    fun ScanCandidatesState.startAdding(): ScanCandidatesResult {
-        val form = form ?: return noOp("startAdding: no form")
-        val batch = wordsBatchOf(cards, form, commonGroupId)
-        logStep(
-            "startAdding",
-            "words" to batch.words.size,
-            "lexemes" to batch.words.sumOf { it.lexemes.size },
+    fun ScanCandidatesState.startAddingWord(text: String): ScanCandidatesResult {
+        val form = form ?: return noOp("startAddingWord: no form")
+        val card = lists.wordOf(text)?.card ?: return noOp("startAddingWord: no card $text")
+        val batch = wordsBatchOf(listOf(card.lemma), form, commonGroupId)
+        val lexemes = batch.words.sumOf { it.lexemes.size }
+        if (lexemes == 0) return noOp("startAddingWord: nothing to write $text")
+        logStep("startAddingWord", "word" to text, "lexemes" to lexemes)
+        val next = copy(
+            isAdding = true,
+            lists = lists.updateWord(text) { it.copy(card = card.copy(isAdding = true, addFailure = null)) },
         )
-        return copy(isAdding = true, addFailure = null) to setOf(DatasourceEffect.AddWords(batch))
+        return next to setOf(DatasourceEffect.AddWord(text, batch))
     }
 
     /**
-     * Запись не удалась (В3, AWP-21): окно снова активно, причина — в
-     * [ScanCandidatesState.addFailure]. Сбросы недействительного выбора —
-     * отдельные атомы цепочки. Эффектов нет.
+     * Записано (Ш9 → Ш5, Д118): строки слова прочь из списков, как будто
+     * переехало в словарь; «идёт запись» экрана снят, когда других записей
+     * нет (AWP-47). No-op без слова. Эффектов нет.
      */
-    fun ScanCandidatesState.showAddFailure(failure: AddFailureUi): ScanCandidatesResult {
-        logStep("showAddFailure", "failure" to failure)
-        return copy(isAdding = false, addFailure = failure).begin()
+    fun ScanCandidatesState.removeAddedWord(text: String): ScanCandidatesResult {
+        lists.wordOf(text) ?: return noOp("removeAddedWord: no word $text")
+        logStep("removeAddedWord", "word" to text)
+        val rest = lists.removeWord(text)
+        return copy(lists = rest, isAdding = rest.anyAdding()).begin()
     }
 
-    /** Снять «не добавилось» перед повтором (AWP-26). No-op без сбоя. Эффектов нет. */
-    fun ScanCandidatesState.clearAddFailure(): ScanCandidatesResult {
-        addFailure ?: return noOp("clearAddFailure: no failure")
-        logStep("clearAddFailure")
-        return copy(addFailure = null).begin()
+    /**
+     * Запись не удалась (AWP-21): «не добавилось» с причиной и «Повторить» под
+     * словом, кнопки слова снова активны; «идёт запись» экрана снят, когда
+     * других записей нет. Сбросы недействительного выбора — отдельные атомы
+     * цепочки. No-op без карточки. Эффектов нет.
+     */
+    fun ScanCandidatesState.showAddFailure(
+        text: String,
+        failure: AddFailureUi,
+    ): ScanCandidatesResult {
+        val card = lists.wordOf(text)?.card ?: return noOp("showAddFailure: no card $text")
+        logStep("showAddFailure", "word" to text, "failure" to failure)
+        val rest = lists.updateWord(text) { it.copy(card = card.copy(isAdding = false, addFailure = failure)) }
+        return copy(lists = rest, isAdding = rest.anyAdding()).begin()
+    }
+
+    /** Снять «не добавилось» перед повтором (AWP-26). No-op без карточки и без сбоя. Эффектов нет. */
+    fun ScanCandidatesState.clearAddFailure(text: String): ScanCandidatesResult {
+        val card = lists.wordOf(text)?.card ?: return noOp("clearAddFailure: no card $text")
+        card.addFailure ?: return noOp("clearAddFailure: no failure $text")
+        logStep("clearAddFailure", "word" to text)
+        return copy(lists = lists.updateWord(text) { it.copy(card = card.copy(addFailure = null)) }).begin()
     }
 
     /**
@@ -458,28 +568,29 @@ abstract class ScanCandidatesAtoms(
         logStep("resetDeadGroup", "groupId" to groupId)
         return copy(
             commonGroupId = commonGroupId?.takeIf { it != groupId },
-            cards = cards.withoutGroup(groupId),
+            lists = lists.updateCards { card -> card.copy(lemma = listOf(card.lemma).withoutGroup(groupId).single()) },
             form = form?.withoutDeadGroup(groupId),
         ).begin()
     }
 
     /**
      * Удалённая лемма словаря (AWP-21.4): «куда класть» у карточек с ней → «новое
-     * слово», из формы она уходит. Эффектов нет.
+     * слово», из формы она уходит. Сохранённые и пометки заново — следующий
+     * атом цепочки. Эффектов нет.
      * @param wordId id удалённой леммы.
      */
     fun ScanCandidatesState.resetDeadTarget(wordId: Long): ScanCandidatesResult {
         logStep("resetDeadTarget", "wordId" to wordId)
         return copy(
-            cards = cards.withoutTarget(wordId),
+            lists = lists.updateCards { card -> card.copy(lemma = listOf(card.lemma).withoutTarget(wordId).single()) },
             form = form?.withoutDeadLemma(wordId),
         ).begin()
     }
 
     /**
-     * Выключенный компонент (AWP-21.6): из формы уходит он сам, из лексем — его
-     * значения. Активность, пометки и сводку пересчитывают следующие атомы
-     * цепочки. No-op без формы. Эффектов нет.
+     * Выключенный компонент (AWP-21.6): из формы уходит он сам, из лексем всех
+     * карточек — его значения. Активность и пометки пересчитывает следующий
+     * атом цепочки. No-op без формы. Эффектов нет.
      * @param typeId id компонента.
      */
     fun ScanCandidatesState.dropComponent(typeId: Long): ScanCandidatesResult {
@@ -487,37 +598,26 @@ abstract class ScanCandidatesAtoms(
         logStep("dropComponent", "typeId" to typeId)
         return copy(
             form = form.copy(components = form.components.filterNot { it.id == typeId }),
-            cards = cards.withoutComponent(typeId),
+            lists = lists.updateCards { card -> card.copy(lemma = listOf(card.lemma).withoutComponent(typeId).single()) },
         ).begin()
     }
 
     // ===== Закрытие =====
 
-    /** Показать вопрос «Закрыть без добавления?» (AWP-25). Эффектов нет. */
+    /** Вопрос «Закрыть без добавления?» с числом слов, чьи лексемы-кандидаты пришли или идут и не добавлены (AWP-51). Эффектов нет. */
     fun ScanCandidatesState.askCloseConfirm(): ScanCandidatesResult {
-        logStep("askCloseConfirm")
-        return copy(isConfirmingClose = true).begin()
+        val pending = lists.countPending()
+        logStep("askCloseConfirm", "pending" to pending)
+        return copy(isConfirmingClose = true, pendingWords = pending).begin()
     }
 
-    /** Убрать вопрос о закрытии («остаться»). Эффектов нет. */
+    /** Убрать вопрос о закрытии («Остаться», AWP-51.3). Эффектов нет. */
     fun ScanCandidatesState.closeCloseConfirm(): ScanCandidatesResult {
         logStep("closeCloseConfirm")
-        return copy(isConfirmingClose = false).begin()
+        return copy(isConfirmingClose = false, pendingWords = 0).begin()
     }
 
-    /**
-     * Назад на вкладку со счётом записанного (AWP-23): эффект навигации, стейт не
-     * меняется.
-     */
-    fun ScanCandidatesState.closeWithResult(
-        lexemeCount: Int,
-        wordCount: Int,
-    ): ScanCandidatesResult {
-        logStep("closeWithResult", "lexemes" to lexemeCount, "words" to wordCount)
-        return this to setOf(ScanNavigationEffect.CloseWithResult(lexemeCount, wordCount))
-    }
-
-    /** Назад на вкладку без результата: эффект навигации, стейт не меняется. */
+    /** Назад на вкладку без результата (AWP-60): эффект навигации, стейт не меняется. */
     fun ScanCandidatesState.close(): ScanCandidatesResult {
         logStep("close")
         return this to setOf(NavigationEffect.Back)
@@ -525,31 +625,72 @@ abstract class ScanCandidatesAtoms(
 
     // ===== Внутреннее: чистые помощники, не шаги, в лог не пишутся =====
 
-    /** Шаг над списком карточек: null от перехода — no-op с именем шага. */
-    private fun ScanCandidatesState.cardsStep(
+    /** Карточка слова с текстом фазы: лемма и сохранённые как были. No-op без слова и без карточки. */
+    private fun ScanCandidatesState.showCardMessage(
         step: String,
-        vararg attrs: Pair<String, Any?>,
-        change: (List<LemmaCardUiItem>) -> List<LemmaCardUiItem>?,
+        text: String,
+        phase: CardPhase,
+        @StringRes messageRes: Int,
+        hasRetryButton: Boolean,
     ): ScanCandidatesResult {
-        val next = change(cards) ?: return noOp("$step: nothing to change")
-        logStep(step, *attrs)
-        return copy(cards = next).begin()
+        val prior = lists.wordOf(text)?.card ?: return noOp("$step: no card $text")
+        logStep(step, "word" to text, "res" to messageRes)
+        val card = WordCardUi(
+            phase = phase,
+            lemma = prior.lemma,
+            saved = prior.saved,
+            errorRes = messageRes,
+            hasRetryButton = hasRetryButton,
+        )
+        return copy(lists = lists.updateWord(text) { it.copy(card = card) }).begin()
     }
 
+    /** Шаг над карточками леммы у всех слов: null от перехода у всех — no-op с именем шага. */
+    private fun ScanCandidatesState.lemmaStep(
+        step: String,
+        lemma: String,
+        vararg attrs: Pair<String, Any?>,
+        change: (LemmaCardUiItem) -> LemmaCardUiItem?,
+    ): ScanCandidatesResult {
+        val next = lists.updateLemmaCards(lemma, change) ?: return noOp("$step: nothing to change")
+        logStep(step, "lemma" to lemma, *attrs)
+        return copy(lists = next).begin()
+    }
+
+    /** Пересчёт карточек слов с этой леммой: без таких карточек — no-op. */
+    private fun ScanCandidatesState.lemmaCardsStep(
+        step: String,
+        lemma: String,
+        change: (WordCardUi) -> WordCardUi,
+    ): ScanCandidatesResult {
+        if (lists.allLemmaCards().none { it.lemma == lemma }) return noOp("$step: no card $lemma")
+        logStep(step, "lemma" to lemma)
+        val next = lists.updateCards { card -> if (card.lemma.lemma == lemma) change(card) else card }
+        return copy(lists = next).begin()
+    }
+
+    /** Пометки «уже в словаре» по ядрам выбранной леммы, «не попадёт в ядро» и «Добавить» карточки. */
+    private fun WordCardUi.withMarks(form: DictionaryFormUi): WordCardUi {
+        val marked = listOf(lemma)
+            .withExistsMarks(form.lexemeKeysOf(lemma.target), form)
+            .withCoreMarks(form)
+            .single()
+        val canAdd = marked.lexemes.any { !it.exists } && marked.lexemes.none { it.lacksCore }
+        return copy(lemma = marked, canAdd = canAdd)
+    }
+
+    private fun LemmaCardUiItem.withActiveValues(form: DictionaryFormUi): LemmaCardUiItem =
+        listOf(this).withActiveValues(form).single()
+
+    private fun LemmaCardUiItem.activeValueCount(): Int = lexemes
+        .flatMap { it.values }
+        .count { it.isActive }
+
     private fun ValueRefUi.attrs(): Array<Pair<String, Any?>> = arrayOf(
-        "lemma" to lemma,
         "key" to key,
         "componentId" to componentId,
         "index" to index,
     )
-
-    private fun List<LemmaCardUiItem>.countLexemes(predicate: (CardLexemeUiItem) -> Boolean): Int =
-        sumOf { card -> card.lexemes.count(predicate) }
-
-    private fun List<LemmaCardUiItem>.activeValueCount(): Int = this
-        .flatMap { it.lexemes }
-        .flatMap { it.values }
-        .count { it.isActive }
 
     private fun DictionaryFormUi.withoutDeadGroup(groupId: Long): DictionaryFormUi =
         copy(groups = groups.filterNot { it.id == groupId })

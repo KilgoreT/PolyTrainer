@@ -11,8 +11,10 @@ import me.apomazkin.candidates.mapper.toUi
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.FormOutcome
+import me.apomazkin.lexeme.LemmaContext
+import me.apomazkin.lexeme.LemmasOutcome
+import me.apomazkin.lexeme.LexemesOutcome
 import me.apomazkin.lexeme.LookupDenyReason
-import me.apomazkin.lexeme.LookupOutcome
 import me.apomazkin.lexeme.RecognitionOutcome
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.scancandidates.LogTags
@@ -34,6 +36,7 @@ class DatasourceEffectHandler(
 ) : MateEffectHandler<Msg, DatasourceEffect> {
     override val effectFamily = DatasourceEffect::class
 
+    @Suppress("LongMethod")
     override suspend fun runEffect(
         effect: DatasourceEffect,
         consumer: (Msg) -> Unit,
@@ -41,7 +44,7 @@ class DatasourceEffectHandler(
         logger.d(tag = LogTags.SCAN, message = "RunEffect: $effect")
         val msg = when (effect) {
             // Доступ к файлу галереи отпускается в любом исходе, и при сбое, и при
-            // закрытии экрана посреди распознавания (Д52, WFP-22).
+            // закрытии экрана посреди распознавания (Д52, TFP-22).
             is DatasourceEffect.RecognizeText -> withContext(io) {
                 val outcome = try {
                     useCase.recognize(effect.uri)
@@ -55,30 +58,32 @@ class DatasourceEffectHandler(
                 }
             }
 
-            // Недоступная нейронка — «Сервер сейчас недоступен» с повтором (WFP-26.2),
-            // остальные отказы — только «Закрыть» (WFP-26.3).
-            is DatasourceEffect.LookupWords -> withContext(io) {
-                val outcome = useCase.lookupWords(effect.tokens)
-                logger.d(tag = LogTags.SCAN, message = "lookup outcome=${outcome.describe()}")
+            // Отказ по нейронке — свой текст с «Повторить» (AWP-53.1); остальные
+            // отказы — текст по причине, без повтора (AWP-53.2–53.4, 53.8); сервер не
+            // ответил — «Сервер не ответил» с «Повторить» (AWP-53.5).
+            is DatasourceEffect.ExtractLemmas -> withContext(io) {
+                val outcome = useCase.lemmasFromTokens(effect.tokens)
+                logger.d(tag = LogTags.SCAN, message = "lemmas outcome=${outcome.describe()}")
                 when (outcome) {
-                    is LookupOutcome.Words -> Msg.WordsFound(
+                    is LemmasOutcome.Found -> Msg.LemmasFound(
                         dictionaryId = outcome.dictionaryId,
-                        words = outcome.words.map { it.toUi() },
-                        recommendations = outcome.recommendations.map { it.toUi() },
+                        text = outcome.lemmas.text,
+                        translation = outcome.lemmas.translation,
+                        lists = outcome.lemmas.toUi(),
                     )
-                    LookupOutcome.NoWords -> Msg.WordsEmpty
-                    is LookupOutcome.Denied -> when (val reason = outcome.reason) {
+                    LemmasOutcome.NoWords -> Msg.LemmasEmpty
+                    is LemmasOutcome.Denied -> when (val reason = outcome.reason) {
                         LookupDenyReason.LLM_UNAVAILABLE ->
-                            Msg.LookupUnavailable(R.string.scan_server_unavailable)
+                            Msg.LemmasUnavailable(R.string.scan_analysis_unavailable)
                         LookupDenyReason.NO_ACCESS_KEY,
                         LookupDenyReason.UNAUTHORIZED,
                         LookupDenyReason.RATE_LIMITED,
                         LookupDenyReason.REQUEST_TOO_LARGE,
                         LookupDenyReason.UNSUPPORTED_LANGUAGE,
-                        -> Msg.LookupDenied(errorResOf(reason))
+                        -> Msg.LemmasDenied(errorResOf(reason))
                     }
-                    LookupOutcome.Unavailable ->
-                        Msg.LookupUnavailable(R.string.photo_words_error_server)
+                    LemmasOutcome.Unavailable ->
+                        Msg.LemmasUnavailable(R.string.photo_words_error_server)
                 }
             }
 
@@ -93,23 +98,49 @@ class DatasourceEffectHandler(
                 }
             }
 
-            is DatasourceEffect.AddWords -> withContext(io) {
-                val outcome = useCase.addWords(effect.batch)
-                logger.d(tag = LogTags.SCAN, message = "add outcome=${outcome.describe()}")
+            // Значения леммы с контекстом снимка у словаря снимка (LFL-103): не найдено
+            // и «значений нет» — свой текст без повтора (AWP-55); сервер не ответил или
+            // по слову не справился — «Повторить» (AWP-61.2, 61.5).
+            is DatasourceEffect.LookupLemma -> withContext(io) {
+                val outcome = useCase.lexemesFromLemma(
+                    dictionaryId = effect.dictionaryId,
+                    lemma = effect.lemma,
+                    context = LemmaContext(text = effect.text, translation = effect.translation),
+                )
+                logger.d(tag = LogTags.SCAN, message = "lexemes word=${effect.word} outcome=${outcome.describe()}")
                 when (outcome) {
-                    is AddWordsBatchOutcome.Added -> Msg.AddFinished(
-                        lexemeCount = outcome.lexemeIds.size,
-                        wordCount = outcome.wordIds.size,
+                    is LexemesOutcome.Found -> Msg.LexemesFound(
+                        text = effect.word,
+                        word = outcome.word.toUi(),
+                        recommendations = outcome.recommendations.map { it.toUi() },
+                        existing = outcome.existing.map { it.toUi() },
                     )
+                    LexemesOutcome.NotFound -> Msg.LexemesNotFound(effect.word, R.string.scan_not_found)
+                    LexemesOutcome.NoLexemes -> Msg.LexemesNotFound(effect.word, R.string.scan_no_lexemes)
+                    is LexemesOutcome.Denied -> deniedMsg(effect.word, outcome)
+                    LexemesOutcome.Unavailable ->
+                        Msg.LexemesUnavailable(effect.word, R.string.photo_words_error_server)
+                    LexemesOutcome.WordFailed ->
+                        Msg.LexemesUnavailable(effect.word, R.string.scan_server_unavailable)
+                }
+            }
+
+            // Запись одного слова одной транзакцией (AWP-20): группа, слово и компонент
+            // — своё сообщение на причину (AWP-21.3–21.6); прочие отказы — как есть.
+            is DatasourceEffect.AddWord -> withContext(io) {
+                val outcome = useCase.addWord(effect.batch)
+                logger.d(tag = LogTags.SCAN, message = "add word=${effect.word} outcome=${outcome.describe()}")
+                when (outcome) {
+                    is AddWordsBatchOutcome.Added -> Msg.WordAdded(effect.word)
                     is AddWordsBatchOutcome.Rejected.GroupMissing ->
-                        Msg.AddGroupGone(outcome.toUi())
+                        Msg.AddGroupGone(effect.word, outcome.toUi())
                     is AddWordsBatchOutcome.Rejected.WordMissing ->
-                        Msg.AddWordGone(outcome.toUi())
+                        Msg.AddWordGone(effect.word, outcome.toUi())
                     is AddWordsBatchOutcome.Rejected.TypeUnavailable ->
-                        Msg.AddComponentGone(outcome.toUi())
+                        Msg.AddComponentGone(effect.word, outcome.toUi())
                     is AddWordsBatchOutcome.Rejected.NoCoreValue,
                     is AddWordsBatchOutcome.Rejected.DictionaryMissing,
-                    -> Msg.AddFailed(outcome.toUi())
+                    -> Msg.AddFailed(effect.word, outcome.toUi())
                 }
             }
         }
@@ -117,8 +148,40 @@ class DatasourceEffectHandler(
     }
 }
 
+/**
+ * Отказ на слове: по нейронке — «Сервер сейчас недоступен, попробуй позже» с
+ * «Повторить» (AWP-61.1); остальные — текст по причине без повтора (AWP-61.3,
+ * 61.4, 61.6, 61.8).
+ */
+private fun deniedMsg(
+    word: String,
+    outcome: LexemesOutcome.Denied,
+): Msg = when (outcome.reason) {
+    LookupDenyReason.LLM_UNAVAILABLE ->
+        Msg.LexemesUnavailable(word, R.string.scan_server_unavailable)
+    LookupDenyReason.NO_ACCESS_KEY,
+    LookupDenyReason.UNAUTHORIZED,
+    LookupDenyReason.RATE_LIMITED,
+    LookupDenyReason.REQUEST_TOO_LARGE,
+    LookupDenyReason.UNSUPPORTED_LANGUAGE,
+    -> Msg.LexemesDenied(word, errorResOf(outcome.reason))
+}
+
 /** Строка исхода распознавания для лога. */
 private fun RecognitionOutcome.describe(): String = when (this) {
     is RecognitionOutcome.Text -> "text tokens=${tokens.size}"
     RecognitionOutcome.Empty -> "empty"
+}
+
+/**
+ * Строка исхода лемм для лога: словарь и число слов в каждом списке, `no words`,
+ * `denied=…`, `unavailable`.
+ */
+private fun LemmasOutcome.describe(): String = when (this) {
+    is LemmasOutcome.Found ->
+        "dict=$dictionaryId lexical=${lemmas.lexical.size} proper=${lemmas.proper.size} " +
+            "function=${lemmas.function.size} unparsed=${lemmas.unparsed.size}"
+    LemmasOutcome.NoWords -> "no words"
+    is LemmasOutcome.Denied -> "denied=$reason"
+    LemmasOutcome.Unavailable -> "unavailable"
 }

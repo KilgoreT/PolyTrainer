@@ -14,26 +14,20 @@ import me.apomazkin.group.GroupNode
 import me.apomazkin.group.MembershipEntry
 import me.apomazkin.groupstab.deps.GroupsTabUseCase
 import me.apomazkin.groupstab.logic.GroupsTabState
-import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.BuiltInComponent
-import me.apomazkin.lexeme.ComponentMatch
 import me.apomazkin.lexeme.ComponentTemplate
 import me.apomazkin.lexeme.DependencyTarget
 import me.apomazkin.lexeme.DictionaryForm
 import me.apomazkin.lexeme.FormComponent
 import me.apomazkin.lexeme.FormOutcome
-import me.apomazkin.lexeme.LookupLemma
-import me.apomazkin.lexeme.LookupLexeme
-import me.apomazkin.lexeme.LookupOutcome
+import me.apomazkin.lexeme.LemmasOutcome
 import me.apomazkin.lexeme.LookupToken
-import me.apomazkin.lexeme.LookupWord
-import me.apomazkin.lexeme.LookupWordStatus
 import me.apomazkin.lexeme.RecognitionOutcome
+import me.apomazkin.lexeme.TextLemmas
 import me.apomazkin.polytrainer.navigation.AppScreen
 import me.apomazkin.polytrainer.navigation.appNavTable
 import me.apomazkin.scancandidates.deps.ScanCandidatesUseCase
 import me.apomazkin.scancandidates.mate.ScanCandidatesState
-import me.apomazkin.scancandidates.mate.ScanNavigationEffect
 import me.apomazkin.scancandidates.mate.ScanPhase
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import me.apomazkin.wordstab.deps.WordsTabUseCase
@@ -41,7 +35,6 @@ import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.WordsTabState
 import me.apomazkin.wordstab.ui.WordsNavigationEffect
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.time.Duration.Companion.seconds
@@ -229,38 +222,16 @@ class PilotScenarioTest {
         }
     }
 
-    // ===== Экран лексем-кандидатов со снимка (Д51) =====
+    // ===== Экран снимка (Д51, IS537) =====
 
-    private val perroLexeme = LookupLexeme(
-        key = "ruwiktionary/1.noun.1",
-        partOfSpeechKey = "noun",
-        source = "ruwiktionary",
-        translations = listOf("собака"),
-        gloss = null,
-        caption = null,
-        notes = emptyList(),
-        examples = emptyList(),
-        grammar = emptyMap(),
-        level = null,
-        synonyms = emptyList(),
-        antonyms = emptyList(),
-        componentMatches = listOf(
-            ComponentMatch(componentId = TRANSLATION, optionId = null, field = "translations"),
-        ),
-    )
-
-    private val perro = LookupWord(
+    /** Ответ сервера на снимок с одним словом «perro» (LFT-14). */
+    private val perroLemmas = TextLemmas(
         text = "perro",
-        status = LookupWordStatus.FOUND,
-        lemmas = listOf(
-            LookupLemma(
-                text = "perro",
-                formNote = null,
-                pronunciations = emptyList(),
-                lexemes = listOf(perroLexeme),
-            ),
-        ),
-        remarks = emptyList(),
+        translation = "собака",
+        lexical = listOf("perro"),
+        proper = emptyList(),
+        function = emptyList(),
+        unparsed = emptyList(),
     )
 
     private val form = DictionaryForm(
@@ -283,28 +254,25 @@ class PilotScenarioTest {
         existingLemmas = emptyList(),
     )
 
-    /** Снимок с одним словом «perro»: распознан, найден на сервере, форма собрана. */
+    /** Снимок с одним словом «perro»: распознан, леммы с сервера, форма собрана. */
     private fun Stubs.photoWithPerro() {
         coEvery { scanUseCase.recognize(PHOTO) } returns
             RecognitionOutcome.Text(listOf(LookupToken("perro", 0.9f, "es")))
         coEvery { scanUseCase.releaseImageAccess(PHOTO) } just Runs
-        coEvery { scanUseCase.lookupWords(any()) } returns
-            LookupOutcome.Words(dictionaryId = 1L, words = listOf(perro), recommendations = emptyList())
+        coEvery { scanUseCase.lemmasFromTokens(any()) } returns
+            LemmasOutcome.Found(dictionaryId = 1L, lemmas = perroLemmas)
         coEvery { scanUseCase.loadForm(1L, listOf("perro")) } returns FormOutcome.Loaded(form)
     }
 
     /**
-     * Путь снимка целиком (AWP-23, WFP-23): кнопка вкладки → выбор источника →
-     * снимок получен → вкладка открывает экран по продовой таблице → экран сам
-     * распознаёт, спрашивает сервер и собирает форму → «Добавить» → запись →
-     * экран закрывается результатом, который таблица кладёт псевдоэкраном.
+     * Путь снимка целиком: кнопка вкладки → выбор источника → снимок получен →
+     * вкладка открывает экран по продовой таблице → экран сам распознаёт,
+     * спрашивает сервер и собирает окно со списками.
      */
     @Test
-    fun `AWP-23_1 from the scan button to the result of the write`() {
+    fun `scenario - from the scan button to the window with the lists`() {
         val stubs = Stubs()
         stubs.photoWithPerro()
-        coEvery { stubs.scanUseCase.addWords(any()) } returns
-            AddWordsBatchOutcome.Added(wordIds = listOf(100L), lexemeIds = listOf(1000L))
 
         runAppScenario(stubs.registry, appNavTable) {
             launch(AppScreen.Main)
@@ -318,24 +286,20 @@ class PilotScenarioTest {
             expectScreen(AppScreen.ScanCandidates(PHOTO))
             expectState<ScanCandidatesState> { state ->
                 assertEquals(ScanPhase.WINDOW, state.phase)
-                assertEquals(listOf("perro"), state.cards.map { it.lemma })
+                assertEquals(listOf("perro"), state.lists.lexical.map { it.text })
+                assertEquals("собака", state.translation)
+                assertEquals(1L, state.dictionaryId)
             }
-
-            send(ScanMsg.RequestAdd)
-            send(ScanMsg.ConfirmAdd)
-
-            expectEffect(ScanNavigationEffect.CloseWithResult(lexemeCount = 1, wordCount = 1))
-            expectScreen(AppScreen.ScanCandidatesAdded(lexemeCount = 1, wordCount = 1))
         }
 
         coVerify(exactly = 1) { stubs.scanUseCase.recognize(PHOTO) }
         coVerify(exactly = 1) { stubs.scanUseCase.releaseImageAccess(PHOTO) }
-        coVerify(exactly = 1) { stubs.scanUseCase.addWords(any()) }
+        coVerify(exactly = 1) { stubs.scanUseCase.lemmasFromTokens(any()) }
     }
 
-    /** Снимок пришёл при закрытом диалоге — после гибели процесса в камере (WFP-22, Д52). */
+    /** Снимок пришёл при закрытом диалоге — после гибели процесса в камере (TFP-22, Д52). */
     @Test
-    fun `WFP-22_1 a photo that comes with the dialog closed still opens the screen`() {
+    fun `TFP-22_1 a photo that comes with the dialog closed still opens the screen`() {
         val stubs = Stubs()
         stubs.photoWithPerro()
 
@@ -345,13 +309,15 @@ class PilotScenarioTest {
             send(WordsMsg.ImagePicked(PHOTO))
 
             expectScreen(AppScreen.ScanCandidates(PHOTO))
-            expectState<ScanCandidatesState> { state -> assertEquals(ScanPhase.WINDOW, state.phase) }
+            expectState<ScanCandidatesState> { state ->
+                assertEquals(ScanPhase.WINDOW, state.phase)
+            }
         }
     }
 
-    /** Закрыть нетронутое окно — назад на вкладку без результата и без записи (AWP-19, AWP-23). */
+    /** Закрыть окно — назад на вкладку сразу, без вопроса: терять нечего (AWP-60). */
     @Test
-    fun `AWP-19_1 closing an untouched window goes back to the tab, nothing is written`() {
+    fun `AWP-60_1 closing the window goes back to the tab at once`() {
         val stubs = Stubs()
         stubs.photoWithPerro()
 
@@ -359,15 +325,15 @@ class PilotScenarioTest {
             launch(AppScreen.Main)
             send(WordsMsg.ImagePicked(PHOTO))
             expectScreen(AppScreen.ScanCandidates(PHOTO))
+            expectState<ScanCandidatesState> { state ->
+                assertEquals(ScanPhase.WINDOW, state.phase)
+            }
 
             send(ScanMsg.RequestClose)
 
             expectEffect(NavigationEffect.Back)
             expectScreen(AppScreen.Main)
-            assertFalse(screens.any { it is AppScreen.ScanCandidatesAdded })
         }
-
-        coVerify(exactly = 0) { stubs.scanUseCase.addWords(any()) }
     }
 
     private companion object {

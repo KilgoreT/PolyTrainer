@@ -2,19 +2,21 @@ package me.apomazkin.scancandidates.deps
 
 import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.FormOutcome
-import me.apomazkin.lexeme.LookupOutcome
+import me.apomazkin.lexeme.LemmaContext
+import me.apomazkin.lexeme.LemmasOutcome
+import me.apomazkin.lexeme.LexemesOutcome
 import me.apomazkin.lexeme.LookupToken
 import me.apomazkin.lexeme.RecognitionOutcome
 import me.apomazkin.lexeme.WordsBatch
 
 /**
- * Порт экрана лексем-кандидатов со снимка. Говорит доменом: исход каждого
- * вызова — типом на случай. Непредвиденный сбой — исключение, в сообщение его
- * превращает `onFail` эффекта. Реализует порт `app`.
+ * Порт экрана снимка. Говорит доменом: исход каждого вызова — типом на случай.
+ * Непредвиденный сбой — исключение, в сообщение его превращает `onFail`
+ * эффекта. Реализует порт `app`.
  */
 interface ScanCandidatesUseCase {
     /**
-     * Распознавание текста по файлу снимка (WFP Ш4–Ш5): токены как распознаны, с
+     * Распознавание текста по файлу снимка (TFP Ш4–Ш5): токены как распознаны, с
      * повторами, пустые прочь, потолок 2000. Текст есть или пусто — исходом.
      */
     suspend fun recognize(uri: String): RecognitionOutcome
@@ -26,16 +28,17 @@ interface ScanCandidatesUseCase {
     suspend fun releaseImageAccess(uri: String)
 
     /**
-     * Запрос слов на сервер (WFP Ш6): токены, языки и дерево компонентов
-     * текущего словаря (WFT-78). Исход: слова с рекомендациями, нет слов, отказ
-     * с причиной, сервер не ответил.
+     * Запрос лемм текста на сервер (TFP Ш6, LFT-02): токены и языки текущего
+     * словаря, без дерева компонентов. Исход: леммы текста, нет слов, отказ с
+     * причиной, сервер не ответил.
      */
-    suspend fun lookupWords(tokens: List<LookupToken>): LookupOutcome
+    suspend fun lemmasFromTokens(tokens: List<LookupToken>): LemmasOutcome
 
     /**
-     * Форма словаря снимка (AWP Ш1): включённые живые компоненты всех
-     * зависимостей, опции всех «Выборов», группы, леммы словаря с текстами лемм
-     * ответа [lemmaTexts].
+     * Форма словаря снимка (AWP Ш4): включённые живые компоненты всех
+     * зависимостей, опции всех «Выборов», группы, леммы словаря с текстами слов
+     * списков [lemmaTexts] — у леммы дата добавления и сохранённые лексемы
+     * (AWP-18, AWP-46).
      */
     suspend fun loadForm(
         dictionaryId: Long,
@@ -43,9 +46,22 @@ interface ScanCandidatesUseCase {
     ): FormOutcome
 
     /**
-     * Запись пакета одной транзакцией (AWP Ш4, AWP-20): записано с id или отказ
-     * проверки до первой вставки. Сбой после первой вставки — исключение,
-     * транзакция откатывается.
+     * Значения слова списков (AWP Ш6, Ш8, LFL-103): лемма слова с текстом и
+     * переводом снимка [context], языки и дерево компонентов словаря снимка
+     * [dictionaryId] на сервер одним запросом. Исход: слово с леммой, не
+     * найдено, значений нет, отказ с причиной, сервер не ответил, слово
+     * «ошибка». Лемма ответа не та, что просили, — с леммами словаря с её
+     * текстом (AWP-43.7).
      */
-    suspend fun addWords(batch: WordsBatch): AddWordsBatchOutcome
+    suspend fun lexemesFromLemma(
+        dictionaryId: Long,
+        lemma: String,
+        context: LemmaContext,
+    ): LexemesOutcome
+
+    /**
+     * Запись пакета одного слова одной транзакцией (AWP Ш9, AWP-20): записано
+     * или отказ до первой вставки с причиной; сбой после — исключение.
+     */
+    suspend fun addWord(batch: WordsBatch): AddWordsBatchOutcome
 }

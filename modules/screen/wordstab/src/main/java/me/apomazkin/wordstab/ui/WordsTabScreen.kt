@@ -85,7 +85,7 @@ class WordsTabHandle internal constructor(
         viewModel.accept(Msg.OpenAddWordDialog())
     }
 
-    /** Кнопка-камера над «+» — лексемы-кандидаты со снимка (WFP-04). */
+    /** Кнопка-камера над «+» — лексемы-кандидаты со снимка (TFP-04). */
     @DrawableRes
     val photoFabIconRes: Int = R.drawable.ic_photo_camera
 
@@ -94,19 +94,6 @@ class WordsTabHandle internal constructor(
 
     fun onPhotoFabClick() {
         viewModel.accept(Msg.OpenScanDialog)
-    }
-
-    /**
-     * Экран скана закрылся после записи: мост `app` передаёт счёт, вкладка
-     * показывает сообщение «Добавлено N значений в M слов» (AWP-23).
-     */
-    fun onScanCandidatesAdded(lexemeCount: Int, wordCount: Int) {
-        viewModel.accept(
-            Msg.ScanCandidatesAdded(
-                lexemeCount = lexemeCount,
-                wordCount = wordCount,
-            ),
-        )
     }
 
     fun onExitSelectionMode() {
@@ -127,7 +114,7 @@ class WordsTabHandle internal constructor(
             viewModel.accept(UiMsg.LifecycleEvent(it.toMateEvent()))
         })
         // Launcher'ы регистрируются всегда, не под `if`: после гибели процесса в
-        // камере диалог закрыт, а снимок должен дойти (WFP-22).
+        // камере диалог закрыт, а снимок должен дойти (TFP-22).
         val photoPicker = rememberPhotoPicker(
             onPicked = { uri -> viewModel.accept(Msg.ImagePicked(uri = uri.toString())) },
             logger = viewModel.logger,
@@ -152,7 +139,7 @@ class WordsTabHandle internal constructor(
  * [SnackbarHostState].
  *
  * @param isCameraAvailable есть ли приложение камеры; спрашивается при
- * открытии диалога выбора источника (WFP-06.3).
+ * открытии диалога выбора источника (TFP-06.3).
  */
 @Composable
 internal fun WordsTabContent(

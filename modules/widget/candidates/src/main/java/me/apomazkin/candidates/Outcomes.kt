@@ -4,16 +4,16 @@ import androidx.annotation.StringRes
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.FormOutcome
+import me.apomazkin.lexeme.LexemesOutcome
 import me.apomazkin.lexeme.LookupDenyReason
-import me.apomazkin.lexeme.LookupOutcome
 import me.apomazkin.lexeme.WordLookupOutcome
 
 /*
- * IS533/IS536: тексты отказов (WFT-63) и строки исходов для лога — общие
- * для окна снимка и диалога карточки.
+ * IS533/IS536: тексты отказов (WCL-11.2, AWP-61) и строки исходов для лога —
+ * общие для окна снимка и диалога карточки.
  */
 
-/** Текст отказа по причине (WFT-63.1…63.5); ключ не задан — тот же текст, что 401 (WFT-19.1). */
+/** Текст отказа по причине (ACC-26, LIM-110, LFL-106, LFL-30, LFL-99); ключ не задан — тот же текст, что 401 (ACC-19.1). */
 @StringRes
 fun errorResOf(reason: LookupDenyReason): Int = when (reason) {
     LookupDenyReason.NO_ACCESS_KEY -> R.string.photo_words_error_no_access
@@ -24,13 +24,18 @@ fun errorResOf(reason: LookupDenyReason): Int = when (reason) {
     LookupDenyReason.LLM_UNAVAILABLE -> R.string.scan_server_unavailable
 }
 
-/** Строка исхода запроса для лога: `dict=… words=… lemmas=… recommendations=…`, `no words`, `denied=…`, `unavailable`. */
-fun LookupOutcome.describe(): String = when (this) {
-    is LookupOutcome.Words ->
-        "dict=$dictionaryId words=${words.size} lemmas=${words.sumOf { it.lemmas.size }} recommendations=${recommendations.size}"
-    LookupOutcome.NoWords -> "no words"
-    is LookupOutcome.Denied -> "denied=$reason"
-    LookupOutcome.Unavailable -> "unavailable"
+/**
+ * Строка исхода запроса по лемме для лога: `found lemmas=… recommendations=…
+ * existing=…`, `not found`, `no lexemes`, `denied=…`, `unavailable`, `word failed`.
+ */
+fun LexemesOutcome.describe(): String = when (this) {
+    is LexemesOutcome.Found ->
+        "found lemmas=${word.lemmas.size} recommendations=${recommendations.size} existing=${existing.size}"
+    LexemesOutcome.NotFound -> "not found"
+    LexemesOutcome.NoLexemes -> "no lexemes"
+    is LexemesOutcome.Denied -> "denied=$reason"
+    LexemesOutcome.Unavailable -> "unavailable"
+    LexemesOutcome.WordFailed -> "word failed"
 }
 
 /** Строка исхода запроса по слову карточки для лога. */
