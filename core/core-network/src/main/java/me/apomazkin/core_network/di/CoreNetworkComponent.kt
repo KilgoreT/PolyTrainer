@@ -29,7 +29,7 @@ interface CoreNetworkComponent : CoreNetworkProvider {
         /**
          * [baseUrl] — адрес сервера слов (`BuildConfig.LEXEME_BASE_URL`),
          * [accessKey] — ключ доступа (`BuildConfig.LEXEME_ACCESS_KEY`, пустой —
-         * запросы не уходят, WFT-19). Только HTTPS (WFT-21).
+         * запросы не уходят, ACC-19). Только HTTPS (LFL-21).
          */
         fun init(
                 baseUrl: String,

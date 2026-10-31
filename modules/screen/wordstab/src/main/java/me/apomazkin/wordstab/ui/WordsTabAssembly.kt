@@ -11,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.mate.ErrorLoggingObserver
 import me.apomazkin.wordstab.LogTags
+import me.apomazkin.wordstab.deps.ScanLauncher
+import me.apomazkin.wordstab.deps.ScanLauncherHolder
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.DatasourceEffectHandler
@@ -33,6 +35,9 @@ import me.apomazkin.wordstab.logic.subscriptions
  *   viewModelScope.
  * @param io диспатчер блокирующих операций; прод — Dispatchers.IO,
  *   в тестах можно подставить тестовый.
+ * @param scanLauncher запуск камеры и галереи; прод привязывает к нему
+ *   [me.apomazkin.wordstab.ui.photo.PhotoPicker] из композиции, харнес не
+ *   привязывает ничего.
  */
 object WordsTabAssembly {
 
@@ -43,6 +48,7 @@ object WordsTabAssembly {
         pagingScope: CoroutineScope,
         io: CoroutineDispatcher = Dispatchers.IO,
         coroutineScope: CoroutineScope,
+        scanLauncher: ScanLauncher = ScanLauncherHolder(),
         observers: List<MateObserver<Any?, Any?, Effect>> = emptyList(),
     ): Mate<WordsTabState, Msg, Effect> = Mate(
         initState = WordsTabState(),
@@ -56,16 +62,15 @@ object WordsTabAssembly {
                 logger = logger,
                 io = io,
             ),
-            UiEffectHandler(),
+            UiEffectHandler(launcher = scanLauncher),
             navigationHandler,
         ),
         subscriptions = { it.subscriptions() },
         subscriptionHandlers = listOf(
             WordsTabSubHandler(useCase = useCase),
         ),
-        // IS527: стектрейсы упавших эффектов (RecognizeWords — RecoverableEffect)
-        // в лог, как у quiztab/groupstab; без наблюдателя причина провала
-        // видна только как recovery-Msg.
+        // Стектрейсы упавших эффектов и подписок — в лог, как у quiztab/groupstab;
+        // без наблюдателя причина провала видна только как recovery-Msg.
         observers = observers + ErrorLoggingObserver(logger, LogTags.VOCAB),
     )
 }

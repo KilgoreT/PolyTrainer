@@ -12,11 +12,14 @@ import me.apomazkin.groupstab.deps.GroupsTabUseCase
 import me.apomazkin.groupstab.ui.GroupsTabAssembly
 import me.apomazkin.logger.LexemeLogger
 import me.apomazkin.polytrainer.navigation.AppScreen
+import me.apomazkin.scancandidates.ScanCandidatesAssembly
+import me.apomazkin.scancandidates.deps.ScanCandidatesUseCase
 import me.apomazkin.wordcard.WordCardAssembly
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.ui.WordsTabAssembly
 import me.apomazkin.groupstab.logic.Msg as GroupsMsg
+import me.apomazkin.scancandidates.mate.Msg as ScanMsg
 import me.apomazkin.wordcard.mate.Msg as WordCardMsg
 import me.apomazkin.wordstab.logic.Msg as WordsMsg
 
@@ -24,7 +27,8 @@ import me.apomazkin.wordstab.logic.Msg as WordsMsg
  * Registry пилотных сценариев: те же Assembly, что зовёт прод, — со
  * стабами use case'ов вместо базы. Узел Main — композиция раннеров
  * words + groups (как на живом экране: обе вкладки живут
- * одновременно и слушают словарь сами), карточка — плоский узел.
+ * одновременно и слушают словарь сами), карточка и экран снимка —
+ * плоские узлы.
  */
 /** Тестовый диспатчер сценария — блокирующие операции идут в виртуальном времени. */
 private val HarnessContext.io: CoroutineDispatcher
@@ -34,6 +38,7 @@ fun pilotRegistry(
     wordsUseCase: WordsTabUseCase,
     groupsUseCase: GroupsTabUseCase,
     wordCardUseCase: WordCardUseCase,
+    scanUseCase: ScanCandidatesUseCase,
 ): ScreenRegistry {
     val logger = mockk<LexemeLogger>(relaxed = true)
     return screenRegistry {
@@ -83,6 +88,26 @@ fun pilotRegistry(
                             wordId = screen.wordId,
                             uiHost = mockk(relaxed = true),
                             coroutineScope = context.scope,
+                            observers = listOf(context.observer),
+                        ),
+                    ),
+                ),
+            )
+        }
+        on<AppScreen.ScanCandidates> { screen, context ->
+            ScreenNode(
+                screen = screen,
+                runners = listOf(
+                    RunnerSlot(
+                        name = "scan",
+                        messageFamily = ScanMsg::class,
+                        holder = ScanCandidatesAssembly.create(
+                            useCase = scanUseCase,
+                            logger = logger,
+                            navigationHandler = context.navigationHandler,
+                            uri = screen.uri,
+                            coroutineScope = context.scope,
+                            io = context.io,
                             observers = listOf(context.observer),
                         ),
                     ),

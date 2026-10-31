@@ -1,19 +1,9 @@
 package me.apomazkin.wordstab.logic
 
-import me.apomazkin.candidates.PhotoAddFailure
-import me.apomazkin.candidates.PhotoCardTarget
-import me.apomazkin.candidates.PhotoDataKind
-import me.apomazkin.candidates.PhotoFormOutcome
-import me.apomazkin.candidates.PhotoLookupOutcome
-import me.apomazkin.candidates.PhotoOwnGroup
-import me.apomazkin.candidates.PhotoSheet
-import me.apomazkin.candidates.PhotoTarget
-import me.apomazkin.candidates.PhotoTextField
 import androidx.annotation.StringRes
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
-import me.apomazkin.textrecognition.RecognizedWord
 import me.apomazkin.wordrow.entity.TermUiItem
 import me.apomazkin.wordstab.entity.WordInfo
 
@@ -118,138 +108,33 @@ sealed interface Msg {
      */
     data class ToggleSelection(val targetWord: WordInfo) : Msg
 
-    /** IS527: кнопка-камера — открыть выбор источника фото. */
-    data object OpenPhotoSourceChooser : Msg
+    /** UI: кнопка-камера над «+» открывает диалог выбора источника снимка. Без данных. */
+    data object OpenScanDialog : Msg
+
+    /** UI: «Камера» в диалоге выбора источника. Без данных. */
+    data object ChooseCamera : Msg
+
+    /** UI: «Галерея» в диалоге выбора источника. Без данных. */
+    data object ChooseGallery : Msg
 
     /**
-     * IS527: камера или галерея вернули снимок. Uri строкой — Android-классы
-     * в unit-тестах модуля заглушены; в Uri превращает исполнитель эффекта.
+     * PhotoPicker: камера или галерея вернули снимок. Принимается и при закрытом
+     * диалоге: система могла убить процесс, пока камера или галерея были открыты
+     * (TFP-22).
+     * @param uri файл снимка строкой — Android-классы в unit-тестах модуля заглушены;
+     * у галереи доступ к файлу уже закреплён.
      */
-    data class PhotoPicked(val uri: String) : Msg
-
-    /** IS527: камера или галерея закрыты без снимка — назад к выбору источника. */
-    data object PhotoPickCancelled : Msg
+    data class ImagePicked(val uri: String) : Msg
 
     /**
-     * IS529: распознавание завершено, токены подготовлены к отправке (Ш5:
-     * без пустых и дублей, не больше 2000). Пустой список — «слов не
-     * найдено» без запроса (WFT-60.1). [requestId] — чей это результат.
+     * UiEffectHandler: камера не запустилась — приложения камеры нет, его
+     * отключили или файл под снимок не создался (TFP-07).
+     * @param errorRes текст причины.
      */
-    data class TokensReady(
-            val tokens: List<RecognizedWord>,
-            val requestId: Long,
-    ) : Msg
+    data class CameraUnavailable(@StringRes val errorRes: Int) : Msg
 
-    /**
-     * IS529: сервер слов ответил или не ответил (Ш10, В3, В5). Чужой
-     * [requestId] — поздний ответ отменённого запуска, отбрасывается (WFT-62).
-     */
-    data class WordsLookedUp(
-            val outcome: PhotoLookupOutcome,
-            val requestId: Long,
-    ) : Msg
-
-    /** IS527: распознавание упало или камера не запустилась — текст ошибки ресурсом. */
-    data class RecognitionFailed(
-            @StringRes val errorRes: Int,
-            val requestId: Long,
-    ) : Msg
-
-    /** IS527: закрыть диалог слов с фото на любом шаге без вопросов (кнопка «отмена», ошибка). */
-    data object ClosePhotoWords : Msg
-
-    // ===== IS532: окно добавления =====
-
-    /**
-     * Ш1: форма словаря снимка загружена или нет (AWP-24). Чужой
-     * [requestId] отбрасывается (AWP-24.2).
-     */
-    data class PhotoFormLoaded(
-            val outcome: PhotoFormOutcome,
-            val requestId: Long,
-    ) : Msg
-
-    /** Ш2: развернуть или свернуть карточку леммы. */
-    data class TogglePhotoCard(val lemma: String) : Msg
-
-    /** Ш3: удалить карточку — лемму со всем, что в ней (AWP-15). */
-    data class DeletePhotoCard(val lemma: String) : Msg
-
-    /** Ш3: удалить лексему-кандидата с её примерами (AWP-15.1). */
-    data class DeletePhotoLexeme(val lemma: String, val key: String) : Msg
-
-    /** Ш3: удалить один пример лексемы-кандидата (AWP-15.2). */
-    data class DeletePhotoExample(val lemma: String, val key: String, val index: Int) : Msg
-
-    /** Ш3: открыть лист выбора или правки текста. */
-    data class OpenPhotoSheet(val sheet: PhotoSheet) : Msg
-
-    /** Ш3: закрыть лист без выбора. */
-    data object ClosePhotoSheet : Msg
-
-    /** Ш3: ввод в листе правки текста — полный текст поля. */
-    data class UpdatePhotoDraft(val text: String) : Msg
-
-    /** Ш3: принять правку текста из листа (AWP-16). */
-    data object SubmitPhotoText : Msg
-
-    /** Ш3: вернуть тексту лексемы-кандидата текст источника (AWP-16.6). */
-    data class ResetPhotoText(val lemma: String, val key: String, val field: PhotoTextField) : Msg
-
-    /** Ш3: часть речи лексемы-кандидата — опция или null «без части речи» (AWP-17). */
-    data class SetPhotoPartOfSpeech(val lemma: String, val key: String, val optionId: Long?) : Msg
-
-    /** Ш3: куда класть лексемы карточки (AWP-18). */
-    data class SetPhotoCardTarget(val lemma: String, val target: PhotoCardTarget) : Msg
-
-    /** Ш3: своя группа карточки (AWP-08). */
-    data class SetPhotoCardGroup(val lemma: String, val group: PhotoOwnGroup) : Msg
-
-    /** Ш3: общая группа — группа словаря или null «Все» (AWP-08). */
-    data class SetPhotoCommonGroup(val groupId: Long?) : Msg
-
-    /** Ш3: цель вида данных — компонент или «не добавлять» (AWP-09). */
-    data class SetPhotoMapping(val kind: PhotoDataKind, val target: PhotoTarget) : Msg
-
-    /** Ш2: раскрыть или свернуть блок соответствий. */
-    data object TogglePhotoMapping : Msg
-
-    /** Ш2: раскрыть или свернуть блок «не добавить». */
-    data object TogglePhotoNotAdded : Msg
-
-    /** Ш4: нажата «добавить» — вопрос «Добавить N значений в M слов?» (AWP-13). */
-    data object RequestPhotoAdd : Msg
-
-    /** Ш4: «да» в вопросе — запись (AWP-20). */
-    data object ConfirmPhotoAdd : Msg
-
-    /** Ш4: «отмена» в вопросе — окно как было (AWP-13.7). */
-    data object CancelPhotoAdd : Msg
-
-    /** В3: «повторить» — запись заново без вопроса (AWP-26). */
-    data object RetryPhotoAdd : Msg
-
-    /** Ш4 → Ш5: записано; счёт — для сообщения (AWP-23). Чужой [requestId] отбрасывается. */
-    data class PhotoAddFinished(
-            val lexemeCount: Int,
-            val wordCount: Int,
-            val requestId: Long,
-    ) : Msg
-
-    /** Ш4 → В3: отказ проверки с причиной или сбой записи (AWP-21). Чужой [requestId] отбрасывается. */
-    data class PhotoAddRejected(
-            val failure: PhotoAddFailure,
-            val requestId: Long,
-    ) : Msg
-
-    /** Ш2: крестик или системная «назад» — закрыть сразу или спросить (AWP-19). */
-    data object RequestClosePhotoWords : Msg
-
-    /** В2: «закрыть» в вопросе (AWP-25). */
-    data object ConfirmClosePhotoWords : Msg
-
-    /** В2: «остаться» в вопросе (AWP-25.2). */
-    data object StayInPhotoWords : Msg
+    /** UI: «Отмена» или «Закрыть» в диалоге выбора источника. Без данных. */
+    data object CloseScanDialog : Msg
 
     /**
      * Message indicating no operation is needed after an effect.

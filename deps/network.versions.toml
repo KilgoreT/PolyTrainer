@@ -11,6 +11,6 @@ serializationJsonVersion = "1.11.0"
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofitVersion" }
 retrofitConverterSerialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofitVersion" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttpVersion" }
-# Тесты impl: поддельный сервер (WFT-20…23, 63) — новый API mockwebserver3.
+# Тесты impl: поддельный сервер (LFL-20…23, 63) — новый API mockwebserver3.
 okhttpMockWebServer = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttpVersion" }
 serializationJson = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serializationJsonVersion" }

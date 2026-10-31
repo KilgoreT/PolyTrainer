@@ -33,6 +33,9 @@ sealed interface AppScreen : Screen {
     /** Карточка слова. */
     data class WordCard(val wordId: Long) : AppScreen
 
+    /** Экран снимка со списками словарных форм; [uri] — файл снимка строкой. */
+    data class ScanCandidates(val uri: String) : AppScreen
+
     /** Компоненты конкретного словаря. */
     data class PerDictionaryComponents(val dictionaryId: Long) : AppScreen
 

@@ -157,6 +157,11 @@ class AppNavigationExecutor @Inject constructor(
             is AppScreen.WordCard ->
                 tabs.navigateGated(MainRoutes.wordCard(screen.wordId)) { launchSingleTop = true }
 
+            is AppScreen.ScanCandidates ->
+                tabs.navigateGated(MainRoutes.scanCandidates(screen.uri)) {
+                    launchSingleTop = true
+                }
+
             is AppScreen.PerDictionaryComponents ->
                 tabs.navigateGated(MainRoutes.perDictionaryComponents(screen.dictionaryId)) {
                     launchSingleTop = true

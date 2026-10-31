@@ -1,0 +1,153 @@
+digraph C4 {
+  // remincross=false: иначе Graphviz внутри рамок переставляет блоки
+  // ради меньшего числа пересечений и ломает порядок по возрастанию шагов.
+  graph [rankdir=TB, newrank=true, remincross=false, splines=ortho,
+         nodesep=0.16, ranksep=0.28, pad=0.06,
+         fontname="Helvetica", fontsize=11, labeljust=c];
+  node  [shape=box, style="filled", fillcolor="white", color="#333333", penwidth=1.2,
+         fontname="Helvetica", fontsize=10.5, margin="0.08,0.04"];
+  edge  [arrowsize=0.7, color="#333333"];
+
+  // Подпись стрелки — узел в разрыве линии. Номер — шаг флоу LFL Ш1–Ш8;
+  // ACC Ш2 и LIM Ш1–Ш2 — сервисные спеки; Ш3.1 — вызов порта внутри шага.
+  // Отбор и сопоставление, Ш5–Ш7, идут одним вызовом нейронки.
+
+  subgraph cluster_L1 {
+    label="Ручка HTTP"; style="filled"; fillcolor="#FDF4FF"; color="#E879F9";
+    H [label="Ручка lexemes/from-lemma\n[ручка HTTP]\nлемма с контекстом →\nслово или отказ",
+       style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  }
+
+  RESP [style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0", margin="0.12,0.06",
+        label=<<table border="0" cellpadding="0" cellspacing="2">
+          <tr><td align="left"><b>Ш8</b> отвечает — ответы и ошибки [контракт]</td></tr>
+          <tr><td align="left">200: одно слово found / not_found / error,</td></tr>
+          <tr><td align="left">  «в тексте» — новое</td></tr>
+          <tr><td align="left">401 unauthorized</td></tr>
+          <tr><td align="left">413 request_too_large: контекст больше 4000 слов</td></tr>
+          <tr><td align="left">429 rate_limited — лимит нейронки</td></tr>
+          <tr><td align="left">400 unsupported_language — в учёт</td></tr>
+          <tr><td align="left">400 invalid_request</td></tr>
+          <tr><td align="left">503 llm_unavailable</td></tr>
+        </table>>];
+
+  subgraph cluster_L2 {
+    label="Логика (сценарий и сервисы)"; style="filled"; fillcolor="#F0FDFA"; color="#2DD4BF";
+    SC [label="Сценарий лексемы леммы\n[сценарий]\nведёт лемму по шагам,\nсобирает слово",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    SA [label="Auth\n[сервис]\nузнаёт аккаунт\nпо ключу — ACC"];
+    SQ [label="Quota\n[сервис]\nпрокладка: начать\nи закончить работу — LIM",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    SL [label="Языки\n[сервис]\nязык есть в базе слов,\nчужой — в учёт",
+        fillcolor="#fff1b8", color="#b58900", penwidth=2];
+    S2 [label="Нормализация\n[сервис]\nснято: лемма приходит\nсловарной формой",
+        fillcolor="#fde2e2", color="#c53030", penwidth=2];
+    S3 [label="Леммы\n[сервис]\nлемма в базе: с текстом\n— одна, без — все",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    S4 [label="Значения\n[сервис]\nвсе значения леммы\nиз базы слов"];
+    S5 [label="Отбор\n[сервис]\nодин вызов нейронки:\nвыбрать и сопоставить",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    S6 [label="Проверка ответа\n[сервис]\nчужие ключи и опции\nвон, пар больше нет",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+
+    node [shape=box, style="filled", fillcolor="#e8e8e8", color="#e8e8e8", penwidth=0,
+          fontsize=10, margin="0.04,0.02", width=0, height=0];
+    e2 [label=<<b>Ш2</b> размер, язык, работа>];
+    e3 [label=<<b>Ш3</b> лемма>];
+    e4 [label=<<b>Ш4</b> значения>];
+    e5 [label=<<b>Ш5–7</b> отбор>];
+    e7 [label=<<b>Ш7</b> проверка>];
+
+    { rank=same; SA -> SQ -> SL -> S2 [style=invis, weight=100]; }
+    { rank=same; S3 -> S4 [style=invis, weight=100]; }
+    { rank=same; S5 -> S6 [style=invis, weight=100]; }
+    { rank=same; e3 -> e4 [style=invis]; }
+    { rank=same; e5 -> e7 [style=invis]; }
+  }
+
+  subgraph cluster_L3 {
+    label="Порты (интерфейсы)"; style="filled"; fillcolor="#FFF7ED"; color="#FB923C";
+    PS [label="Аккаунты\n[порт]\nаккаунт по ключу", style="rounded,filled"];
+    PU [label="Расход\n[порт]\nтокены модели:\nсколько, записать",
+        style="rounded,filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    PL [label="Учёт языков\n[порт]\nчужой язык:\nзаписать, показать",
+        style="rounded,filled", fillcolor="#fff1b8", color="#b58900", penwidth=2];
+    P2 [label="База слов\n[порт]\nзаписи слов", style="rounded,filled"];
+    P4 [label="Кеш отбора\n[порт]\nотбор без контекста", style="rounded,filled"];
+    P3 [label="Клиент нейронки\n[порт]\nвызов отбора",
+        style="rounded,filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    { rank=same; PS -> PU -> PL -> P2 -> P4 -> P3 [style=invis]; }
+  }
+
+  subgraph cluster_L4 {
+    label="Адаптеры"; style="filled"; fillcolor="#ECFEFF"; color="#22D3EE";
+    A1 [label="Postgres\n[хранилище]\nаккаунты, ключи, расход,\nучёт языков — новое", shape=cylinder,
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    A2 [label="База слов bbolt\n[хранилище]\nзаписи из выгрузок", shape=cylinder,
+        fillcolor="#f3f3f3", color="#888888"];
+    A4 [label="Память процесса\n[хранилище]\nкеш до рестарта", shape=cylinder,
+        fillcolor="#f3f3f3", color="#888888"];
+    A3 [label="HTTP-клиент нейронки\n[адаптер]\nодно слово в вызове,\nбез перевода, лог",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    { rank=same; A1 -> A2 -> A4 -> A3 [style=invis]; }
+  }
+
+  subgraph cluster_L5 {
+    label="Снаружи"; style="filled"; fillcolor="#F0FDF4"; color="#4ADE80";
+    X1 [label="Провайдер нейронки\n[внешняя система]", fillcolor="#f3f3f3", color="#888888"];
+  }
+
+  node [shape=box, style="filled", fillcolor="#e8e8e8", color="#e8e8e8", penwidth=0,
+        fontsize=10, margin="0.04,0.02", width=0, height=0];
+  e1 [label=<<b>Ш1</b> запрос>];
+  ek [label=<<b>ACC Ш2</b> ключ>];
+  e21 [label=<<b>Ш2.1</b> аккаунт>];
+  e22 [label=<<b>LIM Ш2</b> расход>];
+  e23 [label=<<b>Ш2.2</b> учёт>];
+  e41 [label=<<b>Ш3.1</b> записи>];
+  e51 [label=<<b>Ш4.1</b> записи>];
+  e61 [label=<<b>Ш6.1</b> кеш>];
+  e62 [label=<<b>Ш5.1</b> вызов>];
+  r0 [label="реализован в"];
+  r1 [label="реализован в"];
+  r5 [label="реализован в"];
+  r2 [label="реализован в"];
+  r4 [label="реализован в"];
+  r3 [label="реализован в"];
+  { rank=same; e21 -> e22 -> e23 -> e41 -> e51 -> e61 -> e62 [style=invis]; }
+  { rank=same; r0 -> r1 -> r5 -> r2 -> r4 -> r3 [style=invis]; }
+  rx [label="HTTPS"];
+
+  // Сноска с ответами — рангом ниже ручки, слева от подписей стрелок.
+  { rank=same; RESP -> e1 -> ek [style=invis]; }
+  H -> RESP;
+  H -> e1 [arrowhead=none]; e1 -> SC;
+  // Хук ручки зовёт Auth за аккаунтом по ключу до сценария.
+  H -> ek [arrowhead=none]; ek -> SA [minlen=2];
+
+  SC -> e2 [arrowhead=none]; e2 -> SQ; e2 -> SL;
+  SC -> e3 [arrowhead=none, minlen=3]; e3 -> S3;
+  SC -> e4 [arrowhead=none, minlen=3]; e4 -> S4;
+  SC -> e5 [arrowhead=none, minlen=5]; e5 -> S5;
+  SC -> e7 [arrowhead=none, minlen=5]; e7 -> S6;
+  // Ряды логики друг под другом.
+  SQ -> S3 [style=invis, minlen=2];
+  SL -> S4 [style=invis, minlen=2];
+  S3 -> S5 [style=invis, minlen=2];
+  S4 -> S6 [style=invis, minlen=2];
+
+  SA -> e21 [arrowhead=none]; e21 -> PS;
+  SQ -> e22 [arrowhead=none]; e22 -> PU;
+  SL -> e23 [arrowhead=none]; e23 -> PL;
+  S3 -> e41 [arrowhead=none]; e41 -> P2;
+  S4 -> e51 [arrowhead=none]; e51 -> P2;
+  S5 -> e61 [arrowhead=none]; e61 -> P4;
+  S5 -> e62 [arrowhead=none]; e62 -> P3;
+  PS -> r0 [arrowhead=none]; r0 -> A1;
+  PU -> r1 [arrowhead=none]; r1 -> A1;
+  PL -> r5 [arrowhead=none]; r5 -> A1;
+  P2 -> r2 [arrowhead=none]; r2 -> A2;
+  P4 -> r4 [arrowhead=none]; r4 -> A4;
+  P3 -> r3 [arrowhead=none]; r3 -> A3;
+  A3 -> rx [arrowhead=none]; rx -> X1;
+}

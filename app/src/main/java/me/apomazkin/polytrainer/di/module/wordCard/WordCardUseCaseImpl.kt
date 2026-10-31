@@ -2,24 +2,20 @@ package me.apomazkin.polytrainer.di.module.wordCard
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import me.apomazkin.candidates.PhotoFormOutcome
-import me.apomazkin.candidates.PhotoLookupOutcome
-import me.apomazkin.candidates.PhotoMapping
 import me.apomazkin.core_db_api.CoreDbApi
 import me.apomazkin.core_network_api.CoreNetworkApi
 import me.apomazkin.lexeme.AddWordsBatchOutcome
+import me.apomazkin.lexeme.FormOutcome
+import me.apomazkin.lexeme.WordLookupOutcome
 import me.apomazkin.lexeme.WordsBatch
+import me.apomazkin.lexeme.wordLookupOf
 import me.apomazkin.polytrainer.di.module.candidates.CandidatesFormLoader
 import me.apomazkin.polytrainer.di.module.candidates.ServerAccess
-import me.apomazkin.polytrainer.di.module.wordstab.PhotoMappingStore
-import me.apomazkin.polytrainer.mapper.lookupRequestOf
-import me.apomazkin.polytrainer.mapper.toOutcome
-import me.apomazkin.textrecognition.RecognizedWord
+import me.apomazkin.polytrainer.di.module.scancandidates.ComponentTreeLoader
+import me.apomazkin.polytrainer.mapper.lexemesRequestOf
 import kotlinx.coroutines.CancellationException
 import me.apomazkin.core_db_api.entity.TermApiEntity
 import me.apomazkin.flags.CountryProvider
-import me.apomazkin.lexeme.ComponentTemplate
-import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentValueId
@@ -56,32 +52,38 @@ class WordCardUseCaseImpl @Inject constructor(
     private val prefsProvider: PrefsProvider,
     private val logger: LexemeLogger,
     private val countryProvider: CountryProvider,
-    // IS533: значения из словаря — сервер слов, запись пачкой, память соответствий, ключ в сборке.
+    // IS533/IS536: лексемы-кандидаты — сервер слов, дерево компонентов словаря,
+    // форма словаря (общая с экраном снимка), запись пачкой, ключ в сборке.
     private val wordsApi: CoreNetworkApi.WordsApi,
     private val wordsBatchApi: CoreDbApi.WordsBatchApi,
-    private val photoMappingStore: PhotoMappingStore,
+    private val componentTree: ComponentTreeLoader,
+    private val formLoader: CandidatesFormLoader,
     private val serverAccess: ServerAccess,
 ) : WordCardUseCase {
 
-    // IS533: сборка формы — общая с окном снимка.
-    private val formLoader = CandidatesFormLoader(
-        lexemeApi = lexemeApi,
-        groupApi = groupApi,
-        termApi = termApi,
-        wordsBatchApi = wordsBatchApi,
-    )
-
     override suspend fun hasServerAccess(): Boolean = serverAccess.hasKey
 
-    // WCL-03: один токен — текст слова без краёв, языки — словаря слова; null —
-    // слова или словаря уже нет (WCL-01.3). Пустой текст на сервер не уходит (WCL-03.4).
-    override suspend fun lookupWord(wordId: Long, runId: Long): PhotoLookupOutcome? {
-        val term = termApi.getTermById(wordId) ?: return null
-        val dictionary = dictionaryApi.getDictionaryById(term.word.dictionaryId) ?: return null
+    // WCL-18, LFL-104: лемма — текст слова без краёв, в регистре записи, без
+    // контекста, с деревом компонентов словаря слова (LFL-78.5). Слова или
+    // словаря уже нет — «слово удалено» (WCL-01.3); пустой текст на сервер не
+    // уходит и значений не даёт (WCL-18.4). Исход запроса в исход по слову
+    // превращает правило домена (WCL-04.7, WCL-11.7).
+    override suspend fun lookupWord(wordId: Long, runId: Long): WordLookupOutcome {
+        val term = termApi.getTermById(wordId) ?: return WordLookupOutcome.WordMissing
+        val dictionary = dictionaryApi.getDictionaryById(term.word.dictionaryId)
+            ?: return WordLookupOutcome.WordMissing
         val text = term.word.value.trim()
-        if (text.isEmpty()) return PhotoLookupOutcome.Words(dictionaryId = dictionary.id, words = emptyList())
-        val request = lookupRequestOf(dictionary, listOf(RecognizedWord(text = text, confidence = 1f, language = null)))
-        return wordsApi.lookup(request, runId).toOutcome(dictionaryId = dictionary.id)
+        if (text.isEmpty()) return WordLookupOutcome.NotFound
+        val request = lexemesRequestOf(
+            dictionary,
+            lemma = text,
+            context = null,
+            components = componentTree.treeOf(dictionary.id),
+        )
+        val outcome = wordsApi
+            .lexemesFromLemma(request, runId)
+            .toDomain()
+        return wordLookupOf(outcome)
     }
 
     // WCL-06: форма словаря слова с лексемами только этого слова; словаря нет →
@@ -89,27 +91,23 @@ class WordCardUseCaseImpl @Inject constructor(
     override suspend fun loadCandidatesForm(
         wordId: Long,
         lemmaTexts: List<String>,
-    ): PhotoFormOutcome {
-        val term = termApi.getTermById(wordId) ?: return PhotoFormOutcome.Failed(cause = "word $wordId missing")
-        val dictionary = dictionaryApi.getDictionaryById(term.word.dictionaryId) ?: return PhotoFormOutcome.DictionaryMissing
+    ): FormOutcome {
+        val term = termApi.getTermById(wordId)
+            ?: return FormOutcome.Failed(cause = "word $wordId missing")
+        val dictionary = dictionaryApi.getDictionaryById(term.word.dictionaryId)
+            ?: return FormOutcome.DictionaryMissing
         return try {
-            PhotoFormOutcome.Loaded(
-                form = formLoader.formForWord(dictionary, wordId, lemmaTexts),
-                remembered = photoMappingStore.read(dictionary.id),
-            )
+            FormOutcome.Loaded(formLoader.formForWord(dictionary, wordId, lemmaTexts))
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Exception) {
-            PhotoFormOutcome.Failed(cause = "${failure.javaClass.simpleName}: ${failure.message}")
+            FormOutcome.Failed(cause = "${failure.javaClass.simpleName}: ${failure.message}")
         }
     }
 
     // WCL-10: исключение записи пролетает к эффекту — это «не добавилось» (WCL-13).
-    override suspend fun addCandidates(batch: WordsBatch): AddWordsBatchOutcome = wordsBatchApi.addWordsBatch(batch)
-
-    override suspend fun saveCandidatesMapping(dictionaryId: Long, mapping: PhotoMapping) {
-        photoMappingStore.write(dictionaryId, mapping)
-    }
+    override suspend fun addCandidates(batch: WordsBatch): AddWordsBatchOutcome =
+        wordsBatchApi.addWordsBatch(batch)
 
     override suspend fun getTermById(wordId: Long): Term? =
         termApi.getTermById(wordId)?.toDomainEntity()?.let { term ->

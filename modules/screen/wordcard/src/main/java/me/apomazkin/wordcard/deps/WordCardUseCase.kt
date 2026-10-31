@@ -1,13 +1,17 @@
 package me.apomazkin.wordcard.deps
 
 import kotlinx.coroutines.flow.Flow
+import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.ComponentOption
 import me.apomazkin.lexeme.ComponentType
 import me.apomazkin.lexeme.ComponentTypeId
 import me.apomazkin.lexeme.ComponentTypeRef
 import me.apomazkin.lexeme.ComponentValueId
+import me.apomazkin.lexeme.FormOutcome
 import me.apomazkin.lexeme.Lexeme
 import me.apomazkin.lexeme.TemplateValues
+import me.apomazkin.lexeme.WordLookupOutcome
+import me.apomazkin.lexeme.WordsBatch
 import me.apomazkin.wordcard.entity.Term
 
 /**
@@ -104,38 +108,41 @@ interface WordCardUseCase {
         groupId: Long,
     ): me.apomazkin.group.RemoveMembershipOutcome
 
-    // ===== IS533: значения из словаря (WCL) =====
+    // ===== IS533/IS536: лексемы-кандидаты (WCL) =====
 
-    /** В сборке есть ключ сервера — кнопка «Добавить значения из словаря» видна (WCL-08). */
+    /** В сборке есть ключ сервера — кнопка «Добавить лексемы-кандидаты» видна (WCL-08). */
     suspend fun hasServerAccess(): Boolean
 
     /**
-     * Один токен — текст слова без краёв, языки — из словаря слова (WCL-03).
-     * null — слова или его словаря уже нет (WCL-01.3); отказы и «сервер не
-     * ответил» — исходами, не исключениями.
+     * WCL Ш1: один токен — текст слова без краёв, языки и дерево компонентов
+     * словаря слова (WCL-03). Исход типом на каждый случай:
+     * [WordLookupOutcome.Found] с леммами и рекомендациями;
+     * [WordLookupOutcome.NotFound] — ни одной лексемы-кандидата: `not_found`
+     * или `found` с пустыми леммами (WCL-04.7); [WordLookupOutcome.WordMissing]
+     * — слова или его словаря уже нет (WCL-01.3); [WordLookupOutcome.Denied]
+     * с причиной; [WordLookupOutcome.Unavailable] — сервер не ответил
+     * (WCL-11.3); [WordLookupOutcome.WordFailed] — сервер ответил, но по слову
+     * не справился: слово ответа `error` без лемм (WCL-11.7). Отказы и сбой
+     * сети — исходами, не исключениями.
      */
     suspend fun lookupWord(
         wordId: Long,
         runId: Long,
-    ): me.apomazkin.candidates.PhotoLookupOutcome?
+    ): WordLookupOutcome
 
     /**
-     * Форма словаря слова для диалога: компоненты, опции «Части речи»,
-     * лексемы этого слова (WCL-06) и слова словаря с текстами лемм-форм
-     * [lemmaTexts] — получатели переноса (WCL-15), запомненные соответствия.
+     * Форма словаря слова для диалога: включённые живые компоненты с
+     * зависимостями, опции всех «Выборов», лексемы этого слова (WCL-06) и слова
+     * словаря с текстами лемм-форм [lemmaTexts] — получатели переноса
+     * (WCL-15). Исход типом: форма, словарь удалён, чтение упало.
      */
     suspend fun loadCandidatesForm(
         wordId: Long,
         lemmaTexts: List<String>,
-    ): me.apomazkin.candidates.PhotoFormOutcome
+    ): FormOutcome
 
     /** Запись пачки в слово диалога одной транзакцией (WCL-10); исключение пролетает к эффекту. */
-    suspend fun addCandidates(batch: me.apomazkin.lexeme.WordsBatch): me.apomazkin.lexeme.AddWordsBatchOutcome
-
-    suspend fun saveCandidatesMapping(
-        dictionaryId: Long,
-        mapping: me.apomazkin.candidates.PhotoMapping,
-    )
+    suspend fun addCandidates(batch: WordsBatch): AddWordsBatchOutcome
 }
 
 /**

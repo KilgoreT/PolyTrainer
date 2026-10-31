@@ -1,9 +1,9 @@
 package me.apomazkin.candidates.ui
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,10 +32,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import me.apomazkin.candidates.CandidateAction
 import me.apomazkin.candidates.CandidatesView
+import me.apomazkin.candidates.DictionaryFormUi
+import me.apomazkin.candidates.ExistingLemmaUi
+import me.apomazkin.candidates.LemmaCardUiItem
 import me.apomazkin.candidates.LemmaWordChoice
-import me.apomazkin.candidates.PhotoCard
-import me.apomazkin.candidates.PhotoDictionaryForm
-import me.apomazkin.candidates.PhotoExistingLemma
 import me.apomazkin.candidates.existingOf
 import me.apomazkin.core_resources.R
 import me.apomazkin.theme.LexemeColor
@@ -44,10 +44,8 @@ import me.apomazkin.theme.cardDivider
 import me.apomazkin.theme.formBackground
 import me.apomazkin.theme.formTextSecondary
 import me.apomazkin.theme.formTextTertiary
+import me.apomazkin.ui.btn.CancelButtonWidget
 import me.apomazkin.ui.btn.PrimaryFullButtonWidget
-
-/** Сколько значений слова-получателя показать в подписи переноса, когда одноимённых слов несколько (WCL-15.1). */
-private const val LABEL_VALUES = 3
 
 /**
  * Выбор у раздела леммы-формы (WCL-15): «переименовать слово в «correr»»
@@ -59,10 +57,10 @@ private const val LABEL_VALUES = 3
  */
 @Composable
 private fun LemmaWordChoices(
-    card: PhotoCard,
+    card: LemmaCardUiItem,
     wordText: String,
     view: CandidatesView,
-    form: PhotoDictionaryForm,
+    form: DictionaryFormUi,
     onAction: (CandidateAction) -> Unit,
 ) {
     val rename = LemmaWordChoice.Rename(card.lemma)
@@ -75,7 +73,12 @@ private fun LemmaWordChoices(
     words.forEach { word ->
         val transfer = LemmaWordChoice.Transfer(card.lemma, word.wordId)
         ChoiceRow(
-            text = transferLabel(word = word, lemma = card.lemma, wordText = wordText, distinguish = words.size > 1),
+            text = transferLabel(
+                word = word,
+                lemma = card.lemma,
+                wordText = wordText,
+                distinguish = words.size > 1,
+            ),
             selected = view.lemmaWordChoice == transfer,
             onClick = { onAction(CandidateAction.ToggleLemmaWord(transfer)) },
         )
@@ -83,7 +86,12 @@ private fun LemmaWordChoices(
     val same = view.sameValues[card.lemma] ?: 0
     if (same > 0) {
         Text(
-            text = pluralStringResource(id = R.plurals.candidates_same_values, count = same, card.lemma, same),
+            text = pluralStringResource(
+                id = R.plurals.candidates_same_values,
+                count = same,
+                card.lemma,
+                same,
+            ),
             style = LexemeStyle.BodyS,
             color = formTextSecondary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -91,20 +99,20 @@ private fun LemmaWordChoices(
     }
 }
 
-/** Подпись переноса: одно одноимённое слово — без скобок; несколько — первые значения каждого или «без значений». */
+/**
+ * Подпись переноса: одно одноимённое слово — без скобок; несколько — первые
+ * значения каждого или «без значений».
+ */
 @Composable
 private fun transferLabel(
-    word: PhotoExistingLemma,
+    word: ExistingLemmaUi,
     lemma: String,
     wordText: String,
     distinguish: Boolean,
 ): String {
     if (!distinguish) return stringResource(id = R.string.candidates_transfer_to, lemma, wordText)
-    val values = when {
-        word.coreValues.isEmpty() -> stringResource(id = R.string.candidates_no_values)
-        word.coreValues.size > LABEL_VALUES -> word.coreValues.take(LABEL_VALUES).joinToString(", ") + "…"
-        else -> word.coreValues.joinToString(", ")
-    }
+    val values = valuesPreview(word.coreValues)
+        ?: stringResource(id = R.string.candidates_no_values)
     return stringResource(id = R.string.candidates_transfer_to_values, lemma, values, wordText)
 }
 
@@ -139,20 +147,23 @@ private fun ChoiceRow(
 private const val DIALOG_HEIGHT_FRACTION = 0.92f
 
 /**
- * IS533: диалог «значения из словаря» в карточке слова (WCL-07) — те же
+ * IS533/IS536: диалог лексем-кандидатов в карточке слова (WCL-07) — те же
  * виджеты, что в окне снимка, без групп, «куда класть» и блока «не
- * добавить»: заголовок с текстом слова и крестик, строка «Куда пишем»,
- * разделы лемм (у леммы-формы заголовок «форма слова «…»» с пометкой
- * сервера), атрибуция, панель с кнопкой «Добавить N значений». Пока идёт
- * запрос — признак загрузки; причина вместо разделов — текстом (WCL-11).
- * Нажатие мимо и «назад» — как крестик (WCL-12). Цвета явные, парой из
- * окна снимка.
+ * добавить»: заголовок с текстом слова и крестик, разделы лемм (у
+ * леммы-формы заголовок «форма слова «…»» с пометкой сервера и выбором
+ * «переименовать / перенести»), разделы «Замечания» и «Сопоставление»
+ * (WCL-16, WCL-17), атрибуция, панель с кнопкой «Добавить N значений».
+ * Пока идёт запрос — признак загрузки; причина вместо разделов — текстом
+ * (WCL-11), с «Повторить» рядом с «Закрыть», если [hasRetryButton]
+ * (WCL-11.9). Нажатие мимо и «назад» — как крестик (WCL-12), во время
+ * записи не действуют (WCL-12.4). Цвета явные, парой из окна снимка.
  */
 @Composable
 fun CandidatesDialog(
     wordText: String,
     isLoading: Boolean,
     @StringRes errorRes: Int?,
+    hasRetryButton: Boolean,
     view: CandidatesView,
     onAction: (CandidateAction) -> Unit,
 ) {
@@ -160,8 +171,8 @@ fun CandidatesDialog(
         onDismissRequest = { onAction(CandidateAction.RequestClose) },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            dismissOnClickOutside = true,
-            dismissOnBackPress = true,
+            dismissOnClickOutside = !view.isAdding,
+            dismissOnBackPress = !view.isAdding,
         ),
     ) {
         Surface(
@@ -174,18 +185,28 @@ fun CandidatesDialog(
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    DialogTopBar(wordText = wordText, onClose = { onAction(CandidateAction.RequestClose) })
+                    DialogTopBar(
+                        wordText = wordText,
+                        onClose = { onAction(CandidateAction.RequestClose) },
+                    )
                     when {
                         isLoading -> LoadingBlock()
                         errorRes != null -> ErrorBlock(
                             text = stringResource(id = errorRes, wordText),
+                            hasRetryButton = hasRetryButton,
                             onClose = { onAction(CandidateAction.RequestClose) },
+                            onRetry = { onAction(CandidateAction.RetryLookup) },
                         )
                         else -> {
-                            DialogList(wordText = wordText, view = view, onAction = onAction, modifier = Modifier.weight(1f))
+                            DialogList(
+                                wordText = wordText,
+                                view = view,
+                                onAction = onAction,
+                                modifier = Modifier.weight(1f),
+                            )
                             if (view.cards.isNotEmpty()) {
-                                PhotoBottomPanel(
-                                    state = view,
+                                CandidatesBottomPanel(
+                                    view = view,
                                     onAction = onAction,
                                     countText = lexemesCount(view.summary.lexemeCount),
                                 )
@@ -198,12 +219,15 @@ fun CandidatesDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) {},
                     )
                 }
             }
         }
-        PhotoSheets(state = view, onAction = onAction)
+        CandidatesSheets(view = view, onAction = onAction)
         if (view.isConfirmingClose) {
             CloseConfirmDialog(onAction = onAction)
         }
@@ -258,11 +282,16 @@ private fun LoadingBlock() {
     }
 }
 
-/** Причина вместо разделов (WCL-11): текст и кнопка закрытия. */
+/**
+ * Причина вместо разделов (WCL-11): текст и «Закрыть»; при [hasRetryButton]
+ * рядом «Повторить» — главная кнопка пары (WCL-11.9).
+ */
 @Composable
 private fun ErrorBlock(
     text: String,
+    hasRetryButton: Boolean,
     onClose: () -> Unit,
+    onRetry: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -275,15 +304,33 @@ private fun ErrorBlock(
             color = formTextTertiary,
         )
         Spacer(modifier = Modifier.height(16.dp))
-        PrimaryFullButtonWidget(
-            modifier = Modifier.fillMaxWidth(),
-            titleRes = R.string.photo_words_close,
-            onClick = onClose,
-        )
+        if (hasRetryButton) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                CancelButtonWidget(
+                    modifier = Modifier.weight(1f),
+                    titleRes = R.string.photo_words_close,
+                    onClick = onClose,
+                )
+                PrimaryFullButtonWidget(
+                    modifier = Modifier.weight(1f),
+                    titleRes = R.string.photo_add_retry,
+                    onClick = onRetry,
+                )
+            }
+        } else {
+            PrimaryFullButtonWidget(
+                modifier = Modifier.fillMaxWidth(),
+                titleRes = R.string.photo_words_close,
+                onClick = onClose,
+            )
+        }
     }
 }
 
-/** «Куда пишем», разделы лемм, атрибуция — одним списком. */
+/** Разделы лемм, «Замечания», «Сопоставление», атрибуция — одним списком. */
 @Composable
 private fun DialogList(
     wordText: String,
@@ -293,28 +340,45 @@ private fun DialogList(
 ) {
     val form = view.form ?: return
     LazyColumn(modifier = modifier.fillMaxWidth()) {
-        item(key = "mapping") {
-            if (view.isMappingExpanded) {
-                MappingExpanded(state = view, form = form, onAction = onAction)
-            } else {
-                MappingSummary(state = view, form = form, onAction = onAction)
-            }
-            HorizontalDivider(color = cardDivider)
-        }
         if (view.cards.isEmpty()) {
             item(key = "nothing") {
-                Text(
-                    text = stringResource(id = R.string.photo_add_nothing),
-                    style = LexemeStyle.BodyM,
-                    color = formTextTertiary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-                )
-                HorizontalDivider(color = cardDivider)
+                DividedItem {
+                    Text(
+                        text = stringResource(id = R.string.photo_add_nothing),
+                        style = LexemeStyle.BodyM,
+                        color = formTextTertiary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                    )
+                }
             }
         }
         items(view.cards, key = { it.lemma }) { card ->
-            LemmaSection(card = card, wordText = wordText, view = view, form = form, onAction = onAction)
-            HorizontalDivider(color = cardDivider)
+            LemmaDividedItem {
+                LemmaSection(
+                    card = card,
+                    wordText = wordText,
+                    view = view,
+                    form = form,
+                    onAction = onAction,
+                )
+            }
+        }
+        if (view.remarks.isNotEmpty()) {
+            item(key = "remarks") {
+                DividedItem { RemarksSection(remarks = view.remarks, form = form) }
+            }
+        }
+        if (view.componentMatchLines.isNotEmpty()) {
+            item(key = "component-matches") {
+                DividedItem {
+                    ComponentMatchesSection(
+                        lines = view.componentMatchLines,
+                        form = form,
+                        isExpanded = view.isComponentMatchesExpanded,
+                        onToggle = { onAction(CandidateAction.ToggleComponentMatches) },
+                    )
+                }
+            }
         }
         item(key = "attribution") {
             Attribution()
@@ -326,14 +390,14 @@ private fun DialogList(
  * Раздел леммы (WCL-04): у леммы-формы заголовок «форма слова «run»»,
  * пометка сервера серым и выбор «переименовать / перенести» (WCL-15); у
  * прямой леммы заголовка нет — это слово диалога. Строки лексем-кандидатов
- * и «ещё N» — как в окне.
+ * — как в окне.
  */
 @Composable
 private fun LemmaSection(
-    card: PhotoCard,
+    card: LemmaCardUiItem,
     wordText: String,
     view: CandidatesView,
-    form: PhotoDictionaryForm,
+    form: DictionaryFormUi,
     onAction: (CandidateAction) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -351,19 +415,17 @@ private fun LemmaSection(
                     color = formTextSecondary,
                 )
             }
-            LemmaWordChoices(card = card, wordText = wordText, view = view, form = form, onAction = onAction)
+            LemmaWordChoices(
+                card = card,
+                wordText = wordText,
+                view = view,
+                form = form,
+                onAction = onAction,
+            )
         }
         card.lexemes.forEach { lexeme ->
             HorizontalDivider(color = cardDivider, modifier = Modifier.padding(start = 16.dp))
-            LexemeRow(card = card, lexeme = lexeme, state = view, form = form, onAction = onAction)
-        }
-        if (card.hiddenCount > 0) {
-            Text(
-                text = stringResource(id = R.string.photo_add_more, lexemesCount(card.hiddenCount)),
-                style = LexemeStyle.BodyS,
-                color = formTextSecondary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            LexemeRow(card = card, lexeme = lexeme, form = form, onAction = onAction)
         }
         Spacer(modifier = Modifier.height(4.dp))
     }

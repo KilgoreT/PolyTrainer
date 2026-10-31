@@ -27,6 +27,7 @@ fun NavGraphBuilder.mainRouter(
                 navController = tabsNavController,
                 compositionRoot = CompositionRootImpl(
                         wordCardViewModelFactory = context.appComponent.getWordCardViewModelFactory(),
+                        scanCandidatesViewModelFactory = context.appComponent.getScanCandidatesViewModelFactory(),
                         chatViewModelFactory = context.appComponent.getChatViewModelFactory(),
                         appBarViewModelFactory = context.appComponent.getDictionaryAppBarViewModelFactory(),
                         wordstabViewModelFactory = context.appComponent.getWordsTabViewModelFactory(),

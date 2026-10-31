@@ -12,11 +12,16 @@ import androidx.compose.runtime.Stable
  */
 @Stable
 interface CompositionRoot {
+    /** Вкладки «Слова | Группы». */
     @Composable
     fun VocabularyHostDep()
 
     @Composable
     fun WordCardScreenDep(wordId: Long)
+
+    /** Экран снимка со списками словарных форм; [uri] — файл снимка строкой. */
+    @Composable
+    fun ScanCandidatesScreenDep(uri: String)
 
     @Composable
     fun QuizTabScreenDep()

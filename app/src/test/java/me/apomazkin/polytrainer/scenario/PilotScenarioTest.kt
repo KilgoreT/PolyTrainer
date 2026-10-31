@@ -1,25 +1,45 @@
 package me.apomazkin.polytrainer.scenario
 
+import io.github.kilgoret.mate.NavigationEffect
 import io.github.kilgoret.mate.apptest.runAppScenario
 import io.github.kilgoret.mate.apptest.stubFlow
+import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import me.apomazkin.dictionarypicker.entity.DictUiEntity
 import me.apomazkin.group.GroupNode
 import me.apomazkin.group.MembershipEntry
 import me.apomazkin.groupstab.deps.GroupsTabUseCase
 import me.apomazkin.groupstab.logic.GroupsTabState
+import me.apomazkin.lexeme.BuiltInComponent
+import me.apomazkin.lexeme.ComponentTemplate
+import me.apomazkin.lexeme.DependencyTarget
+import me.apomazkin.lexeme.DictionaryForm
+import me.apomazkin.lexeme.FormComponent
+import me.apomazkin.lexeme.FormOutcome
+import me.apomazkin.lexeme.LemmasOutcome
+import me.apomazkin.lexeme.LookupToken
+import me.apomazkin.lexeme.RecognitionOutcome
+import me.apomazkin.lexeme.TextLemmas
 import me.apomazkin.polytrainer.navigation.AppScreen
 import me.apomazkin.polytrainer.navigation.appNavTable
+import me.apomazkin.scancandidates.deps.ScanCandidatesUseCase
+import me.apomazkin.scancandidates.mate.ScanCandidatesState
+import me.apomazkin.scancandidates.mate.ScanPhase
 import me.apomazkin.wordcard.deps.WordCardUseCase
 import me.apomazkin.wordstab.deps.WordsTabUseCase
 import me.apomazkin.wordstab.logic.DatasourceEffect
 import me.apomazkin.wordstab.logic.WordsTabState
+import me.apomazkin.wordstab.ui.WordsNavigationEffect
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.time.Duration.Companion.seconds
 import me.apomazkin.groupstab.logic.Msg as GroupsMsg
+import me.apomazkin.scancandidates.mate.Msg as ScanMsg
 import me.apomazkin.wordstab.logic.Msg as WordsMsg
 
 /**
@@ -42,8 +62,9 @@ class PilotScenarioTest {
             every { groupTree(any()) } returns groupTree
         }
         val wordCardUseCase = mockk<WordCardUseCase>(relaxed = true)
+        val scanUseCase = mockk<ScanCandidatesUseCase>(relaxed = true)
 
-        val registry = pilotRegistry(wordsUseCase, groupsUseCase, wordCardUseCase)
+        val registry = pilotRegistry(wordsUseCase, groupsUseCase, wordCardUseCase, scanUseCase)
     }
 
     /** Создание слова: Msg → эффект → use case; слово ушло в базу. */
@@ -199,5 +220,124 @@ class PilotScenarioTest {
                 assertEquals(3, state.allNode?.count)
             }
         }
+    }
+
+    // ===== Экран снимка (Д51, IS537) =====
+
+    /** Ответ сервера на снимок с одним словом «perro» (LFT-14). */
+    private val perroLemmas = TextLemmas(
+        text = "perro",
+        translation = "собака",
+        lexical = listOf("perro"),
+        proper = emptyList(),
+        function = emptyList(),
+        unparsed = emptyList(),
+    )
+
+    private val form = DictionaryForm(
+        dictionaryId = 1L,
+        translationLanguage = "ru",
+        components = listOf(
+            FormComponent(
+                id = TRANSLATION,
+                systemKey = BuiltInComponent.TRANSLATION,
+                name = null,
+                template = ComponentTemplate.TEXT,
+                isCore = true,
+                isMultiple = false,
+                position = 0,
+                dependsOn = DependencyTarget.Lexeme,
+            ),
+        ),
+        options = emptyMap(),
+        groups = emptyList(),
+        existingLemmas = emptyList(),
+    )
+
+    /** Снимок с одним словом «perro»: распознан, леммы с сервера, форма собрана. */
+    private fun Stubs.photoWithPerro() {
+        coEvery { scanUseCase.recognize(PHOTO) } returns
+            RecognitionOutcome.Text(listOf(LookupToken("perro", 0.9f, "es")))
+        coEvery { scanUseCase.releaseImageAccess(PHOTO) } just Runs
+        coEvery { scanUseCase.lemmasFromTokens(any()) } returns
+            LemmasOutcome.Found(dictionaryId = 1L, lemmas = perroLemmas)
+        coEvery { scanUseCase.loadForm(1L, listOf("perro")) } returns FormOutcome.Loaded(form)
+    }
+
+    /**
+     * Путь снимка целиком: кнопка вкладки → выбор источника → снимок получен →
+     * вкладка открывает экран по продовой таблице → экран сам распознаёт,
+     * спрашивает сервер и собирает окно со списками.
+     */
+    @Test
+    fun `scenario - from the scan button to the window with the lists`() {
+        val stubs = Stubs()
+        stubs.photoWithPerro()
+
+        runAppScenario(stubs.registry, appNavTable) {
+            launch(AppScreen.Main)
+
+            send(WordsMsg.OpenScanDialog)
+            expectState<WordsTabState> { state -> assertTrue(state.scanDialogState.isOpen) }
+            send(WordsMsg.ChooseGallery)
+            send(WordsMsg.ImagePicked(PHOTO))
+
+            expectEffect(WordsNavigationEffect.OpenScanCandidates(PHOTO))
+            expectScreen(AppScreen.ScanCandidates(PHOTO))
+            expectState<ScanCandidatesState> { state ->
+                assertEquals(ScanPhase.WINDOW, state.phase)
+                assertEquals(listOf("perro"), state.lists.lexical.map { it.text })
+                assertEquals("собака", state.translation)
+                assertEquals(1L, state.dictionaryId)
+            }
+        }
+
+        coVerify(exactly = 1) { stubs.scanUseCase.recognize(PHOTO) }
+        coVerify(exactly = 1) { stubs.scanUseCase.releaseImageAccess(PHOTO) }
+        coVerify(exactly = 1) { stubs.scanUseCase.lemmasFromTokens(any()) }
+    }
+
+    /** Снимок пришёл при закрытом диалоге — после гибели процесса в камере (TFP-22, Д52). */
+    @Test
+    fun `TFP-22_1 a photo that comes with the dialog closed still opens the screen`() {
+        val stubs = Stubs()
+        stubs.photoWithPerro()
+
+        runAppScenario(stubs.registry, appNavTable) {
+            launch(AppScreen.Main)
+
+            send(WordsMsg.ImagePicked(PHOTO))
+
+            expectScreen(AppScreen.ScanCandidates(PHOTO))
+            expectState<ScanCandidatesState> { state ->
+                assertEquals(ScanPhase.WINDOW, state.phase)
+            }
+        }
+    }
+
+    /** Закрыть окно — назад на вкладку сразу, без вопроса: терять нечего (AWP-60). */
+    @Test
+    fun `AWP-60_1 closing the window goes back to the tab at once`() {
+        val stubs = Stubs()
+        stubs.photoWithPerro()
+
+        runAppScenario(stubs.registry, appNavTable) {
+            launch(AppScreen.Main)
+            send(WordsMsg.ImagePicked(PHOTO))
+            expectScreen(AppScreen.ScanCandidates(PHOTO))
+            expectState<ScanCandidatesState> { state ->
+                assertEquals(ScanPhase.WINDOW, state.phase)
+            }
+
+            send(ScanMsg.RequestClose)
+
+            expectEffect(NavigationEffect.Back)
+            expectScreen(AppScreen.Main)
+        }
+    }
+
+    private companion object {
+        const val TRANSLATION = 1L
+        const val PHOTO = "content://media/picker/0/com.android.providers.media.photopicker/media/1000012"
     }
 }

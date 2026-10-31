@@ -1,6 +1,5 @@
 package me.apomazkin.wordstab.logic.ext
 
-import me.apomazkin.candidates.choose
 import me.apomazkin.wordstab.logic.*
 import me.apomazkin.wordstab.entity.WordInfo
 import io.github.kilgoret.mate.Effect

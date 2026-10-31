@@ -8,23 +8,23 @@ import org.junit.Test
 class WordTextKeyTest {
 
     @Test
-    fun `AWP-07_1 case and surrounding spaces do not matter`() {
+    fun `AWP-39_2 case and surrounding spaces do not matter`() {
         assertEquals(wordTextKey("run"), wordTextKey("  Run "))
     }
 
     @Test
-    fun `AWP-07_1 non-ASCII letters are lowered too`() {
+    fun `AWP-39_2 non-ASCII letters are lowered too`() {
         assertEquals("ñandú", wordTextKey("ÑANDÚ"))
         assertEquals("бег", wordTextKey("Бег"))
     }
 
     @Test
-    fun `AWP-07_1 decomposed and composed diacritics give one key`() {
+    fun `decomposed and composed diacritics give one key`() {
         assertEquals(wordTextKey("й"), wordTextKey("й"))
     }
 
     @Test
-    fun `AWP-07_2 different words keep different keys`() {
+    fun `AWP-39_3 different words keep different keys`() {
         assertNotEquals(wordTextKey("run"), wordTextKey("running"))
     }
 }

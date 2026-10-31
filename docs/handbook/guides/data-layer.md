@@ -76,31 +76,26 @@ abstract class Database : RoomDatabase() {
 
 ## Маппинг сущностей
 
-Три слоя сущностей:
-
-```
-Room Entity (WordDb, LexemeDb)        — БД-уровень
-    ↓ .toApiEntity()
-API Entity (WordApiEntity, TermApiEntity) — контракт
-    ↓ .toDomainEntity()
-Domain Entity (Word, Term, Lexeme)    — бизнес-логика
-```
-
-Пример маппинга:
+Четыре слоя снизу вверх: транспорт (Room `*Db`) → зеркало
+(`*ApiEntity`, контракт базы) → домен → UI. Маппинг на границах:
+транспорт ↔ зеркало в `core-db-impl/mapper` через `toApiEntity()` и
+`toDb()`, зеркало → домен в `app/mapper` через `toDomain()`. Слои,
+имена, где мапперы и чего не делать — [Типы и
+маппинг](types-and-mapping.md).
 
 ```kotlin
-// DB → API (в файле entity)
-fun TermDbEntity.toApiEntity() = TermApiEntity(
-    wordApiEntity = word.toApiEntity(),
-    lexemeList = lexemes.map { it.toApiEntity() }
+// core-db-impl/mapper/TermMappers.kt
+fun TermDb.toApiEntity() = TermApiEntity(
+    word = word.toApiEntity(),
+    lexemes = lexemes.map { it.toApiEntity() },
 )
 
-// API → Domain (в UseCase модуле)
-fun TermApiEntity.toDomainEntity() = Term(
-    wordId = WordId(wordApiEntity.id),
-    word = Word(wordApiEntity.value),
-    addedDate = wordApiEntity.addDate,
-    lexemeList = lexemeList.map { it.toDomainEntity() }
+// app/mapper/TermMappers.kt
+fun TermApiEntity.toDomain() = Term(
+    wordId = WordId(word.id),
+    word = Word(word.value),
+    addedDate = word.addDate,
+    lexemes = lexemes.map { it.toDomain() },
 )
 ```
 
@@ -207,7 +202,7 @@ class AppBarFlowHandler(private val prefsProvider: PrefsProvider) : MateFlowHand
 ## Конвенции
 
 1. **Один DAO** на всю базу (исторически, может измениться).
-2. **Три слоя маппинга**: DB → API → Domain. Каждый через extension-функцию.
+2. **Четыре слоя типов**: транспорт → зеркало → домен → UI, маппинг на границах в `mapper/`, extension-функции `toApiEntity()`, `toDomain()`, `toUi()` — [Типы и маппинг](types-and-mapping.md).
 3. **UseCase интерфейс** в feature модуле, реализация в app модуле.
 4. **CoreDbProvider** — service locator для доступа к API из DI.
 5. **Все DB-операции** через `withContext(Dispatchers.IO)`.

@@ -8,13 +8,6 @@ import io.github.kilgoret.mate.begin
 import io.github.kilgoret.mate.then
 import io.github.kilgoret.mate.withEffect
 import me.apomazkin.candidates.CandidateAction
-import me.apomazkin.candidates.PhotoAddFailure
-import me.apomazkin.candidates.PhotoFormError
-import me.apomazkin.candidates.PhotoFormOutcome
-import me.apomazkin.candidates.PhotoSheet
-import me.apomazkin.candidates.lexemeOf
-import me.apomazkin.candidates.originalOf
-import me.apomazkin.candidates.textOf
 import me.apomazkin.core_resources.R
 import me.apomazkin.lexeme.ChoiceValues
 import me.apomazkin.lexeme.ComponentTemplate
@@ -362,64 +355,84 @@ class WordCardReducer(
 
             is Msg.MembershipFailed -> state.clearMembershipInFlight(message.groupId)
 
-            // ===== IS533: значения из словаря (WCL) — цепочки атомов CandidatesAtoms =====
+            // ===== IS533/IS536: лексемы-кандидаты (WCL) — цепочки атомов CandidatesAtoms =====
             is Msg.ServerAccessLoaded -> state.copy(canAddFromDictionary = message.hasAccess) to emptySet()
 
             Msg.OpenCandidates -> state.openCandidates()
 
-            is Msg.CandidatesLookedUp -> when {
-                !state.isCurrentCandidatesRun(message.requestId) -> state.noOp("candidatesLookedUp: foreign run ${message.requestId}")
-                else -> state.applyCandidatesLookup(message.outcome)
+            // Ответы эффектов диалога принимаются, только если они от текущего запуска (WCL-11.4).
+            is Msg.CandidatesFound -> state.onCandidatesRun(message, message.requestId) {
+                startCandidatesForm(message)
             }
 
-            is Msg.CandidatesFormLoaded -> when {
-                !state.isCurrentCandidatesRun(message.requestId) -> state.noOp("candidatesFormLoaded: foreign run ${message.requestId}")
-                else -> when (val outcome = message.outcome) {
-                    is PhotoFormOutcome.Loaded -> state
-                        .begin<WordCardState, Effect>()
-                        .then { it.applyCandidatesForm(form = outcome.form, remembered = outcome.remembered) }
-                        .then { it.refreshCandidatesExists() }
-                        .then { it.refreshCandidatesLemmaExists() }
-                        .then { it.refreshCandidatesCore() }
-                        .then { it.refreshCandidatesSummary() }
-                    PhotoFormOutcome.DictionaryMissing -> state.showCandidatesFormError(PhotoFormError.DICTIONARY_MISSING)
-                    is PhotoFormOutcome.Failed -> state.showCandidatesFormError(PhotoFormError.LOAD_FAILED)
+            is Msg.CandidatesNotFound -> state.onCandidatesRun(message, message.requestId) {
+                showCandidatesError(R.string.candidates_not_found)
+            }
+
+            is Msg.CandidatesLookupFailed -> state.onCandidatesRun(message, message.requestId) {
+                showCandidatesError(message.errorRes)
+            }
+
+            // Сервер не ответил или недоступен: текст и «Повторить» (WCL-11.9).
+            is Msg.CandidatesLookupUnavailable ->
+                state.onCandidatesRun(message, message.requestId) {
+                    showCandidatesRetryableError(message.errorRes)
                 }
+
+            is Msg.CandidatesFormLoaded -> state.onCandidatesRun(message, message.requestId) {
+                begin<WordCardState, Effect>()
+                    .then { it.applyCandidatesForm(message.form) }
+                    .then { it.applyCandidatesRemarks() }
+                    .then { it.applyCandidatesComponentMatchLines() }
+                    .then { it.refreshCandidatesActiveValues() }
+                    .then { it.refreshCandidatesExists() }
+                    .then { it.refreshCandidatesLemmaExists() }
+                    .then { it.refreshCandidatesCore() }
+                    .then { it.refreshCandidatesSummary() }
             }
 
-            // Записано: диалог закрыт, снекбар со счётом (WCL-10); список слова уже перечитан handler'ом.
-            is Msg.CandidatesAdded -> when {
-                !state.isCurrentCandidatesRun(message.requestId) -> state.noOp("candidatesAdded: foreign run ${message.requestId}")
-                else -> state
-                    .hideCandidates()
-                    .withEffect(UiEffect.ShowCountSnackbar(messageRes = R.plurals.candidates_added, count = message.lexemeCount))
+            is Msg.CandidatesFormFailed -> state.onCandidatesRun(message, message.requestId) {
+                showCandidatesError(message.errorRes)
             }
 
-            // Перенесено (WCL-15.3): слова диалога больше нет — диалог прочь и выход в список, как после удаления слова.
-            is Msg.CandidatesTransferred -> when {
-                !state.isCurrentCandidatesRun(message.requestId) -> state.noOp("candidatesTransferred: foreign run ${message.requestId}")
-                else -> {
-                    val (hidden, hiding) = state.hideCandidates()
-                    val (left, leaving) = reduceImpl(hidden, Msg.NavigateBack)
-                    left to (hiding + leaving)
-                }
+            // Записано: диалог закрыт, снекбар со счётом (WCL-10); список слова уже перечитан
+            // handler'ом.
+            is Msg.CandidatesAdded -> state.onCandidatesRun(message, message.requestId) {
+                val count = UiEffect.ShowCountSnackbar(
+                    messageRes = R.plurals.candidates_added,
+                    count = message.lexemeCount,
+                )
+                hideCandidates().withEffect(count)
             }
 
-            // Не добавилось (WCL-13): слово или словарь исчезли — текст без повтора; компонент выключен — умолчание.
-            is Msg.CandidatesRejected -> when {
-                !state.isCurrentCandidatesRun(message.requestId) -> state.noOp("candidatesRejected: foreign run ${message.requestId}")
-                else -> when (val failure = message.failure) {
-                    is PhotoAddFailure.WordMissing -> state.showCandidatesError(R.string.candidates_word_missing)
-                    PhotoAddFailure.DictionaryMissing -> state.showCandidatesError(R.string.photo_add_dictionary_missing)
-                    is PhotoAddFailure.TypeUnavailable -> state
-                        .begin<WordCardState, Effect>()
-                        .then { it.dropCandidatesComponent(failure.typeId) }
-                        .then { it.refreshCandidatesCore() }
-                        .then { it.refreshCandidatesSummary() }
-                        .then { it.showCandidatesAddFailure(failure) }
-                    is PhotoAddFailure.GroupMissing, PhotoAddFailure.NoCoreValue, PhotoAddFailure.Failed ->
-                        state.showCandidatesAddFailure(failure)
-                }
+            // Перенесено (WCL-15.3): слова диалога больше нет — диалог прочь и выход в список,
+            // как после удаления слова.
+            is Msg.CandidatesTransferred -> state.onCandidatesRun(message, message.requestId) {
+                val (hidden, hiding) = hideCandidates()
+                val (left, leaving) = reduceImpl(hidden, Msg.NavigateBack)
+                left to (hiding + leaving)
+            }
+
+            // Не добавилось (WCL-13.2, WCL-15.6): слово или получатель переноса исчезли —
+            // текст без повтора.
+            is Msg.CandidatesWordGone -> state.onCandidatesRun(message, message.requestId) {
+                showCandidatesError(R.string.candidates_word_missing)
+            }
+
+            // Не добавилось (WCL-13.3): компонент выключен — его значения сняты, пометки
+            // заново, «Повторить».
+            is Msg.CandidatesComponentGone -> state.onCandidatesRun(message, message.requestId) {
+                begin<WordCardState, Effect>()
+                    .then { it.dropCandidatesComponent(message.failure.typeId) }
+                    .then { it.refreshCandidatesActiveValues() }
+                    .then { it.refreshCandidatesCore() }
+                    .then { it.refreshCandidatesSummary() }
+                    .then { it.showCandidatesAddFailure(message.failure) }
+            }
+
+            // Не добавилось (WCL-13.1): «Не добавилось» и «Повторить».
+            is Msg.CandidatesAddFailed -> state.onCandidatesRun(message, message.requestId) {
+                showCandidatesAddFailure(message.failure)
             }
 
             is Msg.Candidates -> reduceCandidateAction(state, message.action)
@@ -816,15 +829,32 @@ class WordCardReducer(
                 )
         }
 
-    // ===== IS533: диалог «значения из словаря» (WCL) =====
+    // ===== IS533/IS536: диалог лексем-кандидатов (WCL) =====
 
     /** Диалог открыт и это ответ его запуска (WCL-11.4). */
-    private fun WordCardState.isCurrentCandidatesRun(requestId: Long): Boolean = candidates?.requestId == requestId
+    private fun WordCardState.isCurrentCandidatesRun(requestId: Long): Boolean =
+        candidates?.requestId == requestId
 
     /**
-     * Действия общих виджетов диалога (WCL-09, WCL-10, WCL-12): guard'ы и
-     * цепочки атомов [CandidatesAtoms]; шагов окна снимка, которых в диалоге
-     * нет (группы, «куда класть», вопрос перед записью), — no-op.
+     * Ветка ответа эффекта диалога: ответ чужого запуска отбрасывается no-op'ом
+     * с именем сообщения, ответ текущего — [reduce] (WCL-11.4).
+     */
+    private fun WordCardState.onCandidatesRun(
+        message: Msg,
+        requestId: Long,
+        reduce: WordCardState.() -> ReducerResult<WordCardState, Effect>,
+    ): ReducerResult<WordCardState, Effect> =
+        if (isCurrentCandidatesRun(requestId)) {
+            reduce()
+        } else {
+            noOp("${message::class.simpleName}: foreign run $requestId")
+        }
+
+    /**
+     * Действия общих виджетов диалога (WCL-09, WCL-10, WCL-12): цепочки
+     * атомов [CandidatesAtoms]; страховок от повторного нажатия нет —
+     * кнопки и листы неактивны по флагам стейта; шагов окна снимка, которых
+     * в диалоге нет (группы, «куда класть», вопрос перед записью), — no-op.
      */
     private fun reduceCandidateAction(
         state: WordCardState,
@@ -832,8 +862,6 @@ class WordCardReducer(
     ): ReducerResult<WordCardState, Effect> {
         val dialog = state.candidates ?: return state.noOp("candidates: dialog closed")
         return when (action) {
-            is CandidateAction.ToggleCard -> state.toggleCandidateCard(action.lemma)
-
             is CandidateAction.DeleteCard -> state
                 .begin<WordCardState, Effect>()
                 .then { it.deleteCandidateCard(action.lemma) }
@@ -848,71 +876,30 @@ class WordCardReducer(
                 .then { it.refreshCandidatesLemmaExists() }
                 .then { it.refreshCandidatesSummary() }
 
-            is CandidateAction.DeleteExample -> state
+            // Значения компонента: зависимые, «есть» и ядро пересчитываются, как после правки текста.
+            is CandidateAction.DeleteValue -> state
                 .begin<WordCardState, Effect>()
-                .then { it.deleteCandidateExample(action.lemma, action.key, action.index) }
+                .then { it.deleteCandidateValue(action.ref) }
+                .then { it.refreshCandidatesActiveValues() }
                 .then { it.markCandidatesDirty() }
+                .then { it.refreshCandidatesExists() }
+                .then { it.refreshCandidatesLemmaExists() }
                 .then { it.refreshCandidatesCore() }
                 .then { it.refreshCandidatesSummary() }
 
-            is CandidateAction.OpenSheet -> when {
-                dialog.isAdding -> state.noOp("candidates openSheet: adding")
-                else -> state.openCandidatesSheet(action.sheet)
-            }
+            is CandidateAction.OpenSheet -> state.openCandidatesSheet(action.sheet)
 
             CandidateAction.CloseSheet -> state.closeCandidatesSheet()
 
             is CandidateAction.UpdateDraft -> state.updateCandidatesDraft(action.text)
 
-            // Флаг изменений — только если текст или часть речи и правда сменились (WCL-12.5).
-            CandidateAction.SubmitText -> when (val sheet = dialog.sheet) {
-                is PhotoSheet.TextEdit -> {
-                    val changed = dialog.cards.lexemeOf(sheet.lemma, sheet.key)?.textOf(sheet.field) != sheet.draft.trim()
-                    state
-                        .begin<WordCardState, Effect>()
-                        .then { it.applyCandidateTextEdit(sheet.lemma, sheet.key, sheet.field, sheet.draft) }
-                        .then { it.dropCandidateEmptyExamples(sheet.lemma, sheet.key) }
-                        .then { it.closeCandidatesSheet() }
-                        .then { if (changed) it.markCandidatesDirty() else it.begin() }
-                        .then { it.refreshCandidatesExists() }
-                        .then { it.refreshCandidatesLemmaExists() }
-                        .then { it.refreshCandidatesCore() }
-                        .then { it.refreshCandidatesSummary() }
-                }
-                else -> state.noOp("candidates submitText: no text edit sheet")
-            }
+            is CandidateAction.SubmitText -> reduceCandidatesSubmitText(state, dialog, action)
 
-            is CandidateAction.ResetText -> {
-                val lexeme = dialog.cards.lexemeOf(action.lemma, action.key)
-                val changed = lexeme != null && lexeme.textOf(action.field) != lexeme.originalOf(action.field)
-                state
-                    .begin<WordCardState, Effect>()
-                    .then { it.resetCandidateText(action.lemma, action.key, action.field) }
-                    .then { it.closeCandidatesSheet() }
-                    .then { if (changed) it.markCandidatesDirty() else it.begin() }
-                    .then { it.refreshCandidatesExists() }
-                    .then { it.refreshCandidatesLemmaExists() }
-                    .then { it.refreshCandidatesCore() }
-                    .then { it.refreshCandidatesSummary() }
-            }
+            is CandidateAction.ResetText -> reduceCandidatesResetText(state, dialog, action)
 
-            is CandidateAction.SetPartOfSpeech -> {
-                val changed = dialog.cards.lexemeOf(action.lemma, action.key)?.partOfSpeechOptionId != action.optionId
-                state
-                    .begin<WordCardState, Effect>()
-                    .then { it.setCandidatePartOfSpeech(action.lemma, action.key, action.optionId) }
-                    .then { it.closeCandidatesSheet() }
-                    .then { if (changed) it.markCandidatesDirty() else it.begin() }
-            }
+            is CandidateAction.SetOption -> reduceCandidatesSetOption(state, dialog, action)
 
-            is CandidateAction.SetMapping -> state
-                .begin<WordCardState, Effect>()
-                .then { it.setCandidatesMapping(action.kind, action.target) }
-                .then { it.closeCandidatesSheet() }
-                .then { it.refreshCandidatesCore() }
-                .then { it.refreshCandidatesSummary() }
-
-            CandidateAction.ToggleMapping -> state.toggleCandidatesMapping()
+            CandidateAction.ToggleComponentMatches -> state.toggleCandidatesComponentMatches()
 
             // Выбор меняет, что считается «есть» в сводке при переносе (WCL-15.4).
             is CandidateAction.ToggleLemmaWord -> state
@@ -921,45 +908,97 @@ class WordCardReducer(
                 .then { it.refreshCandidatesSummary() }
 
             // Ш4: без вопроса — диалог сам подтверждение (WCL-10).
-            CandidateAction.RequestAdd -> when {
-                dialog.isAdding -> state.noOp("candidates requestAdd: already adding")
-                !dialog.summary.isEnabled -> state.noOp("candidates requestAdd: button disabled")
-                else -> state.startAddingCandidates()
-            }
+            CandidateAction.RequestAdd -> state.startAddingCandidates()
 
-            CandidateAction.RetryAdd -> when {
-                dialog.isAdding -> state.noOp("candidates retryAdd: already adding")
-                dialog.addFailure == null -> state.noOp("candidates retryAdd: nothing failed")
-                !dialog.summary.isEnabled -> state.noOp("candidates retryAdd: button disabled")
-                else -> state
-                    .begin<WordCardState, Effect>()
-                    .then { it.clearCandidatesAddFailure() }
-                    .then { it.startAddingCandidates() }
-            }
+            CandidateAction.RetryAdd -> state
+                .begin<WordCardState, Effect>()
+                .then { it.clearCandidatesAddFailure() }
+                .then { it.startAddingCandidates() }
 
-            // В2: закрытие — сразу, с вопросом после правок, никак во время записи (WCL-12).
+            // «Повторить» запрос на ошибке сервера: новый запуск (WCL-11.9).
+            CandidateAction.RetryLookup -> state.retryCandidatesLookup()
+
+            // В2: закрытие — сразу, с вопросом после правок (WCL-12).
             CandidateAction.RequestClose -> when {
-                dialog.isAdding -> state.noOp("candidates requestClose: adding")
-                dialog.isConfirmingClose -> state.noOp("candidates requestClose: already asking")
                 dialog.isDirty -> state.askCandidatesClose()
                 else -> state.hideCandidates()
             }
 
-            CandidateAction.ConfirmClose -> when {
-                !dialog.isConfirmingClose -> state.noOp("candidates confirmClose: not asking")
-                else -> state.hideCandidates()
-            }
+            CandidateAction.ConfirmClose -> state.hideCandidates()
 
             CandidateAction.Stay -> state.closeCandidatesClose()
 
             CandidateAction.ConfirmAdd,
             CandidateAction.CancelAdd,
-            CandidateAction.ToggleNotAdded,
             is CandidateAction.SetCardTarget,
             is CandidateAction.SetCardGroup,
             is CandidateAction.SetCommonGroup,
             -> state.noOp("candidates: no such step in the dialog")
         }
+    }
+
+    /**
+     * «Сохранить» в листе правки: обрезать, стёртое прочь, зависимые значения
+     * заново, лист закрыть, флаг правок — только если текст и правда сменился
+     * (WCL-12.5), пометки и сводка. Условие по стейту, тест редьюсера.
+     */
+    private fun reduceCandidatesSubmitText(
+        state: WordCardState,
+        dialog: CandidatesState,
+        action: CandidateAction.SubmitText,
+    ): ReducerResult<WordCardState, Effect> {
+        val changed = dialog.textChanged(action.ref, action.text)
+        return state
+            .begin<WordCardState, Effect>()
+            .then { it.applyCandidateTextEdit(action.ref, action.text) }
+            .then { it.dropCandidateEmptyTexts(action.ref) }
+            .then { it.refreshCandidatesActiveValues() }
+            .then { it.closeCandidatesSheet() }
+            .then { if (changed) it.markCandidatesDirty() else it.begin() }
+            .then { it.refreshCandidatesExists() }
+            .then { it.refreshCandidatesLemmaExists() }
+            .then { it.refreshCandidatesCore() }
+            .then { it.refreshCandidatesSummary() }
+    }
+
+    /**
+     * «Сбросить» в листе правки: флаг правок — только если текст отличался от
+     * текста ответа (WCL-12.5). Зависимые значения не пересчитываются: текст
+     * ответа не пуст, а стёртого значения уже нет (AWP-15.6).
+     */
+    private fun reduceCandidatesResetText(
+        state: WordCardState,
+        dialog: CandidatesState,
+        action: CandidateAction.ResetText,
+    ): ReducerResult<WordCardState, Effect> {
+        val changed = dialog.isTextEdited(action.ref)
+        return state
+            .begin<WordCardState, Effect>()
+            .then { it.resetCandidateText(action.ref) }
+            .then { it.closeCandidatesSheet() }
+            .then { if (changed) it.markCandidatesDirty() else it.begin() }
+            .then { it.refreshCandidatesExists() }
+            .then { it.refreshCandidatesLemmaExists() }
+            .then { it.refreshCandidatesCore() }
+            .then { it.refreshCandidatesSummary() }
+    }
+
+    /**
+     * Опция «Выбора»: зависимости заново, лист закрыть, флаг правок — только
+     * если опция сменилась (WCL-12.5). «Есть» и ядро не трогает: «Выбор» — не ядро.
+     */
+    private fun reduceCandidatesSetOption(
+        state: WordCardState,
+        dialog: CandidatesState,
+        action: CandidateAction.SetOption,
+    ): ReducerResult<WordCardState, Effect> {
+        val changed = dialog.optionChanged(action.ref, action.option)
+        return state
+            .begin<WordCardState, Effect>()
+            .then { it.setCandidateOption(action.ref, action.option) }
+            .then { it.refreshCandidatesActiveValues() }
+            .then { it.closeCandidatesSheet() }
+            .then { if (changed) it.markCandidatesDirty() else it.begin() }
     }
 }
 

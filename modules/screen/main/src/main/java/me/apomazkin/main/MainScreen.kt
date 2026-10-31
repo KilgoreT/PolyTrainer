@@ -68,7 +68,10 @@ fun MainScreen(
                 popEnterTransition = { slideIn(pop = true) },
                 popExitTransition = { slideOut(pop = true) },
             ) {
-                vocabulary(compositionRoot = compositionRoot)
+                vocabulary(
+                    navController = navController,
+                    compositionRoot = compositionRoot,
+                )
                 quiz(compositionRoot = compositionRoot)
                 statistic(compositionRoot = compositionRoot)
                 settings(

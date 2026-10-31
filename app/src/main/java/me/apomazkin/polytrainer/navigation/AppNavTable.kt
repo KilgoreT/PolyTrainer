@@ -37,6 +37,9 @@ val appNavTable: NavTable = navTable {
     on<WordsNavigationEffect.OpenWordCard> { push(AppScreen.WordCard(it.wordId)) }
     on<GroupsNavigationEffect.OpenWordCard> { push(AppScreen.WordCard(it.wordId)) }
 
+    // Снимок получен → экран снимка; его закрытие — общий Back.
+    on<WordsNavigationEffect.OpenScanCandidates> { push(AppScreen.ScanCandidates(it.uri)) }
+
     // Квиз.
     on<QuizTabNavigationEffect.OpenChat> { push(AppScreen.ChatQuiz(it.quizType)) }
 

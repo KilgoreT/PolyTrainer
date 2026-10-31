@@ -22,6 +22,8 @@ import me.apomazkin.quiz.chat.ChatViewModel
 import me.apomazkin.quiztab.QuizTabScreen
 import me.apomazkin.quiztab.QuizTabViewModel
 import me.apomazkin.quiztab.deps.QuizTabUiDeps
+import me.apomazkin.scancandidates.ScanCandidatesScreen
+import me.apomazkin.scancandidates.ScanCandidatesViewModel
 import me.apomazkin.settingstab.AboutAppScreen
 import me.apomazkin.settingstab.SettingsTabScreen
 import me.apomazkin.settingstab.SettingsTabViewModel
@@ -47,6 +49,7 @@ import me.apomazkin.wordcard.WordCardViewModel
 @Stable
 class CompositionRootImpl(
     private val wordCardViewModelFactory: WordCardViewModel.Factory,
+    private val scanCandidatesViewModelFactory: ScanCandidatesViewModel.Factory,
     private val chatViewModelFactory: ChatViewModel.Factory,
     private val appBarViewModelFactory: DictionaryAppBarViewModel.Factory,
     private val wordstabViewModelFactory: WordsTabViewModel.Factory,
@@ -140,6 +143,14 @@ class CompositionRootImpl(
         WordCardScreen(
             wordId = wordId,
             factory = wordCardViewModelFactory,
+        )
+    }
+
+    @Composable
+    override fun ScanCandidatesScreenDep(uri: String) {
+        ScanCandidatesScreen(
+            uri = uri,
+            factory = scanCandidatesViewModelFactory,
         )
     }
 

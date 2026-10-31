@@ -1,0 +1,154 @@
+digraph C4 {
+  // remincross=false: иначе Graphviz внутри рамок переставляет блоки
+  // ради меньшего числа пересечений и ломает порядок по возрастанию шагов.
+  graph [rankdir=TB, newrank=true, remincross=false, splines=ortho,
+         nodesep=0.25, ranksep=0.3, pad=0.08,
+         fontname="Helvetica", fontsize=11, labeljust=c];
+  node  [shape=box, style="filled", fillcolor="white", color="#333333", penwidth=1.2,
+         fontname="Helvetica", fontsize=11, margin="0.10,0.05"];
+  edge  [arrowsize=0.7, color="#333333"];
+
+  // Подпись стрелки — узел в разрыве линии: так подпись не уезжает от стрелки.
+  // Номер — шаг флоу спеки LFL: Ш1–Ш8. Ш2.1 — вызов порта внутри шага, по
+  // порядку. Ш6–7 — отбор и сопоставление, они идут одним вызовом нейронки.
+
+  subgraph cluster_L1 {
+    label="Ручка HTTP"; style="filled"; fillcolor="#FDF4FF"; color="#E879F9";
+    H [label="Ручка lookup\n[ручка HTTP]\nпринимает запрос слов,\nотдаёт ответ или отказ",
+       style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+  }
+
+  RESP [style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0", margin="0.12,0.06",
+        label=<<table border="0" cellpadding="0" cellspacing="2">
+          <tr><td align="left">Ответы и ошибки</td></tr>
+          <tr><td align="left">[контракт]</td></tr>
+          <tr><td align="left">200 слова: found / not_found / error</td></tr>
+          <tr><td align="left">+ сопоставление и замечания — новое</td></tr>
+          <tr><td align="left">401 unauthorized</td></tr>
+          <tr><td align="left">413 request_too_large</td></tr>
+          <tr><td align="left">429 rate_limited, + лимит нейронки — новое</td></tr>
+          <tr><td align="left">400 unsupported_language</td></tr>
+          <tr><td align="left">400 invalid_request</td></tr>
+          <tr><td align="left">503 llm_unavailable — новое</td></tr>
+        </table>>];
+
+  subgraph cluster_L2 {
+    label="Логика (сценарий и сервисы)"; style="filled"; fillcolor="#F0FDFA"; color="#2DD4BF";
+    SVC [label="Сценарий lookup\n[сценарий]\nведёт каждое слово по шагам и собирает ответ",
+         style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    SA [label="Auth\n[сервис]\nузнаёт субъекта по ключу,\nпотом по Google и Telegram",
+        fillcolor="#fff1b8", color="#b58900", penwidth=2];
+    SQ [label="Quota\n[сервис]\nпускает или отказывает по лимитам\nи языку, списывает, откатывает",
+        style="filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    S2 [label="Нормализация\n[сервис]\nпревращает токены со снимка\nв слова"];
+    S3 [label="Леммы\n[сервис]\nнаходит словарные формы слова"];
+    S4 [label="Значения\n[сервис]\nдостаёт все значения леммы\nиз базы слов"];
+    S5 [label="Отбор\n[сервис]\nпросит нейронку выбрать значения\nи сопоставить их по компонентам",
+        fillcolor="#fff1b8", color="#b58900", penwidth=2];
+    S6 [label="Проверка ответа нейронки\n[сервис]\nотбрасывает чужие ключи и опции",
+        fillcolor="#fff1b8", color="#b58900", penwidth=2];
+
+    node [shape=box, style="filled", fillcolor="#e8e8e8", color="#e8e8e8", penwidth=0,
+          fontsize=10, margin="0.04,0.02", width=0, height=0];
+    // Ш6.3 тоже здесь: токены модели списывает сценарий через Quota (Д48).
+    e2 [label=<<b>Ш2</b> лимиты<br/><b>Ш6.3</b> токены>];
+    e3 [label=<<b>Ш3</b> слова>];
+    e4 [label=<<b>Ш4</b> леммы>];
+    e5 [label=<<b>Ш5</b> значения>];
+    e6 [label=<<b>Ш6–7</b> отбор>];
+    e7 [label=<<b>Ш6–7</b> проверка>];
+
+    // Блоки по возрастанию шагов: сверху Ш2 Auth, Ш2 Quota, Ш3, Ш4,
+    // снизу Ш5, Ш6–7 отбор, Ш6–7 проверка.
+    { rank=same; SA -> SQ -> S2 -> S3 [style=invis, weight=100]; }
+    { rank=same; S4 -> S5 -> S6 [style=invis, weight=100]; }
+    { rank=same; e2 -> e3 -> e4 [style=invis]; }
+    { rank=same; e5 -> e6 -> e7 [style=invis]; }
+  }
+
+  subgraph cluster_L3 {
+    label="Порты (интерфейсы)"; style="filled"; fillcolor="#FFF7ED"; color="#FB923C";
+    // Порты по возрастанию первого шага на входящей стрелке:
+    // Субъекты Ш2.1, Расход Ш2.2, База слов Ш4.1, Кеш Ш6.1, Клиент Ш6.2.
+    PS [label="Субъекты\n[порт]\nсубъект по ключу", style="rounded,filled"];
+    PU [label="Расход\n[порт]\nсколько потратил,\nсписать, откатить,\nтокены модели",
+        style="rounded,filled,dashed", fillcolor="#e8f4ff", color="#2b6cb0"];
+    P2 [label="База слов\n[порт]\nлеммы и значения по слову", style="rounded,filled"];
+    P4 [label="Кеш отбора\n[порт]\nготовый отбор\nдля запроса без контекста",
+        style="rounded,filled", fillcolor="#fff1b8", color="#b58900", penwidth=2];
+    P3 [label="Клиент нейронки\n[порт]\nодин вызов модели:\nконтекст → ответ",
+        style="rounded,filled", fillcolor="#fff1b8", color="#b58900", penwidth=2];
+    { rank=same; PS -> PU -> P2 -> P4 -> P3 [style=invis]; }
+  }
+
+  subgraph cluster_L4 {
+    label="Адаптеры"; style="filled"; fillcolor="#ECFEFF"; color="#22D3EE";
+    A1 [label="Postgres\n[хранилище]\nсубъекты, ключи, расход", shape=cylinder,
+        fillcolor="#f3f3f3", color="#888888"];
+    A2 [label="База слов bbolt\n[хранилище]\nстатьи из выгрузок kaikki", shape=cylinder,
+        fillcolor="#f3f3f3", color="#888888"];
+    A4 [label="Память процесса\n[хранилище]\nкеш отбора до рестарта", shape=cylinder,
+        fillcolor="#fff1b8", color="#b58900", penwidth=2];
+    A3 [label="HTTP-клиент нейронки\n[адаптер]\nходит к провайдеру,\nпишет лог вызова",
+        fillcolor="#fff1b8", color="#b58900", penwidth=2];
+    { rank=same; A1 -> A2 -> A4 -> A3 [style=invis]; }
+  }
+
+  subgraph cluster_L5 {
+    label="Снаружи"; style="filled"; fillcolor="#F0FDF4"; color="#4ADE80";
+    X1 [label="Провайдер нейронки\n[внешняя система]", fillcolor="#f3f3f3", color="#888888"];
+  }
+
+  node [shape=box, style="filled", fillcolor="#e8e8e8", color="#e8e8e8", penwidth=0,
+        fontsize=10, margin="0.04,0.02", width=0, height=0];
+  e8 [label=<<b>Ш8</b> отвечает>];
+  e1 [label=<<b>Ш1</b> запрос>];
+  e1k [label=<<b>Ш2</b> ключ>];
+  e21 [label=<<b>Ш2.1</b> субъект>];
+  e22 [label=<<b>Ш2.2</b> расход>];
+  e41 [label=<<b>Ш4.1</b> формы>];
+  e51 [label=<<b>Ш5.1</b> статьи>];
+  e61 [label=<<b>Ш6.1</b> кеш>];
+  e62 [label=<<b>Ш6.2</b> вызов>];
+  r0 [label="реализован в"];
+  r1 [label="реализован в"];
+  r2 [label="реализован в"];
+  r4 [label="реализован в"];
+  r3 [label="реализован в"];
+  // Подписи между слоями — тоже по возрастанию слева направо.
+  { rank=same; e21 -> e22 -> e41 -> e51 -> e61 -> e62 [style=invis]; }
+  { rank=same; r0 -> r1 -> r2 -> r4 -> r3 [style=invis]; }
+  rx [label="HTTPS"];
+
+  // Сноска с ответами — на одном уровне с ручкой, вне её рамки.
+  { rank=same; H; e8; RESP; }
+  H -> e8 [arrowhead=none]; e8 -> RESP;
+
+  H -> e1 [arrowhead=none]; e1 -> SVC;
+  // Хук ручки зовёт Auth за субъектом по ключу до сценария.
+  // Подпись в одном ряду с «Ш1 запрос», иначе уезжает отдельным столбцом.
+  { rank=same; e1k -> e1 [style=invis]; }
+  H -> e1k [arrowhead=none]; e1k -> SA;
+  SVC -> e2 [arrowhead=none]; e2 -> SQ;
+  SVC -> e3 [arrowhead=none]; e3 -> S2;
+  SVC -> e4 [arrowhead=none]; e4 -> S3;
+  SVC -> e5 [arrowhead=none, minlen=3]; e5 -> S4;
+  SVC -> e6 [arrowhead=none, minlen=3]; e6 -> S5;
+  SVC -> e7 [arrowhead=none, minlen=3]; e7 -> S6;
+  // Блоки логики двумя рядами.
+  SA -> S4 [style=invis];
+  S2 -> S5 [style=invis];
+  S3 -> S6 [style=invis];
+  SA -> e21 [arrowhead=none, minlen=3]; e21 -> PS;
+  SQ -> e22 [arrowhead=none, minlen=3]; e22 -> PU;
+  S3 -> e41 [arrowhead=none, minlen=3]; e41 -> P2;
+  S4 -> e51 [arrowhead=none]; e51 -> P2;
+  S5 -> e61 [arrowhead=none]; e61 -> P4;
+  S5 -> e62 [arrowhead=none]; e62 -> P3;
+  PS -> r0 [arrowhead=none]; r0 -> A1;
+  PU -> r1 [arrowhead=none]; r1 -> A1;
+  P2 -> r2 [arrowhead=none]; r2 -> A2;
+  P4 -> r4 [arrowhead=none]; r4 -> A4;
+  P3 -> r3 [arrowhead=none]; r3 -> A3;
+  A3 -> rx [arrowhead=none]; rx -> X1;
+}

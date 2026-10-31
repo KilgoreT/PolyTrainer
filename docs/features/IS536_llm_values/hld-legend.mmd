@@ -1,0 +1,16 @@
+%%{init: {"flowchart": {"wrappingWidth": 200, "nodeSpacing": 30, "rankSpacing": 30}}}%%
+flowchart LR
+  classDef new fill:#fff1b8,stroke:#b58900,stroke-width:2px,color:#000
+  classDef changed fill:#e8f4ff,stroke:#2b6cb0,stroke-dasharray:5 3,color:#000
+  classDef gone fill:#fde8e8,stroke:#c53030,stroke-dasharray:2 2,color:#000
+  classDef store fill:#f3f3f3,stroke:#888,color:#000
+
+  L1["новое в IS536"]:::new
+  L2["меняется в IS536"]:::changed
+  L3["снято в IS536"]:::gone
+  L4["как есть"]
+  L5[("хранилище")]:::store
+  L6["снаружи"]:::store
+
+  L1 ~~~ L2 ~~~ L3
+  L4 ~~~ L5 ~~~ L6
