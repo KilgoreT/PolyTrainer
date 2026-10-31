@@ -12,11 +12,12 @@ import me.apomazkin.lexeme.ComponentTemplate
  */
 
 /**
- * Карточка леммы (AWP-04): [lemma] — текст леммы, [sourceWords] — слова
- * ответа, из которых она пришла, [lexemes] — лексемы-кандидаты (все, что
- * отобрал сервер; удалённые исчезают), [existingCount] — «есть в словаре:
- * N», [target] — куда класть (AWP-18), [ownGroup] — своя группа (AWP-08),
- * [formNote] — пометка формы, если слово — форма этой леммы (WCL-04).
+ * Карточка леммы (AWP-04): [lemma] — текст леммы, в окне снимка — текст
+ * слова списка; [sourceWords] — слова ответа, из которых она пришла,
+ * [lexemes] — лексемы-кандидаты (все, что отобрал сервер; удалённые
+ * исчезают), [existingCount] — «есть в словаре: N», [formNote] — пометка
+ * формы, если слово — форма этой леммы (WCL-04). «Куда» и своя группа — у
+ * каждой лексемы-кандидата (AWP-18, AWP-08).
  */
 @Immutable
 data class LemmaCardUiItem(
@@ -24,8 +25,6 @@ data class LemmaCardUiItem(
     val sourceWords: List<String>,
     val lexemes: List<CardLexemeUiItem>,
     val existingCount: Int,
-    val target: CardTargetUi,
-    val ownGroup: CardOwnGroupUi,
     val formNote: String? = null,
 )
 
@@ -36,6 +35,11 @@ data class LemmaCardUiItem(
  * «есть» (WCL-06), [lacksCore] — «не попадёт в ядро» (AWP-11),
  * [existsInLemma] — «есть в «correr»» у раздела леммы-формы (WCL-15.4),
  * [isInContext] — употреблена в тексте снимка, пометка «в тексте» (AWP-43).
+ * Плашка нейронки окна снимка: [target] — «Куда», по умолчанию «новое
+ * слово» (AWP-18.3), [ownGroup] — своя группа при «новое слово» (AWP-08),
+ * [isAdding] — идёт запись этой плашки (AWP-47.4), [addFailure] — запись
+ * не удалась, причина под плашкой (AWP-21); диалог карточки слова эти
+ * поля не читает.
  */
 @Immutable
 data class CardLexemeUiItem(
@@ -47,12 +51,20 @@ data class CardLexemeUiItem(
     val lacksCore: Boolean,
     val existsInLemma: Boolean = false,
     val isInContext: Boolean = false,
+    val target: CardTargetUi = CardTargetUi.NewWord,
+    val ownGroup: CardOwnGroupUi = CardOwnGroupUi.AsCommon,
+    val isAdding: Boolean = false,
+    val addFailure: AddFailureUi? = null,
 ) {
     /** Хотя бы один показанный текст правлен руками: пометка «изменено» (AWP-16.1). */
     val isEdited: Boolean
         get() = values.any { value ->
             value.isActive && value is CandidateValueUiItem.Text && value.texts.any { it.isEdited }
         }
+
+    /** Кнопка записи плашки активна: без «уже в словаре» и с ядром (AWP-47.3, AWP-50.12). */
+    val canWrite: Boolean
+        get() = !exists && !lacksCore
 }
 
 /**
@@ -125,7 +137,7 @@ data class ComponentRefUi(
     val componentId: Long,
 )
 
-/** Куда класть лексемы карточки (AWP-18). */
+/** «Куда» лексемы-кандидата (AWP-18): слово словаря с текстом слова или «новое слово». */
 sealed interface CardTargetUi {
     data class Existing(
         val wordId: Long,
@@ -134,7 +146,7 @@ sealed interface CardTargetUi {
     data object NewWord : CardTargetUi
 }
 
-/** Своя группа карточки (AWP-08): как у всех, «Все» (без группы) или группа. */
+/** Своя группа лексемы-кандидата при «новое слово» (AWP-08): как у всех, «Все» (без группы) или группа. */
 sealed interface CardOwnGroupUi {
     data object AsCommon : CardOwnGroupUi
 
@@ -163,12 +175,16 @@ data class TargetRowUi(
 sealed interface CandidatesSheetUi {
     data object CommonGroup : CandidatesSheetUi
 
+    /** Своя группа плашки по лемме карточки и ключу лексемы-кандидата (AWP-08). */
     data class CardGroup(
         val lemma: String,
+        val key: String,
     ) : CandidatesSheetUi
 
+    /** «Куда» плашки по лемме карточки и ключу лексемы-кандидата (AWP-18). */
     data class CardTarget(
         val lemma: String,
+        val key: String,
     ) : CandidatesSheetUi
 
     /** Опция любого «Выбора» у лексемы-кандидата (AWP-17). */

@@ -15,23 +15,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Закрытие глазами редьюсера: сразу, когда недобавленных слов с
- * лексемами-кандидатами нет (AWP-60), с вопросом и числом таких слов (AWP-51),
- * пока виден индикатор (AWP-24), из «слов нет» и ошибки (AWP-54); во время
- * записи крестик и «назад» не действуют (AWP-51.12). Адреса строк спеки —
- * `AWP-NN_k`.
+ * Закрытие глазами редьюсера: сразу, когда слов с неразобранными плашками нет
+ * (AWP-60), с вопросом и числом таких слов (AWP-51), пока виден индикатор
+ * (AWP-24), из «слов нет» и ошибки (AWP-54); во время записи крестик и «назад»
+ * не действуют (AWP-51.12). Адреса строк спеки — `AWP-NN_k`.
  */
 class CloseReducerTest {
     private val reducer = reducer()
 
     private val back = setOf<Effect>(NavigationEffect.Back)
-    private val two = Fx.lists(lexical = listOf("ran", "bank"))
+    private val two = Fx.lists(lexical = listOf("bank", "tiempo"))
+    private val bankKey = "ruwiktionary/1.noun.1"
+    private val tiempoKey = "ruwiktionary/1.noun.3"
+    private val runKey = "ruwiktionary/1.verb.1"
 
-    /** Загружены карточки «ran» и «bank». */
+    /** Плашки «bank» и «tiempo» загружены, по одной у каждого. */
     private fun twoLoaded(): ScanCandidatesState = reducer.steps(
-        reducer.withCard("ran", Fx.ran, lists = two),
-        Msg.LoadLexemes("bank"),
-        Fx.lexemes("bank", Fx.bank),
+        reducer.withCard("bank", Fx.bank, lists = two),
+        Msg.LoadLexemes("tiempo"),
+        Fx.lexemes("tiempo", Fx.tiempo),
     )
 
     private fun savedRun(): ScanCandidatesState = reducer.step(
@@ -44,7 +46,7 @@ class CloseReducerTest {
     @Test
     fun `AWP-60_1 closing the window with no word loaded leaves at once whatever was chosen`() {
         val touched = reducer.steps(
-            reducer.windowOf("ran"),
+            reducer.windowOf("run"),
             Msg.SetCommonGroup(Fx.POTTER),
             Msg.ToggleTranslation,
             Msg.OpenSheet(CandidatesSheetUi.CommonGroup),
@@ -58,28 +60,23 @@ class CloseReducerTest {
     }
 
     @Test
-    fun `AWP-60_2 all loaded words added leaves at once`() {
-        val added = reducer.steps(
-            twoLoaded(),
-            Msg.AddWord("ran"),
-            Msg.WordAdded("ran"),
-            Msg.AddWord("bank"),
-            Msg.WordAdded("bank"),
-        )
+    fun `AWP-60_2 every plate written leaves at once`() {
+        val written = reducer.created(reducer.created(twoLoaded(), "bank", bankKey, 9L), "tiempo", tiempoKey, 10L)
 
-        val result = reducer.testReduce(added, Msg.RequestClose)
+        val result = reducer.testReduce(written, Msg.RequestClose)
 
-        assertFalse(added.isAdding)
+        assertFalse(written.isAdding)
+        assertTrue(written.lists.lexical.isEmpty())
         result.assertEffects(back)
     }
 
     // ===== Вопрос при закрытии (AWP-51) =====
 
     @Test
-    fun `AWP-51_1 AWP-14_2 one of two loaded words added asks the question with the count of the other`() {
-        val oneAdded = reducer.steps(twoLoaded(), Msg.AddWord("ran"), Msg.WordAdded("ran"))
+    fun `AWP-51_1 AWP-14_2 one of two loaded words written asks the question with the count of the other`() {
+        val oneWritten = reducer.created(twoLoaded(), "bank", bankKey, 9L)
 
-        val result = reducer.testReduce(oneAdded, Msg.RequestClose)
+        val result = reducer.testReduce(oneWritten, Msg.RequestClose)
 
         assertTrue(result.state().isConfirmingClose)
         assertEquals(1, result.state().pendingWords)
@@ -109,12 +106,12 @@ class CloseReducerTest {
     }
 
     @Test
-    fun `AWP-51_5 a loaded word deleted is not counted`() {
-        val oneDeleted = reducer.step(twoLoaded(), Msg.DeleteWord("bank"))
-        val bothDeleted = reducer.step(oneDeleted, Msg.DeleteWord("ran"))
+    fun `AWP-51_5 a loaded word removed from the list is not counted`() {
+        val oneRemoved = reducer.step(twoLoaded(), Msg.RemoveWord("bank"))
+        val bothRemoved = reducer.step(oneRemoved, Msg.RemoveWord("tiempo"))
 
-        val one = reducer.testReduce(oneDeleted, Msg.RequestClose)
-        val none = reducer.testReduce(bothDeleted, Msg.RequestClose)
+        val one = reducer.testReduce(oneRemoved, Msg.RequestClose)
+        val none = reducer.testReduce(bothRemoved, Msg.RequestClose)
 
         assertEquals(1, one.state().pendingWords)
         none.assertEffects(back)
@@ -149,7 +146,7 @@ class CloseReducerTest {
     }
 
     @Test
-    fun `AWP-51_10 a checked word with a new lexeme is counted`() {
+    fun `AWP-51_10 a checked word with a new plate is counted`() {
         val checked = reducer.steps(savedRun(), Msg.LoadLexemes("run"), Fx.lexemes("run", Fx.run))
 
         val result = reducer.testReduce(checked, Msg.RequestClose)
@@ -159,7 +156,7 @@ class CloseReducerTest {
     }
 
     @Test
-    fun `AWP-51_11 a checked word whose lexemes are all in the dictionary is not counted`() {
+    fun `AWP-51_11 a checked word whose plates are all in the dictionary is not counted`() {
         val run = Fx.existing(Fx.RUN_WORD, "run", listOf("бежать, бегать", "управлять"))
         val saved = reducer.step(reducer.windowOf("run", form = Fx.form(existing = listOf(run))), Msg.OpenSavedCard("run"))
         val checked = reducer.steps(saved, Msg.LoadLexemes("run"), Fx.lexemes("run", Fx.run))
@@ -171,9 +168,9 @@ class CloseReducerTest {
     }
 
     @Test
-    fun `AWP-51_12 while a word is being written the close request does nothing, after a failure it asks`() {
-        val adding = reducer.step(reducer.withCard("ran", Fx.ran), Msg.AddWord("ran"))
-        val failed = reducer.step(adding, Msg.AddFailed("ran", AddFailureUi.Failed))
+    fun `AWP-51_12 while a plate is being written the close request does nothing, after a failure it asks`() {
+        val adding = reducer.step(reducer.withCard("bank", Fx.bank), Msg.AddLexeme("bank", bankKey))
+        val failed = reducer.step(adding, Msg.AddFailed("bank", bankKey, AddFailureUi.Failed))
 
         val whileAdding = reducer.testReduce(adding, Msg.RequestClose)
         val afterFailure = reducer.testReduce(failed, Msg.RequestClose)
@@ -182,6 +179,19 @@ class CloseReducerTest {
         whileAdding.assertNoEffects()
         assertTrue(afterFailure.state().isConfirmingClose)
         assertEquals(1, afterFailure.state().pendingWords)
+    }
+
+    @Test
+    fun `AWP-51_13 a word with three plates and two written is counted as one`() {
+        val loaded = reducer.withCard("run", Fx.runThree)
+        val created = reducer.created(loaded, "run", runKey, Fx.RUN_CREATED)
+        val transferred = reducer.transferred(created, "run", "ruwiktionary/1.verb.2")
+
+        val result = reducer.testReduce(transferred, Msg.RequestClose)
+
+        assertEquals(listOf("enwiktionary/1.verb.37"), transferred.lemmaCard("run").lexemes.map { it.key })
+        assertTrue(result.state().isConfirmingClose)
+        assertEquals(1, result.state().pendingWords)
     }
 
     // ===== Пока виден индикатор и без окна (AWP-24, AWP-54) =====

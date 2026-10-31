@@ -410,8 +410,6 @@
     <string name="photo_add_target_existing">%1$s · %2$s · %3$s · %4$s</string>
     <string name="photo_add_target_new">новое слово «%1$s»</string>
     <string name="photo_add_target_no_groups">Все</string>
-    <string name="photo_add_target_group_hint">Слово войдёт в группу «%1$s» вместе со своими %2$s</string>
-    <string name="photo_add_old_lexemes">старыми значениями</string>
     <string name="photo_add_english_mark">англ.</string>
     <string name="photo_add_exists_mark">есть</string>
     <string name="photo_add_no_core_mark">не попадёт в ядро</string>
@@ -464,8 +462,11 @@
     <string name="scan_check_by_text">Проверить по тексту</string>
     <string name="scan_not_found">Не найдено</string>
     <string name="scan_no_lexemes">Значений нет</string>
-    <string name="scan_add">Добавить</string>
-    <string name="scan_delete_word">Удалить</string>
+    <string name="scan_remove_word">Убрать из списка</string>
+    <string name="scan_dismiss">Не нужно</string>
+    <string name="scan_create_word">Создать</string>
+    <string name="scan_transfer">Перенести</string>
+    <string name="scan_candidates_title">Найдено по тексту</string>
     <string name="scan_close_pending">Не добавлено слов: %1$d</string>
     <string name="candidates_remarks_title">Замечания</string>
     <string name="candidates_component_matches_title">Сопоставление</string>

@@ -11,9 +11,10 @@ import me.apomazkin.logger.LexemeLogger
  * [ScanCandidatesAtoms]. Ветвится только по стейту, исходы юзкейсов не
  * разбирает: хендлер прислал сообщение на каждый случай. Условия — только в
  * ветке закрытия: пока идёт запись, крестик и «назад» не действуют
- * (AWP-51.12); есть слова с пришедшей или идущей карточкой без добавления —
- * вопрос (AWP-51). Страховок от повторного нажатия нет: кнопки неактивны по
- * флагам стейта.
+ * (AWP-51.12); есть слова с неразобранными плашками — вопрос (AWP-51).
+ * Страховок от повторного нажатия нет: кнопки неактивны по флагам стейта.
+ * Уход слова без плашек ([ScanCandidatesAtoms.removeEmptyWord]) стоит в
+ * хвосте каждой цепочки, где плашка может исчезнуть (AWP-62).
  */
 class ScanCandidatesReducer(
     logger: LexemeLogger,
@@ -33,6 +34,7 @@ class ScanCandidatesReducer(
         is Msg.LemmasFound,
         is Msg.FormLoaded,
         is Msg.LexemesFound,
+        is Msg.LemmasReloaded,
         -> this::class.simpleName.orEmpty()
         else -> toString()
     }
@@ -79,28 +81,49 @@ class ScanCandidatesReducer(
 
         is Msg.LexemesUnavailable -> state.showCardRetryableError(message.text, message.errorRes)
 
-        // ===== От эффектов: запись (AWP-21) =====
+        // ===== От эффектов: запись плашки и перечитка (AWP-20, AWP-63) =====
 
-        is Msg.WordAdded -> state.removeAddedWord(message.text)
+        is Msg.LexemeAdded -> state
+            .begin<ScanCandidatesState, Effect>()
+            .then { it.finishAdding(message.text, message.key) }
+            .then { it.removeEmptyWord(message.text) }
+            .then { it.startLemmasReload(message.text) }
+
+        is Msg.WordCreated -> state
+            .begin<ScanCandidatesState, Effect>()
+            .then { it.finishAdding(message.text, message.key) }
+            .then { it.retargetNewWordLexemes(message.text, message.wordId) }
+            .then { it.removeEmptyWord(message.text) }
+            .then { it.startLemmasReload(message.text) }
+
+        is Msg.LemmasReloaded -> state
+            .begin<ScanCandidatesState, Effect>()
+            .then { it.applyReloadedLemmas(message.text, message.existing) }
+            .then { it.markInDictionary() }
+            .then { it.refreshCardMarks(message.text) }
+
+        is Msg.LemmasReloadFailed -> state.noOp("lemmasReloadFailed: ${message.text}")
+
+        // ===== От эффектов: сбои записи (AWP-21) =====
 
         is Msg.AddGroupGone -> state
             .begin<ScanCandidatesState, Effect>()
             .then { it.resetDeadGroup(message.failure.groupId) }
-            .then { it.showAddFailure(message.text, message.failure) }
+            .then { it.showAddFailure(message.text, message.key, message.failure) }
 
         is Msg.AddWordGone -> state
             .begin<ScanCandidatesState, Effect>()
             .then { it.resetDeadTarget(message.failure.wordId) }
             .then { it.refreshAllCards() }
-            .then { it.showAddFailure(message.text, message.failure) }
+            .then { it.showAddFailure(message.text, message.key, message.failure) }
 
         is Msg.AddComponentGone -> state
             .begin<ScanCandidatesState, Effect>()
             .then { it.dropComponent(message.failure.typeId) }
             .then { it.refreshAllCards() }
-            .then { it.showAddFailure(message.text, message.failure) }
+            .then { it.showAddFailure(message.text, message.key, message.failure) }
 
-        is Msg.AddFailed -> state.showAddFailure(message.text, message.failure)
+        is Msg.AddFailed -> state.showAddFailure(message.text, message.key, message.failure)
 
         // ===== От экрана: запрос, перевод, закрытие =====
 
@@ -127,30 +150,44 @@ class ScanCandidatesReducer(
 
         is Msg.ToggleCard -> state.toggleCard(message.text)
 
-        is Msg.DeleteWord -> state.deleteWord(message.text)
+        is Msg.RemoveWord -> state.removeWord(message.text)
 
-        is Msg.AddWord -> state.startAddingWord(message.text)
+        is Msg.ToggleComponentMatches -> state.toggleCardMatches(message.text)
+
+        // ===== От экрана: плашка нейронки =====
+
+        is Msg.AddLexeme -> state.startAddingLexeme(message.text, message.key)
 
         // «Повторить» — заново без вопроса (AWP-26).
         is Msg.RetryAdd -> state
             .begin<ScanCandidatesState, Effect>()
-            .then { it.clearAddFailure(message.text) }
-            .then { it.startAddingWord(message.text) }
+            .then { it.clearAddFailure(message.text, message.key) }
+            .then { it.startAddingLexeme(message.text, message.key) }
 
-        is Msg.ToggleComponentMatches -> state.toggleCardMatches(message.text)
-
-        // ===== От экрана: правки карточки — все карточки леммы =====
-
-        is Msg.DeleteLexeme -> state
+        is Msg.DismissLexeme -> state
             .begin<ScanCandidatesState, Effect>()
-            .then { it.deleteLexeme(message.lemma, message.key) }
-            .then { it.refreshLemmaMarks(message.lemma) }
+            .then { it.dismissLexeme(message.text, message.key) }
+            .then { it.refreshLemmaMarks(message.text) }
+            .then { it.removeEmptyWord(message.text) }
+
+        is Msg.SetCardTarget -> state
+            .begin<ScanCandidatesState, Effect>()
+            .then { it.setLexemeTarget(message.lemma, message.key, message.target) }
+            .then { it.closeSheet() }
+
+        is Msg.SetCardGroup -> state
+            .begin<ScanCandidatesState, Effect>()
+            .then { it.setLexemeGroup(message.lemma, message.key, message.group) }
+            .then { it.closeSheet() }
+
+        // ===== От экрана: правки плашки — все карточки леммы =====
 
         is Msg.DeleteValue -> state
             .begin<ScanCandidatesState, Effect>()
             .then { it.deleteValue(message.ref) }
             .then { it.refreshLemmaValues(message.ref.lemma) }
             .then { it.refreshLemmaMarks(message.ref.lemma) }
+            .then { it.removeEmptyWord(message.ref.lemma) }
 
         is Msg.SubmitText -> state
             .begin<ScanCandidatesState, Effect>()
@@ -159,6 +196,7 @@ class ScanCandidatesReducer(
             .then { it.refreshLemmaValues(message.ref.lemma) }
             .then { it.closeSheet() }
             .then { it.refreshLemmaMarks(message.ref.lemma) }
+            .then { it.removeEmptyWord(message.ref.lemma) }
 
         is Msg.ResetText -> state
             .begin<ScanCandidatesState, Effect>()
@@ -173,18 +211,6 @@ class ScanCandidatesReducer(
             .then { it.closeSheet() }
 
         is Msg.UpdateDraft -> state.updateSheetDraft(message.text)
-
-        is Msg.SetCardTarget -> state
-            .begin<ScanCandidatesState, Effect>()
-            .then { it.setCardTarget(message.lemma, message.target) }
-            .then { it.refreshLemmaSaved(message.lemma) }
-            .then { it.refreshLemmaMarks(message.lemma) }
-            .then { it.closeSheet() }
-
-        is Msg.SetCardGroup -> state
-            .begin<ScanCandidatesState, Effect>()
-            .then { it.setCardGroup(message.lemma, message.group) }
-            .then { it.closeSheet() }
 
         // ===== От экрана: общая группа и листы =====
 

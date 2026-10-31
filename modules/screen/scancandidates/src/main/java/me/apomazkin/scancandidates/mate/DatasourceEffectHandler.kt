@@ -113,7 +113,6 @@ class DatasourceEffectHandler(
                         text = effect.word,
                         word = outcome.word.toUi(),
                         recommendations = outcome.recommendations.map { it.toUi() },
-                        existing = outcome.existing.map { it.toUi() },
                     )
                     LexemesOutcome.NotFound -> Msg.LexemesNotFound(effect.word, R.string.scan_not_found)
                     LexemesOutcome.NoLexemes -> Msg.LexemesNotFound(effect.word, R.string.scan_no_lexemes)
@@ -125,27 +124,59 @@ class DatasourceEffectHandler(
                 }
             }
 
-            // Запись одного слова одной транзакцией (AWP-20): группа, слово и компонент
-            // — своё сообщение на причину (AWP-21.3–21.6); прочие отказы — как есть.
-            is DatasourceEffect.AddWord -> withContext(io) {
+            // «Создать»: новое слово с одной лексемой одной транзакцией (AWP-20.9);
+            // записано — id нового слова для «Куда» остальных плашек (AWP-63); отказ
+            // — своё сообщение на причину (AWP-21.3–21.6), прочие — как есть.
+            is DatasourceEffect.CreateWord -> withContext(io) {
                 val outcome = useCase.addWord(effect.batch)
-                logger.d(tag = LogTags.SCAN, message = "add word=${effect.word} outcome=${outcome.describe()}")
+                logger.d(tag = LogTags.SCAN, message = "create word=${effect.word} key=${effect.key} outcome=${outcome.describe()}")
                 when (outcome) {
-                    is AddWordsBatchOutcome.Added -> Msg.WordAdded(effect.word)
-                    is AddWordsBatchOutcome.Rejected.GroupMissing ->
-                        Msg.AddGroupGone(effect.word, outcome.toUi())
-                    is AddWordsBatchOutcome.Rejected.WordMissing ->
-                        Msg.AddWordGone(effect.word, outcome.toUi())
-                    is AddWordsBatchOutcome.Rejected.TypeUnavailable ->
-                        Msg.AddComponentGone(effect.word, outcome.toUi())
-                    is AddWordsBatchOutcome.Rejected.NoCoreValue,
-                    is AddWordsBatchOutcome.Rejected.DictionaryMissing,
-                    -> Msg.AddFailed(effect.word, outcome.toUi())
+                    is AddWordsBatchOutcome.Added -> Msg.WordCreated(effect.word, effect.key, outcome.wordIds.first())
+                    is AddWordsBatchOutcome.Rejected -> rejectedMsg(effect.word, effect.key, outcome)
+                }
+            }
+
+            // «Перенести»: лексема в выбранное слово одной транзакцией (AWP-20.10).
+            is DatasourceEffect.TransferLexeme -> withContext(io) {
+                val outcome = useCase.addWord(effect.batch)
+                logger.d(tag = LogTags.SCAN, message = "transfer word=${effect.word} key=${effect.key} outcome=${outcome.describe()}")
+                when (outcome) {
+                    is AddWordsBatchOutcome.Added -> Msg.LexemeAdded(effect.word, effect.key)
+                    is AddWordsBatchOutcome.Rejected -> rejectedMsg(effect.word, effect.key, outcome)
+                }
+            }
+
+            // Перечитка лемм словаря с текстом слова после записи (AWP-63): тот же
+            // запрос формы по одному тексту, из ответа — только леммы; словарь
+            // удалён или чтение упало — плашки словаря как были.
+            is DatasourceEffect.ReloadLemmas -> withContext(io) {
+                val outcome = useCase.loadForm(effect.dictionaryId, listOf(effect.word))
+                logger.d(tag = LogTags.SCAN, message = "reload word=${effect.word} outcome=${outcome.describe()}")
+                when (outcome) {
+                    is FormOutcome.Loaded ->
+                        Msg.LemmasReloaded(effect.word, outcome.form.existingLemmas.map { it.toUi() })
+                    FormOutcome.DictionaryMissing,
+                    is FormOutcome.Failed,
+                    -> Msg.LemmasReloadFailed(effect.word)
                 }
             }
         }
         consumer(msg)
     }
+}
+
+/** Отказ записи плашки до первой вставки: группа, слово и компонент — своё сообщение (AWP-21.3–21.6), прочие — как есть. */
+private fun rejectedMsg(
+    word: String,
+    key: String,
+    outcome: AddWordsBatchOutcome.Rejected,
+): Msg = when (outcome) {
+    is AddWordsBatchOutcome.Rejected.GroupMissing -> Msg.AddGroupGone(word, key, outcome.toUi())
+    is AddWordsBatchOutcome.Rejected.WordMissing -> Msg.AddWordGone(word, key, outcome.toUi())
+    is AddWordsBatchOutcome.Rejected.TypeUnavailable -> Msg.AddComponentGone(word, key, outcome.toUi())
+    is AddWordsBatchOutcome.Rejected.NoCoreValue,
+    AddWordsBatchOutcome.Rejected.DictionaryMissing,
+    -> Msg.AddFailed(word, key, outcome.toUi())
 }
 
 /**

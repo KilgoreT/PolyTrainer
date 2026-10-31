@@ -86,6 +86,21 @@ data class SavedLexemeUi(
     val values: List<CandidateValueUiItem>,
 )
 
+/**
+ * Плашка словаря под словом окна снимка (AWP-46): слово словаря с текстом
+ * слова списка — [groupNames] его группы (пусто — «Все»), [addedAt] — день
+ * добавления в миллисекундах, [lexemes] — сохранённые лексемы со
+ * значениями в порядке карточки (AWP-44).
+ */
+@Immutable
+data class SavedWordUi(
+    val wordId: Long,
+    val text: String,
+    val groupNames: List<String>,
+    val addedAt: Long,
+    val lexemes: List<SavedLexemeUi>,
+)
+
 /** Компонент формы по id; null — его в форме нет. */
 fun DictionaryFormUi.componentOf(componentId: Long): FormComponentUi? = components.firstOrNull { it.id == componentId }
 

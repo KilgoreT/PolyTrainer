@@ -61,7 +61,7 @@ class CardTransitionsTest {
             .deletingLexeme("run", "ruwiktionary/1.verb.2")!!
 
         assertTrue(empty.single().lexemes.isEmpty())
-        assertTrue(wordsBatchOf(empty, form, commonGroupId = null).words.isEmpty())
+        assertNull(lexemeBatchOf(empty.single(), "ruwiktionary/1.verb.1", form, commonGroupId = null))
     }
 
     @Test
@@ -314,59 +314,90 @@ class CardTransitionsTest {
     }
 
     @Test
-    fun `AWP-18_4 the target new word and the second bank are chosen apart`() {
-        val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
-        val cards = Fx.cards(Fx.bank, form = form)
+    fun `AWP-18_4 AWP-18_12 the target of one lexeme is chosen apart from the others`() {
+        val second = Fx.existing(5L, "run", listOf("бег"))
+        val form = Fx.form(existing = listOf(Fx.runExisting, second))
+        val cards = Fx.cards(Fx.ran, form = form)
 
-        val second = cards.withCardTarget("bank", CardTargetUi.Existing(Fx.BANK_2))!!
-        val fresh = second.withCardTarget("bank", CardTargetUi.NewWord)!!
+        val chosen = cards.withLexemeTarget("run", "ruwiktionary/1.verb.1", CardTargetUi.Existing(5L))!!
+        val fresh = chosen.withLexemeTarget("run", "ruwiktionary/1.verb.1", CardTargetUi.NewWord)!!
 
-        assertEquals(CardTargetUi.Existing(Fx.BANK_2), second.single().target)
-        assertEquals(CardTargetUi.NewWord, fresh.single().target)
-        assertNull(wordsBatchOf(fresh, form, null).words.single().wordId)
-        assertEquals(Fx.BANK_2, wordsBatchOf(second, form, null).words.single().wordId)
+        assertEquals(CardTargetUi.Existing(5L), chosen.candidate("run", "ruwiktionary/1.verb.1").target)
+        assertEquals(CardTargetUi.NewWord, chosen.candidate("run", "ruwiktionary/1.verb.2").target)
+        assertEquals(CardTargetUi.NewWord, fresh.candidate("run", "ruwiktionary/1.verb.1").target)
+        assertEquals(5L, lexemeBatchOf(chosen.single(), "ruwiktionary/1.verb.1", form, null)!!.words.single().wordId)
+        assertNull(lexemeBatchOf(fresh.single(), "ruwiktionary/1.verb.1", form, null)!!.words.single().wordId)
     }
 
     @Test
-    fun `AWP-18_4 the target or the group of a card that is not there is no step`() {
-        assertNull(Fx.cards(Fx.ran).withCardTarget("walk", CardTargetUi.NewWord))
-        assertNull(Fx.cards(Fx.ran).withCardGroup("walk", CardOwnGroupUi.All))
+    fun `AWP-18_4 the target or the group of a lexeme that is not there is no step`() {
+        assertNull(Fx.cards(Fx.ran).withLexemeTarget("walk", "ruwiktionary/1.verb.1", CardTargetUi.NewWord))
+        assertNull(Fx.cards(Fx.ran).withLexemeGroup("run", "ruwiktionary/1.verb.9", CardOwnGroupUi.All))
     }
 
     @Test
-    fun `AWP-08_5 own group is set and taken off`() {
+    fun `AWP-08_5 AWP-08_8 own group is set and taken off per lexeme`() {
         val cards = Fx.cards(Fx.ran)
 
-        val own = cards.withCardGroup("run", CardOwnGroupUi.Group(Fx.FINANCE))!!
-        val taken = own.withCardGroup("run", CardOwnGroupUi.AsCommon)!!
+        val own = cards.withLexemeGroup("run", "ruwiktionary/1.verb.1", CardOwnGroupUi.Group(Fx.FINANCE))!!
+        val taken = own.withLexemeGroup("run", "ruwiktionary/1.verb.1", CardOwnGroupUi.AsCommon)!!
 
-        assertEquals(CardOwnGroupUi.Group(Fx.FINANCE), own.single().ownGroup)
-        assertEquals(CardOwnGroupUi.AsCommon, taken.single().ownGroup)
+        assertEquals(CardOwnGroupUi.Group(Fx.FINANCE), own.candidate("run", "ruwiktionary/1.verb.1").ownGroup)
+        assertEquals(CardOwnGroupUi.AsCommon, own.candidate("run", "ruwiktionary/1.verb.2").ownGroup)
+        assertEquals(CardOwnGroupUi.AsCommon, taken.candidate("run", "ruwiktionary/1.verb.1").ownGroup)
+    }
+
+    // AWP-63 — после «Создать»
+
+    @Test
+    fun `AWP-63_1 AWP-63_3 after create the lexemes with a new word take the created word, an explicit choice stays`() {
+        val threeRun = Fx.word("run", Fx.lemma("run", listOf(Fx.runVerb1, Fx.runVerb2, Fx.runMachine)))
+        val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
+        val cards = Fx.cards(threeRun, form = form)
+            .withLexemeTarget("run", "ruwiktionary/1.verb.2", CardTargetUi.Existing(Fx.BANK_2))!!
+
+        val after = cards.withNewWordRetargeted("run", 9L)!!
+
+        assertEquals(CardTargetUi.Existing(9L), after.candidate("run", "ruwiktionary/1.verb.1").target)
+        assertEquals(CardTargetUi.Existing(Fx.BANK_2), after.candidate("run", "ruwiktionary/1.verb.2").target)
+        assertEquals(CardTargetUi.Existing(9L), after.candidate("run", "enwiktionary/1.verb.37").target)
+    }
+
+    @Test
+    fun `AWP-63_4 nothing to retarget is no step`() {
+        val cards = Fx.cards(Fx.ran)
+            .withLexemeTarget("run", "ruwiktionary/1.verb.1", CardTargetUi.Existing(Fx.RUN_WORD))!!
+            .withLexemeTarget("run", "ruwiktionary/1.verb.2", CardTargetUi.Existing(Fx.RUN_WORD))!!
+
+        assertNull(cards.withNewWordRetargeted("run", 9L))
+        assertNull(cards.withNewWordRetargeted("walk", 9L))
     }
 
     // AWP-21 — выбор, ставший недействительным
 
     @Test
-    fun `AWP-21_3 AWP-21_5 a deleted group gives the cards that had it as common`() {
+    fun `AWP-21_3 AWP-21_5 a deleted group gives the lexemes that had it as common`() {
         val cards = Fx.cards(Fx.ran, Fx.bank)
-            .withCardGroup("run", CardOwnGroupUi.Group(Fx.FINANCE))!!
-            .withCardGroup("bank", CardOwnGroupUi.Group(Fx.POTTER))!!
+            .withLexemeGroup("run", "ruwiktionary/1.verb.1", CardOwnGroupUi.Group(Fx.FINANCE))!!
+            .withLexemeGroup("bank", "ruwiktionary/1.noun.1", CardOwnGroupUi.Group(Fx.POTTER))!!
 
         val after = cards.withoutGroup(Fx.FINANCE)
 
-        assertEquals(CardOwnGroupUi.AsCommon, after.cardOf("run")!!.ownGroup)
-        assertEquals(CardOwnGroupUi.Group(Fx.POTTER), after.cardOf("bank")!!.ownGroup)
+        assertEquals(CardOwnGroupUi.AsCommon, after.candidate("run", "ruwiktionary/1.verb.1").ownGroup)
+        assertEquals(CardOwnGroupUi.Group(Fx.POTTER), after.candidate("bank", "ruwiktionary/1.noun.1").ownGroup)
     }
 
     @Test
-    fun `AWP-21_4 a deleted lemma gives the cards that chose it a new word`() {
+    fun `AWP-21_4 a deleted lemma gives the lexemes that chose it a new word`() {
         val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
         val cards = Fx.cards(Fx.bank, Fx.ran, form = form)
+            .withLexemeTarget("bank", "ruwiktionary/1.noun.1", CardTargetUi.Existing(Fx.BANK_1))!!
+            .withLexemeTarget("run", "ruwiktionary/1.verb.1", CardTargetUi.Existing(Fx.BANK_1))!!
 
         val after = cards.withoutTarget(Fx.BANK_1)
 
-        assertEquals(CardTargetUi.NewWord, after.cardOf("bank")!!.target)
-        assertEquals(CardTargetUi.NewWord, after.cardOf("run")!!.target)
+        assertEquals(CardTargetUi.NewWord, after.candidate("bank", "ruwiktionary/1.noun.1").target)
+        assertEquals(CardTargetUi.NewWord, after.candidate("run", "ruwiktionary/1.verb.1").target)
     }
 
     @Test

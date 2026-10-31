@@ -29,9 +29,8 @@ import me.apomazkin.candidates.CardOwnGroupUi
 import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.candidates.ComponentRefUi
 import me.apomazkin.candidates.DictionaryFormUi
-import me.apomazkin.candidates.LemmaCardUiItem
 import me.apomazkin.candidates.componentOf
-import me.apomazkin.candidates.groupIdOr
+import me.apomazkin.candidates.lexemeOf
 import me.apomazkin.candidates.optionsOf
 import me.apomazkin.candidates.targetRowsOf
 import me.apomazkin.candidates.textOf
@@ -78,9 +77,9 @@ fun CandidatesSheets(
                 CandidatesSheetUi.CommonGroup ->
                     CommonGroupSheet(view, form, onAction)
                 is CandidatesSheetUi.CardGroup ->
-                    CardGroupSheet(sheet.lemma, view, form, onAction)
+                    CardGroupSheet(sheet.lemma, sheet.key, view, form, onAction)
                 is CandidatesSheetUi.CardTarget ->
-                    CardTargetSheet(sheet.lemma, view, form, onAction)
+                    CardTargetSheet(sheet.lemma, sheet.key, view, form, onAction)
                 is CandidatesSheetUi.Option ->
                     OptionSheet(sheet.ref, view, form, onAction)
                 is CandidatesSheetUi.TextEdit ->
@@ -173,51 +172,53 @@ private fun CommonGroupSheet(
     SheetHint(text = stringResource(id = R.string.photo_add_group_hint))
 }
 
-/** Своя группа карточки (AWP-08): как у всех, «Все» или группа. */
+/** Своя группа плашки при «новое слово» (AWP-08): как у всех, «Все» или группа. */
 @Composable
 private fun CardGroupSheet(
     lemma: String,
+    key: String,
     view: CandidatesView,
     form: DictionaryFormUi,
     onAction: (CandidateAction) -> Unit,
 ) {
-    val card = view.cards.firstOrNull { it.lemma == lemma } ?: return
+    val lexeme = view.cards.lexemeOf(lemma, key) ?: return
     SheetTitle(text = stringResource(id = R.string.photo_add_card_group_title, lemma))
     SheetRow(
         text = stringResource(id = R.string.photo_add_group_as_common),
-        selected = card.ownGroup == CardOwnGroupUi.AsCommon,
-        onClick = { onAction(CandidateAction.SetCardGroup(lemma, CardOwnGroupUi.AsCommon)) },
+        selected = lexeme.ownGroup == CardOwnGroupUi.AsCommon,
+        onClick = { onAction(CandidateAction.SetCardGroup(lemma, key, CardOwnGroupUi.AsCommon)) },
     )
     SheetRow(
         text = stringResource(id = R.string.photo_add_group_all),
-        selected = card.ownGroup == CardOwnGroupUi.All,
-        onClick = { onAction(CandidateAction.SetCardGroup(lemma, CardOwnGroupUi.All)) },
+        selected = lexeme.ownGroup == CardOwnGroupUi.All,
+        onClick = { onAction(CandidateAction.SetCardGroup(lemma, key, CardOwnGroupUi.All)) },
     )
     form.groups.forEach { group ->
         SheetRow(
             text = group.name,
-            selected = card.ownGroup == CardOwnGroupUi.Group(group.id),
+            selected = lexeme.ownGroup == CardOwnGroupUi.Group(group.id),
             onClick = {
-                onAction(CandidateAction.SetCardGroup(lemma, CardOwnGroupUi.Group(group.id)))
+                onAction(CandidateAction.SetCardGroup(lemma, key, CardOwnGroupUi.Group(group.id)))
             },
         )
     }
 }
 
 /**
- * Куда класть (AWP-18): по строке на лемму словаря с этим текстом — значения
- * ядра, число лексем, группы или «Все», день добавления в коротком формате
- * локали — и «новое слово»; подсказка о группе (AWP-18.5). Лист только
- * рисует строки `targetRowsOf`.
+ * «Куда» плашки (AWP-18): по строке на слово словаря с этим текстом —
+ * значения ядра, число лексем, группы или «Все», день добавления в коротком
+ * формате локали — и «новое слово». Лист только рисует строки
+ * `targetRowsOf`.
  */
 @Composable
 private fun CardTargetSheet(
     lemma: String,
+    key: String,
     view: CandidatesView,
     form: DictionaryFormUi,
     onAction: (CandidateAction) -> Unit,
 ) {
-    val card = view.cards.firstOrNull { it.lemma == lemma } ?: return
+    val lexeme = view.cards.lexemeOf(lemma, key) ?: return
     val dateFormat = remember { DateFormat.getDateInstance(DateFormat.SHORT) }
     SheetTitle(text = stringResource(id = R.string.photo_add_target_title, lemma))
     form.targetRowsOf(lemma).forEach { row ->
@@ -234,39 +235,17 @@ private fun CardTargetSheet(
                 groups,
                 dateFormat.format(Date(row.addedAt)),
             ),
-            selected = card.target == CardTargetUi.Existing(row.wordId),
+            selected = lexeme.target == CardTargetUi.Existing(row.wordId),
             onClick = {
                 val target = CardTargetUi.Existing(row.wordId)
-                onAction(CandidateAction.SetCardTarget(lemma, target))
+                onAction(CandidateAction.SetCardTarget(lemma, key, target))
             },
         )
     }
     SheetRow(
         text = stringResource(id = R.string.photo_add_target_new, lemma),
-        selected = card.target == CardTargetUi.NewWord,
-        onClick = { onAction(CandidateAction.SetCardTarget(lemma, CardTargetUi.NewWord)) },
-    )
-    GroupHint(card = card, view = view, form = form)
-}
-
-/** «Слово войдёт в группу «…» вместе со своими N старыми значениями» (AWP-18.5). */
-@Composable
-private fun GroupHint(
-    card: LemmaCardUiItem,
-    view: CandidatesView,
-    form: DictionaryFormUi,
-) {
-    val target = card.target as? CardTargetUi.Existing ?: return
-    val groupId = card.groupIdOr(view.commonGroupId) ?: return
-    val group = form.groups.firstOrNull { it.id == groupId } ?: return
-    val existing = form.existingLemmas.firstOrNull { it.wordId == target.wordId } ?: return
-    val oldLexemes = stringResource(id = R.string.photo_add_old_lexemes)
-    SheetHint(
-        text = stringResource(
-            id = R.string.photo_add_target_group_hint,
-            group.name,
-            "${existing.lexemeCount} $oldLexemes",
-        ),
+        selected = lexeme.target == CardTargetUi.NewWord,
+        onClick = { onAction(CandidateAction.SetCardTarget(lemma, key, CardTargetUi.NewWord)) },
     )
 }
 

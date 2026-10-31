@@ -28,9 +28,11 @@ sealed interface CandidateAction {
     /** Опция «Выбора» у лексемы-кандидата, null — «без значения» (AWP-17). */
     data class SetOption(val ref: ComponentRefUi, val option: Long?) : CandidateAction
 
-    data class SetCardTarget(val lemma: String, val target: CardTargetUi) : CandidateAction
+    /** «Куда» плашки нейронки (AWP-18): лемма карточки, ключ лексемы-кандидата, выбор. */
+    data class SetCardTarget(val lemma: String, val key: String, val target: CardTargetUi) : CandidateAction
 
-    data class SetCardGroup(val lemma: String, val group: CardOwnGroupUi) : CandidateAction
+    /** Своя группа плашки при «новое слово» (AWP-08). */
+    data class SetCardGroup(val lemma: String, val key: String, val group: CardOwnGroupUi) : CandidateAction
 
     data class SetCommonGroup(val groupId: Long?) : CandidateAction
 

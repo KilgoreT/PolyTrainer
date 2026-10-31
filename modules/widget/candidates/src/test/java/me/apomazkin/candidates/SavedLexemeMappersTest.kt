@@ -43,7 +43,7 @@ class SavedLexemeMappersTest {
     }
 
     @Test
-    fun `AWP-46_1 saved values of the chosen lemma come to the card in the card order`() {
+    fun `AWP-46_7 saved values of the word come to the plate in the card order`() {
         val saved = SavedLexeme(
             id = 9L,
             components = listOf(
@@ -55,13 +55,13 @@ class SavedLexemeMappersTest {
         val perro = Fx.existing(Fx.BANK_1, "perro", listOf("собака"), lexemes = listOf(saved.toUi()))
         val form = Fx.form(existing = listOf(perro))
 
-        val values = form.savedLexemesOf(CardTargetUi.Existing(Fx.BANK_1)).single().values
+        val values = form.savedWordsOf("perro").single().lexemes.single().values
 
         assertEquals(listOf(Fx.TRANSLATION, Fx.GLOSS, Fx.EXAMPLE), values.map { it.componentId })
     }
 
     @Test
-    fun `AWP-46_4 AWP-18_10 a lemma without lexemes maps with an empty list and keeps its add date`() {
+    fun `AWP-46_4 AWP-46_6 AWP-18_10 a lemma without lexemes maps with an empty list and keeps its add date`() {
         val lemma = ExistingLemma(
             wordId = 5L,
             text = "run",

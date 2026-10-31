@@ -497,6 +497,12 @@ fun wordTextKey(
 
 ### Этап 2: карточка под словом
 
+> [!IMPORTANT]
+> Этап 3 ниже переделывает карточку в плашки по спеке v3: «куда класть»
+> и своя группа переезжают с карточки на лексему-кандидата, запись идёт
+> по одной лексеме, плашки словаря перечитываются после записи. Что
+> этап 3 не называет, остаётся как здесь.
+
 Тап по слову списка раскрывает под ним карточку: у нового слова —
 лексемы-кандидаты с сервера, у слова «в словаре» — сохранённые
 лексемы и «Проверить по тексту». В карточке правки, «куда класть»,
@@ -1381,6 +1387,497 @@ fun List<CandidateValueUiItem>.inCardOrder(
 // buildLemmaCards — снята: карточек окна по списку слов
 // нет; summaryOf остаётся у диалога карточки слова.
 ```
+
+### Этап 3: плашки под словом
+
+Спека v3, Ш6–Ш9. Под словом два ряда плашек. Плашки словаря — по
+слову словаря снимка с этим текстом: группы, дата, сохранённые
+лексемы; читаются с телефона при раскрытии и перечитываются после
+каждой записи (AWP-46, AWP-63). Плашки нейронки — по
+лексеме-кандидату ответа: значения, пометки, своё «Куда» с умолчанием
+«новое слово», своя группа при «новое слово», кнопка «Создать» или
+«Перенести» и «Не нужно» (AWP-18, AWP-47, AWP-64). Запись — одна
+лексема одной транзакцией (AWP-20); слово уходит из списка, когда
+плашек нейронки не осталось (AWP-62).
+
+Ключи. Адрес слова — его текст в списках, как в этапе 2. Лемма
+карточки — тот же текст: плашки словаря, «Куда», «уже в словаре» и
+перечитка идут по тексту слова списка, а не по лемме ответа; ответ
+другой леммой («children» → «child») — ошибка этапа, окно её не
+ловит (AWP-43.7 снята, бэклог). Адрес плашки нейронки — текст слова
+и ключ лексемы-кандидата.
+
+#### Стейт
+
+Дельта к этапу 2: «куда класть», своя группа, запись и сбой записи
+уходят с карточки на лексему-кандидата; сохранённые — по слову
+словаря.
+
+```diff
+ // widget/candidates: CandidatesUi.kt
+ data class LemmaCardUiItem(
+     val lemma: String,
+     val sourceWords: List<String>,
+     val lexemes: List<CardLexemeUiItem>,
+     val existingCount: Int,
+-    val target: CardTargetUi,
+-    val ownGroup: CardOwnGroupUi,
+     val formNote: String? = null,
+ )
+
+ data class CardLexemeUiItem(
+     …
+     val isInContext: Boolean = false,
++    // новое: «Куда» плашки, по умолчанию «новое слово»
++    // (AWP-18.3)
++    val target: CardTargetUi = CardTargetUi.NewWord,
++    // новое: своя группа при «новое слово» (AWP-08)
++    val ownGroup: CardOwnGroupUi = CardOwnGroupUi.AsCommon,
++    // новое: идёт запись этой плашки (AWP-47.4)
++    val isAdding: Boolean = false,
++    // новое: запись не удалась, причина под плашкой
++    // (AWP-21)
++    val addFailure: AddFailureUi? = null,
+ ) {
++    // кнопка записи активна: без «уже в словаре» и с
++    // ядром (AWP-47.3, AWP-50.12)
++    val canWrite: Boolean
++        get() = !exists && !lacksCore
+ }
+
+ sealed interface CandidatesSheetUi {
+-    data class CardGroup(val lemma: String)
+-    data class CardTarget(val lemma: String)
++    // лист своей группы и «Куда» — по плашке
++    data class CardGroup(
++        val lemma: String,
++        val key: String,
++    )
++    data class CardTarget(
++        val lemma: String,
++        val key: String,
++    )
+     …
+ }
+
+ // widget/candidates: FormUi.kt
++// SavedWordUi — плашка словаря (AWP-46): слово словаря с
++// этим текстом, группы (пусто — «Все»), день добавления,
++// сохранённые лексемы в порядке карточки. Новый.
++data class SavedWordUi(
++    val wordId: Long,
++    val text: String,
++    val groupNames: List<String>,
++    val addedAt: Long,
++    val lexemes: List<SavedLexemeUi>,
++)
+
+ // scancandidates/mate: State.kt
+ data class WordCardUi(
+     val phase: CardPhase,
+     val lemma: LemmaCardUiItem,
+-    val saved: List<SavedLexemeUi> = emptyList(),
++    // плашки словаря: по слову словаря с текстом слова
++    // списка, самое новое первым (AWP-46)
++    val saved: List<SavedWordUi> = emptyList(),
+     val remarks: List<RemarkUiItem> = emptyList(),
+     val componentMatchLines:
+         List<ComponentMatchLineUiItem> = emptyList(),
+     val isComponentMatchesExpanded: Boolean = false,
+-    val canAdd: Boolean = false,
+     val errorRes: Int? = null,
+     val hasRetryButton: Boolean = false,
++    // идёт запись одной из плашек: кнопки и правки всех
++    // плашек слова неактивны (AWP-47.4)
+     val isAdding: Boolean = false,
+-    val addFailure: AddFailureUi? = null,
+ )
+```
+
+`CardPhase` без изменений: `SAVED` — плашки словаря и «Проверить по
+тексту», `LOADING`, `CANDIDATES` — плашки нейронки, `NOT_FOUND`,
+`ERROR`. Плашки словаря видны в любой фазе, когда они есть.
+
+#### Сообщения и эффекты
+
+```diff
+ sealed interface Msg {
+     data class LexemesFound(
+         val text: String,
+         val word: LookupWordUi,
+         val recommendations:
+             List<ComponentRecommendationUi>,
+-        val existing: List<ExistingLemmaUi>,
+     )
+
+-    data class WordAdded(val text: String)
++    // «Перенести» прошло: лексема легла в выбранное
++    // слово
++    data class LexemeAdded(
++        val text: String,
++        val key: String,
++    )
++    // «Создать» прошло: новое слово wordId с этой
++    // лексемой (AWP-63)
++    data class WordCreated(
++        val text: String,
++        val key: String,
++        val wordId: Long,
++    )
+-    data class AddGroupGone(…text, failure)
++    // отказы записи адресуют плашку: так же
++    // AddWordGone, AddComponentGone, AddFailed
++    data class AddGroupGone(
++        val text: String,
++        val key: String,
++        val failure: AddFailureUi.GroupMissing,
++    )
++    // леммы словаря с текстом слова перечитаны после
++    // записи (AWP-63)
++    data class LemmasReloaded(
++        val text: String,
++        val existing: List<ExistingLemmaUi>,
++    )
++    // перечитка упала: плашки словаря как были, лог
++    data class LemmasReloadFailed(val text: String)
+
+-    data class DeleteWord(val text: String)
++    // «Убрать из списка» у слова (AWP-48)
++    data class RemoveWord(val text: String)
+-    data class AddWord(val text: String)
++    // «Создать» или «Перенести» у плашки (AWP-20);
++    // какую кнопку нажали, решает «Куда» плашки
++    data class AddLexeme(
++        val text: String,
++        val key: String,
++    )
+-    data class RetryAdd(val text: String)
++    data class RetryAdd(
++        val text: String,
++        val key: String,
++    )
++    // «Не нужно» у плашки (AWP-64)
++    data class DismissLexeme(
++        val text: String,
++        val key: String,
++    )
+-    data class SetCardTarget(…lemma, target)
+-    data class SetCardGroup(…lemma, group)
++    // «Куда» и своя группа: адрес — плашка
++    data class SetCardTarget(
++        val lemma: String,
++        val key: String,
++        val target: CardTargetUi,
++    )
++    data class SetCardGroup(
++        val lemma: String,
++        val key: String,
++        val group: CardOwnGroupUi,
++    )
+ }
+
+ sealed interface DatasourceEffect : Effect {
+-    data class AddWord(…word, batch)
++    // запись плашки в новое слово (AWP-20.9); сбой —
++    // «не добавилось» у плашки
++    data class CreateWord(
++        val word: String,
++        val key: String,
++        val batch: WordsBatch,
++    )
++    // запись плашки в выбранное слово словаря
++    // (AWP-20.10)
++    data class TransferLexeme(
++        val word: String,
++        val key: String,
++        val batch: WordsBatch,
++    )
++    // леммы словаря с текстом слова заново (AWP-63):
++    // тот же loadForm по одному тексту; сбой —
++    // LemmasReloadFailed
++    data class ReloadLemmas(
++        val word: String,
++        val dictionaryId: Long,
++    )
+ }
+```
+
+Два эффекта записи вместо одного с флагом: хендлер шлёт на успех
+`WordCreated` с id нового слова или `LexemeAdded`, не разбирая пакет;
+юзкейс у обоих один — `addWord(batch)`. Перечитка — отдельный эффект
+после записи: запись и чтение — разные исходы с разными сбоями, и
+запись, прошедшая до упавшей перечитки, остаётся «записано».
+
+#### Атомы
+
+Новые и изменённые; остальные атомы этапа 2 как были. Лемма карточки
+— текст слова, поэтому `lemmaStep` и `lemmaCardsStep` адресуют
+карточку словом.
+
+```kotlin
+// Все атомы — расширения ScanCandidatesState, возвращают
+// ScanCandidatesResult; здесь только аргументы.
+
+// openSavedCard — карточка слова «в словаре» (AWP-46):
+// плашки словаря по тексту слова, лемма без лексем;
+// раскрыта. Меняется: saved — по слову.
+openSavedCard(text: String)
+
+// applyLexemes — ответ в карточку (AWP-43, AWP-49):
+// лексемы ответа в лемму с текстом слова, у каждой
+// «Куда» «новое слово» и группа «как у всех»; плашки
+// словаря по тексту. Меняется: existing ответа не
+// нужен, лемма — текст слова.
+applyLexemes(found: Msg.LexemesFound)
+
+// refreshCardMarks — «уже в словаре» по ядрам всех слов
+// словаря с текстом слова (AWP-50), «не попадёт в
+// ядро». Меняется: ключи — lemmaWordKeys(text), canAdd
+// снят.
+refreshCardMarks(text: String)
+
+// removeWord — «Убрать из списка» (AWP-48). Было
+// deleteWord.
+removeWord(text: String)
+
+// dismissLexeme — «Не нужно»: лексема-кандидат прочь
+// из леммы слова (AWP-64). No-op без неё. Новый.
+dismissLexeme(text: String, key: String)
+
+// removeEmptyWord — у слова карточка с ответом и ни
+// одной лексемы-кандидата: строки прочь (AWP-62);
+// иначе no-op. Новый.
+removeEmptyWord(text: String)
+
+// setLexemeTarget, setLexemeGroup — «Куда» и своя
+// группа плашки (AWP-18, AWP-08). Были setCardTarget,
+// setCardGroup.
+setLexemeTarget(
+    text: String, key: String, target: CardTargetUi,
+)
+setLexemeGroup(
+    text: String, key: String, group: CardOwnGroupUi,
+)
+
+// refreshCardSaved — плашки словаря слова по форме
+// заново (AWP-46, AWP-63). Было refreshLemmaSaved по
+// «куда класть».
+refreshCardSaved(text: String)
+
+// startAddingLexeme — запись плашки (AWP-20, AWP-02):
+// пакет одной лексемы в новое слово или в выбранное по
+// «Куда», эффект CreateWord или TransferLexeme по типу
+// «Куда»; «идёт запись» у плашки, карточки и экрана,
+// прежний сбой плашки снят. No-op без лексемы и у
+// плашки без canWrite. Было startAddingWord.
+startAddingLexeme(text: String, key: String)
+
+// finishAdding — записано: плашка прочь, «идёт запись»
+// карточки снят, у экрана — когда других записей нет.
+// Новый.
+finishAdding(text: String, key: String)
+
+// retargetNewWordLexemes — после «Создать»: у плашек
+// слова с «Куда: новое слово» — созданное слово
+// (AWP-63.1, 63.3); явный выбор не трогается. No-op
+// без таких плашек. Новый.
+retargetNewWordLexemes(text: String, wordId: Long)
+
+// startLemmasReload — эффект перечитки лемм словаря с
+// текстом слова (AWP-63). No-op без слова в списках:
+// оно уже ушло. Новый.
+startLemmasReload(text: String)
+
+// applyReloadedLemmas — леммы словаря с текстом слова
+// в форме заменены присланными, плашки словаря и счёт
+// лемм заново (AWP-63). Пометки «в словаре» и «уже в
+// словаре» — следующие атомы цепочки. Новый.
+applyReloadedLemmas(
+    text: String, existing: List<ExistingLemmaUi>,
+)
+
+// showAddFailure, clearAddFailure — «не добавилось» у
+// плашки (AWP-21, AWP-26). Меняется: адрес — плашка.
+showAddFailure(
+    text: String, key: String, failure: AddFailureUi,
+)
+clearAddFailure(text: String, key: String)
+
+// resetDeadGroup, resetDeadTarget — своя группа и
+// «Куда» плашек (AWP-21.3–21.5). Меняется: переходы по
+// лексемам.
+```
+
+#### Редьюсер
+
+Цепочки новых и изменённых сообщений; условия по-прежнему только в
+ветке закрытия.
+
+```kotlin
+LexemesFound -> applyLexemes → refreshCardValues
+    → refreshCardMarks
+LexemeAdded -> finishAdding → removeEmptyWord
+    → startLemmasReload
+WordCreated -> finishAdding → retargetNewWordLexemes
+    → removeEmptyWord → startLemmasReload
+LemmasReloaded -> applyReloadedLemmas → markInDictionary
+    → refreshCardMarks
+LemmasReloadFailed -> noOp
+AddGroupGone -> resetDeadGroup → showAddFailure
+AddWordGone -> resetDeadTarget → refreshAllCards
+    → showAddFailure
+AddComponentGone -> dropComponent → refreshAllCards
+    → showAddFailure
+AddFailed -> showAddFailure
+RemoveWord -> removeWord
+AddLexeme -> startAddingLexeme
+RetryAdd -> clearAddFailure → startAddingLexeme
+DismissLexeme -> dismissLexeme → refreshLemmaMarks
+    → removeEmptyWord
+DeleteValue -> deleteValue → refreshLemmaValues
+    → refreshLemmaMarks → removeEmptyWord
+SubmitText -> applyTextEdit → dropEmptyTexts
+    → refreshLemmaValues → closeSheet
+    → refreshLemmaMarks → removeEmptyWord
+SetCardTarget -> setLexemeTarget → closeSheet
+SetCardGroup -> setLexemeGroup → closeSheet
+```
+
+`removeEmptyWord` стоит в хвосте цепочек, где плашка может уйти:
+«Не нужно», запись, стирание последнего ядра (AWP-11.5). «Куда» на
+пометки не влияет (AWP-50.14), поэтому за `setLexemeTarget` пересчёта
+нет.
+
+#### Хендлер
+
+```kotlin
+// CreateWord → Added:
+//   WordCreated(word, key, wordIds.first())
+// TransferLexeme → Added: LexemeAdded(word, key)
+// отказы обоих — AddGroupGone / AddWordGone /
+//   AddComponentGone / AddFailed с ключом плашки
+//   (AWP-21.3–21.6)
+// ReloadLemmas → loadForm(dictionaryId, listOf(word)):
+//   Loaded → LemmasReloaded(word, existingLemmas.toUi())
+//   DictionaryMissing, Failed → LemmasReloadFailed(word)
+```
+
+Перечитка — тем же `loadForm` по одному тексту: порт не растёт,
+форма заново читается целиком, но из ответа берутся только леммы.
+
+#### Чистые функции
+
+```kotlin
+// widget/candidates: LemmaCards.kt
+
+// emptyLemmaCard — лемма без лексем по тексту слова;
+// «куда класть» и группы у леммы больше нет. Меняется.
+fun emptyLemmaCard(
+    lemma: String,
+    form: DictionaryFormUi,
+): LemmaCardUiItem
+
+// lemmaCardOf — лексемы первой леммы ответа с лексемами
+// в лемму prior: текст леммы — prior.lemma, то есть
+// слово списка; пометка формы — из ответа. Меняется:
+// ветка «лемма ответа другая» снята (AWP-43.7).
+fun lemmaCardOf(
+    word: LookupWordUi,
+    prior: LemmaCardUiItem,
+    form: DictionaryFormUi,
+): LemmaCardUiItem
+
+// savedWordsOf — плашки словаря: по слову словаря с
+// текстом, самое новое первым, значения лексем в
+// порядке карточки (AWP-46, AWP-44). Заменяет
+// savedLexemesOf(target). Новая.
+fun DictionaryFormUi.savedWordsOf(
+    text: String,
+): List<SavedWordUi>
+
+// withLemmasOf — форма, где леммы словаря с этим
+// текстом заменены присланными (AWP-63). Заменяет
+// withExistingLemmas. Новая.
+fun DictionaryFormUi.withLemmasOf(
+    text: String,
+    lemmas: List<ExistingLemmaUi>,
+): DictionaryFormUi
+
+// lemmaWordKeys — есть (WCL-15.4): ключи ядер всех слов
+// с текстом; теперь и для «уже в словаре» окна
+// (AWP-50). lexemeKeysOf(target) — снята.
+
+// widget/candidates: CardTransitions.kt
+
+// withLexemeTarget, withLexemeGroup — «Куда» и своя
+// группа лексемы-кандидата; null — её нет. Заменяют
+// withCardTarget / withCardGroup.
+fun List<LemmaCardUiItem>.withLexemeTarget(
+    lemma: String,
+    key: String,
+    target: CardTargetUi,
+): List<LemmaCardUiItem>?
+
+fun List<LemmaCardUiItem>.withLexemeGroup(
+    lemma: String,
+    key: String,
+    group: CardOwnGroupUi,
+): List<LemmaCardUiItem>?
+
+// withNewWordRetargeted — у лексем леммы с «новое
+// слово» — созданное слово (AWP-63.3); null — таких
+// нет. Новая.
+fun List<LemmaCardUiItem>.withNewWordRetargeted(
+    lemma: String,
+    wordId: Long,
+): List<LemmaCardUiItem>?
+
+// withoutGroup, withoutTarget — те же сбросы, но по
+// лексемам (AWP-21.3–21.5). Меняются.
+
+// widget/candidates: WordsBatches.kt
+
+// lexemeBatchOf — пакет одной лексемы (AWP-20): слово
+// пакета — новое с текстом леммы или выбранное по
+// «Куда», группа — своя или общая только у нового
+// (AWP-20.10), одна лексема по сопоставлению и
+// правкам; null — лексемы нет. Заменяет wordsBatchOf.
+fun lexemeBatchOf(
+    card: LemmaCardUiItem,
+    key: String,
+    form: DictionaryFormUi,
+    commonGroupId: Long?,
+): WordsBatch?
+
+// groupIdOr — группа по своей группе лексемы (AWP-08).
+// Переезжает с карточки на лексему.
+fun CardLexemeUiItem.groupIdOr(commonGroupId: Long?): Long?
+```
+
+#### UI
+
+`widget/candidates/ui`: `LemmaCardWidget` с шапкой леммы и «Куда»
+карточки снята; вместо неё `SavedWordPlate(saved, form)` — плашка
+словаря: группы или «Все», дата коротким форматом локали, лексемы
+строками «Имя: значение» (AWP-46); `LexemeRow` открыт наружу с
+`onDelete: (() -> Unit)?` — крестик только у диалога карточки слова;
+`LexemeChoices(card, lexeme, form, onAction)` — «Куда: …▾», когда у
+слова есть леммы словаря (AWP-18.2), и «Группа: …▾» при «новое
+слово» и группах в словаре (AWP-08.6). Листы `CardTargetSheet` и
+`CardGroupSheet` берут выбор у лексемы по `(lemma, key)`; подсказка о
+группе снята (AWP-18.5).
+
+`scancandidates/ui`: `WordCardBlock` — плашки словаря в любой фазе,
+когда есть; `SAVED` — «Проверить по тексту» и «Убрать из списка»;
+`LOADING` — признак и «Убрать из списка» (AWP-57.4); `CANDIDATES` —
+по плашке на лексему: `LexemeRow` без крестика, `LexemeChoices`, «не
+добавилось» с «Повторить» или кнопка записи — «Создать» при «новое
+слово», «Перенести» при выбранном слове, неактивна без `canWrite` и
+при `isAdding` карточки, — и «Не нужно»; под плашками «Замечания»,
+«Сопоставление», подпись источника; `NOT_FOUND`, `ERROR` — причина,
+«Повторить» по флагу, «Убрать из списка». `WordAction`: `Tap`,
+`Remove`, `CheckByText`, `RetryLookup`, `Write(text, key)`,
+`RetryAdd(text, key)`, `Dismiss(text, key)`, `ToggleMatches`.
 
 ### Юзкейсы
 

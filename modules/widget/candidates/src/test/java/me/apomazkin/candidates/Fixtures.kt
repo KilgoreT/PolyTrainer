@@ -676,17 +676,21 @@ object Fx {
 
     /**
      * Карточки, как их собирает цепочка атомов экрана по слову: пустая карточка
-     * леммы → карточка из ответа → активность, «уже в словаре» по выбранной
-     * лемме словаря (AWP-50), ядро. Слово — одна карточка его первой леммы с
-     * лексемами.
+     * леммы → карточка из ответа → активность, «уже в словаре» по всем словам
+     * словаря с текстом леммы (AWP-50.14), ядро. Слово — одна карточка его
+     * первой леммы с лексемами; текст карточки — лемма ответа, чтобы адреса
+     * правок в тестах шли по лемме («ran» → «run»).
      */
     fun cards(
         vararg words: LookupWordUi,
         form: DictionaryFormUi = Fx.form(),
     ): List<LemmaCardUiItem> = words
-        .map { word -> lemmaCardOf(word, emptyLemmaCard(word.text, form), form) }
+        .map { word ->
+            val lemma = word.lemmas.firstOrNull()?.text ?: word.text
+            lemmaCardOf(word, emptyLemmaCard(lemma, form), form)
+        }
         .withActiveValues(form)
-        .map { card -> listOf(card).withExistsMarks(form.lexemeKeysOf(card.target), form).single() }
+        .map { card -> listOf(card).withExistsMarks(form.lemmaWordKeys(card.lemma), form).single() }
         .withCoreMarks(form)
 
     /** Адрес значения: лемма, ключ лексемы, компонент, номер значения. */

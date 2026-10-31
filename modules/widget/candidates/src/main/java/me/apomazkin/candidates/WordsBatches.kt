@@ -21,27 +21,35 @@ import me.apomazkin.lexeme.WordsBatch
 const val SOURCE_CAPTION = "Wiktionary"
 
 /**
- * Пакет из окна (AWP-20): каждая карточка с лексемами без «есть» — слово
- * пакета (новое или существующее по выбору «куда класть»), её группа —
- * своя или общая; лексемы «есть» пропускаются (AWP-20.4).
+ * Пакет одной лексемы-кандидата из окна снимка (AWP-20): «новое слово» —
+ * новое слово с текстом леммы карточки и группой, своей или общей
+ * (AWP-20.9); выбранное слово — лексема в него, группы слова не трогаются
+ * (AWP-20.10); null — лексемы нет.
  * @param commonGroupId общая группа окна или null («Все»).
  */
-fun wordsBatchOf(
-    cards: List<LemmaCardUiItem>,
+fun lexemeBatchOf(
+    card: LemmaCardUiItem,
+    key: String,
     form: DictionaryFormUi,
     commonGroupId: Long?,
-): WordsBatch {
-    val words = cards.mapNotNull { card ->
-        val lexemes = card.lexemes.filterNot { it.exists }
-        if (lexemes.isEmpty()) return@mapNotNull null
-        BatchWord(
-            wordId = (card.target as? CardTargetUi.Existing)?.wordId,
+): WordsBatch? {
+    val lexeme = card.lexemes.firstOrNull { it.key == key } ?: return null
+    val lexemes = listOf(BatchLexeme(components = lexeme.componentsOf(form)))
+    val word = when (val target = lexeme.target) {
+        CardTargetUi.NewWord -> BatchWord(
+            wordId = null,
             text = card.lemma,
-            groupId = card.groupIdOr(commonGroupId),
-            lexemes = lexemes.map { BatchLexeme(components = it.componentsOf(form)) },
+            groupId = lexeme.groupIdOr(commonGroupId),
+            lexemes = lexemes,
+        )
+        is CardTargetUi.Existing -> BatchWord(
+            wordId = target.wordId,
+            text = card.lemma,
+            groupId = null,
+            lexemes = lexemes,
         )
     }
-    return WordsBatch(dictionaryId = form.dictionaryId, words = words)
+    return WordsBatch(dictionaryId = form.dictionaryId, words = listOf(word))
 }
 
 /**
@@ -103,8 +111,8 @@ fun wordsBatchForTransfer(
     )
 }
 
-/** Группа леммы (AWP-08): своя у карточки, иначе общая; «Все» — без группы. */
-fun LemmaCardUiItem.groupIdOr(commonGroupId: Long?): Long? = when (val own = ownGroup) {
+/** Группа нового слова (AWP-08): своя у лексемы-кандидата, иначе общая; «Все» — без группы. */
+fun CardLexemeUiItem.groupIdOr(commonGroupId: Long?): Long? = when (val own = ownGroup) {
     CardOwnGroupUi.AsCommon -> commonGroupId
     CardOwnGroupUi.All -> null
     is CardOwnGroupUi.Group -> own.groupId

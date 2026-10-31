@@ -55,7 +55,7 @@ sealed interface DatasourceEffect : Effect {
     }
 
     /**
-     * Запрос значений слова (AWP Ш6, Ш8, LFL-103): [word] — слово списка,
+     * Запрос значений слова (AWP Ш6, Ш7, LFL-103): [word] — слово списка,
      * адрес карточки; [lemma] — что ищет сервер, текст слова как есть;
      * [dictionaryId] — словарь снимка: языки и дерево; [text] и
      * [translation] — исправленный текст снимка и его перевод, контекст.
@@ -80,21 +80,57 @@ sealed interface DatasourceEffect : Effect {
     }
 
     /**
-     * Запись одного слова одной транзакцией (AWP Ш9): [word] — слово списка,
-     * адрес карточки; [batch] — пакет из одного слова. Сбой эффекта — «не
-     * добавилось» у слова. В лог — слово и число лексем.
+     * «Создать»: запись плашки [key] слова [word] в новое слово одной
+     * транзакцией (AWP Ш9, AWP-20.9); [batch] — пакет из одного нового слова
+     * с одной лексемой. Сбой эффекта — «не добавилось» у плашки.
      */
-    data class AddWord(
+    data class CreateWord(
         val word: String,
+        val key: String,
         val batch: WordsBatch,
     ) : DatasourceEffect,
         RecoverableEffect<Msg> {
         override fun onFail(error: Throwable) = Msg.AddFailed(
             text = word,
+            key = key,
+            failure = AddFailureUi.Failed,
+        )
+
+        override fun toString(): String = "CreateWord(word=$word, key=$key)"
+    }
+
+    /**
+     * «Перенести»: запись плашки [key] слова [word] в выбранное слово словаря
+     * одной транзакцией (AWP Ш9, AWP-20.10); [batch] — пакет из одного
+     * существующего слова с одной лексемой. Сбой эффекта — «не добавилось» у
+     * плашки.
+     */
+    data class TransferLexeme(
+        val word: String,
+        val key: String,
+        val batch: WordsBatch,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.AddFailed(
+            text = word,
+            key = key,
             failure = AddFailureUi.Failed,
         )
 
         override fun toString(): String =
-            "AddWord(word=$word, lexemes=${batch.words.sumOf { it.lexemes.size }})"
+            "TransferLexeme(word=$word, key=$key, wordId=${batch.words.firstOrNull()?.wordId})"
+    }
+
+    /**
+     * Леммы словаря снимка с текстом слова [word] заново после записи (AWP
+     * Ш9, AWP-63): тот же запрос формы по одному тексту. Сбой эффекта —
+     * плашки словаря как были.
+     */
+    data class ReloadLemmas(
+        val word: String,
+        val dictionaryId: Long,
+    ) : DatasourceEffect,
+        RecoverableEffect<Msg> {
+        override fun onFail(error: Throwable) = Msg.LemmasReloadFailed(text = word)
     }
 }

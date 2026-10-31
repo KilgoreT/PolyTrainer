@@ -30,7 +30,10 @@ IS536 (Д116). Этапы в порядке
 уходом слова из списка (Д118), «куда класть» с датой (Д120), вопрос
 при закрытии, диалог карточки слова леммой; «заменить» сохранённую
 лексему отложено (Д119). Бэкенд этапа 2 — `plan-backend.md`, Э9–Э14,
-в проде раньше сборки.
+в проде раньше сборки. Этап 3 (Э11–Э12): плашки под словом по спеке
+v3 — плашки словаря по слову, плашки нейронки по лексеме со своим
+«Куда», запись по одной лексеме, перечитка плашек после записи
+(Д122–Д131); код этапа 2 закоммичен точкой отката до переделки.
 
 ## Э1. Домен и шлюз
 
@@ -2229,3 +2232,431 @@ AWP-42.3, AWP-45.3, AWP-52.2 — в списке ниже.
 
 **Мотивация.** Ручники закрывают строки «ручной»; сборка с
 минификацией ловит выпиленные зеркала новой операции.
+
+## Э11. Плашки под словом
+
+ВЫПОЛНЕН 2026-10-29. Как в плане и `hld-awp.md`, «Этап 3»; разошлось:
+«Куда» и своя группа живут на `CardLexemeUiItem` вместе с `isAdding`
+и `addFailure` (единый источник, без параллельного списка плашек),
+`LemmaCardUiItem.target`/`ownGroup` сняты совсем — диалог карточки
+слова их не читал; `canWrite` — свойство лексемы, а не поле стейта;
+`emptyLemmaCard` и `lemmaCardOf` держат текст слова списка леммой
+карточки; `withCardTarget`/`withCardGroup` → `withLexemeTarget`/
+`withLexemeGroup`, `withoutGroup`/`withoutTarget` — по лексемам;
+`wordsBatchOf` снята, пакет — `lexemeBatchOf`; `LemmaCardWidget`,
+`SavedLexemeRows` и `GroupHint` сняты, вместо них `SavedWordPlate`,
+`LexemeChoices`, `LexemeRow` с `onDelete`; у плашки «уже в словаре»
+«Куда» и «Группа» не рисуются; `AddWordReducerTest` →
+`AddLexemeReducerTest`; строка AWP-15.8 (два быстрых «удалить» у
+примера) снята в пользу AWP-64.3 — у значения адрес по номеру, второй
+тап по тому же месту снял бы соседа, а страховок от двойного тапа нет;
+`Fx.cards` виджета строит карточку по лемме ответа, чтобы адреса правок
+в тестах остались по лемме. Тесты: виджет, карточка слова, экран снимка,
+`:app:testDebugUnitTest`, `:app:lintDebug` зелёные.
+
+Переделка карточки этапа 2 в плашки по `hld-awp.md`, «Этап 3».
+Тезисы: AWP-02, AWP-03, AWP-08, AWP-11, AWP-15, AWP-18, AWP-20,
+AWP-21, AWP-26, AWP-42, AWP-43, AWP-45, AWP-46, AWP-47, AWP-48,
+AWP-49, AWP-50, AWP-51, AWP-55, AWP-57, AWP-61, AWP-62, AWP-63,
+AWP-64. Порядок: типы виджета и чистые функции с тестами, затем
+экран — стейт, сообщения, эффекты, атомы, редьюсер, хендлер, UI, —
+затем тесты экрана, строки, превью. После этапа:
+`:modules:widget:candidates`, `:modules:screen:wordcard`,
+`:modules:screen:scancandidates`, `:app:testDebugUnitTest`,
+`:app:lintDebug` зелёные.
+
+Допущения: лемма карточки — текст слова списка, лемма ответа другой
+текстом — ошибка этапа, окно её не ловит (AWP-43.7 снята, бэклог);
+«уже в словаре» и «Куда» — по всем словам словаря с текстом слова;
+условия в редьюсере — только ветка закрытия, как было.
+
+### Типы виджета
+
+**Было.** `widget/candidates/CandidatesUi.kt` —
+`LemmaCardUiItem(lemma, sourceWords, lexemes, existingCount,
+target, ownGroup, formNote)`, `CardLexemeUiItem(key, source,
+values, isEnglishFallback, exists, lacksCore, existsInLemma,
+isInContext)`, листы `CardGroup(lemma)`, `CardTarget(lemma)`;
+`FormUi.kt` — `ExistingLemmaUi`, `SavedLexemeUi`;
+`CandidateAction.kt` — `SetCardTarget(lemma, target)`,
+`SetCardGroup(lemma, group)`.
+
+**Будет.** Как в HLD, «Стейт» этапа 3: у леммы без `target` и
+`ownGroup`; у лексемы-кандидата `target`, `ownGroup`, `isAdding`,
+`addFailure` с умолчаниями и `canWrite`; листы и действия с
+ключом лексемы; новый `SavedWordUi`.
+
+```kotlin
+// SavedWordUi — плашка словаря (AWP-46). Новый.
+@Immutable
+data class SavedWordUi(
+    val wordId: Long,
+    val text: String,
+    val groupNames: List<String>,
+    val addedAt: Long,
+    val lexemes: List<SavedLexemeUi>,
+)
+
+// CandidateAction: адрес — плашка. Меняются.
+data class SetCardTarget(
+    val lemma: String,
+    val key: String,
+    val target: CardTargetUi,
+) : CandidateAction
+
+data class SetCardGroup(
+    val lemma: String,
+    val key: String,
+    val group: CardOwnGroupUi,
+) : CandidateAction
+```
+
+**Мотивация.** «Куда» и группа — выбор на каждую лексему (Д123,
+Д126); диалог карточки слова эти поля не читает, умолчания его не
+трогают.
+
+### Чистые функции виджета
+
+**Было.** `LemmaCards.kt` — `emptyLemmaCard` с «куда класть» по
+самой новой лемме, `lemmaCardOf` с веткой «лемма ответа другая»,
+`savedLexemesOf(target)`, `lexemeKeysOf(target)`,
+`withExistingLemmas(added)`; `CardTransitions.kt` —
+`withCardTarget`, `withCardGroup`, `withoutGroup`, `withoutTarget`
+по карточкам; `WordsBatches.kt` — `wordsBatchOf(cards, form,
+commonGroupId)`, `LemmaCardUiItem.groupIdOr`.
+
+**Будет.** Как в HLD, «Чистые функции» этапа 3.
+
+```kotlin
+// savedWordsOf — плашки словаря по тексту, самое новое
+// первым, значения в порядке карточки (AWP-46.3, 46.7).
+fun DictionaryFormUi.savedWordsOf(
+    text: String,
+): List<SavedWordUi> = existingOf(text).map { lemma ->
+    SavedWordUi(
+        wordId = lemma.wordId,
+        text = lemma.text,
+        groupNames = lemma.groupNames,
+        addedAt = lemma.addedAt,
+        lexemes = lemma.lexemes.map { saved ->
+            saved.copy(
+                values = saved.values.inCardOrder(this),
+            )
+        },
+    )
+}
+
+// withLemmasOf — леммы словаря с текстом заменены
+// присланными (AWP-63).
+fun DictionaryFormUi.withLemmasOf(
+    text: String,
+    lemmas: List<ExistingLemmaUi>,
+): DictionaryFormUi {
+    val key = wordTextKey(text)
+    val others = existingLemmas
+        .filterNot { wordTextKey(it.text) == key }
+    return copy(existingLemmas = others + lemmas)
+}
+
+// withNewWordRetargeted — «новое слово» → созданное
+// (AWP-63.1, 63.3); явный выбор не трогается; null —
+// таких лексем нет.
+fun List<LemmaCardUiItem>.withNewWordRetargeted(
+    lemma: String,
+    wordId: Long,
+): List<LemmaCardUiItem>? {
+    val card = cardOf(lemma) ?: return null
+    val fresh = card.lexemes
+        .filter { it.target == CardTargetUi.NewWord }
+    if (fresh.isEmpty()) return null
+    val target = CardTargetUi.Existing(wordId)
+    return updateCard(lemma) { current ->
+        current.copy(
+            lexemes = current.lexemes.map { lexeme ->
+                if (lexeme.target == CardTargetUi.NewWord) {
+                    lexeme.copy(target = target)
+                } else {
+                    lexeme
+                }
+            },
+        )
+    }
+}
+
+// lexemeBatchOf — пакет одной лексемы (AWP-20): новое
+// слово с текстом леммы и группой по своей или общей
+// или выбранное слово без группы (AWP-20.10); null —
+// лексемы нет.
+fun lexemeBatchOf(
+    card: LemmaCardUiItem,
+    key: String,
+    form: DictionaryFormUi,
+    commonGroupId: Long?,
+): WordsBatch? {
+    val lexeme = card.lexemes.firstOrNull { it.key == key }
+        ?: return null
+    val word = when (val target = lexeme.target) {
+        CardTargetUi.NewWord -> BatchWord(
+            wordId = null,
+            text = card.lemma,
+            groupId = lexeme.groupIdOr(commonGroupId),
+            lexemes = listOf(lexeme.toBatchLexeme(form)),
+        )
+        is CardTargetUi.Existing -> BatchWord(
+            wordId = target.wordId,
+            text = card.lemma,
+            groupId = null,
+            lexemes = listOf(lexeme.toBatchLexeme(form)),
+        )
+    }
+    return WordsBatch(
+        dictionaryId = form.dictionaryId,
+        words = listOf(word),
+    )
+}
+```
+
+**Мотивация.** Одна лексема — одна транзакция (Д123); группы
+существующего слова окно не трогает (Д126); плашки словаря после
+записи — из перечитанных лемм (Д124).
+
+### Тесты виджета
+
+**Было.** `LemmaCardsTest` — «куда класть» по самой новой,
+`savedLexemesOf`, `lexemeKeysOf`, `withExistingLemmas`;
+`CardTransitionsTest` — `withCardTarget`, `withCardGroup`,
+`withoutGroup`, `withoutTarget` по карточкам; `WordsBatchesTest` —
+`wordsBatchOf` по карточкам (AWP-20, AWP-32, AWP-08);
+`SavedLexemeMappersTest` — `savedLexemesOf`; `Fixtures.cards`
+через `lexemeKeysOf(card.target)`.
+
+**Будет.** Те же файлы под новые функции: `savedWordsOf`
+(`AWP-46_1`, `AWP-46_3`, `AWP-46_7`), `withLemmasOf` (`AWP-63_1`),
+`withNewWordRetargeted` (`AWP-63_1`, `AWP-63_3`, `AWP-63_4`),
+`withLexemeTarget` / `withLexemeGroup` (`AWP-18_12`, `AWP-08_8`),
+`withoutGroup` / `withoutTarget` по лексемам (`AWP-21_3`,
+`AWP-21_4`, `AWP-21_5`), `lexemeBatchOf` (`AWP-20_2`, `AWP-20_7`,
+`AWP-20_9`, `AWP-20_10`, `AWP-08_1`, `AWP-08_4`, `AWP-32_*` как
+были); `Fixtures.cards` — пометки по `lemmaWordKeys`. Прогон
+`:modules:widget:candidates:testDebugUnitTest`, затем
+`:modules:screen:wordcard:testDebugUnitTest` — диалог не меняется,
+кроме снятой строки `cards.all { it.target == NewWord }`.
+
+**Мотивация.** Чистые функции проверяются до экрана: атомы потом
+только адресуют.
+
+### Стейт, сообщения, эффекты экрана
+
+**Было.** `State.kt` — `WordCardUi` с `saved:
+List<SavedLexemeUi>`, `canAdd`, `addFailure`; `Message.kt` —
+`LexemesFound.existing`, `WordAdded`, `Add*Gone(text, failure)`,
+`AddFailed(text, failure)`, `DeleteWord`, `AddWord`,
+`RetryAdd(text)`, `DeleteLexeme(lemma, key)`,
+`SetCardTarget(lemma, target)`, `SetCardGroup(lemma, group)`;
+`Effects.kt` — `AddWord(word, batch)`.
+
+**Будет.** Как в HLD, «Стейт» и «Сообщения и эффекты» этапа 3.
+
+```kotlin
+// Эффекты записи и перечитки. Новые.
+data class CreateWord(
+    val word: String,
+    val key: String,
+    val batch: WordsBatch,
+) : DatasourceEffect, RecoverableEffect<Msg> {
+    override fun onFail(error: Throwable) = Msg.AddFailed(
+        text = word,
+        key = key,
+        failure = AddFailureUi.Failed,
+    )
+}
+
+data class TransferLexeme(
+    val word: String,
+    val key: String,
+    val batch: WordsBatch,
+) : DatasourceEffect, RecoverableEffect<Msg> {
+    override fun onFail(error: Throwable) = Msg.AddFailed(
+        text = word,
+        key = key,
+        failure = AddFailureUi.Failed,
+    )
+}
+
+data class ReloadLemmas(
+    val word: String,
+    val dictionaryId: Long,
+) : DatasourceEffect, RecoverableEffect<Msg> {
+    override fun onFail(error: Throwable) =
+        Msg.LemmasReloadFailed(text = word)
+}
+```
+
+**Мотивация.** Два эффекта записи — два исхода без разбора пакета;
+перечитка отдельным эффектом — запись, прошедшая до упавшей
+перечитки, остаётся записанной.
+
+### Атомы, редьюсер, хендлер
+
+**Было.** `ScanCandidatesAtoms.kt` — `openSavedCard`,
+`startLookup`, `applyLexemes` с `withExistingLemmas`,
+`refreshCardMarks` по `lexemeKeysOf(target)` и `canAdd`,
+`deleteWord`, `deleteLexeme`, `setCardTarget`, `setCardGroup`,
+`refreshLemmaSaved`, `startAddingWord` с `wordsBatchOf`,
+`removeAddedWord`, `showAddFailure(text, failure)`,
+`clearAddFailure(text)`; `ScanCandidatesReducer.kt` — цепочки
+этапа 2; `DatasourceEffectHandler.kt` — ветка `AddWord`.
+
+**Будет.** Как в HLD, «Атомы», «Редьюсер», «Хендлер» этапа 3.
+
+```kotlin
+// startAddingLexeme — эффект по типу «Куда» плашки.
+fun ScanCandidatesState.startAddingLexeme(
+    text: String,
+    key: String,
+): ScanCandidatesResult {
+    val form = form
+        ?: return noOp("startAddingLexeme: no form")
+    val card = lists.wordOf(text)?.card
+        ?: return noOp("startAddingLexeme: no card $text")
+    val lexeme = card.lemma.lexemes
+        .firstOrNull { it.key == key }
+        ?: return noOp("startAddingLexeme: no lexeme $key")
+    if (!lexeme.canWrite) {
+        return noOp("startAddingLexeme: not writable $key")
+    }
+    val batch = lexemeBatchOf(
+        card.lemma, key, form, commonGroupId,
+    ) ?: return noOp("startAddingLexeme: no batch $key")
+    logStep(
+        "startAddingLexeme",
+        "word" to text,
+        "key" to key,
+    )
+    val next = copy(
+        isAdding = true,
+        lists = lists.updateWord(text) { item ->
+            item.copy(
+                card = card.copy(isAdding = true)
+                    .withLexemeAdding(key),
+            )
+        },
+    )
+    val effect = when (lexeme.target) {
+        CardTargetUi.NewWord ->
+            DatasourceEffect.CreateWord(text, key, batch)
+        is CardTargetUi.Existing ->
+            DatasourceEffect.TransferLexeme(
+                text, key, batch,
+            )
+    }
+    return next to setOf(effect)
+}
+
+// removeEmptyWord — слово без плашек нейронки уходит
+// (AWP-62); no-op у слова с плашками или без ответа.
+fun ScanCandidatesState.removeEmptyWord(
+    text: String,
+): ScanCandidatesResult {
+    val card = lists.wordOf(text)?.card
+        ?: return noOp("removeEmptyWord: no card $text")
+    if (card.phase != CardPhase.CANDIDATES) {
+        return noOp("removeEmptyWord: no answer $text")
+    }
+    if (card.lemma.lexemes.isNotEmpty()) {
+        return noOp("removeEmptyWord: lexemes left $text")
+    }
+    logStep("removeEmptyWord", "word" to text)
+    return copy(lists = lists.removeWord(text)).begin()
+}
+```
+
+**Мотивация.** Атом — один шаг со своими данными: проверки «есть
+ли что делать» остаются no-op, выбор эффекта — по типу «Куда»;
+уход слова — в хвосте каждой цепочки, где плашка может исчезнуть.
+
+### UI экрана и виджета
+
+**Было.** `widget/candidates/ui/LemmaCardWidget.kt` —
+`LemmaCardWidget` с шапкой и «Куда» карточки, `SavedLexemeRows`,
+`LexemeRow` internal с крестиком; `CandidatesSheets.kt` — листы по
+лемме с подсказкой о группе; `scancandidates/ui/WordActions.kt` —
+`Delete`, `Add`, `RetryAdd(text)`; `ScanWordListsContent.kt` —
+`WordCardBlock` с `LemmaCardWidget`, `CandidatesBlock` с «Добавить»
+и «Удалить».
+
+**Будет.** Как в HLD, «UI» этапа 3: `SavedWordPlate`, `LexemeRow`
+с `onDelete`, `LexemeChoices`, листы по плашке; `WordAction.Write`,
+`Dismiss`, `RetryAdd(text, key)`, `Remove`; `WordCardBlock` по
+фазе с плашками словаря в любой фазе. Строки в `values` и
+`values-ru-rRU`: `scan_remove_word` — «Убрать из списка»,
+`scan_dismiss` — «Не нужно», `scan_create_word` — «Создать»,
+`scan_transfer` — «Перенести», `scan_candidates_title` —
+«Найдено по тексту»; `scan_add`, `scan_delete_word` сняты;
+`photo_add_target_group_hint`, `photo_add_old_lexemes` сняты.
+Превью экрана — карточка с двумя плашками, у второй «Куда» —
+слово словаря.
+
+**Мотивация.** Названия кнопок — Д129; плашки словаря видны всегда,
+чтобы проверка и запись шли на глазах у сохранённого.
+
+### Тесты экрана
+
+**Было.** `WordCardReducerTest`, `CardEditsReducerTest`,
+`AddWordReducerTest`, `CloseReducerTest`, `ScanCandidatesAtomsTest`,
+`ScanCandidatesScenarioTest`, `DatasourceEffectHandlerTest`,
+`ScanWordListsTest`, `ui/WordActionsTest`, `ui/CandidateActionsTest`
+— адреса спеки v2; `ReducerHelpers.batchOf` по `AddWord`.
+
+**Будет.** Те же файлы под v3: `WordCardReducerTest` — `AWP-42_1`,
+`42_2`, `42_4`–`42_7`, `43_1`, `43_4`, `46_1`, `46_3`, `46_4`,
+`46_5`, `47_1`, `47_2`, `47_6`–`47_9`, `48_1`, `48_3`–`48_5`,
+`49_1`, `49_5`, `49_6`, `50_1`, `50_12`, `50_14`, `50_16`, `55_1`,
+`55_7`, `55_10`, `57_1`–`57_4`, `61_7`, `18_2`, `18_3`, `18_12`,
+`18_13`, `64_1`, `64_3`–`64_5`; `CardEditsReducerTest` — как были
+плюс `AWP-11_5` с уходом слова, `AWP-08_6`, `AWP-08_8`, `18_12`
+снят отсюда; `AddWordReducerTest` → `AddLexemeReducerTest` —
+`AWP-02_1`–`02_3`, `03_1`–`03_3`, `20_2`, `20_3`, `20_5`, `20_7`,
+`20_9`–`20_11`, `21_3`–`21_7`, `26_1`, `26_2`, `47_3`, `47_4`,
+`62_1`, `62_3`–`62_6`, `63_1`–`63_6`, `50_15`, `39_5`;
+`CloseReducerTest` — как были плюс `AWP-51_13`, `60_2`;
+`DatasourceEffectHandlerTest` — `AWP-20_9` (создано → id),
+`AWP-20_10`, `AWP-63_1` (перечитка → леммы), `AWP-63_6`
+(перечитка упала), отказы с ключом; `ScanCandidatesScenarioTest` —
+цепочка «тап → плашки → «Создать» первой → плашка словаря и
+«Куда» у второй → «Перенести» → строки нет»; `ScanWordListsTest`
+— `countPending` по плашкам; `ui/WordActionsTest` — новые действия.
+`ReducerHelpers.batchOf(state, text, key)` по обоим эффектам
+записи.
+
+**Мотивация.** Адреса тестов — строки спеки v3; покрытие
+`scripts/spec-coverage.sh` без нарушений.
+
+## Э12. Покрытие, ручники, устройство
+
+ВЫПОЛНЕН 2026-10-29, ручники прогнаны 2026-10-30/31: кейсы 11–22 на
+живых данных телефона, слова заменены там, где подготовка не совпала;
+без сети пропущено по решению юзера, поворот не проверить — экран
+прибит к портрету. Покрытие AWP (с
+`SPEC_MANUALS` и `SPEC_KNOWN` v1, v2), WCL и LFL без нарушений, открыты
+только AWP-58/59 «отложено»; статусы v3-тезисов «реализовано»; кейсы
+этапа 2 по v2 заморожены в `manual_tests-v2.md` с их прогонами, в
+`manual_tests.md` кейсы 11–22 по плашкам (словарь логов под новые
+атомы); `hld-lint` чист; dev-сборка поставлена и запущена.
+
+**Было.** Статусы v3-тезисов «принято»; `manual_tests.md` — кейсы
+11–21 этапа 2 по карточке v2.
+
+**Будет.** После зелёных тестов — `spec-coverage.sh` для AWP, WCL,
+LFL без нарушений, статусы тезисов этапа 3 → «реализовано», кроме
+AWP-58/59 «отложено»; `hld-lint` по `hld-awp.md` и плану чист;
+кейсы 11–21 в `manual_tests.md` переписаны под плашки (основные
+юзкейсы, шаги атомарные): новое слово → плашки, «Создать» первой →
+плашка словаря и «Перенести» у второй, слово «в словаре» → плашки
+словаря → «Проверить по тексту» → «уже в словаре», «Не нужно»,
+«Убрать из списка», два «bank», сбой сети, закрытие с вопросом;
+`:app:installDebug` и запуск на `co.lexeme.app.dev`; таймаут
+экрана обратно 600000 после ручников.
+
+**Мотивация.** Статусы и ручники закрывают строки «ручной»;
+покрытие держит адреса тестов в согласии со спекой.

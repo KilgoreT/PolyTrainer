@@ -16,10 +16,11 @@ import me.apomazkin.lexeme.LookupToken
 /**
  * Сообщения экрана снимка. Сначала ответы эффектов: хендлер разбирает исход
  * юзкейса и шлёт сообщение на каждый случай, редьюсер исходов не видит. Затем
- * действия пользователя. Адрес слова — его текст в списках; адрес правки —
- * лемма карточки, как у общих виджетов. Номера запуска нет: экран живёт один
- * снимок, закрыли экран — ответу некуда прийти; слово удалено — ответу некуда
- * лечь (AWP-48).
+ * действия пользователя. Адрес слова — его текст в списках; адрес плашки
+ * нейронки — текст слова и ключ лексемы-кандидата; адрес правки — лемма
+ * карточки, то есть тот же текст слова, как у общих виджетов. Номера запуска
+ * нет: экран живёт один снимок, закрыли экран — ответу некуда прийти; слово
+ * убрано — ответу некуда лечь (AWP-48).
  */
 sealed interface Msg {
     // ===== От эффектов: снимок, запрос, форма =====
@@ -83,14 +84,12 @@ sealed interface Msg {
     /**
      * Исход запроса по лемме `Found`: [text] — слово списка, [word] — слово
      * ответа с леммой и замечаниями, [recommendations] — советы завести
-     * компонент, [existing] — леммы словаря с текстом леммы ответа, когда она
-     * не из списков («children» → «child»); пусто, если лемма та же (AWP-43.7).
+     * компонент.
      */
     data class LexemesFound(
         val text: String,
         val word: LookupWordUi,
         val recommendations: List<ComponentRecommendationUi>,
-        val existing: List<ExistingLemmaUi>,
     ) : Msg
 
     /**
@@ -117,35 +116,58 @@ sealed interface Msg {
         @param:StringRes val errorRes: Int,
     ) : Msg
 
-    // ===== От эффектов: запись =====
+    // ===== От эффектов: запись плашки и перечитка =====
 
-    /** Исход записи `Added`: слово [text] записано, строки прочь (AWP-47). */
-    data class WordAdded(
+    /** «Перенести» прошло: лексема-кандидат [key] легла в выбранное слово (AWP-20.10). */
+    data class LexemeAdded(
         val text: String,
+        val key: String,
     ) : Msg
 
-    /** Отказ записи: группа слова удалена (AWP-21.3, 21.5). */
+    /** «Создать» прошло: новое слово [wordId] с лексемой-кандидатом [key] (AWP-20.9, AWP-63). */
+    data class WordCreated(
+        val text: String,
+        val key: String,
+        val wordId: Long,
+    ) : Msg
+
+    /** Отказ записи плашки: группа удалена (AWP-21.3, 21.5). */
     data class AddGroupGone(
         val text: String,
+        val key: String,
         val failure: AddFailureUi.GroupMissing,
     ) : Msg
 
-    /** Отказ записи: выбранная лемма словаря удалена (AWP-21.4). */
+    /** Отказ записи плашки: выбранное в «Куда» слово удалено (AWP-21.4). */
     data class AddWordGone(
         val text: String,
+        val key: String,
         val failure: AddFailureUi.WordMissing,
     ) : Msg
 
-    /** Отказ записи: компонент выключили (AWP-21.6). */
+    /** Отказ записи плашки: компонент выключили (AWP-21.6). */
     data class AddComponentGone(
         val text: String,
+        val key: String,
         val failure: AddFailureUi.TypeUnavailable,
     ) : Msg
 
-    /** Остальные отказы и сбой записи: причина как есть под словом (AWP-21.1). */
+    /** Остальные отказы и сбой записи: причина как есть под плашкой (AWP-21.1). */
     data class AddFailed(
         val text: String,
+        val key: String,
         val failure: AddFailureUi,
+    ) : Msg
+
+    /** Леммы словаря с текстом слова перечитаны после записи (AWP-63). */
+    data class LemmasReloaded(
+        val text: String,
+        val existing: List<ExistingLemmaUi>,
+    ) : Msg
+
+    /** Перечитка упала: плашки словаря как были, только лог. */
+    data class LemmasReloadFailed(
+        val text: String,
     ) : Msg
 
     // ===== От экрана: запрос, перевод, закрытие =====
@@ -176,42 +198,64 @@ sealed interface Msg {
         val text: String,
     ) : Msg
 
-    /** Тап по слову «в словаре» без карточки: сохранённые лексемы (AWP-46). */
+    /** Тап по слову «в словаре» без карточки: плашки словаря (AWP-46). */
     data class OpenSavedCard(
         val text: String,
     ) : Msg
 
-    /** Повторный тап по слову с карточкой: свернуть или раскрыть (AWP-42). */
+    /** Повторный тап по слову с карточкой: свернуть или раскрыть всё под ним (AWP-42). */
     data class ToggleCard(
         val text: String,
     ) : Msg
 
-    /** «Удалить» у слова (AWP-48). */
-    data class DeleteWord(
+    /** «Убрать из списка» у слова (AWP-48). */
+    data class RemoveWord(
         val text: String,
     ) : Msg
 
-    /** «Добавить» у слова (AWP-02, AWP-47). */
-    data class AddWord(
-        val text: String,
-    ) : Msg
-
-    /** «Повторить» под словом после «не добавилось» (AWP-26). */
-    data class RetryAdd(
-        val text: String,
-    ) : Msg
-
-    /** Заголовок «Сопоставления» в карточке слова (AWP-31.4). */
+    /** Заголовок «Сопоставления» под плашками слова (AWP-31.4). */
     data class ToggleComponentMatches(
         val text: String,
     ) : Msg
 
-    // ===== От экрана: правки карточки =====
+    // ===== От экрана: плашка нейронки =====
 
-    data class DeleteLexeme(
-        val lemma: String,
+    /**
+     * «Создать» или «Перенести» у плашки (AWP-02, AWP-20): какая кнопка —
+     * решает «Куда» плашки в стейте.
+     */
+    data class AddLexeme(
+        val text: String,
         val key: String,
     ) : Msg
+
+    /** «Повторить» под плашкой после «не добавилось» (AWP-26). */
+    data class RetryAdd(
+        val text: String,
+        val key: String,
+    ) : Msg
+
+    /** «Не нужно» у плашки: лексема-кандидат прочь без записи (AWP-64). */
+    data class DismissLexeme(
+        val text: String,
+        val key: String,
+    ) : Msg
+
+    /** «Куда» плашки: слово словаря или «новое слово» (AWP-18). */
+    data class SetCardTarget(
+        val lemma: String,
+        val key: String,
+        val target: CardTargetUi,
+    ) : Msg
+
+    /** Своя группа плашки при «новое слово» (AWP-08). */
+    data class SetCardGroup(
+        val lemma: String,
+        val key: String,
+        val group: CardOwnGroupUi,
+    ) : Msg
+
+    // ===== От экрана: правки плашки =====
 
     /** Крестик у значения компонента (AWP-15.2, 15.7). */
     data class DeleteValue(
@@ -237,16 +281,6 @@ sealed interface Msg {
     /** Ввод в листе правки, каждое изменение. */
     data class UpdateDraft(
         val text: String,
-    ) : Msg
-
-    data class SetCardTarget(
-        val lemma: String,
-        val target: CardTargetUi,
-    ) : Msg
-
-    data class SetCardGroup(
-        val lemma: String,
-        val group: CardOwnGroupUi,
     ) : Msg
 
     // ===== От экрана: общая группа и листы =====

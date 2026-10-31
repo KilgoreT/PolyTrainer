@@ -23,15 +23,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.apomazkin.candidates.CandidateAction
+import me.apomazkin.candidates.CardLexemeUiItem
+import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.candidates.DictionaryFormUi
 import me.apomazkin.candidates.ui.Attribution
 import me.apomazkin.candidates.ui.CandidatesSheets
 import me.apomazkin.candidates.ui.CommonGroupHeader
 import me.apomazkin.candidates.ui.ComponentMatchesSection
 import me.apomazkin.candidates.ui.DividedItem
-import me.apomazkin.candidates.ui.LemmaCardWidget
+import me.apomazkin.candidates.ui.LexemeChoices
+import me.apomazkin.candidates.ui.LexemeRow
 import me.apomazkin.candidates.ui.RemarksSection
-import me.apomazkin.candidates.ui.SavedLexemeRows
+import me.apomazkin.candidates.ui.SavedWordPlate
 import me.apomazkin.candidates.ui.failureLabel
 import me.apomazkin.core_resources.R
 import me.apomazkin.scancandidates.mate.CardPhase
@@ -57,11 +60,11 @@ import me.apomazkin.ui.dialog.base.LexemeDialog
  * секции слов по порядку — смысловые, имена собственные, служебные, «не
  * разобрано»; пустая секция не рисуется (AWP-40.7), список прокручивается
  * целиком (AWP-40.8); у слова словаря пометка «в словаре» (AWP-39). Строка
- * слова кликабельна, под раскрытой строкой — блок карточки по фазе (AWP-42).
+ * слова кликабельна, под раскрытой строкой — плашки по фазе карточки (AWP-42).
  * Крестик неактивен, пока идёт запись (AWP-51.12); вопрос при закрытии — по
- * флагу стейта (AWP-51). Листы правки, опций, «куда класть» и групп — общие
- * виджеты по карточкам всех слов. Окно показывает то, что в стейте, и ничего
- * не толкует. Цвета явные: фон formBackground, текст formTextTertiary, второй
+ * флагу стейта (AWP-51). Листы правки, опций, «Куда» и групп — общие виджеты
+ * по карточкам всех слов. Окно показывает то, что в стейте, и ничего не
+ * толкует. Цвета явные: фон formBackground, текст formTextTertiary, второй
  * план formTextSecondary, пометка и акцент — LexemeColor.primary, сбой —
  * destructiveRed.
  */
@@ -192,7 +195,7 @@ private fun TranslationBlock(
 
 /**
  * Секция списка: заголовок и слова столбиком, под раскрытой строкой — блок
- * карточки (AWP-42); пустая секция не рисуется (AWP-40.7).
+ * плашек (AWP-42); пустая секция не рисуется (AWP-40.7).
  */
 private fun LazyListScope.wordListSection(
     key: String,
@@ -261,14 +264,12 @@ private fun WordRow(
 }
 
 /**
- * Блок карточки под словом по фазе. У слова «в словаре» — лемма с «куда
- * класть» и своей группой, сохранённые лексемы выбранной леммы,
- * «Проверить по тексту» и «Удалить» (AWP-46, AWP-18, AWP-49); признак
- * загрузки (AWP-57); лексемы-кандидаты с разделами, «Добавить» и «Удалить»
- * или «не добавилось» с «Повторить» (AWP-43, AWP-47, AWP-21); «Не найдено»
- * или «Значений нет» с «Удалить» (AWP-55); причина с «Удалить» и, по флагу,
- * «Повторить» (AWP-61). Сохранённые лексемы, когда они есть, видны в любой
- * фазе.
+ * Блок под словом по фазе карточки (AWP-42). Плашки словаря видны в любой
+ * фазе, когда они есть (AWP-46). Слово «в словаре» до проверки — «Проверить
+ * по тексту» и «Убрать из списка» (AWP-47.2); признак загрузки с «Убрать из
+ * списка» (AWP-57.4); плашки нейронки (AWP-43); «Не найдено» или «Значений
+ * нет» с «Убрать из списка» (AWP-55); причина с «Убрать из списка» и, по
+ * флагу, «Повторить» (AWP-61).
  */
 @Composable
 private fun WordCardBlock(
@@ -278,28 +279,20 @@ private fun WordCardBlock(
     onAction: (CandidateAction) -> Unit,
     onWordAction: (WordAction) -> Unit,
 ) {
-    val onDelete = { onWordAction(WordAction.Delete(text)) }
+    val onRemove = { onWordAction(WordAction.Remove(text)) }
     Column(modifier = Modifier.fillMaxWidth()) {
         HorizontalDivider(color = cardDivider, modifier = Modifier.padding(start = 16.dp))
+        SavedPlates(card = card, form = form)
         when (card.phase) {
-            CardPhase.SAVED -> {
-                LemmaCardWidget(
-                    card = card.lemma,
-                    form = form,
-                    onAction = onAction,
-                    onDeleteCard = null,
-                    existsMarkRes = R.string.scan_exists_mark,
-                )
-                SavedRows(card = card, form = form)
-                CardButtons(
-                    primaryRes = R.string.scan_check_by_text,
-                    onPrimary = { onWordAction(WordAction.CheckByText(text)) },
-                    onDelete = onDelete,
-                )
-            }
+            CardPhase.SAVED -> ButtonsRow(
+                secondaryRes = R.string.scan_remove_word,
+                onSecondary = onRemove,
+                primaryRes = R.string.scan_check_by_text,
+                onPrimary = { onWordAction(WordAction.CheckByText(text)) },
+            )
             CardPhase.LOADING -> {
-                SavedRows(card = card, form = form)
                 CardProgress()
+                ButtonsRow(secondaryRes = R.string.scan_remove_word, onSecondary = onRemove, primaryRes = null, onPrimary = {})
             }
             CardPhase.CANDIDATES -> CandidatesBlock(
                 text = text,
@@ -307,41 +300,45 @@ private fun WordCardBlock(
                 form = form,
                 onAction = onAction,
                 onWordAction = onWordAction,
-                onDelete = onDelete,
             )
             CardPhase.NOT_FOUND -> {
-                SavedRows(card = card, form = form)
                 card.errorRes?.let { CardNote(text = stringResource(id = it)) }
-                CardButtons(primaryRes = null, onPrimary = {}, onDelete = onDelete)
+                ButtonsRow(secondaryRes = R.string.scan_remove_word, onSecondary = onRemove, primaryRes = null, onPrimary = {})
             }
             CardPhase.ERROR -> {
-                SavedRows(card = card, form = form)
                 card.errorRes?.let { CardNote(text = stringResource(id = it), isError = true) }
-                CardButtons(
+                ButtonsRow(
+                    secondaryRes = R.string.scan_remove_word,
+                    onSecondary = onRemove,
                     primaryRes = R.string.photo_add_retry.takeIf { card.hasRetryButton },
                     onPrimary = { onWordAction(WordAction.RetryLookup(text)) },
-                    onDelete = onDelete,
                 )
             }
         }
     }
 }
 
-/** Сохранённые лексемы выбранной леммы словаря под заголовком «В словаре», когда они есть (AWP-46). */
+/** Плашки словаря под заголовком «В словаре», по слову словаря с этим текстом, когда они есть (AWP-46). */
 @Composable
-private fun SavedRows(
+private fun SavedPlates(
     card: WordCardUi,
     form: DictionaryFormUi,
 ) {
-    if (card.saved.isNotEmpty()) {
-        SavedLexemeRows(saved = card.saved, form = form)
+    if (card.saved.isEmpty()) return
+    SectionTitle(text = stringResource(id = R.string.scan_saved_title))
+    card.saved.forEachIndexed { index, saved ->
+        if (index > 0) {
+            HorizontalDivider(color = cardDivider, modifier = Modifier.padding(start = 16.dp))
+        }
+        SavedWordPlate(saved = saved, form = form)
     }
 }
 
 /**
- * Лексемы-кандидаты: карточка леммы без своего крестика, разделы, источник
- * данных, кнопки. Пока идёт запись слова, правки, «куда класть» и своя группа
- * его карточки не открываются, как и кнопки (AWP-47.8).
+ * Плашки нейронки (AWP-43): заголовок и по плашке на лексему-кандидата; под
+ * плашками «Замечания» (AWP-30), «Сопоставление» (AWP-31) и подпись
+ * источника (AWP-45). Пока идёт запись одной из плашек, правки, листы и
+ * кнопки всех плашек слова неактивны (AWP-47.4).
  */
 @Composable
 private fun CandidatesBlock(
@@ -350,17 +347,22 @@ private fun CandidatesBlock(
     form: DictionaryFormUi,
     onAction: (CandidateAction) -> Unit,
     onWordAction: (WordAction) -> Unit,
-    onDelete: () -> Unit,
 ) {
     val cardAction: (CandidateAction) -> Unit = if (card.isAdding) { _ -> } else onAction
-    LemmaCardWidget(
-        card = card.lemma,
-        form = form,
-        onAction = cardAction,
-        onDeleteCard = null,
-        existsMarkRes = R.string.scan_exists_mark,
-    )
-    SavedRows(card = card, form = form)
+    SectionTitle(text = stringResource(id = R.string.scan_candidates_title))
+    card.lemma.lexemes.forEachIndexed { index, lexeme ->
+        if (index > 0) {
+            HorizontalDivider(color = cardDivider, modifier = Modifier.padding(start = 16.dp))
+        }
+        LexemePlate(
+            text = text,
+            card = card,
+            lexeme = lexeme,
+            form = form,
+            onAction = cardAction,
+            onWordAction = onWordAction,
+        )
+    }
     if (card.remarks.isNotEmpty()) {
         RemarksSection(remarks = card.remarks, form = form)
     }
@@ -373,35 +375,81 @@ private fun CandidatesBlock(
         )
     }
     Attribution()
-    val failure = card.addFailure
-    if (failure != null) {
-        CardNote(text = failureLabel(failure), isError = true)
-        CardButtons(
-            primaryRes = R.string.photo_add_retry,
-            primaryEnabled = !card.isAdding,
-            onPrimary = { onWordAction(WordAction.RetryAdd(text)) },
-            deleteEnabled = !card.isAdding,
-            onDelete = onDelete,
-        )
-    } else {
-        CardButtons(
-            primaryRes = if (card.isAdding) R.string.photo_add_adding else R.string.scan_add,
-            primaryEnabled = card.canAdd && !card.isAdding,
-            onPrimary = { onWordAction(WordAction.Add(text)) },
-            deleteEnabled = !card.isAdding,
-            onDelete = onDelete,
-        )
-    }
 }
 
-/** «Удалить» и, если есть [primaryRes], главная кнопка справа. */
+/**
+ * Плашка нейронки: строка лексемы без крестика (AWP-29), у плашки без «уже в
+ * словаре» — «Куда» и «Группа» (AWP-18, AWP-08), «не добавилось» с
+ * «Повторить» (AWP-21, AWP-26) или кнопка записи — «Создать» при «новое
+ * слово», «Перенести» при выбранном слове, неактивна без ядра, у «уже в
+ * словаре» её нет (AWP-47), — и «Не нужно» (AWP-64).
+ */
 @Composable
-private fun CardButtons(
+private fun LexemePlate(
+    text: String,
+    card: WordCardUi,
+    lexeme: CardLexemeUiItem,
+    form: DictionaryFormUi,
+    onAction: (CandidateAction) -> Unit,
+    onWordAction: (WordAction) -> Unit,
+) {
+    LexemeRow(
+        card = card.lemma,
+        lexeme = lexeme,
+        form = form,
+        onAction = onAction,
+        existsMarkRes = R.string.scan_exists_mark,
+        onDelete = null,
+    )
+    if (!lexeme.exists) {
+        LexemeChoices(card = card.lemma, lexeme = lexeme, form = form, onAction = onAction)
+    }
+    val failure = lexeme.addFailure
+    if (failure != null) {
+        CardNote(text = failureLabel(failure), isError = true)
+    }
+    val primaryRes = when {
+        failure != null -> R.string.photo_add_retry
+        lexeme.exists -> null
+        lexeme.isAdding -> R.string.photo_add_adding
+        lexeme.target == CardTargetUi.NewWord -> R.string.scan_create_word
+        else -> R.string.scan_transfer
+    }
+    val onPrimary = if (failure != null) {
+        { onWordAction(WordAction.RetryAdd(text, lexeme.key)) }
+    } else {
+        { onWordAction(WordAction.Write(text, lexeme.key)) }
+    }
+    ButtonsRow(
+        secondaryRes = R.string.scan_dismiss,
+        onSecondary = { onWordAction(WordAction.Dismiss(text, lexeme.key)) },
+        secondaryEnabled = !card.isAdding,
+        primaryRes = primaryRes,
+        onPrimary = onPrimary,
+        primaryEnabled = lexeme.canWrite && !card.isAdding,
+    )
+}
+
+/** Подпись ряда плашек: «В словаре» или «Найдено по тексту». */
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = LexemeStyle.BodyS,
+        color = formTextSecondary,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+    )
+}
+
+/** Второстепенная кнопка слева и, если есть [primaryRes], главная справа. */
+@Composable
+private fun ButtonsRow(
+    @StringRes secondaryRes: Int,
+    onSecondary: () -> Unit,
     @StringRes primaryRes: Int?,
     onPrimary: () -> Unit,
-    onDelete: () -> Unit,
+    secondaryEnabled: Boolean = true,
     primaryEnabled: Boolean = true,
-    deleteEnabled: Boolean = true,
 ) {
     Row(
         modifier = Modifier
@@ -411,9 +459,9 @@ private fun CardButtons(
     ) {
         CancelButtonWidget(
             modifier = Modifier.weight(1f),
-            titleRes = R.string.scan_delete_word,
-            enabled = deleteEnabled,
-            onClick = onDelete,
+            titleRes = secondaryRes,
+            enabled = secondaryEnabled,
+            onClick = onSecondary,
         )
         if (primaryRes != null) {
             PrimaryFullButtonWidget(
@@ -456,7 +504,7 @@ private fun CardProgress() {
     }
 }
 
-/** «Закрыть без добавления?» с числом недобавленных слов, «Остаться» и «Закрыть» (AWP-51). */
+/** «Закрыть без добавления?» с числом слов с неразобранными плашками, «Остаться» и «Закрыть» (AWP-51). */
 @Composable
 internal fun CloseQuestion(
     pendingWords: Int,

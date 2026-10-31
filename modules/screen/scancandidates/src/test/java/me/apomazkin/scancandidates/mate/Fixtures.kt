@@ -2,8 +2,6 @@ package me.apomazkin.scancandidates.mate
 
 import me.apomazkin.candidates.CandidateValueUiItem
 import me.apomazkin.candidates.CardLexemeUiItem
-import me.apomazkin.candidates.CardOwnGroupUi
-import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.candidates.ComponentMatchLineUiItem
 import me.apomazkin.candidates.ComponentMatchUi
 import me.apomazkin.candidates.ComponentRecommendationUi
@@ -19,6 +17,7 @@ import me.apomazkin.candidates.LookupLemmaUi
 import me.apomazkin.candidates.LookupLexemeUi
 import me.apomazkin.candidates.LookupWordUi
 import me.apomazkin.candidates.SavedLexemeUi
+import me.apomazkin.candidates.SavedWordUi
 import me.apomazkin.candidates.ValueRefUi
 import me.apomazkin.candidates.WordRemarkUi
 import me.apomazkin.candidates.componentOf
@@ -147,12 +146,19 @@ object Fx {
         text: String,
         word: LookupWordUi,
         recommendations: List<ComponentRecommendationUi> = emptyList(),
-        existing: List<ExistingLemmaUi> = emptyList(),
     ) = Msg.LexemesFound(
         text = text,
         word = word,
         recommendations = recommendations,
-        existing = existing,
+    )
+
+    /** Плашка словаря из леммы словаря, как её собирает `savedWordsOf` (AWP-46). */
+    fun savedWord(existing: ExistingLemmaUi): SavedWordUi = SavedWordUi(
+        wordId = existing.wordId,
+        text = existing.text,
+        groupNames = existing.groupNames,
+        addedAt = existing.addedAt,
+        lexemes = existing.lexemes,
     )
 
     // Компоненты
@@ -303,6 +309,16 @@ object Fx {
         groups = listOf("Finance"),
         addedAt = 1_758_000_000_000L,
         lexemes = listOf(saved(1L, "управлять")),
+    )
+
+    /** Слово «run», созданное из окна по «Создать» первой плашки «бежать, бегать» (AWP-63). */
+    const val RUN_CREATED = 109L
+    val runCreated = existing(
+        RUN_CREATED,
+        "run",
+        listOf("бежать, бегать"),
+        addedAt = 1_761_000_000_000L,
+        lexemes = listOf(saved(11L, "бежать, бегать")),
     )
     val bank1 = existing(
         BANK_1,
@@ -717,8 +733,6 @@ object Fx {
             )
         },
         existingCount = 0,
-        target = CardTargetUi.NewWord,
-        ownGroup = CardOwnGroupUi.AsCommon,
     )
 }
 

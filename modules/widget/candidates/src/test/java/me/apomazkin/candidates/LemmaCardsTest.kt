@@ -23,21 +23,18 @@ class LemmaCardsTest {
         Fx.lemma("run", listOf(Fx.runVerb1, Fx.runVerb2, Fx.runMachine)),
     )
 
-    // AWP-18 — пустая карточка леммы и «куда класть»
+    // AWP-18, AWP-46 — пустая карточка леммы, «Куда» и плашки словаря
 
     @Test
-    fun `AWP-18_3 AWP-18_2 empty card targets the newest lemma with this text, otherwise a new word`() {
+    fun `AWP-46_4 AWP-18_2 empty card counts the lemmas with this text and carries no lexemes`() {
         val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
 
         val bank = emptyLemmaCard("bank", form)
         val ser = emptyLemmaCard("ser", form)
 
-        assertEquals(CardTargetUi.Existing(Fx.BANK_1), bank.target)
         assertEquals(2, bank.existingCount)
-        assertEquals(CardTargetUi.NewWord, ser.target)
         assertEquals(0, ser.existingCount)
         assertTrue(bank.lexemes.isEmpty() && ser.lexemes.isEmpty())
-        assertEquals(CardOwnGroupUi.AsCommon, bank.ownGroup)
         assertEquals(listOf("bank"), bank.sourceWords)
         assertTrue(form.targetRowsOf("ser").isEmpty())
     }
@@ -60,35 +57,47 @@ class LemmaCardsTest {
     }
 
     @Test
-    fun `AWP-46_3 saved lexemes come from the chosen lemma of the dictionary and a new word has none`() {
-        val newest = Fx.existing(Fx.BANK_1, "bank", listOf("банк"), lexemes = listOf(Fx.saved(1L, "банк")))
-        val older = Fx.existing(Fx.BANK_2, "bank", listOf("берег"), lexemes = listOf(Fx.saved(2L, "берег")))
+    fun `AWP-46_3 AWP-46_1 saved words go per lemma with the text, newest first, with their lexemes`() {
+        val newest = Fx.existing(
+            Fx.BANK_1,
+            "bank",
+            listOf("банк"),
+            groups = listOf("Finance"),
+            addedAt = 1_760_000_000_000L,
+            lexemes = listOf(Fx.saved(1L, "банк")),
+        )
+        val older = Fx.existing(Fx.BANK_2, "bank", listOf("берег"), addedAt = 1_756_000_000_000L, lexemes = listOf(Fx.saved(2L, "берег")))
         val form = Fx.form(existing = listOf(newest, older))
 
-        assertEquals(listOf(Fx.saved(1L, "банк")), form.savedLexemesOf(CardTargetUi.Existing(Fx.BANK_1)))
-        assertEquals(listOf(Fx.saved(2L, "берег")), form.savedLexemesOf(CardTargetUi.Existing(Fx.BANK_2)))
-        assertTrue(form.savedLexemesOf(CardTargetUi.NewWord).isEmpty())
-        assertTrue(form.savedLexemesOf(CardTargetUi.Existing(999L)).isEmpty())
+        val saved = form.savedWordsOf("Bank")
+
+        assertEquals(
+            listOf(
+                SavedWordUi(Fx.BANK_1, "bank", listOf("Finance"), 1_760_000_000_000L, listOf(Fx.saved(1L, "банк"))),
+                SavedWordUi(Fx.BANK_2, "bank", emptyList(), 1_756_000_000_000L, listOf(Fx.saved(2L, "берег"))),
+            ),
+            saved,
+        )
+        assertTrue(form.savedWordsOf("ser").isEmpty())
     }
 
     @Test
-    fun `AWP-50_1 the keys for the mark come from the chosen lemma only and a new word gives none`() {
+    fun `AWP-50_14 AWP-50_16 the keys for the mark come from every lemma with the text and none without them`() {
         val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
 
-        assertEquals(Fx.bank2.lexemeTextKeys, form.lexemeKeysOf(CardTargetUi.Existing(Fx.BANK_2)))
-        assertEquals(Fx.bank1.lexemeTextKeys, form.lexemeKeysOf(CardTargetUi.Existing(Fx.BANK_1)))
-        assertTrue(form.lexemeKeysOf(CardTargetUi.NewWord).isEmpty())
+        assertEquals(Fx.bank1.lexemeTextKeys + Fx.bank2.lexemeTextKeys, form.lemmaWordKeys("bank"))
+        assertTrue(form.lemmaWordKeys("run").isEmpty())
     }
 
     @Test
-    fun `AWP-43_7 the form takes the lemmas of the dictionary it did not have and skips the known ones`() {
-        val form = Fx.form(existing = listOf(Fx.runExisting))
-        val child = Fx.existing(5L, "child", listOf("ребёнок"))
+    fun `AWP-63_1 the form replaces the lemmas with the text by the reloaded ones and keeps the rest`() {
+        val form = Fx.form(existing = listOf(Fx.runExisting, Fx.bank1))
+        val created = Fx.existing(5L, "run", listOf("бежать"))
 
-        val extended = form.withExistingLemmas(listOf(child, Fx.runExisting))
+        val reloaded = form.withLemmasOf("Run", listOf(created, Fx.runExisting))
 
-        assertEquals(listOf(Fx.runExisting, child), extended.existingLemmas)
-        assertEquals(form, form.withExistingLemmas(listOf(Fx.runExisting)))
+        assertEquals(listOf(Fx.bank1, created, Fx.runExisting), reloaded.existingLemmas)
+        assertEquals(listOf(Fx.bank1), form.withLemmasOf("run", emptyList()).existingLemmas)
     }
 
     // AWP-43, AWP-44 — карточка из слова ответа
@@ -107,7 +116,7 @@ class LemmaCardsTest {
     fun `AWP-43_1 AWP-43_4 the card of corrian keeps the selection order and marks only the first lexeme in context`() {
         val card = lemmaCardOf(corrianTapped, emptyLemmaCard("corrían", form), form)
 
-        assertEquals("correr", card.lemma)
+        assertEquals("corrían", card.lemma)
         assertEquals(listOf("corrían"), card.sourceWords)
         assertEquals("third-person plural imperfect indicative", card.formNote)
         assertEquals(
@@ -122,30 +131,28 @@ class LemmaCardsTest {
     }
 
     @Test
-    fun `AWP-43_7 the same lemma keeps the target and the group of the prior card, another lemma is built from the form anew`() {
+    fun `AWP-18_3 the card keeps the text of the list word and every lexeme targets a new word`() {
         val child = Fx.existing(5L, "child", listOf("ребёнок"))
         val form = Fx.form(existing = listOf(Fx.runExisting, child))
-        val prior = emptyLemmaCard("run", form).copy(ownGroup = CardOwnGroupUi.Group(Fx.FINANCE))
         val children = Fx.word(
             "children",
             Fx.lemma("child", listOf(Fx.runVerb1.copy(key = "enwiktionary/1.noun.1")), formNote = "plural"),
         )
 
-        val same = lemmaCardOf(Fx.ran, prior, form)
+        val same = lemmaCardOf(Fx.ran, emptyLemmaCard("ran", form), form)
         val other = lemmaCardOf(children, emptyLemmaCard("children", form), form)
 
-        assertEquals(CardTargetUi.Existing(Fx.RUN_WORD), same.target)
-        assertEquals(CardOwnGroupUi.Group(Fx.FINANCE), same.ownGroup)
+        assertEquals("ran", same.lemma)
         assertEquals(listOf("ran"), same.sourceWords)
-        assertEquals("child", other.lemma)
-        assertEquals(CardTargetUi.Existing(5L), other.target)
-        assertEquals(1, other.existingCount)
+        assertEquals("children", other.lemma)
+        assertEquals(0, other.existingCount)
         assertEquals("plural", other.formNote)
         assertEquals(listOf("children"), other.sourceWords)
+        assertTrue(other.lexemes.all { it.target == CardTargetUi.NewWord && it.ownGroup == CardOwnGroupUi.AsCommon })
     }
 
     @Test
-    fun `AWP-43_7 a word whose lemmas carry no lexemes keeps the prior card without lexemes`() {
+    fun `AWP-43_1 a word whose lemmas carry no lexemes keeps the prior card without lexemes`() {
         val prior = emptyLemmaCard("bank", form)
 
         val card = lemmaCardOf(Fx.foundWithoutLemmas("bank"), prior, form)
@@ -282,21 +289,20 @@ class LemmaCardsTest {
     }
 
     @Test
-    fun `AWP-50_1 AWP-18_8 the mark follows the chosen lemma, not every lemma with the text`() {
+    fun `AWP-50_14 AWP-18_8 the mark follows every lemma with the text, whatever the target of the lexeme`() {
         val newest = Fx.existing(Fx.BANK_1, "run", listOf("бежать, бегать"))
         val older = Fx.existing(Fx.BANK_2, "run", listOf("управлять"))
         val form = Fx.form(existing = listOf(newest, older))
 
-        val byNewest = Fx.cards(Fx.ran, form = form).single()
-        val byOlder = listOf(byNewest.copy(target = CardTargetUi.Existing(Fx.BANK_2)))
-            .withExistsMarks(form.lexemeKeysOf(CardTargetUi.Existing(Fx.BANK_2)), form)
+        val run = Fx.cards(Fx.ran, form = form).single()
+        val retargeted = listOf(run)
+            .withLexemeTarget("run", "ruwiktionary/1.verb.1", CardTargetUi.Existing(Fx.BANK_2))!!
+            .withExistsMarks(form.lemmaWordKeys("run"), form)
             .single()
 
-        assertEquals(CardTargetUi.Existing(Fx.BANK_1), byNewest.target)
-        assertTrue(byNewest.lexemes.first { it.key == "ruwiktionary/1.verb.1" }.exists)
-        assertFalse(byNewest.lexemes.first { it.key == "ruwiktionary/1.verb.2" }.exists)
-        assertFalse(byOlder.lexemes.first { it.key == "ruwiktionary/1.verb.1" }.exists)
-        assertTrue(byOlder.lexemes.first { it.key == "ruwiktionary/1.verb.2" }.exists)
+        assertTrue(run.lexemes.first { it.key == "ruwiktionary/1.verb.1" }.exists)
+        assertTrue(run.lexemes.first { it.key == "ruwiktionary/1.verb.2" }.exists)
+        assertEquals(run.lexemes.map { it.exists }, retargeted.lexemes.map { it.exists })
     }
 
     @Test
@@ -383,7 +389,7 @@ class LemmaCardsTest {
         val form = Fx.form(existing = listOf(Fx.existing(5L, "take", listOf("брать"))))
         val cards = Fx.cards(word, form = form)
         val translation = Fx.ref("take", "ruwiktionary/1.verb.1", Fx.TRANSLATION)
-        val keys = form.lexemeKeysOf(cards.single().target)
+        val keys = form.lemmaWordKeys("take")
 
         val edited = cards.withTextEdit(translation, "брать")!!.withExistsMarks(keys, form)
 
@@ -406,7 +412,7 @@ class LemmaCardsTest {
         val form = Fx.form(existing = listOf(Fx.existing(5L, "run", listOf("бежать, бегать"))))
         val cards = Fx.cards(Fx.ran, form = form)
         val translation = Fx.ref("run", "ruwiktionary/1.verb.1", Fx.TRANSLATION)
-        val keys = form.lexemeKeysOf(cards.single().target)
+        val keys = form.lemmaWordKeys("run")
 
         val edited = cards.withTextEdit(translation, "бегать быстро")!!.withExistsMarks(keys, form)
 

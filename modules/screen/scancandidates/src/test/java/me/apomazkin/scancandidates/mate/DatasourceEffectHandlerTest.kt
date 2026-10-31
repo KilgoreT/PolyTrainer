@@ -53,7 +53,13 @@ class DatasourceEffectHandlerTest {
         translation = Fx.TEXTBOOK_TRANSLATION,
     )
 
-    private val addLink = DatasourceEffect.AddWord(word = "link", batch = DomainFx.batch("link"))
+    private val linkKey = "ruwiktionary/1.noun.1"
+
+    private val createLink = DatasourceEffect.CreateWord(word = "link", key = linkKey, batch = DomainFx.batch("link"))
+
+    private val transferLink = DatasourceEffect.TransferLexeme(word = "link", key = linkKey, batch = DomainFx.batch("link"))
+
+    private val reloadLink = DatasourceEffect.ReloadLemmas(word = "link", dictionaryId = Fx.DICT)
 
     // ===== Распознавание =====
 
@@ -280,8 +286,6 @@ class DatasourceEffectHandlerTest {
         assertEquals(listOf("бежать"), found.word.lemmas.single().lexemes.single().translations)
         assertTrue(found.word.lemmas.single().lexemes.single().inContext)
         assertEquals(listOf("Род"), found.recommendations.map { it.name })
-        assertEquals(listOf(DomainFx.CHILD_WORD), found.existing.map { it.wordId })
-        assertEquals(listOf(Fx.saved(9L, "ребёнок")), found.existing.single().lexemes)
         assertEquals(
             listOf(Triple(Fx.DICT, "run", LemmaContext(Fx.TEXTBOOK_TEXT, Fx.TEXTBOOK_TRANSLATION))),
             useCase.lexemeRequests,
@@ -342,62 +346,98 @@ class DatasourceEffectHandlerTest {
         )
     }
 
-    // ===== Запись слова (AWP-21) =====
+    // ===== Запись плашки и перечитка (AWP-20, AWP-21, AWP-63) =====
 
     @Test
-    fun `AddWord written sends WordAdded for the word of the effect`() {
+    fun `AWP-20_9 CreateWord written sends WordCreated with the id of the new word`() {
         val useCase = FakeUseCase(
             addWordImpl = { AddWordsBatchOutcome.Added(wordIds = listOf(7L), lexemeIds = listOf(70L)) },
         )
 
-        val messages = run(useCase, addLink)
+        val messages = run(useCase, createLink)
 
-        assertEquals(listOf<Msg>(Msg.WordAdded("link")), messages)
+        assertEquals(listOf<Msg>(Msg.WordCreated("link", linkKey, 7L)), messages)
         assertEquals(listOf(DomainFx.batch("link")), useCase.batches)
     }
 
     @Test
-    fun `AWP-21_3 AWP-21_4 AWP-21_6 AddWord rejected by group word or component sends its own message with the id`() {
+    fun `AWP-20_10 TransferLexeme written sends LexemeAdded for the plate of the effect`() {
+        val useCase = FakeUseCase(
+            addWordImpl = { AddWordsBatchOutcome.Added(wordIds = listOf(Fx.RUN_WORD), lexemeIds = listOf(71L)) },
+        )
+
+        val messages = run(useCase, transferLink)
+
+        assertEquals(listOf<Msg>(Msg.LexemeAdded("link", linkKey)), messages)
+        assertEquals(listOf(DomainFx.batch("link")), useCase.batches)
+    }
+
+    @Test
+    fun `AWP-21_3 AWP-21_4 AWP-21_6 a write rejected by group word or component sends its own message with the id and the plate`() {
         val group = run(
             FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.GroupMissing(Fx.POTTER) }),
-            addLink,
+            createLink,
         )
         val word = run(
             FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.WordMissing(Fx.BANK_1) }),
-            addLink,
+            transferLink,
         )
         val component = run(
             FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.TypeUnavailable(Fx.GLOSS) }),
-            addLink,
+            createLink,
         )
 
-        assertEquals(listOf<Msg>(Msg.AddGroupGone("link", AddFailureUi.GroupMissing(Fx.POTTER))), group)
-        assertEquals(listOf<Msg>(Msg.AddWordGone("link", AddFailureUi.WordMissing(Fx.BANK_1))), word)
-        assertEquals(listOf<Msg>(Msg.AddComponentGone("link", AddFailureUi.TypeUnavailable(Fx.GLOSS))), component)
+        assertEquals(listOf<Msg>(Msg.AddGroupGone("link", linkKey, AddFailureUi.GroupMissing(Fx.POTTER))), group)
+        assertEquals(listOf<Msg>(Msg.AddWordGone("link", linkKey, AddFailureUi.WordMissing(Fx.BANK_1))), word)
+        assertEquals(listOf<Msg>(Msg.AddComponentGone("link", linkKey, AddFailureUi.TypeUnavailable(Fx.GLOSS))), component)
     }
 
     @Test
-    fun `AWP-21_1 AddWord rejected without a core or without the dictionary sends the failure as is`() {
+    fun `AWP-21_1 a write rejected without a core or without the dictionary sends the failure as is`() {
         val core = run(
             FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.NoCoreValue(wordIndex = 0, lexemeIndex = 0) }),
-            addLink,
+            createLink,
         )
         val dictionary = run(
             FakeUseCase(addWordImpl = { AddWordsBatchOutcome.Rejected.DictionaryMissing }),
-            addLink,
+            transferLink,
         )
 
-        assertEquals(listOf<Msg>(Msg.AddFailed("link", AddFailureUi.NoCoreValue)), core)
-        assertEquals(listOf<Msg>(Msg.AddFailed("link", AddFailureUi.DictionaryMissing)), dictionary)
+        assertEquals(listOf<Msg>(Msg.AddFailed("link", linkKey, AddFailureUi.NoCoreValue)), core)
+        assertEquals(listOf<Msg>(Msg.AddFailed("link", linkKey, AddFailureUi.DictionaryMissing)), dictionary)
     }
 
     @Test
-    fun `AWP-21_1 AddWord that throws goes to onFail with the failed write under the word`() {
+    fun `AWP-21_1 a write that throws goes to onFail with the failed write under the plate`() {
         val useCase = FakeUseCase(addWordImpl = { throw IllegalStateException("db closed") })
 
-        assertThrows(IllegalStateException::class.java) { run(useCase, addLink) }
+        assertThrows(IllegalStateException::class.java) { run(useCase, createLink) }
+        assertThrows(IllegalStateException::class.java) { run(useCase, transferLink) }
 
-        assertEquals(Msg.AddFailed("link", AddFailureUi.Failed), addLink.onFail(IllegalStateException()))
+        assertEquals(Msg.AddFailed("link", linkKey, AddFailureUi.Failed), createLink.onFail(IllegalStateException()))
+        assertEquals(Msg.AddFailed("link", linkKey, AddFailureUi.Failed), transferLink.onFail(IllegalStateException()))
+    }
+
+    @Test
+    fun `AWP-63_1 ReloadLemmas asks the form by the text of the word and sends its lemmas in UI types`() {
+        val useCase = FakeUseCase(loadFormImpl = { _, _ -> FormOutcome.Loaded(DomainFx.form) })
+
+        val messages = run(useCase, reloadLink)
+
+        val reloaded = messages.single() as Msg.LemmasReloaded
+        assertEquals("link", reloaded.text)
+        assertEquals(listOf(DomainFx.STUDY_WORD), reloaded.existing.map { it.wordId })
+        assertEquals(listOf(Fx.DICT to listOf("link")), useCase.formRequests)
+    }
+
+    @Test
+    fun `AWP-63_6 ReloadLemmas with a deleted dictionary, a failed read or a throw leaves the saved plates as they were`() {
+        val missing = run(FakeUseCase(loadFormImpl = { _, _ -> FormOutcome.DictionaryMissing }), reloadLink)
+        val failed = run(FakeUseCase(loadFormImpl = { _, _ -> FormOutcome.Failed(cause = "boom") }), reloadLink)
+
+        assertEquals(listOf<Msg>(Msg.LemmasReloadFailed("link")), missing)
+        assertEquals(listOf<Msg>(Msg.LemmasReloadFailed("link")), failed)
+        assertEquals(Msg.LemmasReloadFailed("link"), reloadLink.onFail(IllegalStateException()))
     }
 
     // ===== Эффекты =====
@@ -415,7 +455,8 @@ class DatasourceEffectHandlerTest {
             "LookupLemma(word=run, lemma=run, dictionaryId=1, text=${Fx.TEXTBOOK_TEXT.length})",
             lookupRun.toString(),
         )
-        assertEquals("AddWord(word=link, lexemes=1)", addLink.toString())
+        assertEquals("CreateWord(word=link, key=$linkKey)", createLink.toString())
+        assertEquals("TransferLexeme(word=link, key=$linkKey, wordId=null)", transferLink.toString())
     }
 
     @Test

@@ -12,7 +12,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.core_resources.R
+import me.apomazkin.lexeme.AddWordsBatchOutcome
 import me.apomazkin.lexeme.FormOutcome
 import me.apomazkin.lexeme.LemmasOutcome
 import me.apomazkin.lexeme.LexemesOutcome
@@ -71,24 +73,45 @@ class ScanCandidatesScenarioTest {
     }
 
     @Test
-    fun `scenario - AWP-43_1 AWP-47_1 AWP-62_1 tap, card, add, the row is gone`() {
-        val two = Fx.lists(lexical = listOf("ran", "bank"))
+    fun `scenario - AWP-43_1 AWP-47_1 AWP-62_1 tap, plate, create, the row is gone`() {
+        val two = Fx.lists(lexical = listOf("run", "bank"))
         val window = reducer.window(found = Fx.found(lists = two))
+        val bankKey = "ruwiktionary/1.noun.1"
 
-        val loading = reducer.testReduce(window, Msg.LoadLexemes("ran"))
-        val loaded = reducer.step(loading.state(), Fx.lexemes("ran", Fx.ran))
-        val adding = reducer.testReduce(loaded, Msg.AddWord("ran"))
-        val added = reducer.step(adding.state(), Msg.WordAdded("ran"))
+        val loading = reducer.testReduce(window, Msg.LoadLexemes("bank"))
+        val loaded = reducer.step(loading.state(), Fx.lexemes("bank", Fx.bank))
+        val adding = reducer.testReduce(loaded, Msg.AddLexeme("bank", bankKey))
+        val added = reducer.step(adding.state(), Msg.WordCreated("bank", bankKey, 9L))
 
-        assertEquals(CardPhase.LOADING, loading.state().card("ran").phase)
+        assertEquals(CardPhase.LOADING, loading.state().card("bank").phase)
         assertTrue(loading.effects().single() is DatasourceEffect.LookupLemma)
-        assertEquals(CardPhase.CANDIDATES, loaded.card("ran").phase)
-        assertTrue(loaded.card("ran").canAdd)
-        assertTrue(adding.state().card("ran").isAdding)
-        assertTrue(adding.effects().single() is DatasourceEffect.AddWord)
-        assertEquals(listOf("bank"), added.lists.lexical.texts())
+        assertEquals(CardPhase.CANDIDATES, loaded.card("bank").phase)
+        assertTrue(loaded.lexeme("bank", bankKey).canWrite)
+        assertTrue(adding.state().card("bank").isAdding)
+        assertTrue(adding.effects().single() is DatasourceEffect.CreateWord)
+        assertEquals(listOf("run"), added.lists.lexical.texts())
         assertFalse(added.isAdding)
         assertEquals(ScanPhase.WINDOW, added.phase)
+    }
+
+    @Test
+    fun `scenario - AWP-63_1 AWP-20_3 create the first plate, the saved plate appears, the second goes by transfer, the row is gone`() {
+        val runKey = "ruwiktionary/1.verb.1"
+        val manageKey = "ruwiktionary/1.verb.2"
+        val loaded = reducer.withCard("run", Fx.run)
+
+        val created = reducer.created(loaded, "run", runKey, Fx.RUN_CREATED)
+        val reloaded = reducer.step(created, Msg.LemmasReloaded("run", listOf(Fx.runCreated)))
+        val transferring = reducer.testReduce(reloaded, Msg.AddLexeme("run", manageKey))
+        val transferred = reducer.step(transferring.state(), Msg.LexemeAdded("run", manageKey))
+
+        assertEquals(listOf(Fx.savedWord(Fx.runCreated)), reloaded.card("run").saved)
+        assertTrue(reloaded.word("run").isInDictionary)
+        assertEquals(CardTargetUi.Existing(Fx.RUN_CREATED), reloaded.lexeme("run", manageKey).target)
+        val effect = transferring.effects().single() as DatasourceEffect.TransferLexeme
+        assertEquals(Fx.RUN_CREATED, effect.batch.words.single().wordId)
+        assertNull(transferred.lists.wordOf("run"))
+        assertFalse(transferred.isAdding)
     }
 
     // ===== Весь цикл Mate =====
@@ -110,6 +133,7 @@ class ScanCandidatesScenarioTest {
         lemmasImpl = { LemmasOutcome.Found(dictionaryId = Fx.DICT, lemmas = DomainFx.textbook) },
         loadFormImpl = { _, _ -> FormOutcome.Loaded(DomainFx.form) },
         lexemesImpl = { _, lemma, _ -> LexemesOutcome.Found(DomainFx.lookupWord(lemma), emptyList()) },
+        addWordImpl = { AddWordsBatchOutcome.Added(wordIds = listOf(9L), lexemeIds = listOf(90L)) },
     )
 
     /** Отвечающий юзкейс, у которого значения слова ждут ворот [gate]. */
@@ -162,7 +186,7 @@ class ScanCandidatesScenarioTest {
     }
 
     @Test
-    fun `loop - AWP-43_1 AWP-62_1 a tap loads the card of the word, add writes it and its row leaves the list`() =
+    fun `loop - AWP-43_1 AWP-62_1 a tap loads the plates of the word, create writes the plate and the row leaves the list`() =
         runMateTest { scope ->
             val useCase = answeringUseCase()
             val mate = assemble(useCase, RecordingNavigation(), scope)
@@ -171,11 +195,11 @@ class ScanCandidatesScenarioTest {
             mate.accept(Msg.LoadLexemes("link"))
             testScheduler.advanceUntilIdle()
             val loaded = mate.state.value
-            mate.accept(Msg.AddWord("link"))
+            mate.accept(Msg.AddLexeme("link", "ruwiktionary/1.noun.1"))
             testScheduler.advanceUntilIdle()
 
             assertEquals(CardPhase.CANDIDATES, loaded.card("link").phase)
-            assertTrue(loaded.card("link").canAdd)
+            assertTrue(loaded.lexeme("link", "ruwiktionary/1.noun.1").canWrite)
             assertEquals(
                 listOf("Перевод: перевод", "Часть речи: существительное"),
                 loaded.shown("link", "ruwiktionary/1.noun.1"),
@@ -201,7 +225,7 @@ class ScanCandidatesScenarioTest {
             val reread = mate.state.value
             gate.complete(LexemesOutcome.Found(DomainFx.lookupWord("link"), emptyList()))
             testScheduler.advanceUntilIdle()
-            mate.accept(Msg.DeleteLexeme("link", "ruwiktionary/1.noun.1"))
+            mate.accept(Msg.SetOption(Fx.componentRef("link", "ruwiktionary/1.noun.1", Fx.PART_OF_SPEECH), null))
             testScheduler.advanceUntilIdle()
             val edited = mate.state.value
 
@@ -209,12 +233,12 @@ class ScanCandidatesScenarioTest {
             assertEquals(loading, reread)
             assertEquals(1, useCase.lexemeRequests.size)
             assertEquals(CardPhase.CANDIDATES, edited.card("link").phase)
-            assertTrue(edited.lemmaCard("link").lexemes.isEmpty())
+            assertEquals(emptyList<Long>(), edited.chosen("link", "ruwiktionary/1.noun.1", Fx.PART_OF_SPEECH))
             assertEquals(edited, mate.state.value)
         }
 
     @Test
-    fun `loop - AWP-48_4 a word deleted while loading does not come back with the late answer`() =
+    fun `loop - AWP-48_4 a word removed while loading does not come back with the late answer`() =
         runMateTest { scope ->
             val gate = CompletableDeferred<LexemesOutcome>()
             val useCase = gatedUseCase(gate)
@@ -223,7 +247,7 @@ class ScanCandidatesScenarioTest {
 
             mate.accept(Msg.LoadLexemes("link"))
             testScheduler.advanceUntilIdle()
-            mate.accept(Msg.DeleteWord("link"))
+            mate.accept(Msg.RemoveWord("link"))
             testScheduler.advanceUntilIdle()
             val deleted = mate.state.value
             gate.complete(LexemesOutcome.Found(DomainFx.lookupWord("link"), emptyList()))

@@ -2,7 +2,6 @@ package me.apomazkin.scancandidates.mate
 
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
-import me.apomazkin.candidates.AddFailureUi
 import me.apomazkin.candidates.AddSummaryUi
 import me.apomazkin.candidates.CandidatesSheetUi
 import me.apomazkin.candidates.CandidatesView
@@ -10,11 +9,11 @@ import me.apomazkin.candidates.ComponentMatchLineUiItem
 import me.apomazkin.candidates.DictionaryFormUi
 import me.apomazkin.candidates.LemmaCardUiItem
 import me.apomazkin.candidates.RemarkUiItem
-import me.apomazkin.candidates.SavedLexemeUi
+import me.apomazkin.candidates.SavedWordUi
 import me.apomazkin.lexeme.LookupToken
 
 /**
- * Состояние экрана снимка: от распознавания до окна со списками и карточками
+ * Состояние экрана снимка: от распознавания до окна со списками и плашками
  * под словами. Экран живёт один снимок. Всё показанное лежит явными полями,
  * composable ничего не толкует. Исход юзкейса и домен сюда не попадают: только
  * UI-типы и значения.
@@ -25,14 +24,14 @@ import me.apomazkin.lexeme.LookupToken
  *
  * Ответ сервера (LFT-14): [text] — исправленный текст, [translation] — его
  * перевод, [isTranslationExpanded] — блок перевода раскрыт (AWP-41), [lists] —
- * четыре списка слов с пометками «в словаре» (AWP-39) и карточками под словами
+ * четыре списка слов с пометками «в словаре» (AWP-39) и плашками под словами
  * (AWP-42).
  *
  * Окно: [form] — форма словаря снимка, [commonGroupId] — общая группа (null —
- * «Все»), [sheet] — открытый лист, [isAdding] — идёт запись хотя бы одного
- * слова: крестик и «назад» не действуют (AWP-51.12), [isConfirmingClose] —
- * вопрос «Закрыть без добавления?» открыт, [pendingWords] — число
- * недобавленных слов в вопросе (AWP-51).
+ * «Все»), [sheet] — открытый лист, [isAdding] — идёт запись хотя бы одной
+ * плашки: крестик и «назад» не действуют (AWP-51.12), [isConfirmingClose] —
+ * вопрос «Закрыть без добавления?» открыт, [pendingWords] — число слов с
+ * неразобранными плашками в вопросе (AWP-51).
  */
 @Immutable
 data class ScanCandidatesState(
@@ -85,8 +84,8 @@ data class ScanWordListsUi(
 /**
  * Слово списка: [text] — словарная форма или токен из «не разобрано»,
  * [isInDictionary] — в словаре снимка есть лемма с тем же текстом (AWP-39),
- * [card] — карточка под словом, null — не открывали, [isExpanded] — карточка
- * раскрыта (AWP-42). Слово с одним текстом в двух списках несёт одну и ту же
+ * [card] — что под словом, null — не открывали, [isExpanded] — плашки
+ * раскрыты (AWP-42). Слово с одним текстом в двух списках несёт одну и ту же
  * карточку в обеих строках.
  */
 @Immutable
@@ -98,38 +97,35 @@ data class ScanWordUiItem(
 )
 
 /**
- * Карточка под словом (AWP-42): [phase] — что в карточке, [lemma] — лемма с
- * лексемами-кандидатами, «куда класть», своей группой и пометкой формы, у
- * слова «в словаре» до проверки — без лексем; [saved] — сохранённые лексемы
- * леммы словаря из «куда класть» (AWP-46), у нового слова пусто; [remarks] —
- * строки «Замечаний» (AWP-30); [componentMatchLines] — строки «Сопоставления»
- * (AWP-31), [isComponentMatchesExpanded] — раздел раскрыт; [canAdd] —
- * «Добавить» активна: есть лексема без «уже в словаре» и ни одной без ядра
- * (AWP-47.2, 47.3); [errorRes] — «Не найдено», «Значений нет» или причина
- * ошибки, [hasRetryButton] — у ошибки есть «Повторить»; [isAdding] — идёт
- * запись этого слова, кнопки неактивны (AWP-02); [addFailure] — запись не
- * удалась, причина (AWP-21).
+ * Карточка под словом — всё, что под ним раскрыто (AWP-42): [phase] — что
+ * показано; [lemma] — лемма с текстом слова и плашками нейронки — её
+ * лексемами-кандидатами, у каждой своё «Куда», своя группа, запись и сбой
+ * записи (AWP-18, AWP-08, AWP-21), у слова «в словаре» до проверки — без
+ * лексем; [saved] — плашки словаря: по слову словаря с этим текстом (AWP-46),
+ * у нового слова пусто; [remarks] — строки «Замечаний» (AWP-30);
+ * [componentMatchLines] — строки «Сопоставления» (AWP-31),
+ * [isComponentMatchesExpanded] — раздел раскрыт; [errorRes] — «Не найдено»,
+ * «Значений нет» или причина ошибки, [hasRetryButton] — у ошибки есть
+ * «Повторить»; [isAdding] — идёт запись одной из плашек, кнопки и правки
+ * всех плашек слова неактивны (AWP-02, AWP-47.4).
  */
 @Immutable
 data class WordCardUi(
     val phase: CardPhase,
     val lemma: LemmaCardUiItem,
-    val saved: List<SavedLexemeUi> = emptyList(),
+    val saved: List<SavedWordUi> = emptyList(),
     val remarks: List<RemarkUiItem> = emptyList(),
     val componentMatchLines: List<ComponentMatchLineUiItem> = emptyList(),
     val isComponentMatchesExpanded: Boolean = false,
-    val canAdd: Boolean = false,
     @param:StringRes val errorRes: Int? = null,
     val hasRetryButton: Boolean = false,
     val isAdding: Boolean = false,
-    val addFailure: AddFailureUi? = null,
 )
 
 /**
- * Что показано в карточке: сохранённые лексемы слова «в словаре» и «Проверить
- * по тексту» (AWP-46), запрос значений идёт (AWP-57), лексемы-кандидаты с
- * сервера (AWP-43), «Не найдено» или «Значений нет» (AWP-55), ошибка или отказ
- * на слове (AWP-61).
+ * Что показано под словом: плашки словаря и «Проверить по тексту» (AWP-46),
+ * запрос значений идёт (AWP-57), плашки нейронки с сервера (AWP-43), «Не
+ * найдено» или «Значений нет» (AWP-55), ошибка или отказ на слове (AWP-61).
  */
 enum class CardPhase {
     SAVED,
@@ -141,8 +137,8 @@ enum class CardPhase {
 
 /**
  * Вид для общих виджетов окна: форма, общая группа, лист, карточки лемм всех
- * слов — для листов правки и «куда класть», — запись и вопрос закрытия; сводки
- * кнопки и общего «не добавилось» у экрана нет — они у карточек слов.
+ * слов — для листов правки, «Куда» и своей группы плашек, — запись и вопрос
+ * закрытия; сводки кнопки и общего «не добавилось» у экрана нет — они у плашек.
  */
 fun ScanCandidatesState.toView(): CandidatesView = CandidatesView(
     form = form,

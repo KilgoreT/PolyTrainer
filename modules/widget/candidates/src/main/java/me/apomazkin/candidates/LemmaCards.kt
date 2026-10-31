@@ -12,32 +12,28 @@ import me.apomazkin.lexeme.wordTextKey
  */
 
 /**
- * Карточка леммы без лексем по форме: леммы словаря с тем же текстом, «куда
- * класть» — самая новая или «новое слово» (AWP-18.3), своя группа «как у
- * всех». Карточка слова «в словаре» до проверки по тексту и прежняя карточка
- * нового слова до ответа.
+ * Карточка леммы без лексем по форме: текст слова списка и счёт лемм
+ * словаря с тем же текстом. Карточка слова «в словаре» до проверки по
+ * тексту и карточка нового слова до ответа.
  */
 fun emptyLemmaCard(
     lemma: String,
     form: DictionaryFormUi,
-): LemmaCardUiItem {
-    val existing = form.existingOf(lemma)
-    return LemmaCardUiItem(
-        lemma = lemma,
-        sourceWords = listOf(lemma),
-        lexemes = emptyList(),
-        existingCount = existing.size,
-        target = existing.firstOrNull()?.let { CardTargetUi.Existing(it.wordId) } ?: CardTargetUi.NewWord,
-        ownGroup = CardOwnGroupUi.AsCommon,
-    )
-}
+): LemmaCardUiItem = LemmaCardUiItem(
+    lemma = lemma,
+    sourceWords = listOf(lemma),
+    lexemes = emptyList(),
+    existingCount = form.existingOf(lemma).size,
+)
 
 /**
- * Карточка одной леммы из слова ответа: первая лемма с лексемами (по тапу
+ * Карточка слова списка из слова ответа: первая лемма с лексемами (по тапу
  * она одна, LFL-107), лексемы по сопоставлению в порядке карточки (AWP-44),
- * с «в тексте» и «англ.», пометка формы; «куда класть» и своя группа — от
- * прежней карточки [prior], если текст леммы тот же, иначе по форме заново
- * (AWP-43.7). Слово без леммы с лексемами — прежняя карточка без лексем.
+ * с «в тексте» и «англ.», у каждой «Куда» «новое слово» и группа «как у
+ * всех»; текст леммы — как у прежней карточки [prior], то есть слово
+ * списка: лемма ответа другим текстом — ошибка этапа, окно её не ловит;
+ * пометка формы — из ответа. Слово без леммы с лексемами — прежняя
+ * карточка без лексем.
  */
 fun lemmaCardOf(
     word: LookupWordUi,
@@ -46,11 +42,7 @@ fun lemmaCardOf(
 ): LemmaCardUiItem {
     val lemma = word.lemmas.firstOrNull { it.lexemes.isNotEmpty() }
         ?: return prior.copy(sourceWords = listOf(word.text), lexemes = emptyList())
-    val base = when (wordTextKey(lemma.text)) {
-        wordTextKey(prior.lemma) -> prior
-        else -> emptyLemmaCard(lemma.text, form)
-    }
-    return base.copy(
+    return prior.copy(
         sourceWords = listOf(word.text),
         lexemes = lemma.lexemes.map { it.toCardLexeme(lemma, word, form).inCardOrder(form) },
         formNote = lemma.formNote,
@@ -73,31 +65,23 @@ fun buildCandidateCards(
         .filter { it.lexemes.isNotEmpty() }
         .map { lemma ->
             val isDirect = wordTextKey(lemma.text) == key
-            newCard(lemma, word, form).copy(
-                target = CardTargetUi.NewWord,
-                formNote = if (isDirect) null else lemma.formNote,
-            )
+            newCard(lemma, word, form).copy(formNote = if (isDirect) null else lemma.formNote)
         }
     return cards.sortedBy { if (wordTextKey(it.lemma) == key) 0 else 1 }
 }
 
-/** Раздел леммы диалога: лексемы по сопоставлению, «есть в словаре: N», умолчание «куда класть». */
+/** Раздел леммы диалога: лексемы по сопоставлению, «есть в словаре: N». */
 private fun newCard(
     lemma: LookupLemmaUi,
     word: LookupWordUi,
     form: DictionaryFormUi,
-): LemmaCardUiItem {
-    val existing = form.existingOf(lemma.text)
-    return LemmaCardUiItem(
-        lemma = lemma.text,
-        sourceWords = listOf(word.text),
-        lexemes = lemma.lexemes.map { it.toCardLexeme(lemma, word, form) },
-        existingCount = existing.size,
-        target = existing.firstOrNull()?.let { CardTargetUi.Existing(it.wordId) } ?: CardTargetUi.NewWord,
-        ownGroup = CardOwnGroupUi.AsCommon,
-        formNote = lemma.formNote,
-    )
-}
+): LemmaCardUiItem = LemmaCardUiItem(
+    lemma = lemma.text,
+    sourceWords = listOf(word.text),
+    lexemes = lemma.lexemes.map { it.toCardLexeme(lemma, word, form) },
+    existingCount = form.existingOf(lemma.text).size,
+    formNote = lemma.formNote,
+)
 
 /** Лексема-кандидат в окне: значения по сопоставлению (AWP-29), «англ.» по замечанию слова (AWP-34), «в тексте» (AWP-43). */
 private fun LookupLexemeUi.toCardLexeme(
@@ -162,35 +146,37 @@ fun DictionaryFormUi.targetRowsOf(lemma: String): List<TargetRowUi> = existingOf
     )
 }
 
-/** Сохранённые лексемы леммы словаря из «куда класть» со значениями в порядке карточки (AWP-46, AWP-44); «новое слово» — пусто. */
-fun DictionaryFormUi.savedLexemesOf(target: CardTargetUi): List<SavedLexemeUi> = when (target) {
-    is CardTargetUi.Existing -> existingLemmas
-        .firstOrNull { it.wordId == target.wordId }
-        ?.lexemes
-        .orEmpty()
-        .map { saved -> saved.copy(values = saved.values.inCardOrder(this)) }
-    CardTargetUi.NewWord -> emptyList()
+/**
+ * Плашки словаря под словом (AWP-46): по слову словаря с этим текстом, в
+ * порядке формы — самое новое первым (AWP-46.3), значения сохранённых
+ * лексем в порядке карточки (AWP-46.7, AWP-44).
+ */
+fun DictionaryFormUi.savedWordsOf(text: String): List<SavedWordUi> = existingOf(text).map { lemma ->
+    SavedWordUi(
+        wordId = lemma.wordId,
+        text = lemma.text,
+        groupNames = lemma.groupNames,
+        addedAt = lemma.addedAt,
+        lexemes = lemma.lexemes.map { saved -> saved.copy(values = saved.values.inCardOrder(this)) },
+    )
 }
 
-/** Ключи текстов ядер лексем леммы словаря из «куда класть» для «уже в словаре» (AWP-50); «новое слово» — пусто. */
-fun DictionaryFormUi.lexemeKeysOf(target: CardTargetUi): Set<String> = when (target) {
-    is CardTargetUi.Existing -> existingLemmas.firstOrNull { it.wordId == target.wordId }?.lexemeTextKeys.orEmpty()
-    CardTargetUi.NewWord -> emptySet()
+/** Форма, где леммы словаря с этим текстом заменены присланными: перечитка после записи (AWP-63). */
+fun DictionaryFormUi.withLemmasOf(
+    text: String,
+    lemmas: List<ExistingLemmaUi>,
+): DictionaryFormUi {
+    val key = wordTextKey(text)
+    val others = existingLemmas.filterNot { wordTextKey(it.text) == key }
+    return copy(existingLemmas = others + lemmas)
 }
 
-/** Форма с леммами словаря, которых в ней не было: лемма ответа вне списков (AWP-43.7). */
-fun DictionaryFormUi.withExistingLemmas(added: List<ExistingLemmaUi>): DictionaryFormUi {
-    val known = existingLemmas.mapTo(HashSet()) { it.wordId }
-    val fresh = added.filterNot { it.wordId in known }
-    return if (fresh.isEmpty()) this else copy(existingLemmas = existingLemmas + fresh)
-}
-
-/** Ключи текстов ядер всех лексем всех слов словаря с текстом леммы (WCL-15.4). */
+/** Ключи текстов ядер всех лексем всех слов словаря с текстом леммы: «уже в словаре» (AWP-50.14), «есть в «…»» (WCL-15.4). */
 fun DictionaryFormUi.lemmaWordKeys(lemma: String): Set<String> = existingOf(lemma).flatMapTo(HashSet()) { it.lexemeTextKeys }
 
 /**
- * Пометка «уже в словаре» или «есть» по ключам текстов ядер одной леммы
- * словаря (AWP-50, WCL-06, Д42): значение активного ядра лексемы-кандидата
+ * Пометка «уже в словаре» или «есть» по ключам текстов ядер лексем словаря
+ * (AWP-50, WCL-06, Д42): значение активного ядра лексемы-кандидата
  * совпадает со значением ядра шаблона «текст» лексемы; сравнение —
  * `lexemeTextKey`; параметры не сравниваются.
  */

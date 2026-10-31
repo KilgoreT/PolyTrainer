@@ -13,9 +13,9 @@ import org.junit.Test
 
 /**
  * Действия общих виджетов окна становятся сообщениями экрана с теми же
- * данными: правки карточки, листы, «куда класть», группы, закрытие и вопрос о
- * нём; крестик карточки, кнопки панели первой версии и действия диалога
- * карточки слова ничего не меняют.
+ * данными: правки плашки, листы, «Куда», группы, закрытие и вопрос о нём,
+ * крестик лексемы — «Не нужно»; крестик карточки, кнопки панели первой
+ * версии и действия диалога карточки слова ничего не меняют.
  */
 class CandidateActionsTest {
     private val key = "ruwiktionary/1.verb.1"
@@ -26,7 +26,7 @@ class CandidateActionsTest {
     fun `edits, sheets, targets, groups and closing become the messages with the same data`() {
         val sheet = CandidatesSheetUi.TextEdit(ref = value, draft = "брать", canReset = true)
         val cases = listOf(
-            CandidateAction.DeleteLexeme("run", key) to Msg.DeleteLexeme("run", key),
+            CandidateAction.DeleteLexeme("run", key) to Msg.DismissLexeme("run", key),
             CandidateAction.DeleteValue(value) to Msg.DeleteValue(value),
             CandidateAction.OpenSheet(sheet) to Msg.OpenSheet(sheet),
             CandidateAction.OpenSheet(CandidatesSheetUi.CommonGroup) to Msg.OpenSheet(CandidatesSheetUi.CommonGroup),
@@ -36,8 +36,10 @@ class CandidateActionsTest {
             CandidateAction.ResetText(value) to Msg.ResetText(value),
             CandidateAction.SetOption(component, 21L) to Msg.SetOption(component, 21L),
             CandidateAction.SetOption(component, null) to Msg.SetOption(component, null),
-            CandidateAction.SetCardTarget("run", CardTargetUi.NewWord) to Msg.SetCardTarget("run", CardTargetUi.NewWord),
-            CandidateAction.SetCardGroup("run", CardOwnGroupUi.All) to Msg.SetCardGroup("run", CardOwnGroupUi.All),
+            CandidateAction.SetCardTarget("run", key, CardTargetUi.NewWord) to
+                Msg.SetCardTarget("run", key, CardTargetUi.NewWord),
+            CandidateAction.SetCardGroup("run", key, CardOwnGroupUi.All) to
+                Msg.SetCardGroup("run", key, CardOwnGroupUi.All),
             CandidateAction.SetCommonGroup(701L) to Msg.SetCommonGroup(701L),
             CandidateAction.SetCommonGroup(null) to Msg.SetCommonGroup(null),
             CandidateAction.RequestClose to Msg.RequestClose,

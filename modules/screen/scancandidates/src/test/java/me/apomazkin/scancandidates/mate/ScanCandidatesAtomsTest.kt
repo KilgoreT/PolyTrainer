@@ -34,10 +34,10 @@ class ScanCandidatesAtomsTest : ScanCandidatesAtoms(NoopLogger) {
         .applyForm(form).state()
         .markInDictionary().state()
 
-    /** Окно с одним смысловым словом и его загруженной карточкой: цепочка атомов, как у редьюсера. */
+    /** Окно с одним смысловым словом и его плашками нейронки: цепочка атомов, как у редьюсера. */
     private fun loaded(
-        text: String = "ran",
-        word: LookupWordUi = Fx.ran,
+        text: String = "run",
+        word: LookupWordUi = Fx.run,
         form: DictionaryFormUi = Fx.form(),
     ): ScanCandidatesState = window(found = Fx.found(lists = Fx.lists(lexical = listOf(text))), form = form)
         .startLookup(text).state()
@@ -165,7 +165,7 @@ class ScanCandidatesAtomsTest : ScanCandidatesAtoms(NoopLogger) {
     // ===== Карточка под словом =====
 
     @Test
-    fun `openSavedCard builds the saved card of the newest lemma and is a no-op without the word or the form`() {
+    fun `openSavedCard builds the saved plates per lemma with the text and is a no-op without the word or the form`() {
         val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
         val window = window(found = Fx.found(lists = Fx.lists(lexical = listOf("bank"))), form = form)
 
@@ -173,8 +173,8 @@ class ScanCandidatesAtomsTest : ScanCandidatesAtoms(NoopLogger) {
 
         val card = opened.card("bank")
         assertEquals(CardPhase.SAVED, card.phase)
-        assertEquals(CardTargetUi.Existing(Fx.BANK_1), card.lemma.target)
-        assertEquals(Fx.bank1.lexemes, card.saved)
+        assertEquals(listOf(Fx.savedWord(Fx.bank1), Fx.savedWord(Fx.bank2)), card.saved)
+        assertEquals(2, card.lemma.existingCount)
         assertTrue(opened.word("bank").isExpanded)
         assertTrue(effects.isEmpty())
         assertNoOp(window, window.openSavedCard("sky"))
@@ -197,34 +197,36 @@ class ScanCandidatesAtomsTest : ScanCandidatesAtoms(NoopLogger) {
     }
 
     @Test
-    fun `applyLexemes without the word is a no-op and keeps the form, with it builds the candidates card`() {
+    fun `applyLexemes without the word is a no-op, with it builds the plates under the text of the word`() {
         val window = window(found = Fx.found(lists = Fx.lists(lexical = listOf("ran"))))
         val loading = window.startLookup("ran").state()
 
-        val (applied, effects) = loading.applyLexemes(Fx.lexemes("ran", Fx.ran, existing = listOf(Fx.childExisting)))
+        val (applied, effects) = loading.applyLexemes(Fx.lexemes("ran", Fx.ran))
 
         assertEquals(CardPhase.CANDIDATES, applied.card("ran").phase)
-        assertEquals("run", applied.card("ran").lemma.lemma)
-        assertEquals(listOf(Fx.CHILD_WORD), requireNotNull(applied.form).existingLemmas.map { it.wordId })
+        assertEquals("ran", applied.card("ran").lemma.lemma)
+        assertEquals(2, applied.card("ran").lemma.lexemes.size)
+        assertTrue(applied.card("ran").lemma.lexemes.all { it.target == CardTargetUi.NewWord })
         assertTrue(effects.isEmpty())
         assertNoOp(loading, loading.applyLexemes(Fx.lexemes("sky", Fx.ran)))
     }
 
     @Test
-    fun `refreshCardValues and refreshCardMarks set the activity, the marks and add, no-ops without a card`() {
+    fun `refreshCardValues and refreshCardMarks set the activity and the marks, no-ops without a card`() {
         val form = Fx.form(existing = listOf(Fx.runExisting))
         val loaded = loaded(form = form)
 
-        assertTrue(loaded.lexeme("ran", "ruwiktionary/1.verb.2").exists)
-        assertFalse(loaded.lexeme("ran", "ruwiktionary/1.verb.1").exists)
-        assertTrue(loaded.card("ran").canAdd)
-        val window = window(found = Fx.found(lists = Fx.lists(lexical = listOf("ran"))))
-        assertNoOp(window, window.refreshCardValues("ran"))
-        assertNoOp(window, window.refreshCardMarks("ran"))
+        assertTrue(loaded.lexeme("run", "ruwiktionary/1.verb.2").exists)
+        assertFalse(loaded.lexeme("run", "ruwiktionary/1.verb.2").canWrite)
+        assertFalse(loaded.lexeme("run", "ruwiktionary/1.verb.1").exists)
+        assertTrue(loaded.lexeme("run", "ruwiktionary/1.verb.1").canWrite)
+        val window = window(found = Fx.found(lists = Fx.lists(lexical = listOf("run"))))
+        assertNoOp(window, window.refreshCardValues("run"))
+        assertNoOp(window, window.refreshCardMarks("run"))
     }
 
     @Test
-    fun `card messages keep the lemma and the saved rows and are no-ops without a card`() {
+    fun `card messages keep the lemma and the saved plates and are no-ops without a card`() {
         val form = Fx.form(existing = listOf(Fx.runExisting))
         val saved = window(found = Fx.found(lists = Fx.lists(lexical = listOf("run"))), form = form)
             .openSavedCard("run").state()
@@ -236,8 +238,8 @@ class ScanCandidatesAtomsTest : ScanCandidatesAtoms(NoopLogger) {
 
         assertEquals(CardPhase.NOT_FOUND, notFound.phase)
         assertEquals(R.string.scan_not_found, notFound.errorRes)
-        assertEquals(Fx.runExisting.lexemes, notFound.saved)
-        assertEquals(CardTargetUi.Existing(Fx.RUN_WORD), notFound.lemma.target)
+        assertEquals(listOf(Fx.savedWord(Fx.runExisting)), notFound.saved)
+        assertEquals("run", notFound.lemma.lemma)
         assertEquals(CardPhase.ERROR, error.phase)
         assertFalse(error.hasRetryButton)
         assertTrue(retryable.hasRetryButton)
@@ -261,27 +263,44 @@ class ScanCandidatesAtomsTest : ScanCandidatesAtoms(NoopLogger) {
     }
 
     @Test
-    fun `deleteWord drops the rows and is a no-op without the word`() {
+    fun `removeWord drops the rows and is a no-op without the word`() {
         val window = window(found = Fx.found(lists = Fx.lists(lexical = listOf("nube"), unparsed = listOf("sh"))))
 
-        val (deleted, effects) = window.deleteWord("sh")
+        val (removed, effects) = window.removeWord("sh")
 
-        assertTrue(deleted.lists.unparsed.isEmpty())
+        assertTrue(removed.lists.unparsed.isEmpty())
         assertTrue(effects.isEmpty())
-        assertNoOp(window, window.deleteWord("sky"))
+        assertNoOp(window, window.removeWord("sky"))
     }
 
-    // ===== Правки карточки =====
-
     @Test
-    fun `lemma steps are no-ops when the lemma has no card or the transition changes nothing`() {
+    fun `dismissLexeme drops the plate, removeEmptyWord drops the word only when no plate is left and there is an answer`() {
         val loaded = loaded()
 
-        assertNoOp(loaded, loaded.deleteLexeme("sky", "ruwiktionary/1.verb.1"))
-        assertNoOp(loaded, loaded.deleteLexeme("run", "ruwiktionary/9.verb.9"))
+        val one = loaded.dismissLexeme("run", "ruwiktionary/1.verb.1").state()
+        val none = one.dismissLexeme("run", "ruwiktionary/1.verb.2").state()
+
+        assertEquals(listOf("ruwiktionary/1.verb.2"), one.lemmaCard("run").lexemes.map { it.key })
+        assertNoOp(one, one.removeEmptyWord("run"))
+        assertNull(none.removeEmptyWord("run").state().lists.wordOf("run"))
+        val saved = window(found = Fx.found(lists = Fx.lists(lexical = listOf("run"))), form = Fx.form(existing = listOf(Fx.run1)))
+            .openSavedCard("run").state()
+        assertNoOp(saved, saved.removeEmptyWord("run"))
+        assertNoOp(loaded, loaded.removeEmptyWord("sky"))
+    }
+
+    // ===== Правки плашки =====
+
+    @Test
+    fun `lemma steps are no-ops when the word has no card or the transition changes nothing`() {
+        val loaded = loaded()
+
+        assertNoOp(loaded, loaded.dismissLexeme("sky", "ruwiktionary/1.verb.1"))
+        assertNoOp(loaded, loaded.dismissLexeme("run", "ruwiktionary/9.verb.9"))
         assertNoOp(loaded, loaded.resetText(Fx.ref("run", "ruwiktionary/9.verb.9", Fx.TRANSLATION)))
+        assertNoOp(loaded, loaded.setLexemeTarget("run", "ruwiktionary/9.verb.9", CardTargetUi.NewWord))
         assertNoOp(loaded, loaded.refreshLemmaMarks("sky"))
-        assertNoOp(loaded, loaded.refreshLemmaSaved("sky"))
+        assertNoOp(loaded, loaded.refreshCardSaved("sky"))
     }
 
     @Test
@@ -298,66 +317,102 @@ class ScanCandidatesAtomsTest : ScanCandidatesAtoms(NoopLogger) {
         assertNoOp(loaded, loaded.closeSheet())
     }
 
-    // ===== Запись слова =====
+    // ===== Запись плашки и перечитка =====
+
+    private val runKey = "ruwiktionary/1.verb.1"
+    private val manageKey = "ruwiktionary/1.verb.2"
+    private val bankKey = "ruwiktionary/1.noun.1"
 
     @Test
-    fun `startAddingWord sends the batch of the word and is a no-op without a card or without lexemes to write`() {
+    fun `startAddingLexeme sends the batch of the plate by its target and is a no-op without a plate or a plate not to write`() {
         val loaded = loaded()
 
-        val (adding, effects) = loaded.startAddingWord("ran")
+        val (adding, effects) = loaded.startAddingLexeme("run", runKey)
+        val transfer = loaded.setLexemeTarget("run", runKey, CardTargetUi.Existing(Fx.RUN_WORD)).state()
+            .startAddingLexeme("run", runKey).effects()
 
         assertTrue(adding.isAdding)
-        assertTrue(adding.card("ran").isAdding)
-        assertEquals("ran", (effects.single() as DatasourceEffect.AddWord).word)
-        assertNoOp(loaded, loaded.startAddingWord("sky"))
-        val emptied = loaded
-            .deleteLexeme("run", "ruwiktionary/1.verb.1").state()
-            .deleteLexeme("run", "ruwiktionary/1.verb.2").state()
-        assertNoOp(emptied, emptied.startAddingWord("ran"))
+        assertTrue(adding.card("run").isAdding)
+        assertTrue(adding.lexeme("run", runKey).isAdding)
+        assertFalse(adding.lexeme("run", manageKey).isAdding)
+        assertEquals("run", (effects.single() as DatasourceEffect.CreateWord).word)
+        assertTrue(transfer.single() is DatasourceEffect.TransferLexeme)
+        assertNoOp(loaded, loaded.startAddingLexeme("sky", runKey))
+        assertNoOp(loaded, loaded.startAddingLexeme("run", "ruwiktionary/9.verb.9"))
+        val existing = loaded(form = Fx.form(existing = listOf(Fx.runExisting)))
+        assertNoOp(existing, existing.startAddingLexeme("run", manageKey))
     }
 
     @Test
-    fun `removeAddedWord drops the rows and clears adding when no other word is being written`() {
-        val adding = loaded().startAddingWord("ran").state()
+    fun `finishAdding drops the plate and clears adding, retarget and reload follow, removeEmptyWord waits for the last plate`() {
+        val adding = loaded().startAddingLexeme("run", runKey).state()
 
-        val (removed, effects) = adding.removeAddedWord("ran")
+        val (finished, effects) = adding.finishAdding("run", runKey)
+        val retargeted = finished.retargetNewWordLexemes("run", Fx.RUN_CREATED).state()
+        val last = finished.finishAdding("run", manageKey).state()
 
-        assertNull(removed.lists.wordOf("ran"))
-        assertFalse(removed.isAdding)
+        assertEquals(listOf(manageKey), finished.lemmaCard("run").lexemes.map { it.key })
+        assertFalse(finished.isAdding)
+        assertFalse(finished.card("run").isAdding)
         assertTrue(effects.isEmpty())
-        assertNoOp(removed, removed.removeAddedWord("ran"))
+        assertNoOp(finished, finished.finishAdding("run", runKey))
+        assertNoOp(finished, finished.removeEmptyWord("run"))
+        assertEquals(CardTargetUi.Existing(Fx.RUN_CREATED), retargeted.lexeme("run", manageKey).target)
+        assertNoOp(retargeted, retargeted.retargetNewWordLexemes("run", Fx.RUN_CREATED))
+        assertNull(last.removeEmptyWord("run").state().lists.wordOf("run"))
+        assertEquals(setOf<Effect>(DatasourceEffect.ReloadLemmas("run", Fx.DICT)), finished.startLemmasReload("run").effects())
+        assertNoOp(last.removeEmptyWord("run").state(), last.removeEmptyWord("run").state().startLemmasReload("run"))
+        val noDictionary = finished.copy(dictionaryId = null)
+        assertNoOp(noDictionary, noDictionary.startLemmasReload("run"))
     }
 
     @Test
-    fun `showAddFailure and clearAddFailure work per word, clear is a no-op without a failure`() {
-        val adding = loaded().startAddingWord("ran").state()
+    fun `applyReloadedLemmas replaces the lemmas with the text, refreshes the saved plates and is a no-op without the form`() {
+        val loaded = loaded(form = Fx.form(existing = listOf(Fx.bank1)))
 
-        val failed = adding.showAddFailure("ran", AddFailureUi.Failed).state()
-        val cleared = failed.clearAddFailure("ran").state()
+        val (reloaded, effects) = loaded.applyReloadedLemmas("run", listOf(Fx.runCreated))
 
-        assertEquals(AddFailureUi.Failed, failed.card("ran").addFailure)
-        assertFalse(failed.card("ran").isAdding)
+        assertEquals(listOf(Fx.BANK_1, Fx.RUN_CREATED), requireNotNull(reloaded.form).existingLemmas.map { it.wordId })
+        assertEquals(listOf(Fx.savedWord(Fx.runCreated)), reloaded.card("run").saved)
+        assertEquals(1, reloaded.lemmaCard("run").existingCount)
+        assertTrue(effects.isEmpty())
+        val noForm = loaded.copy(form = null)
+        assertNoOp(noForm, noForm.applyReloadedLemmas("run", listOf(Fx.runCreated)))
+    }
+
+    @Test
+    fun `showAddFailure and clearAddFailure work per plate, clear is a no-op without a failure`() {
+        val adding = loaded().startAddingLexeme("run", runKey).state()
+
+        val failed = adding.showAddFailure("run", runKey, AddFailureUi.Failed).state()
+        val cleared = failed.clearAddFailure("run", runKey).state()
+
+        assertEquals(AddFailureUi.Failed, failed.lexeme("run", runKey).addFailure)
+        assertFalse(failed.lexeme("run", runKey).isAdding)
+        assertFalse(failed.card("run").isAdding)
         assertFalse(failed.isAdding)
-        assertNull(cleared.card("ran").addFailure)
-        assertNoOp(cleared, cleared.clearAddFailure("ran"))
-        assertNoOp(adding, adding.showAddFailure("sky", AddFailureUi.Failed))
+        assertNull(cleared.lexeme("run", runKey).addFailure)
+        assertNoOp(cleared, cleared.clearAddFailure("run", runKey))
+        assertNoOp(adding, adding.showAddFailure("sky", runKey, AddFailureUi.Failed))
+        assertNoOp(adding, adding.showAddFailure("run", "ruwiktionary/9.verb.9", AddFailureUi.Failed))
     }
 
     @Test
-    fun `resetDeadGroup, resetDeadTarget and dropComponent clean the form and every card`() {
+    fun `resetDeadGroup, resetDeadTarget and dropComponent clean the form and every plate`() {
         val form = Fx.form(existing = listOf(Fx.bank1))
         val loaded = loaded(text = "bank", word = Fx.bank, form = form)
             .setCommonGroup(Fx.POTTER).state()
-            .setCardGroup("bank", CardOwnGroupUi.Group(Fx.FINANCE)).state()
+            .setLexemeGroup("bank", bankKey, CardOwnGroupUi.Group(Fx.FINANCE)).state()
+            .setLexemeTarget("bank", bankKey, CardTargetUi.Existing(Fx.BANK_1)).state()
 
         val group = loaded.resetDeadGroup(Fx.FINANCE).state()
         val target = loaded.resetDeadTarget(Fx.BANK_1).state().refreshAllCards().state()
         val component = loaded.dropComponent(Fx.PART_OF_SPEECH).state()
 
-        assertEquals(CardOwnGroupUi.AsCommon, group.lemmaCard("bank").ownGroup)
+        assertEquals(CardOwnGroupUi.AsCommon, group.lexeme("bank", bankKey).ownGroup)
         assertEquals(Fx.POTTER, group.commonGroupId)
         assertEquals(listOf(Fx.POTTER), requireNotNull(group.form).groups.map { it.id })
-        assertEquals(CardTargetUi.NewWord, target.lemmaCard("bank").target)
+        assertEquals(CardTargetUi.NewWord, target.lexeme("bank", bankKey).target)
         assertTrue(target.card("bank").saved.isEmpty())
         assertEquals(0, target.lemmaCard("bank").existingCount)
         assertTrue(requireNotNull(target.form).existingLemmas.isEmpty())

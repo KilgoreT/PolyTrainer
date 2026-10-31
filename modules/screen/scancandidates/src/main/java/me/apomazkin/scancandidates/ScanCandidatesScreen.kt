@@ -7,13 +7,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.apomazkin.candidates.CandidateValueUiItem
 import me.apomazkin.candidates.CardLexemeUiItem
-import me.apomazkin.candidates.CardOwnGroupUi
-import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.candidates.DictionaryFormUi
 import me.apomazkin.candidates.EditableTextUiItem
 import me.apomazkin.candidates.FormComponentUi
 import me.apomazkin.candidates.FormGroupUi
 import me.apomazkin.candidates.LemmaCardUiItem
+import me.apomazkin.candidates.SavedWordUi
 import me.apomazkin.core_resources.R
 import me.apomazkin.di.viewModelFactory
 import me.apomazkin.lexeme.BuiltInComponent
@@ -37,7 +36,7 @@ import me.apomazkin.ui.preview.PreviewScreen
 
 /**
  * Экран снимка: от распознавания до окна со списками словарных форм и
- * карточками под словами. Живёт один снимок, ViewModel — по ключу снимка.
+ * плашками под словами. Живёт один снимок, ViewModel — по ключу снимка.
  */
 @Composable
 fun ScanCandidatesScreen(
@@ -128,34 +127,46 @@ private val previewForm = DictionaryFormUi(
     existingLemmas = emptyList(),
 )
 
+private fun previewLexeme(
+    key: String,
+    translation: String,
+    isInContext: Boolean,
+) = CardLexemeUiItem(
+    key = key,
+    source = "ruwiktionary",
+    values = listOf(
+        CandidateValueUiItem.Text(
+            componentId = 1L,
+            texts = listOf(EditableTextUiItem.of(translation)),
+            field = "translations",
+        ),
+    ),
+    isEnglishFallback = false,
+    exists = false,
+    lacksCore = false,
+    isInContext = isInContext,
+)
+
 private val previewCard = WordCardUi(
     phase = CardPhase.CANDIDATES,
     lemma = LemmaCardUiItem(
         lemma = "correr",
-        sourceWords = listOf("corrían"),
+        sourceWords = listOf("correr"),
         lexemes = listOf(
-            CardLexemeUiItem(
-                key = "ruwiktionary/1.verb.3",
-                source = "ruwiktionary",
-                values = listOf(
-                    CandidateValueUiItem.Text(
-                        componentId = 1L,
-                        texts = listOf(EditableTextUiItem.of("течь, литься, струиться (о жидкости)")),
-                        field = "translations",
-                    ),
-                ),
-                isEnglishFallback = false,
-                exists = false,
-                lacksCore = false,
-                isInContext = true,
-            ),
+            previewLexeme("ruwiktionary/1.verb.3", "течь, литься, струиться (о жидкости)", isInContext = true),
+            previewLexeme("ruwiktionary/1.verb.1", "бегать; бежать", isInContext = false),
         ),
-        existingCount = 0,
-        target = CardTargetUi.NewWord,
-        ownGroup = CardOwnGroupUi.AsCommon,
-        formNote = "third-person plural imperfect indicative",
+        existingCount = 1,
     ),
-    canAdd = true,
+    saved = listOf(
+        SavedWordUi(
+            wordId = 1L,
+            text = "correr",
+            groupNames = emptyList(),
+            addedAt = 1_760_000_000_000L,
+            lexemes = emptyList(),
+        ),
+    ),
 )
 
 private val previewLists = ScanWordListsUi(

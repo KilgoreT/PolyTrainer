@@ -174,33 +174,59 @@ fun List<LemmaCardUiItem>.withOption(
     return updateValue(ref) { value.copy(options = options) }
 }
 
-/** «Куда класть» карточки (AWP-18); null — карточки нет. */
-fun List<LemmaCardUiItem>.withCardTarget(
+/** «Куда» лексемы-кандидата (AWP-18); null — её нет. */
+fun List<LemmaCardUiItem>.withLexemeTarget(
     lemma: String,
+    key: String,
     target: CardTargetUi,
 ): List<LemmaCardUiItem>? {
-    cardOf(lemma) ?: return null
-    return updateCard(lemma) { it.copy(target = target) }
+    lexemeOf(lemma, key) ?: return null
+    return updateLexeme(lemma, key) { it.copy(target = target) }
 }
 
-/** Своя группа карточки (AWP-08); null — карточки нет. */
-fun List<LemmaCardUiItem>.withCardGroup(
+/** Своя группа лексемы-кандидата при «новое слово» (AWP-08); null — её нет. */
+fun List<LemmaCardUiItem>.withLexemeGroup(
     lemma: String,
+    key: String,
     group: CardOwnGroupUi,
 ): List<LemmaCardUiItem>? {
-    cardOf(lemma) ?: return null
-    return updateCard(lemma) { it.copy(ownGroup = group) }
+    lexemeOf(lemma, key) ?: return null
+    return updateLexeme(lemma, key) { it.copy(ownGroup = group) }
 }
 
-/** Удалённая группа (AWP-21.3, 21.5): своя группа карточек с ней → «как у всех». */
-fun List<LemmaCardUiItem>.withoutGroup(groupId: Long): List<LemmaCardUiItem> = map { card ->
-    if (card.ownGroup == CardOwnGroupUi.Group(groupId)) card.copy(ownGroup = CardOwnGroupUi.AsCommon) else card
+/**
+ * После «Создать» (AWP-63.1, 63.3): у лексем-кандидатов карточки с «новое
+ * слово» — созданное слово; явно выбранное слово не трогается; null —
+ * карточки нет или таких лексем нет.
+ */
+fun List<LemmaCardUiItem>.withNewWordRetargeted(
+    lemma: String,
+    wordId: Long,
+): List<LemmaCardUiItem>? {
+    val card = cardOf(lemma) ?: return null
+    if (card.lexemes.none { it.target == CardTargetUi.NewWord }) return null
+    val target = CardTargetUi.Existing(wordId)
+    return updateCard(lemma) { current ->
+        current.copy(lexemes = current.lexemes.map { lexeme -> lexeme.retargetedFromNewWord(target) })
+    }
 }
 
-/** Удалённая лемма словаря (AWP-21.4): «куда класть» карточек с ней → «новое слово». */
-fun List<LemmaCardUiItem>.withoutTarget(wordId: Long): List<LemmaCardUiItem> = map { card ->
-    if (card.target == CardTargetUi.Existing(wordId)) card.copy(target = CardTargetUi.NewWord) else card
+private fun CardLexemeUiItem.retargetedFromNewWord(target: CardTargetUi): CardLexemeUiItem =
+    if (this.target == CardTargetUi.NewWord) copy(target = target) else this
+
+/** Удалённая группа (AWP-21.3, 21.5): своя группа лексем-кандидатов с ней → «как у всех». */
+fun List<LemmaCardUiItem>.withoutGroup(groupId: Long): List<LemmaCardUiItem> = mapLexemes { lexeme ->
+    if (lexeme.ownGroup == CardOwnGroupUi.Group(groupId)) lexeme.copy(ownGroup = CardOwnGroupUi.AsCommon) else lexeme
 }
+
+/** Удалённая лемма словаря (AWP-21.4): «Куда» лексем-кандидатов с ней → «новое слово». */
+fun List<LemmaCardUiItem>.withoutTarget(wordId: Long): List<LemmaCardUiItem> = mapLexemes { lexeme ->
+    if (lexeme.target == CardTargetUi.Existing(wordId)) lexeme.copy(target = CardTargetUi.NewWord) else lexeme
+}
+
+/** Каждая лексема-кандидат каждой карточки с изменением. */
+private fun List<LemmaCardUiItem>.mapLexemes(change: (CardLexemeUiItem) -> CardLexemeUiItem): List<LemmaCardUiItem> =
+    map { card -> card.copy(lexemes = card.lexemes.map(change)) }
 
 /** Выключенный компонент (AWP-21.6): его значения уходят у всех лексем. */
 fun List<LemmaCardUiItem>.withoutComponent(typeId: Long): List<LemmaCardUiItem> = map { card ->

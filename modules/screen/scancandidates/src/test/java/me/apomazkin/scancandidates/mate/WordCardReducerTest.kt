@@ -18,14 +18,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Карточка под словом глазами редьюсера: раскрытие и сворачивание (AWP-42),
- * значения нового слова (AWP-43, AWP-57), слово «в словаре» и проверка по
- * тексту (AWP-46, AWP-49, AWP-18), «Добавить» (AWP-47, AWP-50.12), удаление
- * слова (AWP-48), «не найдено», ошибка и отказ (AWP-55, AWP-61), разделы
- * карточки (AWP-30, AWP-31). Адреса строк спеки — `AWP-NN_k`.
+ * Плашки под словом глазами редьюсера: раскрытие и сворачивание (AWP-42),
+ * плашки нейронки нового слова (AWP-43, AWP-57), плашки словаря и проверка по
+ * тексту (AWP-46, AWP-49, AWP-50), «Куда» (AWP-18), кнопки плашек (AWP-47),
+ * «Не нужно» (AWP-64), «Убрать из списка» (AWP-48), «не найдено», ошибка и
+ * отказ (AWP-55, AWP-61), разделы под плашками (AWP-30, AWP-31). Адреса строк
+ * спеки — `AWP-NN_k`.
  */
 class WordCardReducerTest {
     private val reducer = reducer()
+
+    private val runKey = "ruwiktionary/1.verb.1"
+    private val manageKey = "ruwiktionary/1.verb.2"
 
     private fun lookupOf(word: String) = DatasourceEffect.LookupLemma(
         word = word,
@@ -54,38 +58,35 @@ class WordCardReducerTest {
     }
 
     @Test
-    fun `AWP-42_2 a second tap folds the card of the word only, the other card stays open`() {
-        val two = Fx.lists(lexical = listOf("ran", "bank"))
-        val ran = reducer.withCard("ran", Fx.ran, lists = two)
-        val both = reducer.step(ran, Msg.LoadLexemes("bank"))
+    fun `AWP-42_2 a second tap folds the plates of the word only, the other word stays open`() {
+        val two = Fx.lists(lexical = listOf("run", "bank"))
+        val run = reducer.withCard("run", Fx.run, lists = two)
+        val both = reducer.step(run, Msg.LoadLexemes("bank"))
 
-        val folded = reducer.testReduce(both, Msg.ToggleCard("ran"))
+        val folded = reducer.testReduce(both, Msg.ToggleCard("run"))
 
-        assertFalse(folded.state().word("ran").isExpanded)
+        assertFalse(folded.state().word("run").isExpanded)
         assertTrue(folded.state().word("bank").isExpanded)
-        assertEquals(both.card("ran"), folded.state().card("ran"))
+        assertEquals(both.card("run"), folded.state().card("run"))
         folded.assertNoEffects()
     }
 
     @Test
-    fun `AWP-42_4 a folded card opens as it was, without the deleted value and without a new request`() {
-        val loaded = reducer.withCard("ran", Fx.ran)
-        val deleted = reducer.step(loaded, Msg.DeleteLexeme("run", "ruwiktionary/1.verb.2"))
-        val folded = reducer.step(deleted, Msg.ToggleCard("ran"))
+    fun `AWP-42_4 a folded word opens as it was, without the dismissed plate and without a new request`() {
+        val loaded = reducer.withCard("run", Fx.run)
+        val dismissed = reducer.step(loaded, Msg.DismissLexeme("run", manageKey))
+        val folded = reducer.step(dismissed, Msg.ToggleCard("run"))
 
-        val reopened = reducer.testReduce(folded, Msg.ToggleCard("ran"))
+        val reopened = reducer.testReduce(folded, Msg.ToggleCard("run"))
 
-        assertTrue(reopened.state().word("ran").isExpanded)
-        assertEquals(deleted.card("ran"), reopened.state().card("ran"))
-        assertEquals(
-            listOf("ruwiktionary/1.verb.1"),
-            reopened.state().lemmaCard("ran").lexemes.map { it.key },
-        )
+        assertTrue(reopened.state().word("run").isExpanded)
+        assertEquals(dismissed.card("run"), reopened.state().card("run"))
+        assertEquals(listOf(runKey), reopened.state().lemmaCard("run").lexemes.map { it.key })
         reopened.assertNoEffects()
     }
 
     @Test
-    fun `AWP-42_5 the answer lands in a card folded during loading and shows on the next tap`() {
+    fun `AWP-42_5 the answer lands under a word folded during loading and shows on the next tap`() {
         val loading = reducer.step(reducer.windowOf("corrían"), Msg.LoadLexemes("corrían"))
         val folded = reducer.step(loading, Msg.ToggleCard("corrían"))
 
@@ -99,7 +100,7 @@ class WordCardReducerTest {
     }
 
     @Test
-    fun `AWP-42_6 a card folded with an error opens with the same error and retry, no request goes by itself`() {
+    fun `AWP-42_6 a word folded with an error opens with the same error and retry, no request goes by itself`() {
         val loading = reducer.step(reducer.windowOf("corrían"), Msg.LoadLexemes("corrían"))
         val failure = Msg.LexemesUnavailable("corrían", R.string.scan_server_unavailable)
         val folded = reducer.steps(loading, failure, Msg.ToggleCard("corrían"))
@@ -111,6 +112,19 @@ class WordCardReducerTest {
         assertEquals(R.string.scan_server_unavailable, card.errorRes)
         assertTrue(card.hasRetryButton)
         reopened.assertNoEffects()
+    }
+
+    @Test
+    fun `AWP-42_7 a checked word in the dictionary folds and opens with the saved and the neural plates together`() {
+        val checked = reducer.steps(savedRun(), Msg.LoadLexemes("run"), Fx.lexemes("run", Fx.run))
+        val folded = reducer.step(checked, Msg.ToggleCard("run"))
+
+        val reopened = reducer.step(folded, Msg.ToggleCard("run"))
+
+        assertFalse(folded.word("run").isExpanded)
+        assertEquals(checked.card("run"), reopened.card("run"))
+        assertEquals(listOf(Fx.savedWord(Fx.runExisting)), reopened.card("run").saved)
+        assertEquals(2, reopened.lemmaCard("run").lexemes.size)
     }
 
     @Test
@@ -127,15 +141,15 @@ class WordCardReducerTest {
         assertEquals(1, loading.lists.countPending())
     }
 
-    // ===== Значения нового слова (AWP-43) =====
+    // ===== Плашки нейронки нового слова (AWP-43, AWP-18) =====
 
     @Test
-    fun `AWP-43_1 AWP-43_4 AWP-57_3 corrian brings correr with three lexemes in the selection order, only the first in the text`() {
+    fun `AWP-43_1 AWP-43_4 AWP-57_3 AWP-18_3 corrian brings three plates in the selection order, only the first in the text, each for a new word`() {
         val state = reducer.withCard("corrían", Fx.corrian)
 
         val card = state.card("corrían")
         assertEquals(CardPhase.CANDIDATES, card.phase)
-        assertEquals("correr", card.lemma.lemma)
+        assertEquals("corrían", card.lemma.lemma)
         assertEquals("third-person plural imperfect indicative", card.lemma.formNote)
         assertEquals(listOf("corrían"), card.lemma.sourceWords)
         assertEquals(
@@ -147,28 +161,34 @@ class WordCardReducerTest {
             listOf("Перевод: течь, литься, струиться (о жидкости)", "Часть речи: глагол", "Толкование: to flow"),
             state.shown("corrían", "ruwiktionary/1.verb.3"),
         )
-        assertTrue(card.canAdd)
+        assertTrue(card.lemma.lexemes.all { it.target == CardTargetUi.NewWord && it.canWrite })
+        assertTrue(card.saved.isEmpty())
         assertNull(card.errorRes)
     }
 
     @Test
-    fun `AWP-43_7 children answered with child puts the card on child with the lemma of the dictionary and its saved lexemes`() {
-        val state = reducer.withCard("children", Fx.children, existing = listOf(Fx.childExisting))
+    fun `AWP-18_2 AWP-50_16 a new word without lemmas of the dictionary has nothing to choose and no marks`() {
+        val state = reducer.withCard("friendship", Fx.run.copy(text = "friendship"))
 
-        val card = state.card("children")
-        assertEquals("child", card.lemma.lemma)
-        assertEquals("plural", card.lemma.formNote)
-        assertEquals(CardTargetUi.Existing(Fx.CHILD_WORD), card.lemma.target)
-        assertEquals(1, card.lemma.existingCount)
-        assertEquals(listOf(Fx.saved(9L, "ребёнок")), card.saved)
-        assertTrue(state.lexeme("children", "ruwiktionary/1.noun.1").exists)
-        assertFalse(state.lexeme("children", "ruwiktionary/1.noun.2").exists)
-        assertTrue(card.canAdd)
-        assertEquals(listOf(Fx.CHILD_WORD), requireNotNull(state.form).existingLemmas.map { it.wordId })
+        assertTrue(requireNotNull(state.form).existingLemmas.none { it.text == "friendship" })
+        assertEquals(0, state.lemmaCard("friendship").existingCount)
+        assertTrue(state.lemmaCard("friendship").lexemes.none { it.exists })
     }
 
     @Test
-    fun `AWP-30_15 AWP-30_12 AWP-31_6 the remarks and the matches of the answer are in the card of the word`() {
+    fun `AWP-18_12 the target of one plate is chosen apart and the sheet closes`() {
+        val loaded = reducer.withCard("run", Fx.run, form = Fx.form(existing = listOf(Fx.runExisting)))
+
+        val chosen = reducer.testReduce(loaded, Msg.SetCardTarget("run", runKey, CardTargetUi.Existing(Fx.RUN_WORD)))
+
+        assertEquals(CardTargetUi.Existing(Fx.RUN_WORD), chosen.state().lexeme("run", runKey).target)
+        assertEquals(CardTargetUi.NewWord, chosen.state().lexeme("run", manageKey).target)
+        assertNull(chosen.state().sheet)
+        chosen.assertNoEffects()
+    }
+
+    @Test
+    fun `AWP-30_15 AWP-30_12 AWP-31_6 the remarks and the matches of the answer are under the plates of the word`() {
         val unclear = Fx.perro.copy(remarks = listOf(WordRemarkUi.ComponentUnclear(Fx.UNCLEAR)))
         val form = Fx.form(components = Fx.tree + Fx.unclear)
 
@@ -201,7 +221,7 @@ class WordCardReducerTest {
     }
 
     @Test
-    fun `AWP-31_4 the matches section of the card is folded on open and toggles per word`() {
+    fun `AWP-31_4 the matches section is folded on open and toggles per word`() {
         val state = reducer.withCard("perro", Fx.perro)
 
         val expanded = reducer.testReduce(state, Msg.ToggleComponentMatches("perro"))
@@ -213,10 +233,10 @@ class WordCardReducerTest {
         expanded.assertNoEffects()
     }
 
-    // ===== Слово «в словаре» (AWP-46, AWP-18) =====
+    // ===== Плашки словаря (AWP-46) =====
 
     @Test
-    fun `AWP-46_1 AWP-18_3 a tap on a word in the dictionary opens the saved lexemes of the newest lemma without a request`() {
+    fun `AWP-46_1 AWP-46_3 a tap on a word in the dictionary opens a saved plate per lemma with the text, newest first, without a request`() {
         val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
         val window = reducer.windowOf("bank", form = form)
 
@@ -225,87 +245,63 @@ class WordCardReducerTest {
         val card = result.state().card("bank")
         assertTrue(result.state().word("bank").isExpanded)
         assertEquals(CardPhase.SAVED, card.phase)
-        assertEquals(CardTargetUi.Existing(Fx.BANK_1), card.lemma.target)
-        assertEquals(2, card.lemma.existingCount)
+        assertEquals(listOf(Fx.savedWord(Fx.bank1), Fx.savedWord(Fx.bank2)), card.saved)
         assertEquals(
-            listOf(listOf("Перевод: банк"), listOf("Перевод: банкомёт")),
-            card.saved.map { it.shown(form) },
+            listOf(listOf(listOf("Перевод: банк"), listOf("Перевод: банкомёт")), listOf(listOf("Перевод: берег"))),
+            card.saved.map { saved -> saved.lexemes.map { it.shown(form) } },
         )
+        assertEquals(2, card.lemma.existingCount)
         assertTrue(card.lemma.lexemes.isEmpty())
-        assertFalse(card.canAdd)
         result.assertNoEffects()
     }
 
     @Test
-    fun `AWP-46_4 a word in the dictionary without lexemes opens an empty card`() {
+    fun `AWP-46_4 a word in the dictionary without lexemes opens a saved plate without values`() {
         val form = Fx.form(existing = listOf(Fx.run1))
 
         val opened = reducer.step(reducer.windowOf("run", form = form), Msg.OpenSavedCard("run"))
 
         val card = opened.card("run")
         assertEquals(CardPhase.SAVED, card.phase)
-        assertTrue(card.saved.isEmpty())
+        assertEquals(listOf(Fx.savedWord(Fx.run1)), card.saved)
+        assertTrue(card.saved.single().lexemes.isEmpty())
         assertTrue(card.lemma.lexemes.isEmpty())
-        assertEquals(CardTargetUi.Existing(Fx.RUN_WORD), card.lemma.target)
     }
 
-    @Test
-    fun `AWP-18_8 choosing the older bank shows its saved lexemes and the check compares with them`() {
-        val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
-        val opened = reducer.step(reducer.windowOf("bank", form = form), Msg.OpenSavedCard("bank"))
-        val shore = Fx.lexeme(
-            key = "ruwiktionary/1.noun.2",
-            translations = listOf("берег"),
-            partOfSpeechKey = "noun",
-            matches = listOf(Fx.byField(Fx.TRANSLATION, "translations"), Fx.byOption(Fx.PART_OF_SPEECH, Fx.NOUN)),
-        )
-        val answer = Fx.word("bank", Fx.lemma("bank", listOf(Fx.bankNoun, shore)))
-
-        val older = reducer.step(opened, Msg.SetCardTarget("bank", CardTargetUi.Existing(Fx.BANK_2)))
-        val checked = reducer.steps(older, Msg.LoadLexemes("bank"), Fx.lexemes("bank", answer))
-
-        assertEquals(CardTargetUi.Existing(Fx.BANK_2), older.lemmaCard("bank").target)
-        assertEquals(listOf(listOf("Перевод: берег")), older.card("bank").saved.map { it.shown(form) })
-        assertNull(older.sheet)
-        assertEquals(CardTargetUi.Existing(Fx.BANK_2), checked.lemmaCard("bank").target)
-        assertTrue(checked.lexeme("bank", "ruwiktionary/1.noun.2").exists)
-        assertFalse(checked.lexeme("bank", "ruwiktionary/1.noun.1").exists)
-    }
-
-    // ===== Проверить по тексту (AWP-49) =====
+    // ===== Проверить по тексту (AWP-49, AWP-50) =====
 
     private val withRun = Fx.form(existing = listOf(Fx.runExisting))
 
     private fun savedRun() = reducer.step(reducer.windowOf("run", form = withRun), Msg.OpenSavedCard("run"))
 
     @Test
-    fun `AWP-49_1 AWP-57_2 check against the text asks the lemma of the word with the context of the photo, saved lexemes stay while loading`() {
+    fun `AWP-49_1 AWP-57_2 check against the text asks the lemma of the word with the context of the photo, saved plates stay while loading`() {
         val result = reducer.testReduce(savedRun(), Msg.LoadLexemes("run"))
 
         val card = result.state().card("run")
         assertEquals(CardPhase.LOADING, card.phase)
-        assertEquals(Fx.runExisting.lexemes, card.saved)
-        assertEquals(CardTargetUi.Existing(Fx.RUN_WORD), card.lemma.target)
+        assertEquals(listOf(Fx.savedWord(Fx.runExisting)), card.saved)
         result.assertEffects(setOf<Effect>(lookupOf("run")))
     }
 
     @Test
-    fun `AWP-49_4 AWP-47_6 the answer to the check marks the saved value and leaves the new one to add`() {
+    fun `AWP-49_4 AWP-47_6 AWP-50_1 the answer to the check marks the saved value and leaves the new one to write`() {
         val loading = reducer.step(savedRun(), Msg.LoadLexemes("run"))
 
         val answered = reducer.step(loading, Fx.lexemes("run", Fx.run))
 
         val card = answered.card("run")
         assertEquals(CardPhase.CANDIDATES, card.phase)
-        assertEquals(CardTargetUi.Existing(Fx.RUN_WORD), card.lemma.target)
-        assertEquals(Fx.runExisting.lexemes, card.saved)
-        assertTrue(answered.lexeme("run", "ruwiktionary/1.verb.2").exists)
-        assertFalse(answered.lexeme("run", "ruwiktionary/1.verb.1").exists)
-        assertTrue(card.canAdd)
+        assertEquals(listOf(Fx.savedWord(Fx.runExisting)), card.saved)
+        assertTrue(answered.lexeme("run", manageKey).exists)
+        assertFalse(answered.lexeme("run", manageKey).canWrite)
+        assertFalse(answered.lexeme("run", runKey).exists)
+        assertTrue(answered.lexeme("run", runKey).canWrite)
+        assertEquals(CardTargetUi.NewWord, answered.lexeme("run", runKey).target)
     }
 
     @Test
-    fun `AWP-49_5 AWP-47_7 not found after the check leaves the saved lexemes in the card and no add`() {
+    fun `AWP-49_5 AWP-47_7 AWP-55_10 not found after the check leaves the saved plates and no plates to write`() {
         val loading = reducer.step(savedRun(), Msg.LoadLexemes("run"))
 
         val notFound = reducer.step(loading, Msg.LexemesNotFound("run", R.string.scan_not_found))
@@ -314,52 +310,88 @@ class WordCardReducerTest {
         assertEquals(CardPhase.NOT_FOUND, card.phase)
         assertEquals(R.string.scan_not_found, card.errorRes)
         assertFalse(card.hasRetryButton)
-        assertEquals(Fx.runExisting.lexemes, card.saved)
-        assertFalse(card.canAdd)
-    }
-
-    // ===== «Добавить» (AWP-47, AWP-50.12) =====
-
-    @Test
-    fun `AWP-47_1 a new word with candidates can be added`() {
-        assertTrue(reducer.withCard("ran", Fx.ran).card("ran").canAdd)
+        assertEquals(listOf(Fx.savedWord(Fx.runExisting)), card.saved)
+        assertTrue(card.lemma.lexemes.isEmpty())
     }
 
     @Test
-    fun `AWP-47_2 AWP-15_3 all lexemes deleted leave the card empty with add off`() {
-        val loaded = reducer.withCard("ran", Fx.ran)
-
-        val emptied = reducer.steps(
-            loaded,
-            Msg.DeleteLexeme("run", "ruwiktionary/1.verb.1"),
-            Msg.DeleteLexeme("run", "ruwiktionary/1.verb.2"),
+    fun `AWP-50_14 AWP-18_8 the mark follows every lemma with the text whatever target the plate has`() {
+        val form = Fx.form(existing = listOf(Fx.bank1, Fx.bank2))
+        val shore = Fx.lexeme(
+            key = "ruwiktionary/1.noun.2",
+            translations = listOf("берег"),
+            partOfSpeechKey = "noun",
+            matches = listOf(Fx.byField(Fx.TRANSLATION, "translations"), Fx.byOption(Fx.PART_OF_SPEECH, Fx.NOUN)),
         )
+        val answer = Fx.word("bank", Fx.lemma("bank", listOf(Fx.bankNoun, shore)))
+        val opened = reducer.step(reducer.windowOf("bank", form = form), Msg.OpenSavedCard("bank"))
 
-        assertTrue(emptied.lemmaCard("ran").lexemes.isEmpty())
-        assertFalse(emptied.card("ran").canAdd)
-        assertEquals(CardPhase.CANDIDATES, emptied.card("ran").phase)
+        val checked = reducer.steps(opened, Msg.LoadLexemes("bank"), Fx.lexemes("bank", answer))
+        val retargeted = reducer.step(checked, Msg.SetCardTarget("bank", "ruwiktionary/1.noun.1", CardTargetUi.Existing(Fx.BANK_1)))
+
+        assertTrue(checked.lexeme("bank", "ruwiktionary/1.noun.2").exists)
+        assertFalse(checked.lexeme("bank", "ruwiktionary/1.noun.1").exists)
+        assertTrue(retargeted.lexeme("bank", "ruwiktionary/1.noun.2").exists)
+        assertFalse(retargeted.lexeme("bank", "ruwiktionary/1.noun.1").exists)
     }
 
     @Test
-    fun `AWP-50_12 all candidates already in the dictionary give nothing to add and no pending word`() {
+    fun `AWP-50_12 all plates already in the dictionary give nothing to write and no pending word`() {
         val run = Fx.existing(Fx.RUN_WORD, "run", listOf("бежать, бегать", "управлять"))
         val form = Fx.form(existing = listOf(run))
 
-        val state = reducer.withCard("ran", Fx.ran, form = form)
+        val state = reducer.withCard("run", Fx.run, form = form)
 
-        assertTrue(state.lemmaCard("ran").lexemes.all { it.exists })
-        assertFalse(state.card("ran").canAdd)
+        assertTrue(state.lemmaCard("run").lexemes.all { it.exists && !it.canWrite })
         assertEquals(0, state.lists.countPending())
     }
 
-    // ===== Удаление слова (AWP-48) =====
+    // ===== «Не нужно» (AWP-64, AWP-62) =====
 
     @Test
-    fun `AWP-48_1 delete removes the word from its list and leaves the others`() {
+    fun `AWP-64_1 AWP-64_3 not needed drops the plate and leaves the others, a second press drops nothing more`() {
+        val loaded = reducer.withCard("run", Fx.runThree)
+
+        val first = reducer.testReduce(loaded, Msg.DismissLexeme("run", manageKey))
+        val second = reducer.testReduce(first.state(), Msg.DismissLexeme("run", manageKey))
+
+        assertEquals(listOf(runKey, "enwiktionary/1.verb.37"), first.state().lemmaCard("run").lexemes.map { it.key })
+        assertEquals(first.state(), second.state())
+        first.assertNoEffects()
+        second.assertNoEffects()
+    }
+
+    @Test
+    fun `AWP-64_4 AWP-62_5 not needed on the last plate drops the word from the list without a write`() {
+        val loaded = reducer.withCard("tiempo", Fx.tiempo, lists = Fx.lists(lexical = listOf("tiempo", "cielo")))
+
+        val result = reducer.testReduce(loaded, Msg.DismissLexeme("tiempo", "ruwiktionary/1.noun.3"))
+
+        assertNull(result.state().lists.wordOf("tiempo"))
+        assertEquals(listOf("cielo"), result.state().lists.lexical.texts())
+        result.assertNoEffects()
+    }
+
+    @Test
+    fun `AWP-64_5 AWP-62_6 a plate already in the dictionary goes by not needed too and takes the word with it when last`() {
+        val checked = reducer.steps(savedRun(), Msg.LoadLexemes("run"), Fx.lexemes("run", Fx.run))
+        val written = reducer.transferred(checked, "run", runKey)
+
+        val dismissed = reducer.step(written, Msg.DismissLexeme("run", manageKey))
+
+        assertTrue(written.lexeme("run", manageKey).exists)
+        assertEquals(listOf(manageKey), written.lemmaCard("run").lexemes.map { it.key })
+        assertNull(dismissed.lists.wordOf("run"))
+    }
+
+    // ===== «Убрать из списка» (AWP-48) =====
+
+    @Test
+    fun `AWP-48_1 remove drops the word from its list and leaves the others`() {
         val lists = Fx.lists(lexical = listOf("nube"), unparsed = listOf("sh"))
         val window = reducer.window(found = Fx.found(lists = lists))
 
-        val result = reducer.testReduce(window, Msg.DeleteWord("sh"))
+        val result = reducer.testReduce(window, Msg.RemoveWord("sh"))
 
         assertTrue(result.state().lists.unparsed.isEmpty())
         assertEquals(listOf("nube"), result.state().lists.lexical.texts())
@@ -367,18 +399,29 @@ class WordCardReducerTest {
     }
 
     @Test
-    fun `AWP-48_4 a deleted loading word does not come back with the late answer and is not counted at closing`() {
+    fun `AWP-48_4 a removed loading word does not come back with the late answer and is not counted at closing`() {
         val loading = reducer.step(reducer.windowOf("sibling", "link"), Msg.LoadLexemes("sibling"))
-        val deleted = reducer.step(loading, Msg.DeleteWord("sibling"))
+        val removed = reducer.step(loading, Msg.RemoveWord("sibling"))
 
-        val late = reducer.testReduce(deleted, Fx.lexemes("sibling", Fx.ran))
+        val late = reducer.testReduce(removed, Fx.lexemes("sibling", Fx.run))
         val closing = reducer.testReduce(late.state(), Msg.RequestClose)
 
-        assertNull(deleted.lists.wordOf("sibling"))
-        assertEquals(deleted, late.state())
+        assertNull(removed.lists.wordOf("sibling"))
+        assertEquals(removed, late.state())
         late.assertNoEffects()
         assertEquals(0, late.state().lists.countPending())
         closing.assertEffects(setOf<Effect>(NavigationEffect.Back))
+    }
+
+    @Test
+    fun `AWP-48_5 removing a word in the dictionary drops its row and leaves the dictionary as it was`() {
+        val saved = savedRun()
+
+        val result = reducer.testReduce(saved, Msg.RemoveWord("run"))
+
+        assertNull(result.state().lists.wordOf("run"))
+        assertEquals(withRun, result.state().form)
+        result.assertNoEffects()
     }
 
     // ===== «Не найдено», ошибка и отказ (AWP-55, AWP-61) =====
@@ -387,7 +430,7 @@ class WordCardReducerTest {
         reducer.step(reducer.windowOf(text), Msg.LoadLexemes(text))
 
     @Test
-    fun `AWP-55_1 AWP-55_7 not found and no meanings show the text under the word without retry`() {
+    fun `AWP-55_1 AWP-55_7 not found and no meanings show the text under the word without retry and without plates`() {
         val notFound = reducer.testReduce(loading(), Msg.LexemesNotFound("accorc", R.string.scan_not_found))
         val noLexemes = reducer.step(loading(), Msg.LexemesNotFound("accorc", R.string.scan_no_lexemes))
 
@@ -395,7 +438,7 @@ class WordCardReducerTest {
         assertEquals(CardPhase.NOT_FOUND, card.phase)
         assertEquals(R.string.scan_not_found, card.errorRes)
         assertFalse(card.hasRetryButton)
-        assertFalse(card.canAdd)
+        assertTrue(card.lemma.lexemes.isEmpty())
         assertEquals(R.string.scan_no_lexemes, noLexemes.card("accorc").errorRes)
         notFound.assertNoEffects()
     }
@@ -443,14 +486,17 @@ class WordCardReducerTest {
 
     @Test
     fun `messages about a word that is not in the lists change nothing`() {
-        val window = reducer.windowOf("ran")
+        val window = reducer.windowOf("run")
         val strangers = listOf(
             Msg.LoadLexemes("qwerty"),
             Msg.OpenSavedCard("qwerty"),
             Msg.ToggleCard("qwerty"),
-            Msg.DeleteWord("qwerty"),
+            Msg.RemoveWord("qwerty"),
             Msg.ToggleComponentMatches("qwerty"),
-            Msg.AddWord("qwerty"),
+            Msg.AddLexeme("qwerty", runKey),
+            Msg.DismissLexeme("qwerty", runKey),
+            Msg.RetryAdd("qwerty", runKey),
+            Msg.SetCardTarget("qwerty", runKey, CardTargetUi.NewWord),
         )
 
         strangers.forEach { message ->

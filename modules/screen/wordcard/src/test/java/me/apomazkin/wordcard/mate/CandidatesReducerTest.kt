@@ -10,7 +10,6 @@ import me.apomazkin.candidates.CandidateAction
 import me.apomazkin.candidates.CandidateValueUiItem
 import me.apomazkin.candidates.CandidatesSheetUi
 import me.apomazkin.candidates.CardLexemeUiItem
-import me.apomazkin.candidates.CardTargetUi
 import me.apomazkin.candidates.ComponentMatchLineUiItem
 import me.apomazkin.candidates.ComponentRecommendationUi
 import me.apomazkin.candidates.DictionaryFormUi
@@ -326,7 +325,6 @@ class CandidatesReducerTest {
         assertNotNull(dialog.form)
         assertEquals(2, dialog.cards.size)
         assertTrue(dialog.summary.isEnabled)
-        assertTrue(dialog.cards.all { it.target == CardTargetUi.NewWord })
     }
 
     @Test

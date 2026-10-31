@@ -6,7 +6,6 @@ import io.github.kilgoret.mate.state
 import io.github.kilgoret.mate.test.testReduce
 import me.apomazkin.candidates.ComponentRecommendationUi
 import me.apomazkin.candidates.DictionaryFormUi
-import me.apomazkin.candidates.ExistingLemmaUi
 import me.apomazkin.candidates.LookupWordUi
 import me.apomazkin.lexeme.LookupToken
 import me.apomazkin.lexeme.WordsBatch
@@ -67,7 +66,7 @@ internal fun ScanCandidatesReducer.windowOf(
 ): ScanCandidatesState = window(found = Fx.found(lists = Fx.lists(lexical = texts.toList())), form = form)
 
 /**
- * Окно с раскрытой карточкой слова [text] по ответу [word]: тап и ответ
+ * Окно с плашками нейронки слова [text] по ответу [word]: тап и ответ
  * сервера; списки — одно это слово, если не заданы.
  */
 internal fun ScanCandidatesReducer.withCard(
@@ -76,15 +75,34 @@ internal fun ScanCandidatesReducer.withCard(
     form: DictionaryFormUi = Fx.form(),
     lists: ScanWordListsUi = Fx.lists(lexical = listOf(text)),
     recommendations: List<ComponentRecommendationUi> = emptyList(),
-    existing: List<ExistingLemmaUi> = emptyList(),
 ): ScanCandidatesState = steps(
     window(found = Fx.found(lists = lists), form = form),
     Msg.LoadLexemes(text),
-    Fx.lexemes(text, word, recommendations, existing),
+    Fx.lexemes(text, word, recommendations),
 )
 
-/** Пакет записи слова из эффекта «Добавить». */
+/** Пакет записи плашки из эффекта «Создать» или «Перенести». */
 internal fun ScanCandidatesReducer.batchOf(
     state: ScanCandidatesState,
     text: String,
-): WordsBatch = (effectsOf(state, Msg.AddWord(text)).single() as DatasourceEffect.AddWord).batch
+    key: String,
+): WordsBatch = when (val effect = effectsOf(state, Msg.AddLexeme(text, key)).single()) {
+    is DatasourceEffect.CreateWord -> effect.batch
+    is DatasourceEffect.TransferLexeme -> effect.batch
+    else -> error("no write effect: $effect")
+}
+
+/** «Создать» у плашки прошло: нажатие и ответ записи с id нового слова. */
+internal fun ScanCandidatesReducer.created(
+    state: ScanCandidatesState,
+    text: String,
+    key: String,
+    wordId: Long,
+): ScanCandidatesState = steps(state, Msg.AddLexeme(text, key), Msg.WordCreated(text, key, wordId))
+
+/** «Перенести» у плашки прошло: нажатие и ответ записи. */
+internal fun ScanCandidatesReducer.transferred(
+    state: ScanCandidatesState,
+    text: String,
+    key: String,
+): ScanCandidatesState = steps(state, Msg.AddLexeme(text, key), Msg.LexemeAdded(text, key))

@@ -7,12 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +33,7 @@ import me.apomazkin.candidates.ExistingLemmaUi
 import me.apomazkin.candidates.FormComponentUi
 import me.apomazkin.candidates.LemmaCardUiItem
 import me.apomazkin.candidates.SavedLexemeUi
+import me.apomazkin.candidates.SavedWordUi
 import me.apomazkin.candidates.ValueRefUi
 import me.apomazkin.candidates.componentOf
 import me.apomazkin.candidates.existingOf
@@ -43,175 +44,107 @@ import me.apomazkin.theme.cardDivider
 import me.apomazkin.theme.destructiveRed
 import me.apomazkin.theme.formTextSecondary
 import me.apomazkin.theme.formTextTertiary
+import java.text.DateFormat
+import java.util.Date
 
 /**
- * Карточка леммы под словом (AWP-42, AWP-43), всегда целиком: лемма с
- * пометкой «есть в словаре», слово текста, «куда класть» (AWP-18), своя
- * группа (AWP-08) и лексемы-кандидаты со значениями по компонентам
- * (AWP-29). Крестик карточки — по [onDeleteCard], null — крестика нет: у
- * окна снимка слово удаляет своя кнопка (AWP-48); текст пометки «уже в
- * словаре» или «есть» — [existsMarkRes]. Свёрнутого вида нет.
+ * Плашка словаря под словом окна снимка (AWP-46): группы слова или «Все» и
+ * день добавления коротким форматом локали одной строкой, под ней
+ * сохранённые лексемы — значения строками «Имя: значение», без крестиков и
+ * правки; слово без лексем — одна строка групп и даты (AWP-46.4).
  */
 @Composable
-fun LemmaCardWidget(
-    card: LemmaCardUiItem,
+fun SavedWordPlate(
+    saved: SavedWordUi,
     form: DictionaryFormUi,
-    onAction: (CandidateAction) -> Unit,
-    onDeleteCard: (() -> Unit)?,
-    @StringRes existsMarkRes: Int = R.string.photo_add_exists_mark,
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        CardHead(card = card, form = form, onDeleteCard = onDeleteCard)
-        CardChoices(card = card, form = form, onAction = onAction)
-        card.lexemes.forEach { lexeme ->
-            HorizontalDivider(color = cardDivider, modifier = Modifier.padding(start = 16.dp))
-            LexemeRow(
-                card = card,
-                lexeme = lexeme,
-                form = form,
-                onAction = onAction,
-                existsMarkRes = existsMarkRes,
-            )
-        }
-        Spacer(modifier = Modifier.height(4.dp))
+    val dateFormat = remember { DateFormat.getDateInstance(DateFormat.SHORT) }
+    val groups = if (saved.groupNames.isEmpty()) {
+        stringResource(id = R.string.photo_add_target_no_groups)
+    } else {
+        saved.groupNames.joinToString(", ")
     }
-}
-
-/**
- * Сохранённые лексемы леммы словаря под заголовком «В словаре» (AWP-46):
- * значения как у лексемы-кандидата, без крестиков и правки.
- */
-@Composable
-fun SavedLexemeRows(
-    saved: List<SavedLexemeUi>,
-    form: DictionaryFormUi,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(id = R.string.scan_saved_title),
-            style = LexemeStyle.BodyS,
-            color = formTextSecondary,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
-        )
-        saved.forEach { lexeme ->
-            HorizontalDivider(color = cardDivider, modifier = Modifier.padding(start = 16.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-            ) {
-                lexeme.values.forEach { value ->
-                    val component = form.componentOf(value.componentId) ?: return@forEach
-                    val name = componentLabel(component)
-                    when (value) {
-                        is CandidateValueUiItem.Text -> value.texts.forEach { item ->
-                            ValueLine(name = name, value = item.text, valueColor = formTextTertiary)
-                        }
-                        is CandidateValueUiItem.Choice -> value.options.forEach { optionId ->
-                            ValueLine(name = name, value = optionLabel(form, optionId), valueColor = formTextTertiary)
-                        }
-                    }
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-    }
-}
-
-/** Лемма с пометкой «есть в словаре», слова текста и своя группа, крестик карточки, если есть кому его слушать. */
-@Composable
-private fun CardHead(
-    card: LemmaCardUiItem,
-    form: DictionaryFormUi,
-    onDeleteCard: (() -> Unit)?,
-) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
+            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 6.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = card.lemma,
-                style = LexemeStyle.BodyXLBold,
-                color = formTextTertiary,
-                modifier = Modifier.weight(1f),
-            )
-            if (card.existingCount > 0) {
-                Text(
-                    text = if (card.existingCount == 1) {
-                        stringResource(id = R.string.photo_add_exists)
-                    } else {
-                        stringResource(id = R.string.photo_add_exists_count, card.existingCount)
-                    },
-                    style = LexemeStyle.BodyS,
-                    color = LexemeColor.primary,
-                )
+        Text(
+            text = "$groups · ${dateFormat.format(Date(saved.addedAt))}",
+            style = LexemeStyle.BodyS,
+            color = LexemeColor.primary,
+        )
+        saved.lexemes.forEachIndexed { index, lexeme ->
+            if (index > 0) {
+                HorizontalDivider(color = cardDivider, modifier = Modifier.padding(vertical = 4.dp))
             }
-            if (onDeleteCard != null) {
-                Cross(onClick = onDeleteCard)
-            }
+            SavedLexemeLines(lexeme = lexeme, form = form)
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = stringResource(
-                    id = R.string.photo_add_in_text,
-                    card.sourceWords.joinToString(", "),
-                ),
-                style = LexemeStyle.BodyS,
-                color = formTextSecondary,
-            )
-            val own = card.ownGroup
-            if (own is CardOwnGroupUi.Group) {
-                val groupName = form.groups.firstOrNull { it.id == own.groupId }?.name.orEmpty()
-                Text(
-                    text = "⌂ $groupName",
-                    style = LexemeStyle.BodyS,
-                    color = LexemeColor.primary,
-                    modifier = Modifier.padding(end = 8.dp),
-                )
+    }
+}
+
+/** Значения сохранённой лексемы строками «Имя: значение» по компонентам формы. */
+@Composable
+private fun SavedLexemeLines(
+    lexeme: SavedLexemeUi,
+    form: DictionaryFormUi,
+) {
+    lexeme.values.forEach { value ->
+        val component = form.componentOf(value.componentId) ?: return@forEach
+        val name = componentLabel(component)
+        when (value) {
+            is CandidateValueUiItem.Text -> value.texts.forEach { item ->
+                ValueLine(name = name, value = item.text, valueColor = formTextTertiary)
+            }
+            is CandidateValueUiItem.Choice -> value.options.forEach { optionId ->
+                ValueLine(name = name, value = optionLabel(form, optionId), valueColor = formTextTertiary)
             }
         }
     }
 }
 
-/** «Куда: …▾» (AWP-18) и «Группа: …▾» (AWP-08) у карточки. */
+/**
+ * «Куда: …▾» (AWP-18) и «Группа: …▾» (AWP-08) у плашки нейронки: «Куда» —
+ * когда у слова есть леммы словаря (AWP-18.2), «Группа» — при «новое
+ * слово» (AWP-08.6); без групп в словаре «Группа» без стрелки (AWP-08.3).
+ */
 @Composable
-private fun CardChoices(
+fun LexemeChoices(
     card: LemmaCardUiItem,
+    lexeme: CardLexemeUiItem,
     form: DictionaryFormUi,
     onAction: (CandidateAction) -> Unit,
 ) {
     val hasExisting = form.existingOf(card.lemma).isNotEmpty()
-    val hasGroups = form.groups.isNotEmpty()
+    val isNewWord = lexeme.target == CardTargetUi.NewWord
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Choice(
-            label = stringResource(id = R.string.photo_add_where),
-            value = targetName(card, form),
-            enabled = hasExisting,
-            onClick = {
-                onAction(CandidateAction.OpenSheet(CandidatesSheetUi.CardTarget(card.lemma)))
-            },
-        )
-        Choice(
-            label = stringResource(id = R.string.photo_add_group),
-            value = ownGroupName(card.ownGroup, form),
-            enabled = hasGroups,
-            onClick = {
-                onAction(CandidateAction.OpenSheet(CandidatesSheetUi.CardGroup(card.lemma)))
-            },
-        )
+        if (hasExisting) {
+            Choice(
+                label = stringResource(id = R.string.photo_add_where),
+                value = targetName(lexeme.target, form),
+                enabled = true,
+                onClick = {
+                    val sheet = CandidatesSheetUi.CardTarget(card.lemma, lexeme.key)
+                    onAction(CandidateAction.OpenSheet(sheet))
+                },
+            )
+        }
+        if (isNewWord) {
+            Choice(
+                label = stringResource(id = R.string.photo_add_group),
+                value = ownGroupName(lexeme.ownGroup, form),
+                enabled = form.groups.isNotEmpty(),
+                onClick = {
+                    val sheet = CandidatesSheetUi.CardGroup(card.lemma, lexeme.key)
+                    onAction(CandidateAction.OpenSheet(sheet))
+                },
+            )
+        }
     }
 }
 
@@ -235,11 +168,11 @@ private fun Choice(
 
 @Composable
 private fun targetName(
-    card: LemmaCardUiItem,
+    target: CardTargetUi,
     form: DictionaryFormUi,
 ): String {
-    val target = card.target as? CardTargetUi.Existing
-    val existing = form.existingLemmas.firstOrNull { it.wordId == target?.wordId }
+    val chosen = target as? CardTargetUi.Existing
+    val existing = form.existingLemmas.firstOrNull { it.wordId == chosen?.wordId }
     return if (existing == null) {
         stringResource(id = R.string.photo_add_new_word)
     } else {
@@ -267,18 +200,20 @@ private fun ownGroupName(
 /**
  * Строка лексемы-кандидата (AWP-29): пометки «в тексте», «англ.»,
  * «изменено», «уже в словаре» или «есть», «не попадёт в ядро» и крестик
- * лексемы, под ними активные значения по компонентам в порядке значений
- * лексемы. Текст компонента — «Имя: текст», нажатие правит; у «Выбора» —
- * «Имя: подпись ▾», нажатие открывает лист опций; у компонента с несколькими
- * значениями у каждого свой крестик.
+ * лексемы по [onDelete] — null, крестика нет: у плашки окна снимка своя
+ * кнопка «Не нужно» (AWP-64); под ними активные значения по компонентам в
+ * порядке значений лексемы. Текст компонента — «Имя: текст», нажатие
+ * правит; у «Выбора» — «Имя: подпись ▾», нажатие открывает лист опций; у
+ * компонента с несколькими значениями у каждого свой крестик.
  */
 @Composable
-internal fun LexemeRow(
+fun LexemeRow(
     card: LemmaCardUiItem,
     lexeme: CardLexemeUiItem,
     form: DictionaryFormUi,
     onAction: (CandidateAction) -> Unit,
     @StringRes existsMarkRes: Int = R.string.photo_add_exists_mark,
+    onDelete: (() -> Unit)? = { onAction(CandidateAction.DeleteLexeme(card.lemma, lexeme.key)) },
 ) {
     Column(
         modifier = Modifier
@@ -291,7 +226,9 @@ internal fun LexemeRow(
         ) {
             Marks(card = card, lexeme = lexeme, existsMarkRes = existsMarkRes)
             Spacer(modifier = Modifier.weight(1f))
-            Cross(onClick = { onAction(CandidateAction.DeleteLexeme(card.lemma, lexeme.key)) })
+            if (onDelete != null) {
+                Cross(onClick = onDelete)
+            }
         }
         lexeme.values.filter { it.isActive }.forEach { value ->
             val component = form.componentOf(value.componentId) ?: return@forEach

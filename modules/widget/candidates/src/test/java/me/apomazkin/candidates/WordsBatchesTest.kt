@@ -34,11 +34,13 @@ class WordsBatchesTest {
     private fun component(typeId: Long, data: TemplateValues) =
         BatchComponent(typeId = typeId, data = data)
 
+    /** Пакет одной лексемы-кандидата первой карточки, как его собирают «Создать» и «Перенести»; по умолчанию — первой. */
     private fun batchOf(
         cards: List<LemmaCardUiItem>,
         form: DictionaryFormUi = this.form,
         commonGroupId: Long? = null,
-    ) = wordsBatchOf(cards, form, commonGroupId)
+        key: String = cards.first().lexemes.first().key,
+    ): WordsBatch = lexemeBatchOf(cards.first(), key, form, commonGroupId) ?: error("no lexeme $key")
 
     private fun BatchLexeme.typeIds(): List<Long> = components.map { it.typeId }
 
@@ -127,7 +129,7 @@ class WordsBatchesTest {
         val cards = Fx.cards(Fx.perro)
             .withTextEdit(translation, "обман")!!
 
-        val lexeme = batchOf(cards).words.single().lexemes[2]
+        val lexeme = batchOf(cards, key = "ruwiktionary/1.noun.2").firstLexeme()
 
         assertEquals(component(Fx.TRANSLATION, text("обман")), lexeme.components.first())
     }
@@ -325,44 +327,28 @@ class WordsBatchesTest {
     }
 
     @Test
-    fun `AWP-03_3 nothing deleted writes every card and lexeme except the existing ones`() {
-        val form = Fx.form(existing = listOf(Fx.runExisting))
-        val cards = Fx.cards(Fx.ran, Fx.bank, form = form)
+    fun `AWP-03_3 nothing deleted or edited writes the lexeme as the server sent it`() {
+        val cards = Fx.cards(Fx.perro)
 
-        val batch = batchOf(cards, form)
+        val lexeme = batchOf(cards).firstLexeme()
 
-        assertEquals(listOf("run", "bank"), batch.words.map { it.text })
-        assertEquals(listOf(1, 1), batch.words.map { it.lexemes.size })
+        assertEquals(
+            listOf(Fx.TRANSLATION, Fx.PART_OF_SPEECH, Fx.GENDER, Fx.GLOSS, Fx.EXAMPLE),
+            lexeme.typeIds(),
+        )
     }
 
-    // AWP-20 и AWP-08 — запись, «куда класть» и группы
+    // AWP-20 и AWP-08 — запись, «Куда» и группы
 
     @Test
-    fun `AWP-20_1 new and existing lemma go to the common group, the existing one by id`() {
-        val form = Fx.form(existing = listOf(Fx.bank1))
-        val cards = Fx.cards(Fx.ran, Fx.bank, form = form)
-
-        val batch = batchOf(cards, form, commonGroupId = Fx.POTTER)
-
-        val run = batch.words.first { it.text == "run" }
-        val bank = batch.words.first { it.text == "bank" }
-        assertEquals(Fx.DICT, batch.dictionaryId)
-        assertNull(run.wordId)
-        assertEquals(Fx.BANK_1, bank.wordId)
-        assertEquals(Fx.POTTER, run.groupId)
-        assertEquals(Fx.POTTER, bank.groupId)
-        assertEquals(3, batch.words.sumOf { it.lexemes.size })
-    }
-
-    @Test
-    fun `AWP-20_2 AWP-08_2 common group all and no own groups give lemmas without a group`() {
+    fun `AWP-08_2 common group all and no own group give a word without a group`() {
         val batch = batchOf(Fx.cards(Fx.ran, Fx.bank), commonGroupId = null)
 
         assertTrue(batch.words.all { it.groupId == null })
     }
 
     @Test
-    fun `AWP-20_3 verb and noun of run go to one lemma with different parts of speech`() {
+    fun `AWP-20_3 verb and noun of run go by two batches, a new word and then the created word`() {
         val noun = Fx.lexeme(
             key = "ruwiktionary/2.noun.1",
             translations = listOf("бег"),
@@ -372,46 +358,92 @@ class WordsBatchesTest {
             ),
         )
         val run = Fx.word("run", Fx.lemma("run", listOf(Fx.runVerb1, noun)))
+        val cards = Fx.cards(run)
 
-        val word = batchOf(Fx.cards(run)).words.single()
+        val first = batchOf(cards, commonGroupId = Fx.POTTER, key = "ruwiktionary/1.verb.1")
+        val retargeted = cards.withNewWordRetargeted("run", 9L)!!
+        val second = batchOf(retargeted, commonGroupId = Fx.POTTER, key = "ruwiktionary/2.noun.1")
 
-        assertEquals(2, word.lexemes.size)
+        assertNull(first.words.single().wordId)
+        assertEquals(Fx.POTTER, first.words.single().groupId)
+        assertEquals(9L, second.words.single().wordId)
+        assertNull(second.words.single().groupId)
         assertEquals(
             listOf(choice(Fx.VERB), choice(Fx.NOUN)),
-            word.lexemes.map { lexeme ->
-                lexeme.components.first { it.typeId == Fx.PART_OF_SPEECH }.data
+            listOf(first, second).map { batch ->
+                batch.firstLexeme().components.first { it.typeId == Fx.PART_OF_SPEECH }.data
             },
         )
     }
 
+    // AWP-20 — пакет одной лексемы
+
     @Test
-    fun `AWP-20_4 an existing lexeme is not written, a card of existing ones gives no word`() {
-        val partly = Fx.form(existing = listOf(Fx.runExisting))
-        val both = Fx.existing(5L, "run", listOf("бежать, бегать", "управлять"))
-        val all = Fx.form(existing = listOf(both))
+    fun `AWP-20_9 AWP-20_2 a new word takes the lexeme and the common group or none`() {
+        val cards = Fx.cards(Fx.ran)
 
-        val onlyNew = batchOf(Fx.cards(Fx.ran, form = partly), partly)
-        val nothing = batchOf(Fx.cards(Fx.ran, form = all), all)
+        val potter = batchOf(cards, commonGroupId = Fx.POTTER)
+        val all = batchOf(cards, commonGroupId = null)
 
-        assertEquals(listOf(text("бежать, бегать")), onlyNew.firstData())
-        assertTrue(nothing.words.isEmpty())
+        val word = potter.words.single()
+        assertNull(word.wordId)
+        assertEquals("run", word.text)
+        assertEquals(Fx.POTTER, word.groupId)
+        assertEquals(listOf(text("бежать, бегать")), potter.firstData())
+        assertNull(all.words.single().groupId)
+        assertEquals(Fx.DICT, potter.dictionaryId)
     }
 
     @Test
-    fun `AWP-20_7 AWP-08_1 own group of a card works instead of the common one`() {
-        val form = Fx.form(existing = listOf(Fx.bank1))
-        val cards = Fx.cards(Fx.ran, Fx.bank, form = form)
-            .withCardGroup("bank", CardOwnGroupUi.Group(Fx.FINANCE))!!
+    fun `AWP-20_10 a chosen word takes the lexeme and no group whatever the common and own groups`() {
+        val form = Fx.form(existing = listOf(Fx.runExisting))
+        val cards = Fx.cards(Fx.ran, form = form)
+            .withLexemeTarget("run", "ruwiktionary/1.verb.1", CardTargetUi.Existing(Fx.RUN_WORD))!!
+            .withLexemeGroup("run", "ruwiktionary/1.verb.1", CardOwnGroupUi.Group(Fx.FINANCE))!!
 
         val batch = batchOf(cards, form, commonGroupId = Fx.POTTER)
 
-        assertEquals(Fx.POTTER, batch.words.first { it.text == "run" }.groupId)
-        assertEquals(Fx.FINANCE, batch.words.first { it.text == "bank" }.groupId)
+        val word = batch.words.single()
+        assertEquals(Fx.RUN_WORD, word.wordId)
+        assertEquals("run", word.text)
+        assertNull(word.groupId)
+        assertEquals(listOf(text("бежать, бегать")), batch.firstData())
     }
 
     @Test
-    fun `AWP-08_4 own group all with a common group gives a lemma without a group`() {
-        val cards = Fx.cards(Fx.ran).withCardGroup("run", CardOwnGroupUi.All)!!
+    fun `AWP-20_11 the second lexeme goes by its own target`() {
+        val cards = Fx.cards(Fx.ran)
+            .withLexemeTarget("run", "ruwiktionary/1.verb.1", CardTargetUi.Existing(Fx.RUN_WORD))!!
+
+        val first = batchOf(cards, key = "ruwiktionary/1.verb.1")
+        val second = batchOf(cards, key = "ruwiktionary/1.verb.2")
+
+        assertEquals(Fx.RUN_WORD, first.words.single().wordId)
+        assertNull(second.words.single().wordId)
+        assertEquals(listOf(text("управлять")), second.firstData())
+    }
+
+    @Test
+    fun `AWP-20_9 a lexeme that is not there gives no batch`() {
+        assertNull(lexemeBatchOf(Fx.cards(Fx.ran).single(), "ruwiktionary/1.verb.9", form, null))
+    }
+
+    @Test
+    fun `AWP-20_7 AWP-08_1 own group of a lexeme works instead of the common one`() {
+        val form = Fx.form(existing = listOf(Fx.bank1))
+        val cards = Fx.cards(Fx.ran, Fx.bank, form = form)
+            .withLexemeGroup("bank", "ruwiktionary/1.noun.1", CardOwnGroupUi.Group(Fx.FINANCE))!!
+
+        val run = lexemeBatchOf(cards.cardOf("run")!!, "ruwiktionary/1.verb.1", form, Fx.POTTER)!!
+        val bank = lexemeBatchOf(cards.cardOf("bank")!!, "ruwiktionary/1.noun.1", form, Fx.POTTER)!!
+
+        assertEquals(Fx.POTTER, run.words.single().groupId)
+        assertEquals(Fx.FINANCE, bank.words.single().groupId)
+    }
+
+    @Test
+    fun `AWP-08_4 own group all with a common group gives a word without a group`() {
+        val cards = Fx.cards(Fx.ran).withLexemeGroup("run", "ruwiktionary/1.verb.1", CardOwnGroupUi.All)!!
 
         val batch = batchOf(cards, commonGroupId = Fx.POTTER)
 
@@ -420,40 +452,12 @@ class WordsBatchesTest {
 
     @Test
     fun `AWP-08_5 taking the own group off brings the common group back`() {
-        val own = Fx.cards(Fx.ran).withCardGroup("run", CardOwnGroupUi.Group(Fx.FINANCE))!!
+        val own = Fx.cards(Fx.ran).withLexemeGroup("run", "ruwiktionary/1.verb.1", CardOwnGroupUi.Group(Fx.FINANCE))!!
 
-        val back = own.withCardGroup("run", CardOwnGroupUi.AsCommon)!!
+        val back = own.withLexemeGroup("run", "ruwiktionary/1.verb.1", CardOwnGroupUi.AsCommon)!!
 
         assertEquals(Fx.FINANCE, batchOf(own, commonGroupId = Fx.POTTER).words.single().groupId)
         assertEquals(Fx.POTTER, batchOf(back, commonGroupId = Fx.POTTER).words.single().groupId)
-    }
-
-    @Test
-    fun `AWP-20_8 three hundred new lemmas of three lexemes are one batch of 2700 values`() {
-        val words = (1..300).map { index ->
-            val lexemes = (1..3).map { number ->
-                Fx.lexeme(
-                    key = "ruwiktionary/1.verb.$number",
-                    translations = listOf("значение $index.$number"),
-                    gloss = "meaning $index.$number",
-                    partOfSpeechKey = "verb",
-                    matches = listOf(
-                        Fx.byField(Fx.TRANSLATION, "translations"),
-                        Fx.byOption(Fx.PART_OF_SPEECH, Fx.VERB),
-                        Fx.byField(Fx.GLOSS, "gloss"),
-                    ),
-                )
-            }
-            Fx.word("word$index", Fx.lemma("lemma$index", lexemes))
-        }
-        val cards = Fx.cards(*words.toTypedArray())
-
-        val batch = batchOf(cards, commonGroupId = Fx.POTTER)
-
-        assertEquals(300, batch.words.size)
-        assertEquals(900, batch.words.sumOf { it.lexemes.size })
-        assertEquals(2700, batch.words.sumOf { word -> word.lexemes.sumOf { it.components.size } })
-        assertTrue(batch.words.all { it.wordId == null && it.groupId == Fx.POTTER })
     }
 
     // WCL-02 и WCL-10 — запись в слово диалога
@@ -508,7 +512,7 @@ class WordsBatchesTest {
     @Test
     fun `WCL-10_4 the dialog never touches the groups`() {
         val cards = buildCandidateCards(Fx.corrian, "corrían", form)
-            .withCardGroup("correr", CardOwnGroupUi.Group(Fx.FINANCE))!!
+            .withLexemeGroup("correr", "ruwiktionary/1.verb.3", CardOwnGroupUi.Group(Fx.FINANCE))!!
 
         val batch = wordsBatchForWord(Fx.CORRIAN_WORD, "corrían", cards, form)
 
